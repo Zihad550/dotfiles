@@ -18,5 +18,5 @@ if [ -n "$1" ]; then
 fi
 
 # List top 30 processes with PID, command name, full path, and CPU usage
-ps -eo pid,comm,cmd,%cpu --sort=-%cpu | head -n 30 \
-    | awk '{pid=$1; name=$2; $1=""; $2=""; cpu=$NF; $NF=""; sub(/^ +/, ""); path=$0; print pid " " name " " path " (" cpu "% CPU)"}'
+ps -eo pid,comm,cmd,%cpu --sort=-%cpu | head -n 30 |
+    awk '{pid=$1; name=$2; $1=""; $2=""; cpu=$NF; $NF=""; sub(/^ +/, ""); path=$0; print pid " " name " " path " (" cpu "% CPU)"}'

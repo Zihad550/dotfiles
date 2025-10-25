@@ -3,9 +3,9 @@
 # If called with an argument (the selected line), extract type and service name, then restart accordingly
 if [ -n "$1" ]; then
     LINE="$1"
-    SERVICE_LINE=$(echo "$LINE" | sed 's/ - .*//')  # Remove " - description"
+    SERVICE_LINE=$(echo "$LINE" | sed 's/ - .*//') # Remove " - description"
     TYPE=$(echo "$SERVICE_LINE" | cut -d: -f1)
-    SERVICE=$(echo "$SERVICE_LINE" | cut -d: -f2- | sed 's/^ *//')  # Trim leading space after :
+    SERVICE=$(echo "$SERVICE_LINE" | cut -d: -f2- | sed 's/^ *//') # Trim leading space after :
 
     if [[ "$TYPE" == "system" ]]; then
         sudo systemctl restart "$SERVICE" 2>/dev/null
@@ -15,11 +15,10 @@ if [ -n "$1" ]; then
     exit 0
 fi
 
-
 # List running user systemd services with prefix and description
-systemctl --user list-units --type=service --state=running --no-legend --no-pager \
-    | awk '{name=$1; $1=$2=$3=$4=""; sub(/^ +/, ""); print "user:" name " - " $0}'
+systemctl --user list-units --type=service --state=running --no-legend --no-pager |
+    awk '{name=$1; $1=$2=$3=$4=""; sub(/^ +/, ""); print "user:" name " - " $0}'
 
 # List running system systemd services with prefix and description
-systemctl list-units --type=service --state=running --no-legend --no-pager \
-    | awk '{name=$1; $1=$2=$3=$4=""; sub(/^ +/, ""); print "system:" name " - " $0}'
+systemctl list-units --type=service --state=running --no-legend --no-pager |
+    awk '{name=$1; $1=$2=$3=$4=""; sub(/^ +/, ""); print "system:" name " - " $0}'
