@@ -27,13 +27,12 @@ if [ -n "$1" ]; then
     fi
 
     if [ -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json ]; then
-          rm ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
-          cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
+        rm ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
+        cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
     fi
 
     # obsidian - not working
     # pkill obsidian && hyprctl dispatch workspace 7 >/dev/null 2>&1 &&  obsidian >/dev/null 2>&1
-
 
     # Change gnome, browser, vscode themes
     dotfiles-set-gnome-theme

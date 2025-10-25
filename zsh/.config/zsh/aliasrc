@@ -1,4 +1,5 @@
-#!/usr/env/bin bash
+# !/usr/env/bin bash
+
 # cmd remaps
 # alias ls=eza
 alias cat='bat --color=always'
@@ -11,34 +12,30 @@ alias ai='opencode'
 alias sysinfo='fastfetch'
 alias spec='openspec'
 
-
 # short aliases
 alias \
-c="clear" \
-v="nvim" \
-cat="bat" \
-ls="eza -lh --group-directories-first --icons=auto --color=auto" \
-la="ls -a" \
-lt='eza --tree --level=2 --long --icons --git' \
-lta='lt -a' \
-grep="rg" \
-shell="exec $SHELL -l" \
-mv="mv -i" \
-rm="rm -Iv" \
-df="df -h" \
-du="du -h -d 1" \
-k="killall" \
-p="procs" \
-f="nautilus" \
-g="git"
-
+    c="clear" \
+    v="nvim" \
+    cat="bat" \
+    ls="eza -lh --group-directories-first --icons=auto --color=auto" \
+    la="ls -a" \
+    lt='eza --tree --level=2 --long --icons --git' \
+    lta='lt -a' \
+    grep="rg" \
+    shell="exec $SHELL -l" \
+    mv="mv -i" \
+    rm="rm -Iv" \
+    df="df -h" \
+    du="du -h -d 1" \
+    k="killall" \
+    p="procs" \
+    f="nautilus" \
+    g="git"
 
 # Directories
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
-
-
 
 # Function to list directories and open the selected one in editor
 # Regular function version for command line use
@@ -61,7 +58,6 @@ fzf_dir() {
     fi
 }
 
-
 fzf_open_dir_func() {
     local editor=$1
     local dir
@@ -79,33 +75,35 @@ fzf_open_dir_func() {
     fi
 
     case $editor in
-        "code")
-            uwsm app -- code "$dir" && exit
-            ;;
-        "zed")
-           uwsm app -- zeditor "$dir" && exit
-            ;;
-        "cursor")
-            uwsm app -- cursor "$dir" & disown && exit
-            ;;
-        "windsurf")
-            uwsm app -- windsurf "$dir" && exit
-            ;;
-        "kiro")
-            uwsm app -- kiro "$dir" && exit
-            ;;
-        "nautilus")
-            uwsm app -- nautilus "$dir" & disown && exit
-            ;;
-        "nvim")
-            cd "$dir" && nvim .
-            # Not adding exit here as you typically want to keep the terminal open with nvim
-            ;;
-        *)
-            echo "Unsupported editor: $editor"
-            echo "Supported editors: code, zed, nvim"
-            return 1
-            ;;
+    "code")
+        uwsm app -- code "$dir" && exit
+        ;;
+    "zed")
+        uwsm app -- zeditor "$dir" && hyprctl dispatch focuscurrentorlast >/dev/null 2>&1 && exit
+        ;;
+    "cursor")
+        uwsm app -- cursor "$dir" &
+        disown && exit
+        ;;
+    "windsurf")
+        uwsm app -- windsurf "$dir" && exit
+        ;;
+    "kiro")
+        uwsm app -- kiro "$dir" && exit
+        ;;
+    "nautilus")
+        uwsm app -- nautilus "$dir" &
+        disown && exit
+        ;;
+    "nvim")
+        cd "$dir" && nvim .
+        # Not adding exit here as you typically want to keep the terminal open with nvim
+        ;;
+    *)
+        echo "Unsupported editor: $editor"
+        echo "Supported editors: code, zed, nvim"
+        return 1
+        ;;
     esac
 }
 
@@ -113,7 +111,6 @@ fzf_open_dir_func() {
 fzf_open_dir() {
     local dir
     dir=$(fzf_dir)
-
 
     # Clear current line
     zle kill-whole-line
@@ -136,61 +133,58 @@ alias fzz='zed $(fzf --preview="bat --color=always {}")'
 alias lg='lazygit'
 alias fcode='fzf_open_dir_func code'
 alias fcursor='fzf_open_dir_func cursor'
-zed(){
+zed() {
     fzf_open_dir_func zed
 }
 alias fnvim='fzf_open_dir_func nvim'
 alias fwind='fzf_open_dir_func windsurf'
-fod(){
+fod() {
     fzf_open_dir_func nautilus
 }
 
-
 # run code
 run() {
-  if [ -z "$1" ]; then
-    echo "Usage: run <filename>"
-    echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
-    return 1
-  fi
+    if [ -z "$1" ]; then
+        echo "Usage: run <filename>"
+        echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
+        return 1
+    fi
 
-  local file="$1"
-  if [ ! -f "$file" ]; then
-    echo "Error: File '$file' not found."
-    return 1
-  fi
+    local file="$1"
+    if [ ! -f "$file" ]; then
+        echo "Error: File '$file' not found."
+        return 1
+    fi
 
-  local extension="${file##*.}"
-  local basename="${file%.*}"
+    local extension="${file##*.}"
+    local basename="${file%.*}"
 
-  case "$extension" in
+    case "$extension" in
     go)
-      go run "$file"
-      ;;
+        go run "$file"
+        ;;
     js)
-      bun run "$file"
-      ;;
+        bun run "$file"
+        ;;
     ts)
-      bun run "$file"
-      ;;
+        bun run "$file"
+        ;;
     c)
-      gcc "$file" -o "$basename" && ./"$basename"
-      ;;
+        gcc "$file" -o "$basename" && ./"$basename"
+        ;;
     cpp)
-      g++ "$file" -o "$basename" && ./"$basename"
-      ;;
+        g++ "$file" -o "$basename" && ./"$basename"
+        ;;
     py)
-      uv run "$file"
-      ;;
+        uv run "$file"
+        ;;
     *)
-      echo "Error: Unsupported file type '.$extension'."
-      echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
-      return 1
-      ;;
-  esac
+        echo "Error: Unsupported file type '.$extension'."
+        echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
+        return 1
+        ;;
+    esac
 }
-
-
 
 # pnpm aliases
 alias pn=pnpm
@@ -227,13 +221,12 @@ gitpush() {
         return 1
     fi
 
-    git add -A && git commit -m "$1" && git push -u  origin "$branch"
+    git add -A && git commit -m "$1" && git push -u origin "$branch"
 }
 
 # github cli
 alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'
 alias gh-create-pvt='git init && gh repo create --private --source=. --remote=origin && git push -u --all && gh browse'
-
 
 # gpu stats
 #alias gpuInfo='sudo xpu-smi stats -d 0'
@@ -245,19 +238,18 @@ pomo_options["work"]="60"
 pomo_options["typing"]="11"
 pomo_options["break"]="10"
 
-pomodoro () {
-  if [ -n "$1" -a -n "${pomo_options["$1"]}" ]; then
-  val=$1
-  # echo $val | lolcat
-  timer ${pomo_options["$val"]}m
-  # spd-say "'$val' session done"
-  notify-send "'$val' session done"
-  fi
+pomodoro() {
+    if [ -n "$1" -a -n "${pomo_options["$1"]}" ]; then
+        val=$1
+        # echo $val | lolcat
+        timer ${pomo_options["$val"]}m
+        # spd-say "'$val' session done"
+        notify-send "'$val' session done"
+    fi
 }
 alias work="pomodoro 'work'"
 alias typing="pomodoro 'typing'"
 alias break="pomodoro 'break'"
-
 
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE
