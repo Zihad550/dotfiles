@@ -54,6 +54,10 @@ sudo pacman -Syu --noconfirm stow
 # create keyring
 ~/dotfiles/setup/arch-hyprland/keyring
 
+# create useful directories
+mkdir -p ~/dev
+mkdir -p ~/.obsidian-vault
+
 # enable gdm
 sudo env EDITOR=nvim systemctl edit --full grub-btrfsd
 sudo pacman -S --noconfirm gdm
