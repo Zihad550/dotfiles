@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+tar --exclude="*/node_modules" --exclude="*/dist" --exclude="*/logs" --exclude="*/cache" -cJvf backup.tar.xz ~/work ~/dotfiles ~/course-resources ~/courses ~/data-gen ~/Documents ~/learn ~/Music ~/Pictures ~/playgrounds ~/projects ~/scripts ~/test ~/tool ~/Templates
+
+zip -r backup.zip -9  ~/work ~/dotfiles ~/course-resources ~/courses ~/data-gen ~/Documents ~/learn ~/Music ~/Pictures ~/playgrounds ~/projects ~/scripts ~/test ~/tool ~/Templates -x "*/node_modules/*" "*/dist/*" "*/logs/*" "*/cache/*" && zip -T backup.zip
+
+# test zip
+zip -T backup.zip

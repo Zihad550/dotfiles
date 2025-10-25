@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+mise use -g node@24 node
+mise use -g go rust
+mise use -g firebase opencode
+mise use -g deno bun uv pnpm
+mise use -g github:microsoft/TypeScript

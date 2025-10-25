@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+go install github.com/Zihad550/timer@latest

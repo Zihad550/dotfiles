@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+cd ~/dotfiles
+
+# stow fonts
+# stow bottom
+stow ghostty
+stow git
+stow kanata
+# stow nushell
+# stow nvim
+stow zsh
+stow zed
+stow zellij
+# stow yazi
+# stow gemini
+stow lazygit
+stow opencode
+stow themes
+stow starship

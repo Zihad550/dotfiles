@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# upgrade and install stow
+sudo pacman -Syu --noconfirm stow
+
+# stow
+~/dotfiles/scripts/stow/stow-base
+~/dotfiles/scripts/stow/stow-hyprland
+
+# theme
+~/dotfiles/setup/arch-hyprland/theme
+
+# setup package managers (yay, flatpak, mise)
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-flatpak
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-mise
+mise use -g go # need go for yay
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-yay
+
+# install packages
+~/dotfiles/setup/arch-hyprland/packages/pacman-packages
+~/dotfiles/setup/arch-hyprland/packages/yay-packages
+~/dotfiles/setup/arch-hyprland/packages/flatpak-packages
+~/dotfiles/setup/arch-hyprland/packages/mise-packages
+
+# setup hyprland
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-hyprland
+
+# setup docker
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-docker
+
+# setup syncthing
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-docker
+
+# ufw setup
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-ufw
+
+# zsh setup
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-zsh
+
+# app armor
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-apparmor
+
+# script for setting up kanata on arch linux
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-kanata
+
+# github cli
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
+
+# additional
+~/dotfiles/setup/arch-hyprland/setup-packages/additional-packages
+
+# go packages
+~/dotfiles/setup/arch-hyprland/packages/go-packages
+
+# create keyring
+~/dotfiles/setup/arch-hyprland/keyring
+
+# enable gdm
+sudo systemctl edit --full grub-btrfsd
+sudo pacman -Syu gdm --noconfirm
+sudo systemctl enable gdm.service
+
+
+# To test if AppArmor has been correctly enabled:
+echo  "Is app armor enabled: $(aa-enabled)"
+
+echo "Do you want to restart? [y/N] "
+read -r response
+if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
+then
+    shutdown -r now
+fi

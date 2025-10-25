@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# zsh
+sudo pacman -Syu zsh --noconfirm
+
+# zsh plugins
+# sudo pacman -Syu zsh-syntax-highlighting --noconfirm
+
+# setup zsh as user shell
+sudo usermod -s $(which zsh) $USER

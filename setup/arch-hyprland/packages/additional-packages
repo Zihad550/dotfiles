@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# optional tools
+# sudo pacman -Syu television starship curlie nushell --noconfirm
+
+# install wireshark
+# sudo pacman -Syu wireshart-qt
+
+# optional apps
+# sudo pacman -Syu yazi --noconfirm
+
+# sudo pacman -Syu obs-studio mpv --noconfirm

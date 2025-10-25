@@ -1,0 +1,257 @@
+{
+  ////////////////////////
+  // ai
+  ///////////////////////
+  "language_models": {
+    "openai_compatible": {
+      "Z.ai": {
+        "api_url": "https://api.z.ai/api/coding/paas/v4",
+        "available_models": [
+          {
+            "name": "GLM-4.5",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-Air",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-X",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-AirX",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-Flash",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4-32B-0414-128K",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 16000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agent": {
+    "inline_assistant_model": {
+      "provider": "google",
+      "model": "gemini-2.5-flash-lite-preview"
+    },
+    "always_allow_tool_actions": true,
+    "play_sound_when_agent_done": true,
+    "notify_when_agent_waiting": "primary_screen",
+    "default_profile": "ask",
+
+    "default_model": {
+      "provider": "google",
+      "model": "gemini-2.5-flash-lite-preview"
+    }
+    // "inline_assistant_model": {
+    //   "provider": "zed.dev",
+    //   "model": "claude-sonnet-4"
+    // },
+    // "commit_message_model": {
+    //   "provider": "google-ai",
+    //   "model": "gemini-2.5-pro"
+    // },
+    // "thread_summary_model": {
+    //   "provider": "openrouter",
+    //   "model": "x-ai/grok-4-fast:free"
+    // }
+  },
+  "context_servers": {
+    "prisma-mcp": {
+      "source": "extension",
+      "enabled": false,
+      "settings": {}
+    },
+    "browser-tools-context-server": {
+      "source": "extension",
+      "enabled": false,
+      "settings": {}
+    },
+    "mcp-server-mui": {
+      "enabled": false,
+      "source": "extension",
+      "settings": {
+        "preferred_theme": "",
+        "component_filter": [""]
+      }
+    },
+    "mcp-server-context7": {
+      "enabled": false,
+      "source": "extension",
+      "settings": {
+        "default_minimum_tokens": "10000"
+      }
+    },
+    // "MCP_DOCKER": {
+    //   "source": "custom",
+    //   "command": "docker",
+    //   "args": ["mcp", "gateway", "run"]
+    // },
+    "shadcn": {
+      "enabled": false,
+      "source": "custom",
+      "command": "pnpx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "grep": {
+      // "url": "https://mcp.grep.app",
+      "command": "",
+      "args": ["https://mcp.grep.app"],
+      "source": "custom"
+    },
+    "playwright": {
+      "enabled": false,
+      "source": "custom",
+      "command": "pnpx",
+      "args": ["@playwright/mcp@latest", "--extension"]
+    },
+    "chrome-devtools": {
+      "enabled": false,
+      "command": "pnpx",
+      "args": ["chrome-devtools-mcp@latest"],
+      "source": "custom"
+    }
+  },
+
+  ///////////////////////////
+  // features
+  ///////////////////////////
+  "features": {
+    "edit_prediction_provider": "zed"
+  },
+  "edit_predictions": {
+    "mode": "subtle"
+  },
+  "vim_mode": true,
+  // "linked_edits": false,
+  "soft_wrap": "editor_width",
+  "double_click_in_multibuffer": "open",
+  "autosave": "on_window_change",
+  "extend_comment_on_newline": false,
+  // "use_smartcase_search": true,
+  // "use_multiline_search": true
+  // search
+  // "search": {
+  //   "case_sensitive": true
+  // },
+
+  // "code_actions_on_format": {
+  //   "source.organizeImports": true
+  // },
+
+  // "lsp_highlight_debounce": 10,
+
+  // unstable
+  "hide_mouse": "on_typing_and_movement",
+
+  /////////////////////
+  // ui
+  /////////////////////
+  "icon_theme": "Material Icon Theme",
+  "tab_bar": {
+    "show": false
+  },
+  "theme": {
+    "dark": "Kanagawa Wave - No Italics - custom",
+    "light": "Catppuccin Mocha"
+  },
+  "ui_font_size": 16,
+  "buffer_font_size": 16.5,
+  "buffer_font_family": "JetBrains Mono",
+  "relative_line_numbers": true,
+  "tabs": {
+    "git_status": true,
+    "file_icons": true,
+    "show_diagnostics": "all"
+  },
+  "preview_tabs": {
+    "enabled": true,
+    "enable_preview_from_code_navigation": true
+  },
+  "project_panel": {
+    "dock": "right",
+    "default_width": 280,
+    "auto_fold_dirs": false
+    // "hide_root": true
+  },
+  "outline_panel": {
+    "dock": "left"
+  },
+  "centered_layout": {
+    "left_padding": 0.1,
+    "right_padding": 0
+  },
+  "minimap": {
+    "show": "auto",
+    "max_width_columns": 40,
+    "current_line_highlight": "all"
+  },
+
+  //////////////////////////////
+  // others
+  //////////////////////////////
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false
+  }
+}

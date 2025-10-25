@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+sudo pacman -Syu reflector --noconfirm
+# sudo reflector -c <country_name> -l <number of mirrors> -p <protocol> --save /etc/pacman.d/mirrorlist
+
+# sudo reflector -c bd -c india -c us -c cn -l 20 -p https --save /etc/pacman.d/mirrorlist
+sudo reflector -l 20 -p https --save /etc/pacman.d/mirrorlist

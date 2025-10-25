@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+sudo pacman -Syu --noconfirm postgresql
+sudo -iu postgres
+initdb -D /var/lib/postgres/data
+sudo systemctl enable --now postgresql.service
+shutdown -r now
+
+# then follow the next steps
+
+# 1. add user to the postgres group
+# sudo usermod -aG postgres jehad
+
+# 2. add user to the db user
+# sudo -iu postgres
+# createuser --interactive
+# createdb system-user-name

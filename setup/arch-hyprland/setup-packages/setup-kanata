@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+yay -Sua --noconfirm kanata-bin
+
+sudo cp ~/dotfiles/scripts/kanata/kanata.service /etc/systemd/system/kanata.service
+
+sudo systemctl enable kanata.service

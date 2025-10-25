@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(dirname "$0")"
+
+if [ -n "$1" ]; then
+    pkill rofi
+    rofi -show "$1"
+    exit 0
+fi
+
+# List available scripts except self
+for script in "$SCRIPT_DIR"/*; do
+    basename_script="$(basename "$script")"
+    if [[ "$basename_script" != "multi_script" && -x "$script" && "$basename_script" != "manage_processes" ]]; then
+        echo "$basename_script"
+    fi
+done
+
+echo ssh
+echo calc
+echo emoji

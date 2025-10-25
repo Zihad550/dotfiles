@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+if [ -f package-lock.json ]; then
+    npm install "$@"
+elif [ -f bun-lock.yml ]; then
+    bun install "$@"
+elif [ -f pnpm-lock.yml ]; then
+    pnpm install "$@"
+else
+    npm install "$@"
+fi
