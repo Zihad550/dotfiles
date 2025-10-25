@@ -12,8 +12,9 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles
 ## notes hyprland
 
 ```bash
- # hyprctl dispatch focuscurrentorlast
-     #      hyprctl dispatch fullscreen 0
-     #      hyprctl dispatch focuscurrentorlast
-     #      hyprctl dispatch fullscreen 0
+ hyprctl dispatch focuscurrentorlast
+          hyprctl dispatch fullscreen 0
+          hyprctl dispatch focuscurrentorlast
+          hyprctl dispatch fullscreen 0
+     hyprctl dispatch movewindow u
 ```
