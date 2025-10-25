@@ -5,3 +5,4 @@ mise use -g go rust
 mise use -g firebase opencode
 mise use -g deno bun uv pnpm
 mise use -g github:microsoft/TypeScript
+mise use -g shfmt
