@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 #  core
+# xorg-xhost - needed for running timeshift
 sudo pacman -S --noconfirm \
     curl \
     git \
@@ -10,7 +11,8 @@ sudo pacman -S --noconfirm \
     fzf \
     man-db \
     man-pages \
-    starship
+    starship \
+    xorg-xhost
 
 # fonts
 sudo pacman -S --noconfirm ttf-jetbrains-mono ttf-hack-nerd
@@ -88,6 +90,7 @@ sudo pacman -S --noconfirm \
 
 
 # backup # not needed if you choose snapshot from the archinstall disk setup
+
 # sudo pacman -S --noconfirm timeshift xorg-xhost grub-btrfs inotify-tools
 # sudo /etc/grub.d/41_snapshots-btrfs
 # grub-mkconfig -o /boot/grub/grub.cfg
