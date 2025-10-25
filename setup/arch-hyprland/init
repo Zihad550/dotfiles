@@ -56,8 +56,8 @@ mise use -g go # need go for yay
 ~/dotfiles/setup/arch-hyprland/keyring
 
 # enable gdm
-sudo systemctl edit --full grub-btrfsd
-sudo pacman -Syu gdm --noconfirm
+sudo env EDITOR=nvim systemctl edit --full grub-btrfsd
+sudo pacman -S --noconfirm gdm
 sudo systemctl enable gdm.service
 
 
