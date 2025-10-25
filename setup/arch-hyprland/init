@@ -13,7 +13,6 @@ sudo pacman -Syu --noconfirm stow
 # setup package managers (yay, flatpak, mise)
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-flatpak
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-mise
-mise use -g go # need go for yay
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-yay
 
 # install packages
