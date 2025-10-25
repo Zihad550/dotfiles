@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # zsh
-sudo pacman -Syu zsh --noconfirm
+sudo pacman -S --noconfirm zsh
 
 # zsh plugins
 # sudo pacman -Syu zsh-syntax-highlighting --noconfirm
