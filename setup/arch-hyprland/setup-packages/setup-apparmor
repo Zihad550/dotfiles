@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
-sudo pacman -Syu apparmor --noconfirm
-
-sudo systemctl enable apparmor.service
+sudo pacman -S --noconfirm apparmor
 
 # update /etc/default/grup GRUB_CMDLINE_LINUX_DEFAULT and append this options lsm=landlock,lockdown,yama,integrity,apparmor,bpf
 sudo sed -i 's/^\(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*\)"/\1 lsm=landlock,lockdown,yama,integrity,apparmor,bpf"/' /etc/default/grub
+
+grub-mkconfig -o /boot/grub/grub.cfg
+sudo systemctl enable apparmor.service
 
 # To test if AppArmor has been correctly enabled:
 echo  "Is app armor enabled: $(aa-enabled)"
