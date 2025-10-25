@@ -5,6 +5,7 @@
 # mako - notification
 # nwg-look - theming gtk apps
 # screensharing and file picking - xdg-desktop-portal-hyprland
+# polkit for app authentication
 sudo pacman -S --noconfirm  \
     hyprland \
     ttf-font-awesome \
@@ -18,7 +19,8 @@ sudo pacman -S --noconfirm  \
     hyprpaper \
     nwg-look gnome-themes-extra \
     xdg-desktop-portal-hyprland \
-    hyprsunset
+    hyprsunset \
+    hyprpolkitagent
 
 
 
@@ -30,20 +32,14 @@ sudo pacman -S --noconfirm \
     rofi-calc \
     pavucontrol
 
-systemctl --user enable --now waybar.service # menu
-systemctl --user enable --now mako.service # notification
+systemctl --user enable waybar.service # menu
+systemctl --user enable mako.service # notification
 systemctl --user enable hypridle.service # lock screen
 systemctl --user enable hyprpaper.service # wallpaper
 systemctl --user enable xdg-desktop-portal-hyprland  # screensharing and file picking
 systemctl --user enable hyprsunset.service  # hyprsunset for blue light filtering
-
-# polkit for app authentication
-sudo pacman -Syu hyprpolkitagent --noconfirm
 systemctl --user enable hyprpolkitagent.service
+systemctl --user enable gcr-ssh-agent.service # enable gcr for ssh keys management
 
 # qt
 # sudo pacman -Syu qt5-wayland qt6-wayland --noconfirm
-
-# enable gcr for ssh keys management
-systemctl --user enable gcr-ssh-agent.service
-sudo systemctl enable --now bluetooth.service

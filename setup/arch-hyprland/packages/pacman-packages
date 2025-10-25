@@ -79,6 +79,9 @@ sudo pacman -S --noconfirm \
     gnome-font-viewer \
     gnome-keyring seahorse
 
+sudo systemctl enable bluetooth.service
+
+
 # sudo pacman -S --noconfirm gitg # git ui
 # sudo pacman -S --noconfirm podman
 
