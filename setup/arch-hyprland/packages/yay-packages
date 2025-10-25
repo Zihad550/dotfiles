@@ -27,8 +27,8 @@ yay -S --noconfirm helium-browser-bin google-chrome brave-bin # browsers
 
 # code editors
 yay -S --noconfirm \
-    visual-studio-code-bin \
-    cursor-bin
+    visual-studio-code-bin
+    # cursor-bin
 # yay -S --noconfirm android-studio
 # yay -S --noconfirm windsurf
 # yay -S --noconfirm webstorm webstorm-jre

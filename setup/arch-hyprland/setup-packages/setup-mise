@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-sudo pacman -Syu --noconfirm mise
+sudo pacman -S --noconfirm mise
 
 mise use -g usage
 

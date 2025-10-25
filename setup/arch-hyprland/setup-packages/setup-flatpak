@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-sudo pacman -Syu flatpak --noconfirm
+sudo pacman -S --noconfirm flatpak
 
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
