@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Function to process the sentence
+process_sentence() {
+    cleaned_sentence=$(echo "$1" | tr -cd '[:alnum:] ')
+    processed_sentence=${cleaned_sentence// /_}
+    echo "$processed_sentence"
+}
+
+# Read a sentence from the user
+read -p "Enter a sentence: " user_input
+
+# Process the sentence
+result=$(process_sentence "$user_input")
+
+# Display the result
+echo "Processed sentence: $result"
+
+# Copy the result to the clipboard (requires xclip)
+echo -n "$result" | xclip -selection clipboard
+
+echo "Result copied to clipboard."

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# gnome desktop
+sudo pacman -Syu gnome --noconfirm
+
+# update gnome desktop settings
+~/dotfiles/scripts/gnome-desktop/set-gnome-hotkeys
+~/dotfiles/scripts/gnome-desktop/set-gnome-settings

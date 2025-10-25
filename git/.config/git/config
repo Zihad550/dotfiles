@@ -1,0 +1,94 @@
+[user]
+	signingkey = 8939CB360C1DCC0B
+	email = dev.jehadhossain@gmail.com
+	name = Zihad550
+[commit]
+	gpgsign = true
+[pull]
+    rebase = false
+    default = current
+[rebase]
+    autoStash = true
+    missingCommitsCheck = warn
+[init]
+	defaultBranch = main
+[core]
+	editor = nvim
+	excludesfile = /home/jehad/.config/git/.gitignore_global
+[submodule]
+	recurse = true
+[push]
+	recurseSubmodules = on-demand
+	autoSetupRemote = true
+	default = current
+	followTags = true
+[status]
+	branch = true
+	showStash = true
+[url "git@github.com:Zihad550/"]
+	insteadOf = "z5:"
+[url "git@github.com:"]
+	insteadOf = "gh:"
+[branch]
+    sort = -committerdate
+[tag]
+    sort = -taggerdate
+[pager]
+    branch = false
+    tag = false
+[log]
+    abbrevCommit = true
+    ; graphColors = blue,yellow,cyan,magenta,green,red
+; [color "decorate"]
+;     HEAD = red
+;     branch = blue
+;     tag = yellow
+;     remoteBranch = magenta
+; [color "branch"]
+;     current = magenta
+;     local = default
+;     remote = yellow
+;     upstream = green
+;     plain = blue
+[alias]
+    ; add
+	ap = add --patch
+	; diff
+	ds = diff --staged
+    ; status
+    st = status -s
+    sta = status
+    ; config
+    conf = config --global --edit
+    puf = push --force-with-lease
+    pu = push -u
+    ; git commit -am msg, add all and commit with msg
+    ci = commit
+    co = checkout
+    sw = switch
+    ; switch back to the last commit discarding all changes. But it doesn't deletes any staged changes.
+    cod = checkout .
+    ; remove staged changes to unstaged, HEAD = last commit i checked out
+    rh = reset HEAD
+    ; create branch
+    br = branch
+    bra = branch -a
+    ; if you want to undo use, git rebase --abort
+    pr = pull --rebase
+    mff = merge --ff-only - ; merge the last checked branch with the current branch and don't create any merge commit.
+    ; add the changes you just made to the last commit, since this small changes don't need a full commit, commit -> do more work -> amment/finished,
+    ; NEVER AMEND PUSHED COMMITS!
+    ; It modifies the commit history
+    amend = commit -a --amend --no-edit
+    ; add everything to staging
+    aa = add -A
+    ; removes all untracked files and directories
+    cdf = clean -df
+    ; worktree
+    wta = worktree add
+    wtl = worktree list
+    wtr = worktree remove
+    ; submodule
+    smu = submodule update --init --recursive
+    sms = submodule status
+    sma = submodule add

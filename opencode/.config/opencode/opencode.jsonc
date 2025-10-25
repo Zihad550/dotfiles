@@ -1,0 +1,68 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Theme configuration
+  "theme": "kanagawa",
+  "share": "disabled",
+
+  // mcp servers
+  "mcp": {
+    "mui": {
+      "type": "local",
+      "command": ["pnpx", "@mui/mcp@latest"],
+      "enabled": false,
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}",
+      },
+      "enabled": true,
+    },
+    // "MCP_DOCKER": {
+    //   "type": "local",
+    //   "command": ["docker", "mcp", "gateway", "run"],
+    //   "enabled": true,
+    // },
+    "shadcn": {
+      "type": "local",
+      "command": ["pnpx", "shadcn@latest", "mcp"],
+      "enabled": false,
+    },
+    "grep": {
+      "url": "https://mcp.grep.app",
+      "type": "remote",
+      "enabled": false,
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["pnpx", "@playwright/mcp@latest", "--extension"],
+      "enabled": false,
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["pnpx", "chrome-devtools-mcp@latest"],
+      "enabled": false,
+    },
+    // "figma": {
+    //   "type": "remote",
+    //   "url": "https://mcp.figma.com/mcp",
+    //   "enabled": true,
+    // },
+  },
+
+  // "provider": {
+  //   "ollama": {
+  //     "npm": "@ai-sdk/openai-compatible",
+  //     "name": "Ollama (local)",
+  //     "options": {
+  //       "baseURL": "http://localhost:11434/v1",
+  //     },
+  //     "models": {
+  //       "qwen3-coder": {
+  //         "name": "qwen3-coder",
+  //       },
+  //     },
+  //   },
+  // },
+}

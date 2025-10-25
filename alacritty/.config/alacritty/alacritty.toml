@@ -1,0 +1,19 @@
+
+[window]
+decorations = "full"
+padding = { x = 5, y = 1 }
+startup_mode = "Maximized"
+
+[font]
+size = 13
+
+[scrolling]
+history = 10000
+multiplier = 3
+
+[general]
+import = ["~/.config/alacritty/dracula.toml"]
+
+[terminal]
+
+shell = "/usr/bin/zsh"

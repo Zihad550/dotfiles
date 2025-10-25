@@ -1,0 +1,7 @@
+git:
+  overrideGpg: true
+gui:
+  # screenMode: half
+  # useHunkModeInStagingView: true # stage one line at a time
+  expandFocusedSidePanel: true
+  splitDiff: "auto"

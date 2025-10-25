@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+cd ~/dotfiles
+
+stow hypr
+stow waybar
+stow rofi
+mkdir -p ~/.local/share/mako
+ln -snf ~/dotfiles/mako/.local/share/mako/core.ini ~/.local/share/mako/core.ini
+stow swappy

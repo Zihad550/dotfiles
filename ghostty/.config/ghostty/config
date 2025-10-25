@@ -1,0 +1,20 @@
+# Dynamic theme colors
+config-file = ?"~/.config/theme/ghostty.conf"
+
+font-size = 15
+font-family = "JetBrains Mono"
+# font-feature = -liga
+
+background-blur-radius = 20
+mouse-hide-while-typing = true
+fullscreen = false
+copy-on-select = clipboard
+
+config-file = keybindings
+
+# Window
+window-decoration = true
+window-padding-x = 14
+window-padding-y = 14
+confirm-close-surface=false
+resize-overlay = never

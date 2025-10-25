@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# If called with an argument (the selected line), extract PID and kill
+# if [ -n "$1" ]; then
+#     PID=$(echo "$1" | awk '{print $1}')
+#     kill -9 "$PID" 2>/dev/null
+#     exit 0
+# fi
+
+# # List top 30 processes with PID, command, and CPU usage
+# ps -eo pid,comm,%cpu --sort=-%cpu | head -n 30 | awk '{print $1 " " $2 " (" $3 "% CPU)"}'
+
+# If called with an argument (the selected line), extract PID and kill
+if [ -n "$1" ]; then
+    PID=$(echo "$1" | awk '{print $1}')
+    kill -9 "$PID" 2>/dev/null
+    exit 0
+fi
+
+# List top 30 processes with PID, command name, full path, and CPU usage
+ps -eo pid,comm,cmd,%cpu --sort=-%cpu | head -n 30 \
+    | awk '{pid=$1; name=$2; $1=""; $2=""; cpu=$NF; $NF=""; sub(/^ +/, ""); path=$0; print pid " " name " " path " (" cpu "% CPU)"}'

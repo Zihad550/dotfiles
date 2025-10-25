@@ -1,0 +1,264 @@
+#!/usr/env/bin bash
+# cmd remaps
+# alias ls=eza
+alias cat='bat --color=always'
+alias top='btm'
+#alias find='fd'
+alias wifi='nmtui'
+# alias timer='termdown'
+alias api='atac'
+alias ai='opencode'
+alias sysinfo='fastfetch'
+alias spec='openspec'
+
+
+# short aliases
+alias \
+c="clear" \
+v="nvim" \
+cat="bat" \
+ls="eza -lh --group-directories-first --icons=auto --color=auto" \
+la="ls -a" \
+lt='eza --tree --level=2 --long --icons --git' \
+lta='lt -a' \
+grep="rg" \
+shell="exec $SHELL -l" \
+mv="mv -i" \
+rm="rm -Iv" \
+df="df -h" \
+du="du -h -d 1" \
+k="killall" \
+p="procs" \
+f="nautilus" \
+g="git"
+
+
+# Directories
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+
+
+# Function to list directories and open the selected one in editor
+# Regular function version for command line use
+fzf_dir() {
+    local dir
+    dir=$(find ~ -maxdepth 5 -type d \( -name .local -o -name node_modules -o -name .git -o -name .obsidian-vault -o -name .var -o -name Cache -o -name cache -o -name .npm -o -name .nuget -o -name .cache -o -name Kiro -o -name .kiro -o -name .cursor -o -name Cypress -o -name cypress -o -name discord -o -name go -o -name obs-studio -o -name mpv -o -name transmission \) -prune -o -type d -print 2>/dev/null | sed "s|^$HOME/||" | sed "s|^$HOME$|~|" | fzf --bind 'ctrl-c:abort' --exit-0)
+
+    # Check if fzf was cancelled or no selection was made
+    if [[ -z $dir ]]; then
+        return 1
+    fi
+
+    # Convert back to full path if it's a relative path
+    if [[ "$dir" == "~" ]]; then
+        echo "$HOME"
+    elif [[ "$dir" != /* ]]; then
+        echo "$HOME/$dir"
+    else
+        echo "$dir"
+    fi
+}
+
+
+fzf_open_dir_func() {
+    local editor=$1
+    local dir
+    dir=$(fzf_dir)
+
+    # Check if fzf was cancelled or no selection was made
+    if [[ -z $dir ]]; then
+        return 1
+    fi
+
+    # If no editor parameter is provided, just cd into the directory
+    if [[ -z $editor ]]; then
+        echo "No editor provied"
+        return 0
+    fi
+
+    case $editor in
+        "code")
+            uwsm app -- code "$dir" && exit
+            ;;
+        "zed")
+           uwsm app -- zeditor "$dir" && exit
+            ;;
+        "cursor")
+            uwsm app -- cursor "$dir" & disown && exit
+            ;;
+        "windsurf")
+            uwsm app -- windsurf "$dir" && exit
+            ;;
+        "kiro")
+            uwsm app -- kiro "$dir" && exit
+            ;;
+        "nautilus")
+            uwsm app -- nautilus "$dir" & disown && exit
+            ;;
+        "nvim")
+            cd "$dir" && nvim .
+            # Not adding exit here as you typically want to keep the terminal open with nvim
+            ;;
+        *)
+            echo "Unsupported editor: $editor"
+            echo "Supported editors: code, zed, nvim"
+            return 1
+            ;;
+    esac
+}
+
+# ZLE widget version for keybinding
+fzf_open_dir() {
+    local dir
+    dir=$(fzf_dir)
+
+
+    # Clear current line
+    zle kill-whole-line
+
+    # Check if fzf was cancelled or no selection was made
+    if [[ -z $dir ]]; then
+        zle reset-prompt
+        return 1
+    fi
+
+    # Set the command line to cd command
+    BUFFER="cd \"$dir\""
+    zle accept-line
+}
+
+# fzf mappings
+alias ff='fzf --preview="bat --color=always {}"'
+alias fzn='nvim $(fzf --preview="bat --color=always {}")'
+alias fzz='zed $(fzf --preview="bat --color=always {}")'
+alias lg='lazygit'
+alias fcode='fzf_open_dir_func code'
+alias fcursor='fzf_open_dir_func cursor'
+zed(){
+    fzf_open_dir_func zed
+}
+alias fnvim='fzf_open_dir_func nvim'
+alias fwind='fzf_open_dir_func windsurf'
+fod(){
+    fzf_open_dir_func nautilus
+}
+
+
+# run code
+run() {
+  if [ -z "$1" ]; then
+    echo "Usage: run <filename>"
+    echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
+    return 1
+  fi
+
+  local file="$1"
+  if [ ! -f "$file" ]; then
+    echo "Error: File '$file' not found."
+    return 1
+  fi
+
+  local extension="${file##*.}"
+  local basename="${file%.*}"
+
+  case "$extension" in
+    go)
+      go run "$file"
+      ;;
+    js)
+      bun run "$file"
+      ;;
+    ts)
+      bun run "$file"
+      ;;
+    c)
+      gcc "$file" -o "$basename" && ./"$basename"
+      ;;
+    cpp)
+      g++ "$file" -o "$basename" && ./"$basename"
+      ;;
+    py)
+      uv run "$file"
+      ;;
+    *)
+      echo "Error: Unsupported file type '.$extension'."
+      echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
+      return 1
+      ;;
+  esac
+}
+
+
+
+# pnpm aliases
+alias pn=pnpm
+alias pna='pn approve-builds'
+
+# npm aliases
+alias nr='bun run'
+# alias ni='npm install'
+alias nrd='bun run dev'
+alias nird='ni && bun run dev'
+alias nrb='bun run build'
+alias nbp='bun run build:preview'
+
+# git aliases
+alias gaa='git add -all'
+alias gcm='git commit -m'
+alias fpush='gitpush "s"'
+alias gco='git checkout'
+alias gl='git pull'
+alias grhh='git reset --hard'
+# alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
+# alias gs='git status'
+# alias gss='git status --short'
+gitpush() {
+    if [ -z "$1" ]; then
+        echo "Please provide a commit message."
+        return 1
+    fi
+
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+    if [ -z "$branch" ]; then
+        echo "Not on a branch."
+        return 1
+    fi
+
+    git add -A && git commit -m "$1" && git push -u  origin "$branch"
+}
+
+# github cli
+alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'
+alias gh-create-pvt='git init && gh repo create --private --source=. --remote=origin && git push -u --all && gh browse'
+
+
+# gpu stats
+#alias gpuInfo='sudo xpu-smi stats -d 0'
+#alias gpuHwInfo='sudo xpu-smi discovery -d 0'
+
+# promodoro
+declare -A pomo_options
+pomo_options["work"]="60"
+pomo_options["typing"]="11"
+pomo_options["break"]="10"
+
+pomodoro () {
+  if [ -n "$1" -a -n "${pomo_options["$1"]}" ]; then
+  val=$1
+  # echo $val | lolcat
+  timer ${pomo_options["$val"]}m
+  # spd-say "'$val' session done"
+  notify-send "'$val' session done"
+  fi
+}
+alias work="pomodoro 'work'"
+alias typing="pomodoro 'typing'"
+alias break="pomodoro 'break'"
+
+
+# custom
+# nerd-dictation begin --simulate-input-tool WTYPE
+# nerd-dictation end

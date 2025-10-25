@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+hyprctl dispatch workspace 4 >/dev/null 2>&1
+zeditor ~/dev/mamacrm/frontend
+
+sleep 0.1
+
+hyprctl dispatch workspace 8 >/dev/null 2>&1
+zeditor ~/dev/mamacrm/backend
+
+hyprctl dispatch workspace special:magic >/dev/null 2>&1
+$TERMINAL -e zellij >/dev/null 2>&1 &
+cd ~/dev/mamacrm/frontend
