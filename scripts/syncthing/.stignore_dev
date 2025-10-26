@@ -11,9 +11,7 @@
 **/*.pyc
 **/.venv/
 **/venv/
-**/bin/
 **/.vs/
-**/packages/
 **/cmake-build-*/
 **/*.o
 **/*.exe
@@ -26,10 +24,7 @@
 **/*.dll
 **/*.so
 **/*.dylib
-**/*.test
 **/*.out
-**/go.work
-**/go.work.sum
 **/.output/
 **/.vercel/
 **/.netlify/
@@ -40,10 +35,6 @@
 **/.remix/
 **/.solid/
 **/.qwik/
-**/lib/
-**/out/
 **/.build/
 **/compiled/
 **/*.tsbuildinfo
-**/.serverless/
-**/.aws-sam/
