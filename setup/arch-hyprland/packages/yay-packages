@@ -3,12 +3,11 @@
 #  tools
 # beekeper - db editor
 # ufw-docker - ufw rules for docker
-yay -S --noconfirm  \
-    pnpm-shell-completion \
-    beekeeper-studio-bin \
-    ufw-docker
-    # mongodb-tools-bin
-
+yay -S --noconfirm \
+   pnpm-shell-completion \
+   beekeeper-studio-bin \
+   ufw-docker
+# mongodb-tools-bin
 
 # applications
 # yay -S sublime-merge git ui
@@ -19,7 +18,6 @@ yay -S --noconfirm helium-browser-bin google-chrome brave-bin # browsers
 # yay -S --noconfirm openai-codex-bin
 # yay -S --noconfirm warp-terminal-bin
 # yay -S --noconfirm  amazon-q-bin
-# yay -S --noconfirm gemini-cli-bin
 # yay -S --noconfirm claude-code
 # yay -S --noconfirm qwen-code
 # yay -S --noconfirm crush-bin
@@ -27,13 +25,12 @@ yay -S --noconfirm helium-browser-bin google-chrome brave-bin # browsers
 
 # code editors
 yay -S --noconfirm \
-    visual-studio-code-bin
-    # cursor-bin
+   visual-studio-code-bin
+# cursor-bin
 # yay -S --noconfirm android-studio
 # yay -S --noconfirm windsurf
 # yay -S --noconfirm webstorm webstorm-jre
 # yay -S --noconfirm kiro-bin
-
 
 # aicommits
 # yay -S aicommits -> meybe check zed git commit or create a plugin with opencode
@@ -41,9 +38,8 @@ yay -S --noconfirm \
 # env
 # yay -Sua --noconfirm infisical-bin
 
-
 # archive
-    # fnm-bin \ # replaced with mise
-    # yay -S --noconfirm opencode-bin # mise
-    # firebase-tools-bin \ # mise
-    # timer-bin \ # replaced with Zihad550/timer
+# fnm-bin \ # replaced with mise
+# yay -S --noconfirm opencode-bin # mise
+# firebase-tools-bin \ # mise
+# timer-bin \ # replaced with Zihad550/timer
