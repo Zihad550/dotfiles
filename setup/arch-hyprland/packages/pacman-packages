@@ -70,6 +70,7 @@ sudo pacman -S --noconfirm \
    wl-clipboard \
    swappy slurp grim \
    blueberry
+# gemini
 
 # install gnome apps
 sudo pacman -S --noconfirm \
