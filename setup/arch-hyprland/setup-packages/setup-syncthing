@@ -12,5 +12,9 @@ syncthing cli config options crenabled set false
 syncthing cli config options auto-upgrade-intervalh set 0
 syncthing cli config options releases-url set ""
 
+# create sync directories
+mkdir ~/dev
+ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
+
 # visit for tuning options
 # https://docs.syncthing.net/users/tuning.html
