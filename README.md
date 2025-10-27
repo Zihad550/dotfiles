@@ -22,5 +22,6 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles
 ## remove unused
 ```bash
 flatpak uninstall --unused
-yay -Scc
+yay -Scc # remove cache
+sudo pacman -Rs --noconfirm $(pacman -Qtdq)
 ```
