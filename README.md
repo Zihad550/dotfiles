@@ -13,8 +13,14 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles
 
 ```bash
  hyprctl dispatch focuscurrentorlast
-          hyprctl dispatch fullscreen 0
-          hyprctl dispatch focuscurrentorlast
-          hyprctl dispatch fullscreen 0
-     hyprctl dispatch movewindow u
+ hyprctl dispatch fullscreen 0
+ hyprctl dispatch focuscurrentorlast
+ hyprctl dispatch fullscreen 0
+ hyprctl dispatch movewindow u
+```
+
+## remove unused
+```bash
+flatpak uninstall --unused
+yay -Scc
 ```

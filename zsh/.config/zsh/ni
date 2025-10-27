@@ -2,51 +2,51 @@
 
 # ni -> install package
 ni() {
-    if [ -f package-lock.json ]; then
-        npm install "$@"
-    elif [ -f bun.lock ]; then
-        bun install "$@"
-    elif [ -f pnpm-lock.yaml ]; then
-        pnpm install "$@"
-    else
-        pnpm install "$@"
-    fi
+   if [ -f package-lock.json ]; then
+      npm install "$@"
+   elif [ -f bun.lock ]; then
+      bun install "$@"
+   elif [ -f pnpm-lock.yaml ]; then
+      pnpm install "$@"
+   else
+      pnpm install "$@"
+   fi
 }
 
 # nu -> update package
 nu() {
-    if [ -f package-lock.json ]; then
-        npm update "$@"
-    elif [ -f bun.lock ]; then
-        bun update "$@"
-    elif [ -f pnpm-lock.yaml ]; then
-        pnpm update "$@"
-    else
-        pnpm update "$@"
-    fi
+   if [ -f package-lock.json ]; then
+      npm update "$@"
+   elif [ -f bun.lock ]; then
+      bun update "$@"
+   elif [ -f pnpm-lock.yaml ]; then
+      pnpm update "$@"
+   else
+      pnpm update "$@"
+   fi
 }
 
 # nr -> remove package
 nrm() {
-    if [ -f package-lock.json ]; then
-        npm uninstall "$@"
-    elif [ -f bun.lock ]; then
-        bun remove "$@"
-    elif [ -f pnpm-lock.yaml ]; then
-        pnpm remove "$@"
-    else
-        pnpm remove "$@"
-    fi
+   if [ -f package-lock.json ]; then
+      npm uninstall "$@"
+   elif [ -f bun.lock ]; then
+      bun remove "$@"
+   elif [ -f pnpm-lock.yaml ]; then
+      pnpm remove "$@"
+   else
+      pnpm remove "$@"
+   fi
 }
 
 if [ -f package-lock.json ]; then
-    alias npm='npm'
+   alias npm='npm'
 elif [ -f bun.lock ]; then
-    alias npm='bun'
+   alias npm='bun'
 elif [ -f pnpm-lock.yaml ]; then
-    alias npm='pnpm'
+   alias npm='pnpm'
 else
-    alias npm='pnpm install'
+   alias npm='pnpm install'
 fi
 
 alias node-package-manager='npm'
