@@ -1,4 +1,4 @@
-# !/usr/env/bin bash
+#!/usr/env/bin bash
 
 # cmd remaps
 # alias ls=eza
@@ -79,7 +79,7 @@ fzf_open_dir_func() {
       uwsm app -- code "$dir" && exit
       ;;
    "zed")
-      uwsm app -- zeditor "$dir" && hyprctl dispatch focuscurrentorlast >/dev/null 2>&1 && exit
+      uwsm app -- zeditor "$dir" && exit
       ;;
    "cursor")
       uwsm app -- cursor "$dir" &
