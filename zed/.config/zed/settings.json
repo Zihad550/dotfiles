@@ -180,7 +180,7 @@
     "edit_prediction_provider": "zed"
   },
   "edit_predictions": {
-    "mode": "subtle"
+    "mode": "eager"
   },
   "vim_mode": true,
   // "linked_edits": false,
@@ -188,6 +188,9 @@
   "double_click_in_multibuffer": "open",
   "autosave": "on_window_change",
   "extend_comment_on_newline": false,
+  "inlay_hints": {
+    "edit_debounce_ms": 0
+  },
   // "use_smartcase_search": true,
   // "use_multiline_search": true
   // search

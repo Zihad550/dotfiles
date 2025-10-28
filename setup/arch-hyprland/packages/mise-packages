@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
+# mise install github:user/repo # install from github backend
+# mise install npm:package-name # install from npm backend
+
 mise use -g node@24 node
 mise use -g go rust
-mise use -g firebase opencode
+mise use -g firebase
 mise use -g deno bun uv pnpm
 mise use -g github:microsoft/TypeScript
 mise use -g shfmt
+mise use -g npm:turbo
+mise use -g npm:vercel
+mise use -g npm:netlify-cli
+mise use -g npm:@fission-ai/openspec
