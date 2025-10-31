@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+WINDOW_PATTERN="ChatGPT"
+WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+
+# echo $WINDOW_ADDRESS
+if [[ -n $WINDOW_ADDRESS ]]; then
+   hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS"
+else
+   hyprctl dispatch togglespecialworkspace ai
+   uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland --app=https://chatgpt.com
+fi
