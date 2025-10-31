@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+WINDOW_PATTERN="^zellij$"
+WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+
+CURRENT_WS=$(hyprctl activewindow -j | jq -r '.workspace.name')
+
+if [[ "$CURRENT_WS" == "special:zellij" ]]; then
+   hyprctl dispatch togglespecialworkspace zellij
+elif [[ -n $WINDOW_ADDRESS ]]; then
+   hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS"
+else
+   hyprctl dispatch togglespecialworkspace zellij
+   uwsm-app -- ghostty -e zellij
+   # uwsm-app -- $TERMINAL -e zellij
+fi
