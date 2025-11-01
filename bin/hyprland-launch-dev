@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+window_pattern="localhost"
+workspace="localhost"
+url="$1"
+window_address=$(hyprctl clients -j | jq -r --arg p "$window_pattern" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+
+current_ws=$(hyprctl activewindow -j | jq -r '.workspace.name')
+
+if [[ "$current_ws" == "special:$workspace" ]]; then
+   hyprctl dispatch togglespecialworkspace $workspace
+elif [[ -n $window_address ]]; then
+   hyprctl dispatch focuswindow "address:$window_address"
+else
+   hyprctl dispatch togglespecialworkspace $workspace
+
+   hyprctl dispatch exec "[workspace special:$workspace]" "uwsm-app -- helium-browser --profile-directory=Default --new-window --ozone-platform=wayland --ozone-platform-hint=wayland --app=$url"
+fi

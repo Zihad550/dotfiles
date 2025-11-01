@@ -101,7 +101,7 @@
 
     "default_model": {
       "provider": "google",
-      "model": "gemini-2.5-flash-lite-preview"
+      "model": "gemini-2.5-pro"
     }
     // "inline_assistant_model": {
     //   "provider": "zed.dev",
@@ -272,5 +272,23 @@
   "telemetry": {
     "diagnostics": false,
     "metrics": false
+  },
+
+  /////////////////////////////
+  // theme overrides
+  /////////////////////////////
+  "theme_overrides": {
+    "Kanagawa Wave - No Italics": {
+      "syntax": {
+        "punctuation.delimiter": {
+          "color": "#888888",
+          "font_style": null,
+          "font_weight": null
+        }
+      },
+      "deleted": "#888888",
+      "deleted.border": "#777777",
+      "deleted.background": "#1a1a1a"
+    }
   }
 }

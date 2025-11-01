@@ -3,19 +3,17 @@
 # sync files with syncthing
 # syncthing cli config options --help | rg  relays # use it to find about available options
 sudo pacman -S --noconfirm syncthing
-systemctl --user enable --now syncthing.service
+systemctl --user enable syncthing.service
 syncthing cli config options relays-enabled set false
 syncthing cli config options natenabled set false
 syncthing cli config options global-ann-enabled set false
+syncthing cli config options uraccepted set -1
 syncthing cli config options crenabled set false
 syncthing cli config options auto-upgrade-intervalh set 0
 syncthing cli config options releases-url set ""
-# syncthing cli config options uraccepted set -1
 
 # create sync directories
 mkdir ~/dev
-mkdir ~/.obsidian-vault
-mkdir ~/.backups
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
 
 # visit for tuning options
