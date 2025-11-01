@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# local url="$2"
+
+if [ -n "$1" ]; then
+   ~/dotfiles/bin/hyprland-launch-dev $1 >/dev/null 2>&1
+   exit 0
+fi
+
+echo "https://localhost:5175"
+echo "http://localhost:3000"
+echo "http://localhost:8000"

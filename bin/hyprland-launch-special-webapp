@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+WINDOW_PATTERN="$1"
+URL="$2"
+workspace="$3"
+echo "Workspace: $workspace"
+WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+
+CURRENT_WS=$(hyprctl activewindow -j | jq -r '.workspace.name')
+
+if [[ "$CURRENT_WS" == "special:$workspace" ]]; then
+   hyprctl dispatch togglespecialworkspace $workspace
+elif [[ -n $WINDOW_ADDRESS ]]; then
+   hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS"
+else
+   hyprctl dispatch togglespecialworkspace $workspace
+
+   hyprctl dispatch exec "[workspace special:$workspace]" "uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland --app=$URL"
+   # uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland --app=https://chatgpt.com
+fi

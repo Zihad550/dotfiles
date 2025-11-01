@@ -66,6 +66,7 @@
         "editor.active_wrap_guide": "#4F4F66",
         "editor.document_highlight.read_background": "#4F4F6629",
         "editor.document_highlight.write_background": "#4F4F6629",
+        // terminal
         "terminal.background": "#1F1F28",
         "terminal.foreground": "#DCD7BA",
         "terminal.dim_foreground": "#6A9589",
@@ -93,10 +94,15 @@
         "created": "#76946A",
         "created.border": "#76946A",
         "created.background": "#1a1a22",
-        // changed
-        "deleted": "#dddddd",
-        "deleted.border": "#C34043",
-        "deleted.background": "#1a1a22",
+        // updated to megenta
+        // "deleted": "#FF00FF",
+        // "deleted.border": "#C940C9",
+        // "deleted.background": "#1a1320",
+
+        // updated to gray
+        "deleted": "#888888",
+        "deleted.border": "#777777",
+        "deleted.background": "#1a1a1a",
         "error": "#E82424",
         "error.border": "#E82424",
         "error.background": "#1a1a22",
@@ -289,8 +295,8 @@
             "font_weight": null
           },
           "punctuation.delimiter": {
-            // custom
-            "color": "#dddddd",
+            // updated
+            "color": "#888888",
             "font_style": null,
             "font_weight": null
           },

@@ -28,7 +28,7 @@ sudo pacman -Syu --noconfirm stow
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-docker
 
 # setup syncthing
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-docker
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-syncthing
 
 # ufw setup
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-ufw
