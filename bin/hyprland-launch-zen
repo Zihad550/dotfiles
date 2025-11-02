@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+tag="$1"
+app="$2"
+workspace="$1"
+
+window_address=$(
+   hyprctl clients -j |
+      jq -r --arg tag "$tag" '.[] | select(.initialClass == "app.zen_browser.zen" and (.tags | index($tag))) | .address'
+)
+
+current_ws=$(hyprctl activewindow -j | jq -r '.workspace.name')
+
+if [[ "$current_ws" == "special:$workspace" ]]; then
+   hyprctl dispatch togglespecialworkspace $workspace
+elif [[ -n $window_address ]]; then
+   hyprctl dispatch focuswindow "address:$window_address"
+else
+
+   hyprctl dispatch togglespecialworkspace $workspace
+   hyprctl dispatch exec "[workspace special:$workspace]" "uwsm-app -- $app"
+
+   # sleep 0.8
+   # address=$(hyprctl activewindow -j | jq -r '.address')
+   # hyprctl dispatch tagwindow "+$tag" address:$address
+   # hyprctl dispatch tagwindow "+$tag"
+
+   sleep 0.2
+   for i in {1..10}; do
+      address=$(hyprctl activewindow -j | jq -r '.address')
+      if [[ -n "$address" && "$address" != "null" ]]; then
+         break
+      fi
+      sleep 0.2
+   done
+
+   # tag the window
+   if [[ -n "$address" && "$address" != "null" ]]; then
+      hyprctl dispatch tagwindow "+$tag"
+   fi
+fi
