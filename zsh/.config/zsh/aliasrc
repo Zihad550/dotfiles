@@ -16,6 +16,8 @@ alias spec='openspec'
 alias \
    c="clear" \
    v="nvim" \
+   n="nvim" \
+   e="zeditor" \
    cat="bat" \
    ls="eza -lh --group-directories-first --icons=auto --color=auto" \
    la="ls -a" \
@@ -29,7 +31,7 @@ alias \
    du="du -h -d 1" \
    k="killall" \
    p="procs" \
-   f="nautilus" \
+   f="yazi" \
    g="git"
 
 # Directories
@@ -89,7 +91,16 @@ fzf_open_dir_func() {
    "zed")
       # uwsm-app -- zeditor "$dir" && hyprctl dispatch focuscurrentorlast >/dev/null 2>&1 && exit
       uwsm-app -- zeditor "$dir"
-      address=$(hyprctl clients -j | jq -r --arg p "$base" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+      local address
+
+      sleep 0.2
+      for i in {1..10}; do
+         address=$(hyprctl activewindow -j | jq -r '.address')
+         if [[ -n "$address" && "$address" != "null" ]]; then
+            break
+         fi
+         sleep 0.2
+      done
       hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
       exit
       ;;
