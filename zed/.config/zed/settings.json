@@ -215,7 +215,7 @@
     "show": false
   },
   "theme": {
-    "dark": "Kanagawa Wave - No Italics - custom",
+    "dark": "Kanagawa Wave",
     "light": "Catppuccin Mocha"
   },
   "ui_font_size": 16,
@@ -278,17 +278,53 @@
   // theme overrides
   /////////////////////////////
   "theme_overrides": {
-    "Kanagawa Wave - No Italics": {
+    "Kanagawa Wave": {
       "syntax": {
         "punctuation.delimiter": {
-          "color": "#888888",
+          "color": "#8F96A0",
           "font_style": null,
           "font_weight": null
         }
+        // // "variable.member": {
+        // //   "color": "#CBC6AC",
+        // //   "font_weight": 400
+        // // },
+        // // "variable.parameter": {
+        // //   "color": "#CBC6AC",
+        // //   "font_style": null,
+        // //   "font_weight": null
+        // // },
+        // // "variable.special": {
+        // //   "color": "#CBC6AC",
+        // //   "font_style": null,
+        // //   "font_weight": null
+        // // },
+        // "punctuation.bracket": {
+        //   "color": "#CBC6AC"
+        // },
+        // "variable": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 400
+        // },
+        // "function": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 700
+        // },
+        // "property": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 400
+        // },
+        // "tag": {
+        //   "color": "#CBC6AC"
+        // }
+        // // "keyword": {
+        // //   "color": "#CBC6AC"
+        // // }
       },
-      "deleted": "#888888",
-      "deleted.border": "#777777",
-      "deleted.background": "#1a1a1a"
+      "deleted": "#A1786C"
+      // "deleted": "#FF7676"
+      // "deleted.border": "#FF7676",
+      // "deleted.background": "#FF7676"
     }
   }
 }
