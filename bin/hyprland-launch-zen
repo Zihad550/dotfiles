@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-tag="$1"
-app="$2"
-workspace="$1"
+tag="${1:-}"
+app="${2:-}"
+workspace="$tag"
+
+if [[ -z "$tag" || -z "$app" ]]; then
+   echo "Usage: $0 <tag> <app>"
+   exit 1
+fi
 
 window_address=$(
    hyprctl clients -j |
@@ -17,7 +22,7 @@ elif [[ -n $window_address ]]; then
 else
 
    hyprctl dispatch togglespecialworkspace $workspace
-   hyprctl dispatch exec "[workspace special:$workspace]" "uwsm-app -- $app"
+   hyprctl dispatch exec "[workspace special:$workspace]" "$app"
 
    # sleep 0.8
    # address=$(hyprctl activewindow -j | jq -r '.address')
