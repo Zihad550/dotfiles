@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+yay -Sua \
+   elephant-bin \
+   elephant-desktopapplications-bin \
+   elephant-bluetooth-bin \
+   elephant-calc-bin \
+   elephant-clipboard-bin \
+   elephant-files-bin \
+   elephant-menus-bin \
+   elephant-providerlist-bin \
+   elephant-runner-bin \
+   elephant-symbols-bin \
+   elephant-todo-bin \
+   elephant-unicode-bin \
+   elephant-websearch-bin
+
+elephant service enable
+systemctl --user enable --now elephant.service
+yay -Sua walker-bin
