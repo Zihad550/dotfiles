@@ -95,5 +95,11 @@
     "bindings": {
       "ctrl-alt-j": "workspace::OpenInTerminal"
     }
+  },
+  {
+    "context": "GitDiff || GitCommit || GitPanel",
+      "bindings": {
+      "ctrl-g ctrl-c": "git::ExpandCommitEditor"
+    }
   }
 ]
