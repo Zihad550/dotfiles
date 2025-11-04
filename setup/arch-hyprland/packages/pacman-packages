@@ -12,7 +12,8 @@ sudo pacman -S --noconfirm \
    man-db \
    man-pages \
    starship \
-   xorg-xhost
+   xorg-xhost \
+   mission-center
 
 # fonts
 sudo pacman -S --noconfirm \
