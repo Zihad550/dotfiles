@@ -23,6 +23,7 @@ sudo pacman -Syu --noconfirm stow
 
 # setup hyprland
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-hyprland
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-walker
 
 # setup docker
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-docker
@@ -63,13 +64,11 @@ sudo env EDITOR=nvim systemctl edit --full grub-btrfsd
 sudo pacman -S --noconfirm gdm
 sudo systemctl enable gdm.service
 
-
 # To test if AppArmor has been correctly enabled:
-echo  "Is app armor enabled: $(aa-enabled)"
+echo "Is app armor enabled: $(aa-enabled)"
 
 echo "Do you want to restart? [y/N] "
 read -r response
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
-then
-    shutdown -r now
+if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+   shutdown -r now
 fi
