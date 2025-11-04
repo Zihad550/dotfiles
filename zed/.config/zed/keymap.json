@@ -101,5 +101,11 @@
       "bindings": {
       "ctrl-g ctrl-c": "git::ExpandCommitEditor"
     }
+  },
+  {
+    "context": "GitPanel || GitDiff || GitCommit",
+    "bindings": {
+      "ctrl-g ctrl-u": "git::Push"
+    }
   }
 ]
