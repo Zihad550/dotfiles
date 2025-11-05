@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(dirname "$0")"
+
+# List available scripts except self
+options=""
+for script in "$SCRIPT_DIR"/*; do
+   basename_script="$(basename "$script")"
+   if [[ "$basename_script" != "execute-command" && -x "$script" && "$basename_script" != "manage_processes" ]]; then
+      options+="$basename_script\n"
+   fi
+done
+
+selection=$(echo -e "$options" | walker --dmenu --theme default -p "Execute a command" "${args[@]}")
+
+if [ -n "$selection" ]; then
+   eval exec "$SCRIPT_DIR/$selection"
+fi
+# echo $options | walker -d
