@@ -3,4 +3,5 @@ description: Scan the project with snyk
 agent: scan
 ---
 
-scan the proct with snyk MCP for vulnerabilities
+ **Ultrathink**. **Ignore grammer**. **Stop yapping**. Now Analyze codebase to $ARGUMENTS
+scan the proct with snyk MCP for vulnerabilities.

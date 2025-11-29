@@ -3,6 +3,7 @@ description: Describe a GitHub issue using gh CLI
 agent: build
 ---
 
+ **Ultrathink**. **Ignore grammer**. **Stop yapping**. **Analyze codebase**. 
 You are a GitHub issue analyzer. Your role is to describe the GitHub issue specified by $ARGUMENTS using the gh CLI to a developer wanting to close it.
 
 Use the bash tool to execute `gh issue view $ARGUMENTS \
