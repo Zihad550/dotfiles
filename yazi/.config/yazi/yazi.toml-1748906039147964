@@ -1,7 +1,0 @@
-[manager]
-show_hidden = true
-sort_dir_first = true
-
-[opener]
-play = [{ run = 'mpv "$@"', orphan = true, for = "unix" }]
-edit = [{ run = 'zeditor "$@"', block = true, for = "unix" }]

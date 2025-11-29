@@ -1,0 +1,7 @@
+[[mgr.prepend_keymap]]
+# on   = [ "d", "r" ]
+# run  = "plugin dragon"
+# desc = "Drag file(s) with dragon"
+on = [ "d", "r" ]
+run = "shell 'dragon-drop -x -i -T \"$@\"' --confirm"
+desc = "Drag file(s) with dragon"
