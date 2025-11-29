@@ -90,31 +90,16 @@
     }
   },
   "agent": {
+    "default_profile": "ask",
     "inline_assistant_model": {
       "provider": "google",
-      "model": "gemini-2.5-flash-lite-preview"
+      "model": "gemini-2.5-pro"
     },
-    "always_allow_tool_actions": true,
-    "play_sound_when_agent_done": true,
-    "notify_when_agent_waiting": "primary_screen",
-    "default_profile": "ask",
-
     "default_model": {
       "provider": "google",
-      "model": "gemini-2.5-pro"
-    }
-    // "inline_assistant_model": {
-    //   "provider": "zed.dev",
-    //   "model": "claude-sonnet-4"
-    // },
-    // "commit_message_model": {
-    //   "provider": "google-ai",
-    //   "model": "gemini-2.5-pro"
-    // },
-    // "thread_summary_model": {
-    //   "provider": "openrouter",
-    //   "model": "x-ai/grok-4-fast:free"
-    // }
+      "model": "gemini-3-pro-preview"
+    },
+    "model_parameters": []
   },
   "context_servers": {
     "prisma-mcp": {
@@ -128,16 +113,16 @@
       "settings": {}
     },
     "mcp-server-mui": {
-      "enabled": false,
       "source": "extension",
+      "enabled": false,
       "settings": {
         "preferred_theme": "",
         "component_filter": [""]
       }
     },
     "mcp-server-context7": {
-      "enabled": false,
       "source": "extension",
+      "enabled": false,
       "settings": {
         "default_minimum_tokens": "10000"
       }
@@ -148,28 +133,28 @@
     //   "args": ["mcp", "gateway", "run"]
     // },
     "shadcn": {
-      "enabled": false,
       "source": "custom",
+      "enabled": false,
       "command": "pnpx",
       "args": ["shadcn@latest", "mcp"]
     },
     "grep": {
+      "source": "custom",
       // "url": "https://mcp.grep.app",
       "command": "",
-      "args": ["https://mcp.grep.app"],
-      "source": "custom"
+      "args": ["https://mcp.grep.app"]
     },
     "playwright": {
-      "enabled": false,
       "source": "custom",
+      "enabled": false,
       "command": "pnpx",
       "args": ["@playwright/mcp@latest", "--extension"]
     },
     "chrome-devtools": {
+      "source": "custom",
       "enabled": false,
       "command": "pnpx",
-      "args": ["chrome-devtools-mcp@latest"],
-      "source": "custom"
+      "args": ["chrome-devtools-mcp@latest"]
     }
   },
 
@@ -221,7 +206,7 @@
   "ui_font_size": 16,
   "buffer_font_size": 16.5,
   "buffer_font_family": "JetBrains Mono",
-  "relative_line_numbers": true,
+  "relative_line_numbers": "enabled",
   "tabs": {
     "git_status": true,
     "file_icons": true,
@@ -279,16 +264,28 @@
   /////////////////////////////
   "theme_overrides": {
     "Kanagawa Wave": {
+      "hint": "#8F96A0", // git blame
+
+      // "editor.document_highlight.read_background": "#3B4A3F", // 2D4F67
+      // "editor.document_highlight.write_background": "#3B4A3F",
       "syntax": {
+        // "string": {
+        //   "color": "#CBC6AC",
+        //   "font_style": null,
+        //   "font_weight": null
+        // },
         "punctuation.delimiter": {
           "color": "#8F96A0",
           "font_style": null,
           "font_weight": null
-        }
-        // // "variable.member": {
-        // //   "color": "#CBC6AC",
-        // //   "font_weight": 400
-        // // },
+        },
+        // "punctuation.bracket": {
+        //   "color": "#CBC6AC"
+        // },
+        // "variable.member": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 400
+        // },
         // // "variable.parameter": {
         // //   "color": "#CBC6AC",
         // //   "font_style": null,
@@ -299,9 +296,6 @@
         // //   "font_style": null,
         // //   "font_weight": null
         // // },
-        // "punctuation.bracket": {
-        //   "color": "#CBC6AC"
-        // },
         // "variable": {
         //   "color": "#CBC6AC",
         //   "font_weight": 400
@@ -310,10 +304,10 @@
         //   "color": "#CBC6AC",
         //   "font_weight": 700
         // },
-        // "property": {
-        //   "color": "#CBC6AC",
-        //   "font_weight": 400
-        // },
+        "property": {
+          "color": "#CBC6AC",
+          "font_weight": 400
+        }
         // "tag": {
         //   "color": "#CBC6AC"
         // }
