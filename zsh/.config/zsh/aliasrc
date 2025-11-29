@@ -11,6 +11,7 @@ alias api='atac'
 alias ai='opencode'
 alias sysinfo='fastfetch'
 alias spec='openspec'
+alias timer='go-timer'
 
 # short aliases
 alias \
@@ -76,13 +77,13 @@ fzf_open_dir_func() {
       return 0
    fi
 
-   local base=$(basename $dir)
-   local address=$(hyprctl clients -j | jq -r --arg p "$base" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+   # local base=$(basename $dir)
+   # local address=$(hyprctl clients -j | jq -r --arg p "$base" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
 
-   if [[ -n $address ]]; then
-      hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
-      return 0
-   fi
+   # if [[ -n $address ]]; then
+   #    hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
+   #    return 0
+   # fi
 
    case $editor in
    "code")
@@ -91,17 +92,19 @@ fzf_open_dir_func() {
    "zed")
       # uwsm-app -- zeditor "$dir" && hyprctl dispatch focuscurrentorlast >/dev/null 2>&1 && exit
       uwsm-app -- zeditor "$dir"
-      local address
-
       sleep 0.2
-      for i in {1..10}; do
-         address=$(hyprctl activewindow -j | jq -r '.address')
-         if [[ -n "$address" && "$address" != "null" ]]; then
-            break
-         fi
-         sleep 0.2
-      done
-      hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
+      hyprctl dispatch focuscurrentorlast >/dev/null 2>&1
+      # local address
+
+      # sleep 0.2
+      # for i in {1..10}; do
+      #    address=$(hyprctl activewindow -j | jq -r '.address')
+      #    if [[ -n "$address" && "$address" != "null" ]]; then
+      #       break
+      #    fi
+      #    sleep 0.2
+      # done
+      # hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
       exit
       ;;
    "cursor")
@@ -214,9 +217,10 @@ alias pn=pnpm
 alias pna='pn approve-builds'
 
 # npm aliases
-alias nr='bun run'
+alias nr='pnpm run'
+# alias nr='bun run'
 # alias ni='npm install'
-alias nrd='bun run dev'
+alias nrd='pnpm run dev'
 alias nird='ni && bun run dev'
 alias nrb='bun run build'
 alias nbp='bun run build:preview'
@@ -228,6 +232,7 @@ alias fpush='gitpush "s"'
 alias gco='git checkout'
 alias gl='git pull'
 alias grhh='git reset --hard'
+alias gcl="git clone"
 # alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
 # alias gs='git status'
 # alias gss='git status --short'
