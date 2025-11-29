@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 if [ -n "$1" ]; then
-    if [[ "$1" == "Suspend" ]]; then
-        systemctl suspend
-    elif [[ "$1" == "Relaunch" ]]; then
-        uwsm stop
-    elif [[ "$1" == "Restart" ]]; then
-        systemctl reboot
-    elif [[ "$1" == "Shutdown" ]]; then
-        systemctl poweroff
-    fi
+   if [[ "$1" == "Suspend" ]]; then
+      systemctl suspend
+   elif [[ "$1" == "Relaunch" ]]; then
+      uwsm stop
+   elif [[ "$1" == "Restart" ]]; then
+      systemctl reboot
+   elif [[ "$1" == "Shutdown" ]]; then
+      systemctl poweroff
+   fi
 fi
 
 echo "Suspend"

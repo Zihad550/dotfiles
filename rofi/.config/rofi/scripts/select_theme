@@ -3,47 +3,47 @@
 THEME_DIR="$HOME/.config/themes"
 
 if [ -n "$1" ]; then
-    # creating a theme from the selected theme
-    ln -snf "$THEME_DIR/$1" "$HOME/.config/theme"
+   # creating a theme from the selected theme
+   ln -snf "$THEME_DIR/$1" "$HOME/.config/theme"
 
-    # restart applications
-    killall -SIGUSR2 ghostty
-    # dotfiles_restart_app waybar
-    systemctl --user restart waybar.service
-    systemctl --user restart mako.service
-    hyprctl reload >/dev/null 2>&1
+   # restart applications
+   killall -SIGUSR2 ghostty
+   # dotfiles_restart_app waybar
+   systemctl --user restart waybar.service
+   systemctl --user restart mako.service
+   hyprctl reload >/dev/null 2>&1
 
-    if [ -f ~/.config/theme/eza.yml ]; then
-        ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
-    else
-        rm -f ~/.config/eza/theme.yml
-    fi
+   if [ -f ~/.config/theme/eza.yml ]; then
+      ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
+   else
+      rm -f ~/.config/eza/theme.yml
+   fi
 
-    if [ -f ~/.config/theme/bottom.toml ]; then
-        mkdir -p ~/.config/bottom
-        ln -snf ~/.config/theme/bottom.toml ~/.config/bottom/bottom.toml
-    else
-        rm -f ~/.config/bottom/bottom.toml
-    fi
+   if [ -f ~/.config/theme/bottom.toml ]; then
+      mkdir -p ~/.config/bottom
+      ln -snf ~/.config/theme/bottom.toml ~/.config/bottom/bottom.toml
+   else
+      rm -f ~/.config/bottom/bottom.toml
+   fi
 
-    if [ -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json ]; then
-        rm ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
-        cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
-    fi
+   if [ -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json ]; then
+      rm ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
+      cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
+   fi
 
-    # obsidian - not working
-    # pkill obsidian && hyprctl dispatch workspace 7 >/dev/null 2>&1 &&  obsidian >/dev/null 2>&1
+   # obsidian - not working
+   # pkill obsidian && hyprctl dispatch workspace 7 >/dev/null 2>&1 &&  obsidian >/dev/null 2>&1
 
-    # Change gnome, browser, vscode themes
-    dotfiles-set-gnome-theme
-    # dotfiles-set-browser-theme # doesn't work rofi since requires sudo
-    dotfiles-set-vscode-theme
+   # Change gnome, browser, vscode themes
+   dotfiles-set-gnome-theme
+   # dotfiles-set-browser-theme # doesn't work rofi since requires sudo
+   dotfiles-set-vscode-theme
 
-    exit 0
+   exit 0
 fi
 
 # List available themes except self
 for theme in "$THEME_DIR"/*; do
-    basename_theme="$(basename "$theme")"
-    echo "$basename_theme"
+   basename_theme="$(basename "$theme")"
+   echo "$basename_theme"
 done

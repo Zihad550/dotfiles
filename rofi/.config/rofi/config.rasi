@@ -1,5 +1,5 @@
 configuration {
-    modi: "window,drun,emoji,calc,manage_processes,combi,ssh,power_menu";
+    modi: "window,drun,manage_processes,combi,ssh,power_menu";
     show-icons: true;
     display-drun: "Apps";
     font: "JetBrainsMono Nerd Font";
