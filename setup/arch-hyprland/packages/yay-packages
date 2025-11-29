@@ -6,7 +6,8 @@
 yay -S --noconfirm \
    pnpm-shell-completion \
    beekeeper-studio-bin \
-   ufw-docker
+   ufw-docker \
+   dragon-drop
 # mongodb-tools-bin
 
 # applications

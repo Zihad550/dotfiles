@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 
-go install github.com/Zihad550/timer@latest
+go install github.com/Zihad550/go-timer@latest
+
+# git clone https://github.com/Zihad550/go-timer.git
+# cd go-timer
+# go build -o timer .
+# cd ..
+# rm -rf go-timer
