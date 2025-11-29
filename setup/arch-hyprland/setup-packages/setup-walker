@@ -13,7 +13,8 @@ yay -Sua \
    elephant-symbols-bin \
    elephant-todo-bin \
    elephant-unicode-bin \
-   elephant-websearch-bin
+   elephant-websearch-bin \
+   elephant-winows-bin
 
 elephant service enable
 systemctl --user enable --now elephant.service

@@ -20,7 +20,8 @@ sudo pacman -S --noconfirm \
    nwg-look gnome-themes-extra \
    xdg-desktop-portal-hyprland \
    hyprsunset \
-   hyprpolkitagent
+   hyprpolkitagent \
+   hyprland-guiutils
 
 # rofi and application launcher
 # pavucontrol - volume control
