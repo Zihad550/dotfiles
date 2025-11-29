@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+window_address=$(
+   hyprctl clients -j |
+      jq -r --arg tag "$tag" '.[] | select(.initialClass == "app.zen_browser.zen") | .address'
+)
+echo $window_address
+
+eval exec hyprctl dispatch tagwindow "$tag" address:$window_address
+eval exec hyprctl clients -j | jq '.[].tags'

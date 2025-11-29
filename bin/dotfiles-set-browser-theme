@@ -2,22 +2,27 @@
 
 CHROMIUM_THEME=~/.config/theme/chromium.theme
 
-if dotfiles-cmd-present chromium || dotfiles-cmd-present brave; then
-  if [[ -f $CHROMIUM_THEME ]]; then
-    rgb=$(<$CHROMIUM_THEME)
-    THEME_HEX_COLOR=$(printf '#%02x%02x%02x' ${rgb//,/ })
-  else
-    # Use a default, neutral grey if theme doesn't have a color
-    THEME_HEX_COLOR="#1c2027"
-  fi
+if dotfiles-cmd-present chromium || dotfiles-cmd-present brave || dotfiles-cmd-present helium-browser; then
+   if [[ -f $CHROMIUM_THEME ]]; then
+      rgb=$(<$CHROMIUM_THEME)
+      THEME_HEX_COLOR=$(printf '#%02x%02x%02x' ${rgb//,/ })
+   else
+      # Use a default, neutral grey if theme doesn't have a color
+      THEME_HEX_COLOR="#1c2027"
+   fi
 
-  if dotfiles-cmd-present chromium; then
-    echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\"}" | sudo tee "/etc/chromium/policies/managed/color.json" >/dev/null
-    chromium --refresh-platform-policy --no-startup-window
-  fi
+   if dotfiles-cmd-present chromium; then
+      echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\"}" | sudo tee "/etc/chromium/policies/managed/color.json" >/dev/null
+      chromium --refresh-platform-policy --no-startup-window
+   fi
 
-  if dotfiles-cmd-present brave; then
-    echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\"}" | sudo tee "/etc/brave/policies/managed/color.json" >/dev/null
-    brave --refresh-platform-policy --no-startup-window
-  fi
+   if dotfiles-cmd-present helium-browser; then
+      echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\"}" | tee "/etc/chromium/policies/managed/color.json" >/dev/null
+      helium-browser --no-startup-window --refresh-platform-policy
+   fi
+
+   if dotfiles-cmd-present brave; then
+      echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\"}" | sudo tee "/etc/brave/policies/managed/color.json" >/dev/null
+      brave --refresh-platform-policy --no-startup-window
+   fi
 fi

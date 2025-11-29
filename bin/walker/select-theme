@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+THEME_DIR="$HOME/.config/themes"
+
+# Determine current theme
+current_theme=$(basename "$(readlink ~/.config/theme 2>/dev/null)" 2>/dev/null || echo "")
+
+# Build options
+options=""
+for theme in "$THEME_DIR"/*; do
+   basename_theme="$(basename "$theme")"
+   if [ "$basename_theme" = "$current_theme" ]; then
+      options+="$basename_theme (current)\n"
+   else
+      options+="$basename_theme\n"
+   fi
+done
+
+# Launch walker and get selection
+selected=$(echo -e "$options" | walker --dmenu --theme default -p "Select theme…")
+
+# If something selected, re-run with it
+if [ -n "$selected" ]; then
+
+   # creating a theme from the selected theme
+   ln -snf "$THEME_DIR/$selected" "$HOME/.config/theme"
+
+   # restart applications
+   killall -SIGUSR2 ghostty
+   # dotfiles_restart_app waybar
+   systemctl --user restart waybar.service
+   systemctl --user restart mako.service
+   hyprctl reload >/dev/null 2>&1
+
+   if [ -f ~/.config/theme/eza.yml ]; then
+      ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
+   else
+      rm -f ~/.config/eza/theme.yml
+   fi
+
+   if [ -f ~/.config/theme/bottom.toml ]; then
+      mkdir -p ~/.config/bottom
+      ln -snf ~/.config/theme/bottom.toml ~/.config/bottom/bottom.toml
+   else
+      rm -f ~/.config/bottom/bottom.toml
+   fi
+
+   # if [ -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json ]; then
+   rm ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
+   cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
+   # fi
+
+   # obsidian - not working
+   # pkill obsidian && hyprctl dispatch workspace 7 >/dev/null 2>&1 &&  obsidian >/dev/null 2>&1
+
+   # Change gnome, browser, vscode themes
+   dotfiles-set-gnome-theme >/dev/null 2>&1
+   # dotfiles-set-browser-theme # doesn't work rofi since requires sudo
+   dotfiles-set-vscode-theme >/dev/null 2>&1
+
+   exit 0
+fi
