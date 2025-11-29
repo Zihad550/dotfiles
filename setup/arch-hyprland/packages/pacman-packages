@@ -2,6 +2,7 @@
 
 #  core
 # xorg-xhost - needed for running timeshift
+# xournalpp - pdf editor
 sudo pacman -S --noconfirm \
    curl \
    git \
@@ -13,7 +14,9 @@ sudo pacman -S --noconfirm \
    man-pages \
    starship \
    xorg-xhost \
-   mission-center
+   mission-center \
+   xournalpp \
+   zellij
 
 # fonts
 sudo pacman -S --noconfirm \
