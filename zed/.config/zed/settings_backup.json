@@ -1,140 +1,204 @@
-// Zed settings
-//
-// For information on how to configure Zed, see the Zed
-// documentation: https://zed.dev/docs/configuring-zed
-//
-// To see all of Zed's default settings without changing your
-// custom settings, run the `open default settings` command
-// from the command palette or from `Zed` application menu.
 {
+  ////////////////////////
+  // ai
+  ///////////////////////
+  "language_models": {
+    "openai_compatible": {
+      "Z.ai": {
+        "api_url": "https://api.z.ai/api/coding/paas/v4",
+        "available_models": [
+          {
+            "name": "GLM-4.5",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-Air",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-X",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-AirX",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4.5-Flash",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 96000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          },
+          {
+            "name": "GLM-4-32B-0414-128K",
+            "display_name": null,
+            "max_tokens": 128000,
+            "max_output_tokens": 16000,
+            "max_completion_tokens": 128000,
+            "capabilities": {
+              "tools": true,
+              "images": true,
+              "parallel_tool_calls": true,
+              "prompt_cache_key": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agent": {
+    "default_profile": "ask",
+    "inline_assistant_model": {
+      "provider": "google",
+      "model": "gemini-2.5-pro"
+    },
+    "default_model": {
+      "provider": "google",
+      "model": "gemini-3-pro-preview"
+    },
+    "model_parameters": []
+  },
   "context_servers": {
+    "prisma-mcp": {
+      "enabled": false,
+      "settings": {}
+    },
+    "browser-tools-context-server": {
+      "enabled": false,
+      "settings": {}
+    },
     "mcp-server-mui": {
-      "source": "extension",
+      "enabled": false,
       "settings": {
         "preferred_theme": "",
         "component_filter": [""]
       }
     },
     "mcp-server-context7": {
-      "source": "extension",
+      "enabled": false,
       "settings": {
         "default_minimum_tokens": "10000"
       }
+    },
+    // "MCP_DOCKER": {
+    //   "source": "custom",
+    //   "command": "docker",
+    //   "args": ["mcp", "gateway", "run"]
+    // },
+    "shadcn": {
+      "enabled": false,
+      "command": "pnpx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "grep": {
+      // "url": "https://mcp.grep.app",
+      "command": "",
+      "args": ["https://mcp.grep.app"]
+    },
+    "playwright": {
+      "enabled": false,
+      "command": "pnpx",
+      "args": ["@playwright/mcp@latest", "--extension"]
+    },
+    "chrome-devtools": {
+      "enabled": false,
+      "command": "pnpx",
+      "args": ["chrome-devtools-mcp@latest"]
     }
   },
 
-  "agent": {
-    "inline_assistant_model": {
-      "provider": "google",
-      "model": "gemini-2.5-flash"
-    },
-    "always_allow_tool_actions": true,
-    "profiles": {
-      "minimal": {
-        "name": "Minimal",
-        "tools": {
-          "terminal": true,
-          "read_file": true,
-          "open": false,
-          "list_directory": true,
-          "grep": true,
-          "find_path": true,
-          "fetch": true,
-          "diagnostics": true
-        },
-        "enable_all_context_servers": false,
-        "context_servers": {
-          "mcp-server-mui": {
-            "tools": {
-              "useMuiDocs": true,
-              "fetchDocs": true
-            }
-          },
-          "mcp-server-context7": {
-            "tools": {
-              "resolve-library-id": true,
-              "get-library-docs": true
-            }
-          }
-        }
-      },
-      "ask": {
-        "name": "Ask",
-        "tools": {
-          "list_directory": true,
-          "grep": true,
-          "find_path": true,
-          "fetch": true,
-          "edit_file": false,
-          "diagnostics": true,
-          "delete_path": false,
-          "create_directory": false,
-          "copy_path": true
-        },
-        "enable_all_context_servers": true
-      },
-      "write": {
-        "name": "Write",
-        "tools": {
-          "open": true,
-          "read_file": true,
-          "list_directory": true,
-          "grep": true,
-          "find_path": true,
-          "fetch": true,
-          "edit_file": true,
-          "diagnostics": true,
-          "delete_path": true,
-          "create_directory": true,
-          "copy_path": true
-        },
-        "enable_all_context_servers": true
-      }
-    },
-    "play_sound_when_agent_done": true,
-    "default_profile": "minimal",
-    "default_model": {
-      "provider": "google",
-      "model": "gemini-2.5-pro"
-    },
-    "version": "2"
-  },
-
-  // "show_edit_predictions": false,
+  ///////////////////////////
+  // features
+  ///////////////////////////
   "features": {
     "edit_prediction_provider": "zed"
   },
   "edit_predictions": {
-    "mode": "subtle"
+    "mode": "eager"
   },
-  // "languages": {
-  //   "TypeScript": {
-  //     "show_edit_predictions": false
-  //   },
-  //   "Vue.js": {
-  //     "show_edit_predictions": false
-  //   }
+  "vim_mode": true,
+  // "linked_edits": false,
+  "soft_wrap": "editor_width",
+  "double_click_in_multibuffer": "open",
+  "autosave": "on_window_change",
+  "extend_comment_on_newline": false,
+  "inlay_hints": {
+    "edit_debounce_ms": 0
+  },
+  // "use_smartcase_search": true,
+  // "use_multiline_search": true
+  // search
+  // "search": {
+  //   "case_sensitive": true
   // },
 
-  "icon_theme": "Material Icon Theme",
+  // "code_actions_on_format": {
+  //   "source.organizeImports": true
+  // },
 
+  // "lsp_highlight_debounce": 10,
+
+  // unstable
+  "hide_mouse": "on_typing_and_movement",
+
+  /////////////////////
+  // ui
+  /////////////////////
+  "icon_theme": "Material Icon Theme",
   "tab_bar": {
     "show": false
   },
-
   "theme": {
-    "dark": "JetBrains New Dark",
-    "light": "Catppuccin Mocha"
+    "dark": "Kanagawa Wave",
+    "light": "Noctis Lilac"
   },
-  "telemetry": {
-    "diagnostics": false,
-    "metrics": false
-  },
-  "vim_mode": true,
   "ui_font_size": 16,
   "buffer_font_size": 16.5,
   "buffer_font_family": "JetBrains Mono",
-  "relative_line_numbers": true,
+  "relative_line_numbers": "enabled",
   "tabs": {
     "git_status": true,
     "file_icons": true,
@@ -153,42 +217,100 @@
   "outline_panel": {
     "dock": "left"
   },
-  "completion_documentation_secondary_query_debounce": 0,
-  // Whether to perform linked edits of associated ranges, if the language server supports it.
-  // For example, when editing opening <html> tag, the contents of the closing </html> tag will be edited as well.
-  // "linked_edits": false,
-  // "soft_wrap": "bounded",
-  "soft_wrap": "editor_width",
-  "double_click_in_multibuffer": "open",
-  "autosave": "on_window_change",
-  "extend_comment_on_newline": false,
-  // "use_smartcase_search": true,
-  // "use_multiline_search": true
-  // "centered_layout": {
-  //   "left_padding": 0.1,
-  //   "right_padding": 0.1
-  // }
-
-  // search
-  // "search": {
-  //   "case_sensitive": true
-  // },
-
-  // unstable
-  "hide_mouse": "never",
-  "code_actions_on_format": {
-    "source.organizeImports": true
+  "centered_layout": {
+    "left_padding": 0.1,
+    "right_padding": 0
   },
+  "minimap": {
+    "show": "auto",
+    "max_width_columns": 40,
+    "current_line_highlight": "all"
+  },
+
+  ///////////////////////
+  // languages
+  ////////////////////////
   "languages": {
-    "TSX": {
-      "code_actions_on_format": {
-        "source.organizeImports": true
+    "Shell Script": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "shfmt",
+          // Change `--indent 2` to match your preferred tab_size
+          "arguments": ["--filename", "{buffer_path}", "--indent", "3"]
+        }
       }
-    },
-    "Vue.js": {
-      "code_actions_on_format": {
-        "source.organizeImports": false
-      }
+    }
+  },
+
+  //////////////////////////////
+  // others
+  //////////////////////////////
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false
+  },
+
+  /////////////////////////////
+  // theme overrides
+  /////////////////////////////
+  "theme_overrides": {
+    "Kanagawa Wave": {
+      "hint": "#8F96A0", // git blame
+
+      // "editor.document_highlight.read_background": "#3B4A3F", // 2D4F67
+      // "editor.document_highlight.write_background": "#3B4A3F",
+      "syntax": {
+        // "string": {
+        //   "color": "#CBC6AC",
+        //   "font_style": null,
+        //   "font_weight": null
+        // },
+        "punctuation.delimiter": {
+          "color": "#8F96A0",
+          "font_style": null,
+          "font_weight": null
+        },
+        // "punctuation.bracket": {
+        //   "color": "#CBC6AC"
+        // },
+        // "variable.member": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 400
+        // },
+        // // "variable.parameter": {
+        // //   "color": "#CBC6AC",
+        // //   "font_style": null,
+        // //   "font_weight": null
+        // // },
+        // // "variable.special": {
+        // //   "color": "#CBC6AC",
+        // //   "font_style": null,
+        // //   "font_weight": null
+        // // },
+        // "variable": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 400
+        // },
+        // "function": {
+        //   "color": "#CBC6AC",
+        //   "font_weight": 700
+        // },
+        "property": {
+          "color": "#CBC6AC",
+          "font_weight": 400
+        }
+        // "tag": {
+        //   "color": "#CBC6AC"
+        // }
+        // // "keyword": {
+        // //   "color": "#CBC6AC"
+        // // }
+      },
+      "deleted": "#A1786C"
+      // "deleted": "#FF7676"
+      // "deleted.border": "#FF7676",
+      // "deleted.background": "#FF7676"
     }
   }
 }

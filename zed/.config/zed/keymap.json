@@ -97,7 +97,7 @@
     }
   },
   {
-    "context": "GitDiff || GitCommit || GitPanel",
+    "context": "!Terminal",
       "bindings": {
       "ctrl-g ctrl-c": "git::ExpandCommitEditor"
     }
