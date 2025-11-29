@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Arch Update on Saturdays
+
+[Timer]
+OnCalendar=Sat *-*-* 09:00:00
+RandomizedDelaySec=12h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
