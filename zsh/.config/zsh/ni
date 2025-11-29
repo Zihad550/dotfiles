@@ -46,7 +46,7 @@ elif [ -f bun.lock ]; then
 elif [ -f pnpm-lock.yaml ]; then
    alias npm='pnpm'
 else
-   alias npm='pnpm install'
+   alias npm='pnpm'
 fi
 
 alias node-package-manager='npm'
