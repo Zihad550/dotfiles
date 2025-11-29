@@ -61,9 +61,9 @@
     "orientation": "horizontal",
   },
   "clock": {
-    "format-alt": "{:L%A  %H:%M  %d-%b-%Y}",
-    "format": "{:L%H:%M}",
-    "tooltip": true,
+    "format-alt": "{:L%d-%b-%Y}",
+    "format": "{:L%H:%M %A}",
+    "tooltip": false,
     "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
   },
   "network": {
@@ -98,7 +98,7 @@
     "tooltip-format-discharging": "{power:>1.0f}W↓ {capacity}%",
     "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
     "interval": 5,
-    "on-click": "rofi -show power_menu",
+    "on-click": "elephant menu 'system'",
     "states": {
       "warning": 30,
       "critical": 10,
