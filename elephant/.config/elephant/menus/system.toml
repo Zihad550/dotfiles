@@ -1,0 +1,33 @@
+name = "system"
+name_pretty = "System"
+icon = "system"
+
+[[entries]]
+text = "Lock"
+keywords = ["lock" , "lock screen"]
+actions = {"Lock" = "hyprlock"}
+icon = " "
+
+[[entries]]
+text = "Suspend"
+keywords = ["suspend" , "suspend system"]
+actions = {"Suspend" = "systemctl suspend"}
+icon = "󰤄"
+
+[[entries]]
+text = "Restart"
+keywords = ["restart" , "reboot"]
+actions = {"Restart" = "systemctl reboot"}
+icon = "󰜉"
+
+[[entries]]
+text = "Shutdown"
+keywords = ["shutdown" , "power off"]
+actions = {"Shutdown" = "systemctl poweroff"}
+icon = "󰐥"
+
+[[entries]]
+text = "Relaunch"
+keywords = ["logout" , "exit" , "relaunch"]
+actions = {"Logout" = "uwsm stop"}
+icon = ""
