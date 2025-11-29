@@ -17,6 +17,7 @@ export XDG_CACHE_HOME="$HOME/.cache"
 
 # keys
 export CONTEXT7_API_KEY="$(pass env/context7_api_key)"
+export BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
 
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
@@ -27,23 +28,31 @@ export STARSHIP_CONFIG="$XDG_CONFIG_HOME/starship/starship.toml"
 # node max heap size to 8 gigs
 export NODE_OPTIONS="--max-old-space-size=8192"
 
-# Deno Setup
-if [[ ":$FPATH:" != *":${HOME}/.zsh/completions:"* ]]; then
-  export FPATH="${HOME}/.zsh/completions:$FPATH"
-fi
-
-# moving other files and some other vars
+# go
 export GOPATH="$XDG_DATA_HOME/go"
 export GOBIN="$GOPATH/bin"
 export GOMODCACHE="$XDG_CACHE_HOME/go/mod"
+
+# moving other files and some other vars
 export CARGO_HOME="$XDG_DATA_HOME/cargo"
-export CARGO_BIN="$CARGO_HOME/bin"
-export PNPM_HOME="$XDG_DATA_HOME/pnpm"
-export DENO_INSTALL="${HOME}/.deno"
-# export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
-export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
-export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
+# export CARGO_BIN="$CARGO_HOME/bin"
+# export DENO_INSTALL="$(mise where deno)"
+# export BUN_INSTALL="$(mise where bun)"
+
+# uv tools
 export UV_HOME="$XDG_DATA_HOME/../bin"
+
+# pnpm
+export PNPM_HOME="$XDG_DATA_HOME/pnpm"
+
+# rust
+export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
+
+# docker
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+
+# npm
+export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 
 # .net
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -62,4 +71,5 @@ export DOTFILES_BIN="$HOME/dotfiles/bin"
 # export GEMINI_SANDBOX=podman
 
 # PATH Configuration
-export PATH="$DOTFILES_BIN:$PATH:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$DENO_INSTALL/bin"
+# export PATH="$BUN_INSTALL/bin:$DOTFILES_BIN:$PATH:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$DENO_INSTALL/bin"
+export PATH="$DOTFILES_BIN:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$PATH"
