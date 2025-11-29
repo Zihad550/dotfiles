@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# List running user and system systemd services with prefix and description
+options=$(
+   systemctl --user list-units --type=service --state=running --no-legend --no-pager |
+      awk '{name=$1; $1=$2=$3=$4=""; sub(/^ +/, ""); print "user:" name " - " $0}'
+   systemctl list-units --type=service --state=running --no-legend --no-pager |
+      awk '{name=$1; $1=$2=$3=$4=""; sub(/^ +/, ""); print "system:" name " - " $0}'
+)
+
+# Show the options in walker and store the selected value
+selection=$(echo -e "$options" | walker -d --theme default -p "systemd services")
+
+# If a selection was made
+if [ -n "$selection" ]; then
+   LINE="$selection"
+   SERVICE_LINE=$(echo "$LINE" | sed 's/ - .*//') # Remove " - description"
+   TYPE=$(echo "$SERVICE_LINE" | cut -d: -f1)
+   SERVICE=$(echo "$SERVICE_LINE" | cut -d: -f2- | sed 's/^ *//') # Trim leading space after :
+   echo $TYPE
+   echo $SERVICE
+
+   if [[ "$TYPE" == "system" ]]; then
+      sudo systemctl restart "$SERVICE" 2>/dev/null
+   elif [[ "$TYPE" == "user" ]]; then
+      systemctl --user restart "$SERVICE" 2>/dev/null
+   fi
+   exit 0
+fi
