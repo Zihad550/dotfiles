@@ -6,7 +6,7 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles
 ```
 
 ## arch setup
-1. disk configuration, btrfs with timeshift snapshots
+1. disk configuration, btrfs with snapper snapshots
 2. disk encryption
 
 ## notes hyprland
@@ -25,6 +25,8 @@ flatpak uninstall --unused
 yay -Scc # remove cache
 sudo pacman -Rs --noconfirm $(pacman -Qtdq) # remove unused
 ```
+
+```sh
 sudo nvim /etc/default/grub
 # Uncomment to enable booting from LUKS encrypted devices
 GRUB_ENABLE_CRYPTODISK=y
@@ -32,4 +34,11 @@ GRUB_ENABLE_CRYPTODISK=y
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# hyprctl dispatch movetoworkspace special:zellij,title:zellij
+hyprctl dispatch movetoworkspace special:zellij,title:zellij
+
+# get architecture of a installed tool, installed by mise
+file "$(mise where deno)/bin/deno"
+
+# zsh site-functions, completion files
+/usr/share/zsh/site-functions
+```
