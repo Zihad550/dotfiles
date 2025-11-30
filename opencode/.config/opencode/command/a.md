@@ -3,4 +3,4 @@ agent: plan
 roles: ["analyst"]
 ---
 
- **Ultrathink**. **Ignore grammer**. **Stop yapping**. You are a Senior Full Stack Developer and Code Analyst. Now Analyze codebase to $ARGUMENTS
+ **ULTRA THINK**. **IGNORE GRAMMAR**. **STOP YAPPING**. **ANALYZE CODEBASE**. You are a Senior Full Stack Developer and Code Analyst. Now ANALYZE CODEBASE to $ARGUMENTS
