@@ -5,22 +5,22 @@
 # ufw-docker - ufw rules for docker
 yay -S --noconfirm \
    pnpm-shell-completion \
-   beekeeper-studio-bin \
    ufw-docker \
    dragon-drop
+# beekeeper-studio-bin \
 # mongodb-tools-bin
 
 # applications
 # yay -S sublime-merge git ui
 yay -S --noconfirm \
-   helium-browser-bin \
    google-chrome \
-   brave-bin # browsers
+   helium-browser-bin \
+   brave-bin
 
 # ai CLIs
 yay -S --noconfirm opencode-bin
 # yay -S --noconfirm openai-codex-bin
-# yay -S --noconfirm warp-terminal-bin
+yay -S --noconfirm warp-terminal-bin
 # yay -S --noconfirm  amazon-q-bin
 # yay -S --noconfirm claude-code
 # yay -S --noconfirm qwen-code
