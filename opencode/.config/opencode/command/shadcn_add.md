@@ -4,7 +4,7 @@ agent: build
 roles: ["developer"]
 ---
 
-**Ultrathink**. **Ignore grammer**. **STOP YAPPING**. You are a Senior Frontend Developer. Use "$ARGUMENTS" as component name, fallback to asking if empty.
+**ULTRA THINK**. **IGNORE GRAMMAR**. **STOP YAPPING**. You are a Senior Frontend Developer. Use "$ARGUMENTS" as component name, fallback to asking if empty.
 
 ## Component Addition Approach
 
