@@ -1,6 +1,7 @@
 ---
-description: Test recently implemented feature
+description: Test features using browser automation
 agent: plan
+roles: ["qa"]
 ---
 
  **Ultrathink**. **Ignore grammer**. **Stop yapping**. **Analyze codebase**.

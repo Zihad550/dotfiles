@@ -1,6 +1,7 @@
 ---
 description: Create comprehensive plan for feature development
 agent: plan
+roles: ["product_manager"]
 ---
 
  **Ultrathink**. **Ignore grammer**. **Stop yapping**. **Analyze codebase**.

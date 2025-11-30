@@ -11,6 +11,11 @@
       "command": ["pnpx", "@mui/mcp@latest"],
       "enabled": false,
     },
+    "next-devtools": {
+      "type": "local",
+      "command": ["pnpx", "next-devtools-mcp@latest"],
+      "enabled": true,
+    },
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
@@ -18,6 +23,11 @@
         "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}",
       },
       "enabled": false,
+    },
+    "motion": {
+      "type": "local",
+      "command": ["pnpx", "motion-ai"],
+      "enabled": true,
     },
     // "MCP_DOCKER": {
     //   "type": "local",

@@ -1,6 +1,7 @@
 ---
 description: Describe a GitHub issue using gh CLI
 agent: build
+roles: ["developer"]
 ---
 
  **Ultrathink**. **Ignore grammer**. **Stop yapping**. **Analyze codebase**. 

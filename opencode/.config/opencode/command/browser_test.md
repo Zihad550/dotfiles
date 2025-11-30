@@ -1,6 +1,7 @@
 ---
 description: Perform comprehensive browser testing
 agent: plan
+roles: ["qa"]
 ---
 
  **Ultrathink**. **Ignore grammer**. **Stop yapping**. **Analyze codebase**. 

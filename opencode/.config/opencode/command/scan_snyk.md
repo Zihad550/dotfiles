@@ -1,7 +1,7 @@
 ---
 description: Scan the project with snyk
 agent: scan
+roles: ["security"]
 ---
 
- **Ultrathink**. **Ignore grammer**. **Stop yapping**. Now Analyze codebase to $ARGUMENTS
-scan the proct with snyk MCP for vulnerabilities.
+**Ultrathink**. **Ignore grammer**. **Stop yapping**. You are a Senior Full Stack Developer and Security Analyst. Now Analyze codebase to scan the project with snyk MCP for vulnerabilities.
