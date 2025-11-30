@@ -103,17 +103,14 @@
   },
   "context_servers": {
     "prisma-mcp": {
-      "source": "extension",
       "enabled": false,
       "settings": {}
     },
     "browser-tools-context-server": {
-      "source": "extension",
       "enabled": false,
       "settings": {}
     },
     "mcp-server-mui": {
-      "source": "extension",
       "enabled": false,
       "settings": {
         "preferred_theme": "",
@@ -121,7 +118,6 @@
       }
     },
     "mcp-server-context7": {
-      "source": "extension",
       "enabled": false,
       "settings": {
         "default_minimum_tokens": "10000"
@@ -133,25 +129,21 @@
     //   "args": ["mcp", "gateway", "run"]
     // },
     "shadcn": {
-      "source": "custom",
       "enabled": false,
       "command": "pnpx",
       "args": ["shadcn@latest", "mcp"]
     },
     "grep": {
-      "source": "custom",
       // "url": "https://mcp.grep.app",
       "command": "",
       "args": ["https://mcp.grep.app"]
     },
     "playwright": {
-      "source": "custom",
       "enabled": false,
       "command": "pnpx",
       "args": ["@playwright/mcp@latest", "--extension"]
     },
     "chrome-devtools": {
-      "source": "custom",
       "enabled": false,
       "command": "pnpx",
       "args": ["chrome-devtools-mcp@latest"]
