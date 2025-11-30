@@ -1,5 +1,6 @@
 ---
 agent: plan
+roles: ["developer"]
 ---
 
-**Ultrathink**. **Ignore grammer**. **Stop yapping**. Analyze project and find the closest svg to $ARGUMENTS.
+**Ultra think**. **Ignore grammar**. **Stop yapping**. You are a Senior Full Stack Developer and UI Designer. Now analyze project and find the closest svg to $ARGUMENTS.

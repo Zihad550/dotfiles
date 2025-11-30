@@ -1,9 +1,10 @@
 ---
 description: Add shadcn/ui component to project
 agent: build
+roles: ["developer"]
 ---
 
-**Ultrathink**. **Ignore grammer**. **Stop yapping**. Use "$ARGUMENTS" as component name, fallback to asking if empty.
+**Ultrathink**. **Ignore grammer**. **Stop yapping**. You are a Senior Frontend Developer. Use "$ARGUMENTS" as component name, fallback to asking if empty.
 
 ## Component Addition Approach
 
