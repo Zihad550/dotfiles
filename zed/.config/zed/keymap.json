@@ -6,8 +6,8 @@
       "ctrl-w h": "workspace::ActivatePaneLeft",
       "ctrl-w l": "workspace::ActivatePaneRight",
       "ctrl-w k": "workspace::ActivatePaneUp",
-      "ctrl-w j": "workspace::ActivatePaneDown"
-    }
+      "ctrl-w j": "workspace::ActivatePaneDown",
+    },
   },
 
   // others
@@ -20,17 +20,31 @@
       "tab": "menu::SelectNext",
       "shift-tab": "menu::SelectPrevious",
       "ctrl-k l": "workspace::ToggleCenteredLayout",
-      "alt-p": [
+      "alt-b": [
         "task::Spawn",
-        { "task_name": "File Finder", "reveal_target": "center" }
+        {
+          "task_name": "File explorer",
+          "reveal_target": "center",
+        },
       ],
-      "ctrl-f": [
-        "task::Spawn",
-        { "task_name": "Find in Files", "reveal_target": "center" }
-      ],
-      "ctrl-shift-r": "editor::RestartLanguageServer"
-    }
+      "ctrl-alt-x": "task::Spawn",
+      "ctrl-shift-r": "editor::RestartLanguageServer",
+    },
   },
+  // others for vim mode
+  {
+    "context": "vim_mode == normal && !Terminal",
+    "bindings": {
+      "space e": [
+        "task::Spawn",
+        {
+          "task_name": "File explorer",
+          "reveal_target": "center"
+        }
+      ],
+    },
+  },
+
   // switch suggestions
   {
     "context": "Editor && (showing_code_actions || showing_completions)",
@@ -40,17 +54,17 @@
       "down": "editor::ContextMenuNext",
       "tab": "editor::ContextMenuNext",
       "pageup": "editor::ContextMenuFirst",
-      "pagedown": "editor::ContextMenuLast"
+      "pagedown": "editor::ContextMenuLast",
       // "shift-enter": "menu::Confirm",
       // "enter": "vim::Enter"
-    }
+    },
   },
   // terminal
   {
     "context": "Terminal",
     "bindings": {
-      "ctrl-n": "workspace::NewTerminal"
-    }
+      "ctrl-n": "workspace::NewTerminal",
+    },
   },
   // ******
   // **** vim
@@ -62,26 +76,25 @@
       "ctrl-shift-u": "vim::ScrollUp",
       "ctrl-shift-d": "vim::ScrollDown",
       "ctrl-u": ["workspace::SendKeystrokes", "ctrl-shift-u z z"],
-      "ctrl-d": ["workspace::SendKeystrokes", "ctrl-shift-d z z"]
-    }
+      "ctrl-d": ["workspace::SendKeystrokes", "ctrl-shift-d z z"],
+    },
   },
   // center when search
   {
     "context": "Editor && (vim_mode == normal || vim_mode == visual) && !VimWaiting && !menu",
     "bindings": {
       "ctrl-shift-n": "vim::MoveToNextMatch",
-      "n": ["workspace::SendKeystrokes", "ctrl-shift-n z z"]
-    }
+      "n": ["workspace::SendKeystrokes", "ctrl-shift-n z z"],
+    },
   },
 
   // use ctrl+p to open file instead of searching for intellisese
   {
     "context": "vim_mode == insert && !(showing_code_actions || showing_completions)",
     "bindings": {
-      "ctrl-p": "file_finder::Toggle"
-    }
-  }
-
+      "ctrl-p": "file_finder::Toggle",
+    },
+  },
   // inline completionon
   // {
   //   "context": "Editor && inline_completion && !showing_completions",
@@ -89,23 +102,22 @@
   //     "right": "editor::AcceptInlineCompletion"
   //   }
   // }
-,
   {
     "context": "Editor",
     "bindings": {
-      "ctrl-alt-j": "workspace::OpenInTerminal"
-    }
+      "ctrl-alt-j": "workspace::OpenInTerminal",
+    },
   },
   {
     "context": "!Terminal",
-      "bindings": {
-      "ctrl-g ctrl-c": "git::ExpandCommitEditor"
-    }
+    "bindings": {
+      "ctrl-g ctrl-c": "git::ExpandCommitEditor",
+    },
   },
   {
     "context": "GitPanel || GitDiff || GitCommit",
     "bindings": {
-      "ctrl-g ctrl-u": "git::Push"
-    }
-  }
+      "ctrl-g ctrl-u": "git::Push",
+    },
+  },
 ]

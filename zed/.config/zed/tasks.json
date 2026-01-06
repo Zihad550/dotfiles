@@ -38,35 +38,35 @@
     //           "arguments": ["--login"]
     //         }
     //     }
-    "shell": "system"
+    "shell": "system",
   },
   // live server
   {
     "label": "Live server - 5500",
     "command": "live-server --no-browser",
     "env": {
-      "PORT": "5500"
+      "PORT": "5500",
     },
     "use_new_terminal": true,
-    "reveal": "never"
+    "reveal": "never",
   },
   // live server
   {
     "label": "Live server - 3500",
     "command": "live-server --no-browser",
     "env": {
-      "PORT": "3500"
+      "PORT": "3500",
     },
     "use_new_terminal": true,
-    "reveal": "never"
+    "reveal": "never",
   },
   {
-    "label": "File Finder",
+    "label": "File explorer",
     "command": "yazi",
     "hide": "always",
-    "allow_concurrent_runs": true,
-    "use_new_terminal": true
-  }
+    "allow_concurrent_runs": false,
+    "use_new_terminal": false,
+  },
   // television
   // {
   //   "label": "File Finder",
