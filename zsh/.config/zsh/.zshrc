@@ -1,74 +1,163 @@
+
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.config/zsh/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+# fi
+
 # profiling
 # zmodload zsh/zprof
 
-# ZSH Configuration
-# Basic Settings
+# Set the directory we want to store zinit and plugins
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+
+# Download Zinit, if it's not there yet
+if [ ! -d "$ZINIT_HOME" ]; then
+   mkdir -p "$(dirname $ZINIT_HOME)"
+   git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+
+# Source/Load zinit
+source "${ZINIT_HOME}/zinit.zsh"
+
+# Add in Powerlevel10k
+# zinit ice depth=1; zinit light romkatv/powerlevel10k
+
+# starship
+# zinit ice as"command" from"gh-r" \
+#           atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
+#           atpull"%atclone" src"init.zsh"
+# zinit light starship/starship
+
+# pure
+# zinit ice compile'(pure|async).zsh' pick'async.zsh' src'pure.zsh'
+# zinit light sindresorhus/pure
+
+# Add in zsh plugins
+zinit light zsh-users/zsh-syntax-highlighting
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+zinit light Aloxaf/fzf-tab
+
+# Add in snippets
+zinit snippet OMZL::git.zsh
+zinit snippet OMZP::git
+zinit snippet OMZP::sudo
+zinit snippet OMZP::archlinux
+# zinit snippet OMZP::aws
+# zinit snippet OMZP::kubectl
+# zinit snippet OMZP::kubectx
+zinit snippet OMZP::command-not-found
+
+# Load completions
+autoload -Uz compinit && compinit
+
+zinit cdreplay -q
+
+# To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
+# [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
+
+
+# aliases
+source "$XDG_CONFIG_HOME/zsh/aliasrc"
+
+
+
+##############
+# History
+###########
+HISTSIZE=5000
+SAVEHIST=5000
+HISTFILE="$XDG_CACHE_HOME/zsh_history" # move histfile to cache
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+HISTCONTROL=ignoreboth # consecutive duplicates & commands starting with space are not saved
+setopt append_history inc_append_history
+setopt share_history
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+################
+# settings
+############
 setopt extendedglob nomatch notify
 unsetopt beep
-bindkey -v
-
-# Efficient completion initialization
-# disable $fpath verification for faster completion system load, and faster startup
-# ZSH_DISABLE_COMPAUDIT=true
-
-
-# load modules
-# Completion System
-zstyle :compinstall filename "$XDG_CONFIG_HOME/zsh/.zshrc"
-
-autoload -Uz compinit && compinit -C
-# autoload -U colors && colors
-# autoload -U tetris
-
-# cmp opts
-zstyle :compinstall filename "$XDG_CONFIG_HOME/zsh/.zshrc"
-zstyle ':completion:*' menu select # tab opens cmp menu
-#zstyle ':completion:*' special-dirs true # force . and .. to show in cmp menu
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS} ma=0\;33 # colorize cmp menu
-#zstyle ':completion:*' file-list true # more detailed list
-zstyle ':completion:*' squeeze-slashes false # explicit disable to allow /*/ expansion
-
-# main opts
-setopt auto_menu menu_complete # autocmp first menu match
 setopt autocd # type a dir to cd
-setopt auto_param_slash # when a dir is completed, add a / instead of a trailing space
-setopt no_case_glob no_case_match # make cmp case insensitive
 setopt globdots # include dotfiles
 setopt extended_glob # match ~ # ^
 setopt interactive_comments # allow comments in shell
 unsetopt prompt_sp # don't autoclean blanklines
-stty stop undef # disable accidental ctrl s
 
-# history opts
-HISTSIZE=10000
-SAVEHIST=10000
-HISTFILE="$XDG_CACHE_HOME/zsh_history" # move histfile to cache
-HISTCONTROL=ignoreboth # consecutive duplicates & commands starting with space are not saved
-# on exit, history appends rather than overwrites; history is appended as soon as cmds executed; history shared across sessions
-setopt append_history inc_append_history share_history # better history
+# Completion styling
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' menu no
+zstyle ':completion:*' squeeze-slashes false # explicit disable to allow /*/ expansion
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
-# Tools Configuration
+#################
+# Shell integrations
+#################
 source <(fzf --zsh)
-
-# Tool Initializations
-# eval "$(fnm env --use-on-cd --shell zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
+source /usr/share/zsh/plugins/pnpm-shell-completion/pnpm-shell-completion.zsh
+source "$XDG_CONFIG_HOME/zsh/ni"
 
-# zinit as="command" lucid from="gh-r" for \
-#     id-as="usage" \
-#     atpull="%atclone" \
-#     jdx/usage
-    #atload='eval "$(mise activate zsh)"' \
 
-# zinit as="command" lucid from="gh-r" for \
-#     id-as="mise" mv="mise* -> mise" \
-#     atclone="./mise* completion zsh > _mise" \
-#     atpull="%atclone" \
-#     atload='eval "$(mise activate zsh)"' \
-#     jdx/mise
+# everytime i do cd it lists all content of that directory
+chpwd() {
+    eza -lh --group-directories-first --icons=auto --color=auto
 
+    # activating python virtual environment when i do cd
+    # if [[ -d .venv ]]; then
+    #     source .venv/bin/activate
+    # elif [[ -d venv ]]; then
+    #     source venv/bin/activate
+    # elif [[ -n "$VIRTUAL_ENV" ]]; then
+    #     dactivate
+    # fi
+}
+
+# advance move, batch moving, batch renaming
+autoload -Uz zmv
+
+# Usage examples:
+# -i = interactive mode = zmv -i -W '*.txt' '*.log'
+# zmv '(*).log' '$1.txt'           # Rename .log to .txt
+# zmv -w '*.log' '*.txt'           # Same thing, simpler syntax
+# zmv -n '(*).log' '$1.txt'        # Dry run (preview changes)
+# zmv -i '(*).log' '$1.txt'        # Interactive mode (confirm each)
+
+# Helpful aliases for zmv
+alias zcp='zmv -C'  # Copy with patterns
+alias zln='zmv -L'  # Link with patterns
+
+# -------------------------------------------
+# 8. Named Directories - Bookmark Folders
+# -------------------------------------------
+# Access with ~name syntax, e.g., cd ~yt or ls ~yt
+hash -d dot=~/dotfiles
+hash -d dl=~/Downloads
+hash -d wo=~/dev/work/mamacrm
+
+##################
+# keybindings
+############
+bindkey -e
+bindkey '^p' history-search-backward
+bindkey '^n' history-search-forward
+bindkey '^[w' kill-region
+# open buffer line in editor
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey '^x^e' edit-command-line
 
 # binds
 bindkey "^a" beginning-of-line
@@ -82,82 +171,21 @@ bindkey "^J" history-search-forward
 bindkey "^K" history-search-backward
 bindkey '^R' fzf-history-widget
 
-# open fff file manager with ctrl f
-# openyazi() {
-#  yazi <$TTY
-#  zle redisplay
-# }
-# zle -N openyazi
-# bindkey '^f' openyazi
+# custom plugins, zle(zshell line editor)
+# clear but keep current
+clear-keep-buffer() {
+    zle clear-screen
+}
+zle -N clear-keep-buffer
+bindkey '^Xl' clear-keep-buffer
 
-
-
-
-## set up prompt
-# NEWLINE=$'\n'
-# dark1=#292735
-# dark2=#313244
-# dark3=#45475a
-# dark4="#4a4c61"
-# prompt_text_color=#cdd6f4
-
-# function get_env_info() {
-#     # Python (virtualenv or conda)
-#     if [[ -n "$VIRTUAL_ENV" ]]; then
-#         echo -n "%K{$dark4}%F{#89b4fa} [py $(python --version 2>&1 | cut -d' ' -f2)]%f%k"
-#     elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-#         echo -n "%K{$dark4}%F{#89b4fa} [conda $CONDA_DEFAULT_ENV]%f%k"
-#     fi
-
-#     # Node.js
-#     if [ -f "package.json" ] || [ -d "node_modules" ]; then
-#         echo -n "%K{$dark4}%F{#a6e3a1} node $(node -v 2>/dev/null) %f%k"
-#     fi
-
-#     # Rust
-#     if [ -f "Cargo.toml" ]; then
-#         echo -n "%K{$dark4}%F{#f9e2af} [rust $(rustc --version 2>/dev/null | cut -d' ' -f2)]%f%k"
-#     fi
-
-#     # Go
-#     if [ -f "go.mod" ] || [ -f "main.go" ]; then
-#         echo -n "%K{$dark4}%F{#74c7ec} [go $(go version 2>/dev/null | cut -d' ' -f3 | sed 's/go//')]%f%k"
-#     fi
-# }
-
-
-# function get_git_branch_and_status() {
-#     local branch=$(git branch --show-current 2> /dev/null)
-#     if [[ -n $branch ]]; then
-#         local changes_added=$(git diff --numstat | awk '{sum += $1} END {print sum}')
-#         local changes_deleted=$(git diff --numstat | awk '{sum += $2} END {print sum}')
-#         local untracked=$(git ls-files --others --exclude-standard | wc -l)
-#         local status_info=""
-
-#         # Add the changes info if there are any changes
-#         if [[ $changes_added -gt 0 || $changes_deleted -gt 0 || $untracked -gt 0 ]]; then
-#             [[ $((changes_added + untracked)) -gt 0 ]] && status_info+="%F{#a6e3a1}+$((changes_added + untracked))"
-#             [[ $changes_deleted -gt 0 ]] && status_info+="%F{#f38ba8}-$changes_deleted"
-#         fi
-
-#         echo "%K{$dark3}%F{$prompt_text_color} $branch $status_info %f%k"
-#     fi
-# }
-
-# setopt PROMPT_SUBST
-# NEWLINE=$'\n'
-# PROMPT='${NEWLINE}%K{$dark1}%F{#cdd6f4}$(date +%_I:%M%P) %K{$dark2}%F{#cdd6f4} %~ $(get_git_branch_and_status)%f%k$(get_env_info)${NEWLINE}❯ '
-
-# echo -e "${NEWLINE}\033[48;2;46;52;64;38;2;216;222;233m $0 \033[0m\033[48;2;59;66;82;38;2;216;222;233m $(uptime -p | cut -c 4-) \033[0m\033[48;2;76;86;106;38;2;216;222;233m $(uname -r) \033[0m"
-
-# Plugin Sources
-# source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-# shell completions
-source /usr/share/zsh/plugins/pnpm-shell-completion/pnpm-shell-completion.zsh
-source "$XDG_CONFIG_HOME/zsh/aliasrc"
-source "$XDG_CONFIG_HOME/zsh/ni"
-
-
+# copy current command
+copy-command() {
+    echo -n $BUFFER | wl-copy
+    zle -M "Copied to clipboard"
+}
+zle -N copy-command
+bindkey '^Xc' copy-command
 
 # custom keybindings for searching and opening directories in code editors
 zle -N zed
@@ -183,6 +211,10 @@ openZellij() {
 }
 zle -N openZellij
 bindkey "^z" openZellij
+
+# useful custom keybindings for custom autocompletions
+bindkey -s '^Xgc' 'git commit -m ""\C-b'
+bindkey -s '^Xgp' 'git push'
 
 
 # profiling

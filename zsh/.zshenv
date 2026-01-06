@@ -39,6 +39,9 @@ export CARGO_HOME="$XDG_DATA_HOME/cargo"
 # export DENO_INSTALL="$(mise where deno)"
 # export BUN_INSTALL="$(mise where bun)"
 
+# mise
+export MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
+
 # uv tools
 export UV_HOME="$XDG_DATA_HOME/../bin"
 

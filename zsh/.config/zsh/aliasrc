@@ -12,6 +12,7 @@ alias ai='opencode'
 alias sysinfo='fastfetch'
 alias spec='openspec'
 alias timer='go-timer'
+alias oc='opencode'
 
 # short aliases
 alias \
@@ -39,6 +40,25 @@ alias \
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
+
+# suffix aliases
+alias -s md="bat"
+alias -s mov="open"
+alias -s png="open"
+alias -s mp4="open"
+alias -s go="$EDITOR"
+alias -s js="$EDITOR"
+alias -s ts="$EDITOR"
+alias -s yaml="bat -l yaml"
+alias -s json="bat -l json"
+
+# global aliases
+alias -g NE='2>/dev/null'      # null error
+alias -g DN='> /dev/null'      # pipe standard output to /dev/null
+alias -g NUL='>/dev/null 2>&1' # pipe standard output and error to /dev/null
+alias -g C='| wl-copy'
+alias -g P='wl-paste'
+alias -g L='| less'
 
 # Function to list directories and open the selected one in editor
 # Regular function version for command line use
