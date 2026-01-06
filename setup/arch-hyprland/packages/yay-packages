@@ -9,13 +9,14 @@ yay -S --noconfirm \
    dragon-drop
 # beekeeper-studio-bin \
 # mongodb-tools-bin
+# hoppscotch-bin
 
 # applications
 # yay -S sublime-merge git ui
 yay -S --noconfirm \
    google-chrome \
-   helium-browser-bin \
-   brave-bin
+   helium-browser-bin
+# brave-bin
 
 # ai CLIs
 yay -S --noconfirm opencode-bin

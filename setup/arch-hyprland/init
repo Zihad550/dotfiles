@@ -3,6 +3,10 @@
 # upgrade and install stow
 sudo pacman -Syu --noconfirm stow
 
+# setup additional application icons
+mkdir -p $HOME/.local/share/applications/icons
+ln -snf ~/dotfiles/setup/applications/icons $HOME/.local/share/applications
+
 # stow
 ~/dotfiles/scripts/stow/stow-base
 ~/dotfiles/scripts/stow/stow-hyprland

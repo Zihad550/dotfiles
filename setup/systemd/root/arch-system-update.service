@@ -1,0 +1,8 @@
+[Unit]
+Description=Arch Linux Update Service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/arch-system-update
+StandardOutput=journal
+StandardError=journal

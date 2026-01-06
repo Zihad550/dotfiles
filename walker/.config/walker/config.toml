@@ -9,6 +9,7 @@ additional_theme_location = "~/.config/walker/themes/"
 # [keybinds]
 # quick_activate = []
 
+
 [providers]
 default = [
   "desktopapplications",

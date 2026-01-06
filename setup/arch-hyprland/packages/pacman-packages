@@ -3,6 +3,7 @@
 #  core
 # xorg-xhost - needed for running timeshift
 # xournalpp - pdf editor
+# gum - shell script
 sudo pacman -S --noconfirm \
    curl \
    git \
@@ -16,7 +17,8 @@ sudo pacman -S --noconfirm \
    xorg-xhost \
    mission-center \
    xournalpp \
-   zellij
+   zellij \
+   gum
 
 # fonts
 sudo pacman -S --noconfirm \
@@ -50,7 +52,7 @@ sudo pacman -S --noconfirm \
    pastel \
    lazydocker \
    lazygit \
-   yazi 7zip
+   yazi 7zip trash-cli
 # atac
 # termdown
 
