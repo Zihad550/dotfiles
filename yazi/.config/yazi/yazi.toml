@@ -1,6 +1,10 @@
 [mgr]
-show_hidden = true
+show_hidden = false
 sort_dir_first = true
+
+[tasks]
+image_alloc      = 1073741824  # 1024 MB
+image_bound      = [ 10000, 10000 ]
 
 [opener]
 play = [{ run = 'mpv "$@"', orphan = true, for = "unix" }]

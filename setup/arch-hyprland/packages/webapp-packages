@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+~/dotfiles/bin/arch-webapp-install "ChatGPT" https://chatgpt.com/ ChatGPT.png
+~/dotfiles/bin/arch-webapp-install "GitHub" https://github.com/ GitHub.png
+~/dotfiles/bin/arch-webapp-install "Graphite" https://graphite.com/ graphite.png
+~/dotfiles/bin/arch-webapp-install "Figma" https://figma.com/ Figma.png
+~/dotfiles/bin/arch-webapp-install "Drive" https://drive.google.com/ google-drive.png
+~/dotfiles/bin/arch-webapp-install "Perplexity" https://www.perplexity.ai perplexity.png
+~/dotfiles/bin/arch-webapp-install "Gemini" https://gemini.google.com/app gemini.png
+~/dotfiles/bin/arch-webapp-install "Calendar" https://calendar.google.com/calendar google-calendar.png
+~/dotfiles/bin/arch-webapp-install "Mail" https://mail.google.com/mail google-mail.png
+~/dotfiles/bin/arch-webapp-install "LinkedIn" https://linkedin.com/ linkedin.png
+~/dotfiles/bin/arch-webapp-install "Facebook" https://facebook.com/ facebook.png
+~/dotfiles/bin/arch-webapp-install "Proton Mail" https://mail.proton.com proton-mail.png
+~/dotfiles/bin/arch-webapp-install "Proton Drive" https://proton.me/drive proton-drive.png
+~/dotfiles/bin/arch-webapp-install "Quran" https://quran.com/ quran.png
+~/dotfiles/bin/arch-webapp-install "Bitwarden" https://vault.bitwarden.com bitwarden.png
+~/dotfiles/bin/arch-webapp-install "FigJam" https://figma.com figjam.png
+
+# omarchy-webapp-install "YouTube" https://youtube.com/ YouTube.png
+# omarchy-webapp-install "Discord" https://discord.com/channels/@me Discord.png
+# omarchy-webapp-install "Zoom" https://app.zoom.us/wc/home Zoom.png "omarchy-webapp-handler-zoom %u" "x-scheme-handler/zoommtg;x-scheme-handler/zoomus"
