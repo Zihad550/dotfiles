@@ -14,7 +14,7 @@
     "next-devtools": {
       "type": "local",
       "command": ["pnpx", "next-devtools-mcp@latest"],
-      "enabled": true,
+      "enabled": false,
     },
     "context7": {
       "type": "remote",
@@ -27,7 +27,7 @@
     "motion": {
       "type": "local",
       "command": ["pnpx", "motion-ai"],
-      "enabled": true,
+      "enabled": false,
     },
     // "MCP_DOCKER": {
     //   "type": "local",
