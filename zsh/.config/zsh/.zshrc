@@ -46,7 +46,7 @@ zinit snippet OMZP::git
 zinit snippet OMZP::sudo
 zinit snippet OMZP::archlinux
 # zinit snippet OMZP::aws
-# zinit snippet OMZP::kubectl
+zinit snippet OMZP::kubectl
 # zinit snippet OMZP::kubectx
 zinit snippet OMZP::command-not-found
 
@@ -54,6 +54,9 @@ zinit snippet OMZP::command-not-found
 autoload -Uz compinit && compinit
 
 zinit cdreplay -q
+
+zinit ice atload"zpcdreplay" atclone"./zplug.zsh" atpull"%atclone"
+zinit light g-plane/pnpm-shell-completion
 
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 # [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
@@ -107,8 +110,8 @@ source <(fzf --zsh)
 eval "$(zoxide init --cmd cd zsh)"
 eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
-source /usr/share/zsh/plugins/pnpm-shell-completion/pnpm-shell-completion.zsh
 source "$XDG_CONFIG_HOME/zsh/ni"
+source "$XDG_CONFIG_HOME/zsh/new-worktree"
 
 
 # everytime i do cd it lists all content of that directory
