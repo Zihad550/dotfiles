@@ -17,6 +17,15 @@ sed -i 's|^[[:space:]]*export BROWSER_USE_API_KEY="\$(pass env/browser_use_test)
 sed -i 's|^[[:space:]]*export MISE_GITHUB_TOKEN=\$(pass github/personal-access-token-mise)|# &|' ~/.zshenv
 
 
+sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
+curl -L https://nixos.org/nix/install | sh
+source $HOME/.nix-profile/etc/profile.d/nix.sh
+
+nix-env -i procs
+nix-env -iA nixpkgs.starship
+nix-shell -i fastfetch
+
+
 chsh -s $(which zsh)
 
 
