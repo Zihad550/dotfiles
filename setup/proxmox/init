@@ -10,4 +10,14 @@ apt install stow -y
 
 # comment mise from .zshrc and ohters
 sed -i 's|^eval "\$(mise activate zsh)"|# &|' ~/.config/zsh/.zshrc
-sed -i 's|^source "\$XDG_CONFIG_HOME/zsh/\(ni\|new-worktree\)"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^[[:space:]]*source "\$XDG_CONFIG_HOME/zsh/ni"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^[[:space:]]*source "\$XDG_CONFIG_HOME/zsh/new-worktree"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^[[:space:]]*export CONTEXT7_API_KEY="\$(pass env/context7_api_key)"|# &|' ~/.zshenv
+sed -i 's|^[[:space:]]*export BROWSER_USE_API_KEY="\$(pass env/browser_use_test)"|# &|' ~/.zshenv
+sed -i 's|^[[:space:]]*export MISE_GITHUB_TOKEN=\$(pass github/personal-access-token-mise)|# &|' ~/.zshenv
+
+
+
+chsh -s $(which zsh)
+
+echo "exit and ssh again"
