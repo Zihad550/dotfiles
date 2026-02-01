@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+cd ~/dotfiles
+
+stow git
+stow zsh
+stow starship

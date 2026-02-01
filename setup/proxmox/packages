@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+apt install ripgrep git curl zsh fzf zoxide neovim bat fastfetch eza procs  -y

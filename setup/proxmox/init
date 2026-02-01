@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+apt update -y
+apt upgrade -y
+
+apt install stow -y
+~/dotfiles/setup/ubuntu-server/stow
+
+~/dotfiles/setup/ubuntu-server/packages
+
+# comment mise from .zshrc and ohters
+sed -i 's|^eval "\$(mise activate zsh)"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^source "\$XDG_CONFIG_HOME/zsh/\(ni\|new-worktree\)"|# &|' ~/.config/zsh/.zshrc
+
+~/dotfiles/setup/ubuntu-server/rm-snap
