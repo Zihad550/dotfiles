@@ -3,7 +3,5 @@
 cd ~/dotfiles
 
 stow git
-stow kanata
 stow zsh
-stow lazygit
 stow starship
