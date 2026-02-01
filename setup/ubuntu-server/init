@@ -21,9 +21,10 @@ sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
 curl -L https://nixos.org/nix/install | sh
 source $HOME/.nix-profile/etc/profile.d/nix.sh
 
-nix-env -iA procs
+nix-env -iA nixpkgs.procs
 nix-env -iA nixpkgs.starship
-nix-env -iA fastfetch
+nix-env -iA nixpkgs.fastfetch
+nix-env -iA nixpkgs.fzf
 
 
 chsh -s $(which zsh)
