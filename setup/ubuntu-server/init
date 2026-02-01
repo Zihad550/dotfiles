@@ -23,7 +23,7 @@ source $HOME/.nix-profile/etc/profile.d/nix.sh
 
 nix-env -iA procs
 nix-env -iA nixpkgs.starship
-nix-shell -iA fastfetch
+nix-env -iA fastfetch
 
 
 chsh -s $(which zsh)
