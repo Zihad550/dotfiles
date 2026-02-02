@@ -70,6 +70,9 @@ export OLLAMA_FLASH_ATTENTION=true
 # dotfiles bin
 export DOTFILES_BIN="$HOME/dotfiles/bin"
 
+# docker
+# export DOCKER_HOST=unix:///run/user/1000/docker.sock
+
 # gemini
 # export GEMINI_SANDBOX=podman
 
