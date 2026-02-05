@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# List running user and system systemd services with prefix and description
+options=$(
+   echo work
+   echo project
+)
+
+# Show the options in walker and store the selected value
+selection=$(echo -e "$options" | walker -d --theme default -p "systemd services")
+
+# If a selection was made
+if [ -n "$selection" ]; then
+   $selection
+
+   ~/dotfiles/bin/hyprland-launch-special-app "$selection" "ghostty -e zellij -l $selection attach --create $selection options --on-force-close quit" "$selection"
+   exit 0
+fi
