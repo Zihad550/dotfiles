@@ -2,6 +2,8 @@
 
 # cmd remaps
 # alias ls=eza
+alias v='nvim'
+alias vi='nvim'
 alias cat='bat --color=always'
 alias top='btm'
 #alias find='fd'
@@ -14,13 +16,15 @@ alias spec='openspec'
 alias timer='go-timer'
 alias oc='opencode'
 alias d='docker'
+alias zed='zeditor'
+alias z='zeditor'
 
 # short aliases
 alias \
    c="clear" \
    v="nvim" \
    n="nvim" \
-   e="zeditor" \
+   e="nvim" \
    cat="bat" \
    ls="eza -lh --group-directories-first --icons=auto --color=auto" \
    la="ls -a" \
@@ -176,11 +180,11 @@ fzf_open_dir() {
 # fzf mappings
 alias ff='fzf --preview="bat --color=always {}"'
 alias fzn='nvim $(fzf --preview="bat --color=always {}")'
-alias fzz='zed $(fzf --preview="bat --color=always {}")'
+alias fzz='zed_open_dir $(fzf --preview="bat --color=always {}")'
 alias lg='lazygit'
 alias fcode='fzf_open_dir_func code'
 alias fcursor='fzf_open_dir_func cursor'
-zed() {
+zed_open_dir() {
    fzf_open_dir_func zed
 }
 alias fnvim='fzf_open_dir_func nvim'
