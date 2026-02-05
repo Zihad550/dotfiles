@@ -13,6 +13,23 @@ text = "MongoDB Compass env"
 keywords = ["mongodb", "compass"]
 actions = {"compass" = "flatpak run com.mongodb.Compass --trustedConnectionString $(pass env/mongodb_uri)"}
 
+[[entries]]
+text = "work - zellij session"
+keywords = ["work", "mamacrm", "zellij"]
+actions = {"work" = "~/dotfiles/bin/hyprland-launch-special-app 'work-zellij' 'ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit' 'work-zellij'"}
+
+[[entries]]
+text = "project - zellij session"
+keywords = ["project", "zellij"]
+actions = {"project" = "~/dotfiles/bin/hyprland-launch-special-app 'project-zellij' 'ghostty -e zellij -l project attach --create project-zellij options --on-force-close quit' 'project-zellij'"}
+
+[[entries]]
+text = "Helium - work profile"
+keywords = ["helium", "helium work"]
+actions = {"helium" = "~/dotfiles/bin/hyprland-launch-special-app 'helium' 'helium-browser --profile-directory=\"Profile 2\"' 'work'"}
+
+
+
 # [[entries]]
 # text = "Color Picker"
 # keywords = ["color", "picker", "hypr"]
