@@ -42,3 +42,18 @@ file "$(mise where deno)/bin/deno"
 # zsh site-functions, completion files
 /usr/share/zsh/site-functions
 ```
+
+# updates
+```bash
+sudo pacman -Syu
+yay -Sua
+flatpak update
+mise up --bump
+zinit update
+zinit self-update
+```
+
+# nc - connect network
+nc -z -vv localhost 6379
+
+hyprctl keyword monitor "eDP-1,preferred,1080x860,1"
