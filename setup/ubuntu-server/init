@@ -25,11 +25,14 @@ nix-env -iA nixpkgs.procs
 nix-env -iA nixpkgs.starship
 nix-env -iA nixpkgs.fastfetch
 nix-env -iA nixpkgs.fzf
+nix-env -iA nixpkgs.bat
+
 
 
 chsh -s $(which zsh)
 
 
 ~/dotfiles/setup/ubuntu-server/rm-snap
+
 
 echo "now logout and log back in"
