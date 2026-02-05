@@ -1,4 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
+# Switch between audio outputs while preserving the mute status. By default mapped to Super + Mute.
 
 focused_monitor="$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')"
 
