@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
 # fzf - version is lower update in ubuntu 26
-#
-sudo apt install ripgrep git curl zsh zoxide neovim bat eza -y
+# bat
+sudo apt install ripgrep git curl zsh zoxide neovim eza tealdeer -y
