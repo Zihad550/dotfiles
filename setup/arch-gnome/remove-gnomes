@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
 sudo pacman --noconfirm -Rns \
-    gnome-maps \
-    gnome-calendar \
-    gnome-console \
-    gnome-contacts \
-    gnome-remote-desktop \
-    gnome-text-editor \
-    gnome-weather \
-    epiphany \
-    gnome-system-monitor \
-    gnome-connections \
-    simple-scan \
-    malcontent \
-    rygel \
-    gnome-tour
+   gnome-maps \
+   gnome-calendar \
+   gnome-console \
+   gnome-contacts \
+   gnome-remote-desktop \
+   gnome-text-editor \
+   gnome-weather \
+   epiphany \
+   gnome-system-monitor \
+   gnome-connections \
+   simple-scan \
+   malcontent \
+   rygel \
+   gnome-tour \
+   gnome-control-center \
+   gnome-shell-extensions

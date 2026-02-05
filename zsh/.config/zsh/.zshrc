@@ -112,6 +112,7 @@ eval "$(starship init zsh)"
 eval "$(mise activate zsh)"
 source "$XDG_CONFIG_HOME/zsh/ni"
 source "$XDG_CONFIG_HOME/zsh/new-worktree"
+source <(procs --gen-completion-out zsh)
 
 
 # everytime i do cd it lists all content of that directory
@@ -191,8 +192,8 @@ zle -N copy-command
 bindkey '^Xc' copy-command
 
 # custom keybindings for searching and opening directories in code editors
-zle -N zed
-bindkey "^e" zed
+zle -N zed_open_dir
+bindkey "^e" zed_open_dir
 zle -N fzf_open_dir
 bindkey "\ec" fzf_open_dir
 # search an open on nautilus
