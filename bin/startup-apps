@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-cd ~/dev/projects/browser-extensions/bookmarks-manager/server
-./bookmarks-server &
+# cd ~/dev/projects/browser-extensions/bookmarks-manager/server
+# ./bookmarks-server &
