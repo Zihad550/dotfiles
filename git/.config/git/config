@@ -39,6 +39,8 @@
 [log]
     abbrevCommit = true
     ; graphColors = blue,yellow,cyan,magenta,green,red
+[worktree]
+	guessRemote = true
 ; [color "decorate"]
 ;     HEAD = red
 ;     branch = blue
