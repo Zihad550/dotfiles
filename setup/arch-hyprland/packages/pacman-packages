@@ -4,6 +4,7 @@
 # xorg-xhost - needed for running timeshift
 # xournalpp - pdf editor
 # gum - shell script
+# dosfstools - fat32 support
 sudo pacman -S --noconfirm \
    curl \
    git \
@@ -18,7 +19,11 @@ sudo pacman -S --noconfirm \
    mission-center \
    xournalpp \
    zellij \
-   gum
+   gum \
+   dosfstools \
+   rclone \
+   veracrypt \
+   net-tools
 
 # fonts
 sudo pacman -S --noconfirm \
