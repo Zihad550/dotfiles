@@ -2,4 +2,9 @@
 
 # fzf - version is lower update in ubuntu 26
 # bat
-sudo apt install ripgrep git curl zsh zoxide neovim eza tealdeer -y
+sudo apt install ripgrep git curl zsh zoxide eza tealdeer -y
+
+# install the latest version of neovim
+sudo add-apt-repository ppa:neovim-ppa/unstable -y
+sudo apt update
+sudo apt install make gcc ripgrep unzip git xclip neovim

@@ -27,6 +27,8 @@ nix-env -iA nixpkgs.fastfetch
 nix-env -iA nixpkgs.fzf
 nix-env -iA nixpkgs.bat
 
+git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+
 
 
 chsh -s $(which zsh)
