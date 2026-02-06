@@ -113,6 +113,7 @@ eval "$(mise activate zsh)"
 source "$XDG_CONFIG_HOME/zsh/ni"
 source "$XDG_CONFIG_HOME/zsh/new-worktree"
 source <(procs --gen-completion-out zsh)
+source <(kubectl completion zsh)
 
 
 # everytime i do cd it lists all content of that directory
