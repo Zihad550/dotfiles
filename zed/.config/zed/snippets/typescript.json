@@ -1,12 +1,9 @@
 {
-  "log": {
-    "prefix": "clg",
-    "body": ["console.log($1)"],
-    "description": "console.log snippet"
-  },
   "cld": {
     "prefix": "cld",
-    "body": ["console.dir($1, {depth: Infinity})"],
+    "body": [
+      "console.dir($1, {depth: Infinity})"
+    ],
     "description": "console.dir snippet to see nested data"
   },
   "Typed Fetch Function": {
