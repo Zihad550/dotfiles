@@ -7,4 +7,4 @@ sudo apt install ripgrep git curl zsh zoxide eza tealdeer net-tools wl-clipboard
 # install the latest version of neovim
 sudo add-apt-repository ppa:neovim-ppa/unstable -y
 sudo apt update
-sudo apt install make gcc ripgrep unzip git xclip neovim
+sudo apt install make gcc ripgrep unzip git xclip neovim -y
