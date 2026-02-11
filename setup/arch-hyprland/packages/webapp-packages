@@ -7,14 +7,16 @@
 ~/dotfiles/bin/arch-webapp-install "Perplexity" https://www.perplexity.ai perplexity.png
 ~/dotfiles/bin/arch-webapp-install "Gemini" https://gemini.google.com/app gemini.png
 ~/dotfiles/bin/arch-webapp-install "Calendar" https://calendar.google.com/calendar google-calendar.png
-~/dotfiles/bin/arch-webapp-install "Mail" https://mail.google.com/mail google-mail.png
+# ~/dotfiles/bin/arch-webapp-install "Mail" https://mail.google.com/mail google-mail.png
 ~/dotfiles/bin/arch-webapp-install "LinkedIn" https://linkedin.com/ linkedin.png
 ~/dotfiles/bin/arch-webapp-install "Facebook" https://facebook.com/ facebook.png
-~/dotfiles/bin/arch-webapp-install "Proton Mail" https://mail.proton.com proton-mail.png
-~/dotfiles/bin/arch-webapp-install "Proton Drive" https://proton.me/drive proton-drive.png
+~/dotfiles/bin/arch-webapp-install "Proton Mail" https://mail.proton.me proton-mail.png
+~/dotfiles/bin/arch-webapp-install "Proton Drive" https://drive.proton.me proton-drive.png
 ~/dotfiles/bin/arch-webapp-install "Quran" https://quran.com/ quran.png
 ~/dotfiles/bin/arch-webapp-install "Bitwarden" https://vault.bitwarden.com bitwarden.png
-~/dotfiles/bin/arch-webapp-install "FigJam" https://figma.com figjam.png
+~/dotfiles/bin/arch-webapp-install "MamaCRM Zulip" https://mamacrm.zulipchat.com zulip.png
+~/dotfiles/bin/arch-webapp-install "Memrise" "https://community-courses.memrise.com/aprender/learn?course_id=5767825" memrise.png
+~/dotfiles/bin/arch-webapp-install "Monkey Type" https://monkeytype.com monkeytype.png
 
 # omarchy-webapp-install "YouTube" https://youtube.com/ YouTube.png
 # omarchy-webapp-install "Discord" https://discord.com/channels/@me Discord.png
