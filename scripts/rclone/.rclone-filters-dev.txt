@@ -1,0 +1,52 @@
+# Node / JS / Frontend
+- **/node_modules/**
+- **/.next/**
+- **/.nuxt/**
+- **/dist/**
+- **/build/**
+- **/.cache/**
+- **/.output/**
+- **/.vercel/**
+- **/.netlify/**
+- **/.turbo/**
+- **/.storybook-out/**
+- **/.svelte-kit/**
+- **/.astro/**
+- **/.remix/**
+- **/.solid/**
+- **/.qwik/**
+- **/.build/**
+- **/compiled/**
+- **/*.tsbuildinfo
+
+# Logs & temp
+- **/*.log
+- **/*.tmp
+- **/*.swp
+- **/*.swo
+- **/*.out
+- **/*.exe~
+
+# Python
+- **/__pycache__/**
+- **/*.pyc
+- **/.venv/**
+- **/venv/**
+
+# C / C++ / Build artifacts
+- **/cmake-build-*/
+- **/*.o
+- **/*.exe
+- **/*.dll
+- **/*.so
+- **/*.dylib
+
+# OS junk
+- **/.DS_Store
+- **/Thumbs.db
+
+# Dumps
+- **/dump/**
+
+# Include everything else
++ **
