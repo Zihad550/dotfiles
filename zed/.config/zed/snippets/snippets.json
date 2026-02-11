@@ -1,8 +1,9 @@
-
 {
-  "log": {
+  "console": {
     "prefix": "clg",
-    "body": ["console.log($1)"],
+    "body": [
+      "console.log('🚀 $1 = ',$2)"
+    ],
     "description": "console.log snippet"
   }
 }
