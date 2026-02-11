@@ -18,5 +18,9 @@ mkdir ~/.obsidian-vault
 mkdir ~/.backups
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
 
+ln -snf ~/dotfiles/scripts/rsync/.rsyncignore_dev ~/dev/.rsyncignore
+
+ln -snf ~/dotfiles/scripts/rclone/.rclone-filters-dev.txt ~/dev/.rclone-filters.txt
+
 # visit for tuning options
 # https://docs.syncthing.net/users/tuning.html
