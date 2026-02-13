@@ -18,12 +18,15 @@ mise use -g bun deno
 # syncthing
 sudo apt install syncthing -y
 systemctl --user enable --now syncthing.service
+sed -i "{s/127.0.0.1:8384/0.0.0.0:8384/g}" .local/state/syncthing/config.xml
 syncthing cli config options relays-enabled set false
 syncthing cli config options natenabled set false
 syncthing cli config options global-ann-enabled set false
 syncthing cli config options crenabled set false
 syncthing cli config options auto-upgrade-intervalh set 0
 syncthing cli config options releases-url set ""
+systemctl --user restart syncthing.service
+
 
 mkdir ~/dev
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
