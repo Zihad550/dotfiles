@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "skills": {
+    "cypress": {
+      "source": "bobmatnyc/claude-mpm-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bobmatnyc/claude-mpm-skills.git",
+      "skillPath": "toolchains/javascript/testing/cypress/SKILL.md",
+      "skillFolderHash": "37824e79ceffbc52d539ee51270dac600503c8c5",
+      "installedAt": "2026-02-15T11:37:56.881Z",
+      "updatedAt": "2026-02-15T11:37:56.881Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "c2f31172b6f256272305a5e6e7228b258446899f",
+      "installedAt": "2026-02-15T11:38:04.106Z",
+      "updatedAt": "2026-02-15T11:38:04.106Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "codex",
+    "gemini-cli",
+    "github-copilot",
+    "kimi-cli",
+    "opencode",
+    "kilo"
+  ]
+}
