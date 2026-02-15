@@ -18,6 +18,33 @@
       "skillFolderHash": "c2f31172b6f256272305a5e6e7228b258446899f",
       "installedAt": "2026-02-15T11:38:04.106Z",
       "updatedAt": "2026-02-15T11:38:04.106Z"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/agent-skills.git",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "skillFolderHash": "3116f3e62dbd02b44a598b1aa690d2a8938e8f89",
+      "installedAt": "2026-02-15T13:07:35.485Z",
+      "updatedAt": "2026-02-15T13:07:35.485Z"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "skillFolderHash": "928950704df8a8b885c03de5da626331e6f29cf8",
+      "installedAt": "2026-02-15T13:08:43.217Z",
+      "updatedAt": "2026-02-15T13:08:43.217Z"
+    },
+    "theme-factory": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/theme-factory/SKILL.md",
+      "skillFolderHash": "007940e80de6ae577a87b2b343b1a5eae715df2b",
+      "installedAt": "2026-02-15T13:11:39.828Z",
+      "updatedAt": "2026-02-15T13:11:39.828Z"
     }
   },
   "dismissed": {
