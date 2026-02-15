@@ -7,13 +7,21 @@ echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.jd
 sudo apt update -y
 sudo apt install -y mise
 mise use -g usage
-mkdir -p /usr/local/share/zsh/site-functions
-mise completion zsh  > /usr/local/share/zsh/site-functions/_mise
 
-mise use -g github:anomalyco/opencode
+mise completion zsh > _mise
+sudo mkdir -p /usr/local/share/zsh/site-functions
+sudo mv _mise /usr/local/share/zsh/site-functions
 
-mise use -g node@lts
-mise use -g bun deno
+
+# not working cpu type othe than host
+mise use -g opencode
+mise use -g github:Kilo-Org/kilo
+mise use -g gemini
+mise use -g github:continuedev/continue
+
+mise use -g bun deno node@lts pnpm
+mise use -g lazygit
+
 
 # syncthing
 sudo apt install syncthing -y
@@ -26,6 +34,8 @@ syncthing cli config options crenabled set false
 syncthing cli config options auto-upgrade-intervalh set 0
 syncthing cli config options releases-url set ""
 systemctl --user restart syncthing.service
+
+
 
 
 mkdir ~/dev

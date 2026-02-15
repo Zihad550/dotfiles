@@ -5,3 +5,7 @@ cd ~/dotfiles
 stow git
 stow zsh
 stow starship
+stow opencode
+stow agents
+
+ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
