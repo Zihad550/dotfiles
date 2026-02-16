@@ -2,105 +2,165 @@
   ////////////////////////
   // ai
   ///////////////////////
-  "language_models": {
-    "openai_compatible": {
-      "Z.ai": {
-        "api_url": "https://api.z.ai/api/coding/paas/v4",
-        "available_models": [
-          {
-            "name": "GLM-4.5",
-            "display_name": null,
-            "max_tokens": 128000,
-            "max_output_tokens": 96000,
-            "max_completion_tokens": 128000,
-            "capabilities": {
-              "tools": true,
-              "images": true,
-              "parallel_tool_calls": true,
-              "prompt_cache_key": true,
-            },
-          },
-          {
-            "name": "GLM-4.5-Air",
-            "display_name": null,
-            "max_tokens": 128000,
-            "max_output_tokens": 96000,
-            "max_completion_tokens": 128000,
-            "capabilities": {
-              "tools": true,
-              "images": true,
-              "parallel_tool_calls": true,
-              "prompt_cache_key": true,
-            },
-          },
-          {
-            "name": "GLM-4.5-X",
-            "display_name": null,
-            "max_tokens": 128000,
-            "max_output_tokens": 96000,
-            "max_completion_tokens": 128000,
-            "capabilities": {
-              "tools": true,
-              "images": true,
-              "parallel_tool_calls": true,
-              "prompt_cache_key": true,
-            },
-          },
-          {
-            "name": "GLM-4.5-AirX",
-            "display_name": null,
-            "max_tokens": 128000,
-            "max_output_tokens": 96000,
-            "max_completion_tokens": 128000,
-            "capabilities": {
-              "tools": true,
-              "images": true,
-              "parallel_tool_calls": true,
-              "prompt_cache_key": true,
-            },
-          },
-          {
-            "name": "GLM-4.5-Flash",
-            "display_name": null,
-            "max_tokens": 128000,
-            "max_output_tokens": 96000,
-            "max_completion_tokens": 128000,
-            "capabilities": {
-              "tools": true,
-              "images": true,
-              "parallel_tool_calls": true,
-              "prompt_cache_key": true,
-            },
-          },
-          {
-            "name": "GLM-4-32B-0414-128K",
-            "display_name": null,
-            "max_tokens": 128000,
-            "max_output_tokens": 16000,
-            "max_completion_tokens": 128000,
-            "capabilities": {
-              "tools": true,
-              "images": true,
-              "parallel_tool_calls": true,
-              "prompt_cache_key": true,
-            },
-          },
-        ],
-      },
+  "ssh_connections": [
+    {
+      "host": "dev",
+      "args": [],
+      "projects": [
+        {
+          "paths": [
+            "/home/saleh"
+          ]
+        },
+        {
+          "paths": [
+            "/home/saleh/dev/473-session-expiry-flow"
+          ]
+        },
+        {
+          "paths": [
+            "/home/saleh/dev/mamacrm/frontend-wt/feat/jd-e2e-tests"
+          ]
+        },
+        {
+          "paths": [
+            "/home/saleh/dev/musealy"
+          ]
+        },
+        {
+          "paths": [
+            "/home/saleh/dev/toolbox"
+          ]
+        }
+      ]
+    }
+  ],
+  "agent_servers": {
+    "qwen-code": {
+      "type": "registry"
+    },
+    "mistral-vibe": {
+      "type": "registry"
+    },
+    "kimi": {
+      "type": "registry"
+    },
+    "codebuddy-code": {
+      "type": "registry"
+    },
+    "auggie": {
+      "type": "registry"
+    },
+    "opencode": {
+      "type": "registry",
     },
   },
+  // "language_models": {
+  //   "openai_compatible": {
+  //     "Z.ai": {
+  //       "api_url": "https://api.z.ai/api/coding/paas/v4",
+  //       "available_models": [
+  //         {
+  //           "name": "GLM-4.5",
+  //           "display_name": null,
+  //           "max_tokens": 128000,
+  //           "max_output_tokens": 96000,
+  //           "max_completion_tokens": 128000,
+  //           "capabilities": {
+  //             "tools": true,
+  //             "images": true,
+  //             "parallel_tool_calls": true,
+  //             "prompt_cache_key": true,
+  //           },
+  //         },
+  //         {
+  //           "name": "GLM-4.5-Air",
+  //           "display_name": null,
+  //           "max_tokens": 128000,
+  //           "max_output_tokens": 96000,
+  //           "max_completion_tokens": 128000,
+  //           "capabilities": {
+  //             "tools": true,
+  //             "images": true,
+  //             "parallel_tool_calls": true,
+  //             "prompt_cache_key": true,
+  //           },
+  //         },
+  //         {
+  //           "name": "GLM-4.5-X",
+  //           "display_name": null,
+  //           "max_tokens": 128000,
+  //           "max_output_tokens": 96000,
+  //           "max_completion_tokens": 128000,
+  //           "capabilities": {
+  //             "tools": true,
+  //             "images": true,
+  //             "parallel_tool_calls": true,
+  //             "prompt_cache_key": true,
+  //           },
+  //         },
+  //         {
+  //           "name": "GLM-4.5-AirX",
+  //           "display_name": null,
+  //           "max_tokens": 128000,
+  //           "max_output_tokens": 96000,
+  //           "max_completion_tokens": 128000,
+  //           "capabilities": {
+  //             "tools": true,
+  //             "images": true,
+  //             "parallel_tool_calls": true,
+  //             "prompt_cache_key": true,
+  //           },
+  //         },
+  //         {
+  //           "name": "GLM-4.5-Flash",
+  //           "display_name": null,
+  //           "max_tokens": 128000,
+  //           "max_output_tokens": 96000,
+  //           "max_completion_tokens": 128000,
+  //           "capabilities": {
+  //             "tools": true,
+  //             "images": true,
+  //             "parallel_tool_calls": true,
+  //             "prompt_cache_key": true,
+  //           },
+  //         },
+  //         {
+  //           "name": "GLM-4-32B-0414-128K",
+  //           "display_name": null,
+  //           "max_tokens": 128000,
+  //           "max_output_tokens": 16000,
+  //           "max_completion_tokens": 128000,
+  //           "capabilities": {
+  //             "tools": true,
+  //             "images": true,
+  //             "parallel_tool_calls": true,
+  //             "prompt_cache_key": true,
+  //           },
+  //         },
+  //       ],
+  //     },
+  //   },
+  // },
   "agent": {
     "default_profile": "ask",
     "inline_assistant_model": {
       "provider": "google",
       "model": "gemini-3-flash-preview",
+      // "provider": "opencode",
+      // "model": "kimi-k2.5-free",
+    },
+    "commit_message_model": {
+      "provider": "google",
+      "model": "gemini-3-flash-preview",
     },
     "default_model": {
-      "provider": "google",
-      "model": "gemini-2.5-flash",
+      "provider": "openrouter",
+      "model": "openrouter/free",
     },
     "model_parameters": [],
   },
+
   "context_servers": {
     "prisma-mcp": {
       "enabled": false,
@@ -153,11 +213,9 @@
   ///////////////////////////
   // features
   ///////////////////////////
-  "features": {
-    "edit_prediction_provider": "zed",
-  },
   "edit_predictions": {
-    "mode": "eager",
+    "provider": "zed",
+    "mode": "subtle",
   },
   "vim_mode": true,
   // "linked_edits": false,
@@ -181,13 +239,13 @@
 
   // "lsp_highlight_debounce": 10,
 
-  "lsp": {
-    "biome": {
-      "settings": {
-        "require_config_file": true,
-      },
-    },
-  },
+  // "lsp": {
+  //   "biome": {
+  //     "settings": {
+  //       "require_config_file": true,
+  //     },
+  //   },
+  // },
 
   // unstable
   "hide_mouse": "on_typing_and_movement",
@@ -195,13 +253,14 @@
   /////////////////////
   // ui
   /////////////////////
-  "icon_theme": "Material Icon Theme",
+  "icon_theme": "Catppuccin Mocha",
   "tab_bar": {
     "show": false,
   },
   "theme": {
+    "mode": "dark",
     "dark": "Kanagawa Wave",
-    "light": "Noctis Lilac",
+    "light": "Lilac Light",
   },
   "ui_font_size": 16,
   "buffer_font_size": 16.5,
@@ -238,18 +297,18 @@
   ///////////////////////
   // languages
   ////////////////////////
-  "languages": {
-    "Shell Script": {
-      "format_on_save": "on",
-      "formatter": {
-        "external": {
-          "command": "shfmt",
-          // Change `--indent 2` to match your preferred tab_size
-          "arguments": ["--filename", "{buffer_path}", "--indent", "3"],
-        },
-      },
-    },
-  },
+  // "languages": {
+  //   "Shell Script": {
+  //     "format_on_save": "on",
+  //     "formatter": {
+  //       "external": {
+  //         "command": "shfmt",
+  //         // Change `--indent 2` to match your preferred tab_size
+  //         "arguments": ["--filename", "{buffer_path}", "--indent", "3"],
+  //       },
+  //     },
+  //   },
+  // },
 
   //////////////////////////////
   // others
