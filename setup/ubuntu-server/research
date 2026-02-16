@@ -4,15 +4,13 @@
 ~/dotfiles/setup/ubuntu-server/setup-syncthing
 ~/dotfiles/setup/ubuntu-server/setup-ufw
 
-# not working cpu type othe than host
-mise use -g opencode
-mise use -g github:Kilo-Org/kilo
+# additional tools
 mise use -g gemini
 mise use -g github:continuedev/continue
-
 mise use -g bun deno node@lts pnpm
 mise use -g lazygit
 
-# setup syncthing directories
+
+
 mkdir ~/dev
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
