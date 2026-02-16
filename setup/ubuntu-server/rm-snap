@@ -4,7 +4,7 @@
 # 2. updated the scripts to remove all of them
 
 echo "Removing snapd"
-sudo apt remove --autoremove snapd
+sudo apt remove --autoremove snapd -y
 
 # in order to disable auto installing snap
 
