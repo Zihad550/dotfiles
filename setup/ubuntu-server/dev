@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 
-sudo apt update -y && sudo apt install -y curl
-sudo install -dm 755 /etc/apt/keyrings
-curl -fSs https://mise.jdx.dev/gpg-key.pub | sudo tee /etc/apt/keyrings/mise-archive-keyring.asc 1> /dev/null
-echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
-sudo apt update -y
-sudo apt install -y mise
-mise use -g usage
-
-mise completion zsh > _mise
-sudo mkdir -p /usr/local/share/zsh/site-functions
-sudo mv _mise /usr/local/share/zsh/site-functions
-
+~/dotfiles/setup/ubuntu-server/setup-mise
+~/dotfiles/setup/ubuntu-server/setup-syncthing
 
 # not working cpu type othe than host
 mise use -g opencode
@@ -22,21 +12,6 @@ mise use -g github:continuedev/continue
 mise use -g bun deno node@lts pnpm
 mise use -g lazygit
 
-
-# syncthing
-sudo apt install syncthing -y
-systemctl --user enable --now syncthing.service
-sed -i "{s/127.0.0.1:8384/0.0.0.0:8384/g}" .local/state/syncthing/config.xml
-syncthing cli config options relays-enabled set false
-syncthing cli config options natenabled set false
-syncthing cli config options global-ann-enabled set false
-syncthing cli config options crenabled set false
-syncthing cli config options auto-upgrade-intervalh set 0
-syncthing cli config options releases-url set ""
-systemctl --user restart syncthing.service
-
-
-
-
+# setup syncthing directories
 mkdir ~/dev
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
