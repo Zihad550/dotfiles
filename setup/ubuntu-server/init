@@ -2,7 +2,7 @@
 
 sudo apt update -y
 sudo apt upgrade -y
-sudo apt install qemu-guest-agent
+sudo apt install qemu-guest-agent -y
 sudo systemctl enable --now qemu-guest-agent.service
 
 sudo apt install stow -y
