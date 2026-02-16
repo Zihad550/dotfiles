@@ -4,6 +4,7 @@
 options=$(
    echo work
    echo project
+   echo dev
 )
 
 # Show the options in walker and store the selected value
