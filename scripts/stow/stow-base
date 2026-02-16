@@ -22,3 +22,4 @@ ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 stow themes
 stow starship
+stow ghostty
