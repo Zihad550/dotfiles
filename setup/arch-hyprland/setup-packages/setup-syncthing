@@ -14,15 +14,4 @@ syncthing cli config options releases-url set ""
 
 # create sync directories
 mkdir ~/dev
-mkdir ~/dev-0
-mkdir ~/.obsidian-vault
-mkdir ~/.backups
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
-ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev-0/.stignore
-
-ln -snf ~/dotfiles/scripts/rsync/.rsyncignore_dev ~/dev/.rsyncignore
-
-ln -snf ~/dotfiles/scripts/rclone/.rclone-filters-dev.txt ~/dev/.rclone-filters.txt
-
-# visit for tuning options
-# https://docs.syncthing.net/users/tuning.html
