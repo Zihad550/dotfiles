@@ -2,6 +2,7 @@
 
 # cmd remaps
 # alias ls=eza
+alias rm='trash-put'
 alias v='nvim'
 alias vi='nvim'
 alias cat='bat --color=always'
@@ -33,12 +34,12 @@ alias \
    grep="rg" \
    shell="exec $SHELL -l" \
    mv="mv -i" \
-   rm="rm -Iv" \
    df="df -h" \
    du="du -h -d 1" \
    p="procs" \
    f="yazi" \
    g="git"
+# rm="rm -Iv" \
 # k="killall" \
 
 # Directories
