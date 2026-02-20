@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+sudo apt install nfs-common
+
+#### temporary mounting
+# sudo mount ip:config-source-dir dist-dir
+
+#### parmanent mounting
+# sudo -e /etc/fstab
+# source-ip:source-dir dist-dir nfs defaults,timeo=900,retrans=5,_netdev 0 0
