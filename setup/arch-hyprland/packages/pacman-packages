@@ -52,12 +52,13 @@ sudo pacman -S --noconfirm \
 # atac - terminal api client
 # termdown - terminal counter
 # yazi 7zip - terminal file browser
+# resvg - tui svg renderer
 sudo pacman -S --noconfirm \
    atuin \
    pastel \
    lazydocker \
    lazygit \
-   yazi 7zip trash-cli
+   yazi 7zip trash-cli resvg
 # atac
 # termdown
 
