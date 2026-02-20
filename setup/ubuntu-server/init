@@ -18,7 +18,6 @@ sed -i 's|^[[:space:]]*export CONTEXT7_API_KEY="\$(pass env/context7_api_key)"|#
 sed -i 's|^[[:space:]]*export BROWSER_USE_API_KEY="\$(pass env/browser_use_test)"|# &|' ~/.zshenv
 sed -i 's|^[[:space:]]*export MISE_GITHUB_TOKEN=\$(pass github/personal-access-token-mise)|# &|' ~/.zshenv
 
-
 sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
 curl -L https://nixos.org/nix/install | sh
 source $HOME/.nix-profile/etc/profile.d/nix.sh
@@ -29,15 +28,12 @@ nix-env -iA nixpkgs.fastfetch
 nix-env -iA nixpkgs.fzf
 nix-env -iA nixpkgs.bat
 nix-env -iA nixpkgs.bottom
+nix-env -iA nixpkgs.zellij
 
 git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
 
-
-
 chsh -s $(which zsh)
 
-
 ~/dotfiles/setup/ubuntu-server/rm-snap
-
 
 echo "now logout and log back in"
