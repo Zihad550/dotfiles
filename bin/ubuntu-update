@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+mise up --bump
+
+# update channel
+nix-channel --update
+nix-env -u # upgrade installed packages
+# nix-env --list-generations # list all generations
+nix-env --delete-generations old # delete old generations
+nix-collect-garbage              # Then clean unused store paths:
+
+sudo apt update && sudo apt upgrade -y
