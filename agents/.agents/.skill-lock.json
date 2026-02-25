@@ -45,6 +45,15 @@
       "skillFolderHash": "007940e80de6ae577a87b2b343b1a5eae715df2b",
       "installedAt": "2026-02-15T13:11:39.828Z",
       "updatedAt": "2026-02-15T13:11:39.828Z"
+    },
+    "mise-expert": {
+      "source": "samhvw8/dotfiles",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/samhvw8/dotfiles.git",
+      "skillPath": "dot_ccp/hub/skills/mise-expert/SKILL.md",
+      "skillFolderHash": "cc2778e4ad1050c7c3d070aef9e2d6e09ea174dc",
+      "installedAt": "2026-02-25T05:25:10.856Z",
+      "updatedAt": "2026-02-25T05:25:10.856Z"
     }
   },
   "dismissed": {
@@ -53,6 +62,7 @@
   "lastSelectedAgents": [
     "amp",
     "codex",
+    "cursor",
     "gemini-cli",
     "github-copilot",
     "kimi-cli",

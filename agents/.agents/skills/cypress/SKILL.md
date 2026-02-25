@@ -63,7 +63,10 @@ Prefer `data-testid` (or `data-cy`) attributes for selectors. Avoid brittle CSS 
 ```
 
 ```ts
+// instead of 
 cy.get('[data-testid="save-user"]').click();
+// use this 
+cy.getBySel('save-user').click();
 ```
 
 ### 2) Deterministic waiting (avoid fixed sleeps)
@@ -181,4 +184,3 @@ Actions:
 
 - Cypress docs: https://docs.cypress.io/
 - Best practices: https://docs.cypress.io/guides/references/best-practices
-
