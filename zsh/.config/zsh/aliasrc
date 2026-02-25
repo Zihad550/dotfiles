@@ -40,7 +40,8 @@ alias \
    du="du -h -d 1" \
    p="procs" \
    f="yazi" \
-   g="git"
+   g="git" \
+   t='tmux'
 # rm="rm -Iv" \
 # k="killall" \
 
