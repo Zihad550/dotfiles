@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 mise up --bump
+uv tool upgrade --all
+uv tool upgrade openhands --python 3.12
 
 # update channel
 nix-channel --update
