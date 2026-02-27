@@ -43,6 +43,6 @@ sed -i 's|^[[:space:]]*export MISE_GITHUB_TOKEN=\$(pass github/personal-access-t
 
 git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
 
-chsh -s $(which zsh)
+sudo chsh -s $(which zsh) vscode
 
 echo "now logout and log back in"
