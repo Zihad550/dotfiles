@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+sudo apt update -y
+sudo apt upgrade -y
+
+# sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
+# curl -L https://nixos.org/nix/install | sh
+# source $HOME/.nix-profile/etc/profile.d/nix.sh
+
+# nix-env -iA nixpkgs.stow
+# nix-env -iA nixpkgs.procs
+# nix-env -iA nixpkgs.starship
+# nix-env -iA nixpkgs.fastfetch
+# nix-env -iA nixpkgs.fzf
+# nix-env -iA nixpkgs.bat
+# nix-env -iA nixpkgs.bottom
+# nix-env -iA nixpkgs.ripgrep
+# nix-env -iA nixpkgs.git
+# nix-env -iA nixpkgs.curl
+# nix-env -iA nixpkgs.zoxide
+# nix-env -iA nixpkgs.eza
+# nix-env -iA nixpkgs.tealdeer
+# nix-env -iA nixpkgs.net-tools
+# nix-env -iA nixpkgs.wl-clipboard
+# nix-env -iA nixpkgs.trash-cli
+# nix-env -iA nixpkgs.zsh
+
+# # neovim
+# nix-env -iA nixpkgs.neovim
+# nix-env -iA nixpkgs.make
+# nix-env -iA nixpkgs.gcc
+# nix-env -iA nixpkgs.unzip
+# nix-env -iA nixpkgs.xclip
+
+~/dotfiles/setup/devpod-ubuntu/stow
+
+# comment mise from .zshrc and ohters
+sed -i 's|^eval "\$(mise activate zsh)"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^[[:space:]]*source "\$XDG_CONFIG_HOME/zsh/ni"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^[[:space:]]*source "\$XDG_CONFIG_HOME/zsh/new-worktree"|# &|' ~/.config/zsh/.zshrc
+sed -i 's|^[[:space:]]*export CONTEXT7_API_KEY="\$(pass env/context7_api_key)"|# &|' ~/.zshenv
+sed -i 's|^[[:space:]]*export BROWSER_USE_API_KEY="\$(pass env/browser_use_test)"|# &|' ~/.zshenv
+sed -i 's|^[[:space:]]*export MISE_GITHUB_TOKEN=\$(pass github/personal-access-token-mise)|# &|' ~/.zshenv
+
+git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+
+chsh -s $(which zsh)
+
+echo "now logout and log back in"

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+cd ~/dotfiles
+
+stow git
+stow zsh
+stow starship
+stow opencode
+stow agents
+stow tmux
+
+ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
+mkdir -p .kilocode/skills
+ln -snf ~/.agents/skills/* ~/.kilocode/skills/
