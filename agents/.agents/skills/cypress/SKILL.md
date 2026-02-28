@@ -29,7 +29,7 @@ requires_tools: []
 
 ## Overview
 
-Cypress runs browser automation with first-class network control, time-travel debugging, and a strong local dev workflow. Use it for critical path E2E tests and for component tests when browser-level rendering matters.
+Cypress runs browser automation with first-class network control, time-travel debugging, and a strong local dev workflow. Use it for critical path E2E tests and for component tests when browser-level rendering matters. Don't run the tests after writing the user will test them manually.
 
 ## Quick Start
 
