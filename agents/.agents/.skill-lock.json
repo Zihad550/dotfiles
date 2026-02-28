@@ -54,6 +54,105 @@
       "skillFolderHash": "cc2778e4ad1050c7c3d070aef9e2d6e09ea174dc",
       "installedAt": "2026-02-25T05:25:10.856Z",
       "updatedAt": "2026-02-25T05:25:10.856Z"
+    },
+    "convex-migrations": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-migrations/SKILL.md",
+      "skillFolderHash": "a7575f0bbb9b621dcf71b3a3b484bbb166dcccc0",
+      "installedAt": "2026-02-28T03:14:16.665Z",
+      "updatedAt": "2026-02-28T03:14:16.665Z"
+    },
+    "convex": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex/SKILL.md",
+      "skillFolderHash": "ed8cc5ba816144dd693b9f76e3cdb4550a9542d2",
+      "installedAt": "2026-02-28T03:14:46.382Z",
+      "updatedAt": "2026-02-28T03:14:46.382Z"
+    },
+    "convex-best-practices": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-best-practices/SKILL.md",
+      "skillFolderHash": "91f4ebc9572f72e6eef5764a78320531c4a92a21",
+      "installedAt": "2026-02-28T03:15:17.799Z",
+      "updatedAt": "2026-02-28T03:15:17.799Z"
+    },
+    "convex-functions": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-functions/SKILL.md",
+      "skillFolderHash": "29a30f400853ef8413d9ff0bda583416ed1bb9bd",
+      "installedAt": "2026-02-28T03:15:30.046Z",
+      "updatedAt": "2026-02-28T03:15:30.046Z"
+    },
+    "convex-schema-validator": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-schema-validator/SKILL.md",
+      "skillFolderHash": "96a0b924e5e1f3a33d6d2f873a3fc0380c667553",
+      "installedAt": "2026-02-28T03:15:43.008Z",
+      "updatedAt": "2026-02-28T03:15:43.008Z"
+    },
+    "convex-realtime": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-realtime/SKILL.md",
+      "skillFolderHash": "1768d1ae92994a52e01233b8f75ee7da5ff734ab",
+      "installedAt": "2026-02-28T03:15:57.754Z",
+      "updatedAt": "2026-02-28T03:15:57.754Z"
+    },
+    "convex-http-actions": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-http-actions/SKILL.md",
+      "skillFolderHash": "ed87dc8525282e284861f8e4dfe59a64f5167c20",
+      "installedAt": "2026-02-28T03:16:12.193Z",
+      "updatedAt": "2026-02-28T03:16:12.193Z"
+    },
+    "convex-security-check": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-security-check/SKILL.md",
+      "skillFolderHash": "8a143c98add66dfc3fb8772d0679c410230422bc",
+      "installedAt": "2026-02-28T03:16:32.314Z",
+      "updatedAt": "2026-02-28T03:16:32.314Z"
+    },
+    "convex-cron-jobs": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-cron-jobs/SKILL.md",
+      "skillFolderHash": "b97871573e530dc2426886f1769051d048421d27",
+      "installedAt": "2026-02-28T03:17:24.275Z",
+      "updatedAt": "2026-02-28T03:17:24.275Z"
+    },
+    "convex-file-storage": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-file-storage/SKILL.md",
+      "skillFolderHash": "dd3d7329e36f9c735728909d295ee952f9b5275b",
+      "installedAt": "2026-02-28T03:17:46.176Z",
+      "updatedAt": "2026-02-28T03:17:46.176Z"
+    },
+    "convex-security-audit": {
+      "source": "waynesutton/convexskills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/waynesutton/convexskills.git",
+      "skillPath": "skills/convex-security-audit/SKILL.md",
+      "skillFolderHash": "f14a6c60507ce7ffbf0190bb9c52aaf822df155a",
+      "installedAt": "2026-02-28T03:18:42.313Z",
+      "updatedAt": "2026-02-28T03:18:42.313Z"
     }
   },
   "dismissed": {
@@ -61,12 +160,17 @@
   },
   "lastSelectedAgents": [
     "amp",
+    "cline",
     "codex",
     "cursor",
     "gemini-cli",
     "github-copilot",
     "kimi-cli",
     "opencode",
-    "kilo"
+    "kilo",
+    "continue",
+    "openhands",
+    "qwen-code",
+    "roo"
   ]
 }
