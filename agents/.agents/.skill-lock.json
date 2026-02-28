@@ -216,6 +216,15 @@
       "skillFolderHash": "63f4b12e3086b2ad3a100cb3dd6c27ea32424ac6",
       "installedAt": "2026-02-28T04:36:04.365Z",
       "updatedAt": "2026-02-28T04:36:04.365Z"
+    },
+    "ai-sdk": {
+      "source": "vercel/ai",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel/ai.git",
+      "skillPath": "skills/use-ai-sdk/SKILL.md",
+      "skillFolderHash": "d8e09e2796e2a04a9c7f7cc8c5bbab8da76a77d9",
+      "installedAt": "2026-02-28T08:32:24.327Z",
+      "updatedAt": "2026-02-28T08:32:24.327Z"
     }
   },
   "dismissed": {
