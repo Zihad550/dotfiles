@@ -41,7 +41,8 @@ alias \
    p="procs" \
    f="yazi" \
    g="git" \
-   t='tmux'
+   t='tmux' \
+   m='mise'
 # rm="rm -Iv" \
 # k="killall" \
 
@@ -307,6 +308,9 @@ pomodoro() {
 alias work="pomodoro 'work'"
 alias typing="pomodoro 'typing'"
 alias break="pomodoro 'break'"
+
+# mise aliases
+alias mrd='mise run dev'
 
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE
