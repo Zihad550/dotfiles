@@ -106,14 +106,14 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 #################
 # Shell integrations
 #################
-source <(fzf --zsh)
-eval "$(zoxide init --cmd cd zsh)"
-eval "$(starship init zsh)"
-eval "$(mise activate zsh)"
+if command -v fzf >/dev/null 2>&1; then source <(fzf --zsh); fi
+if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd zsh)"; fi
+if command -v starship >/dev/null 2>&1; then eval "$(starship init zsh)"; fi
+if command -v mise >/dev/null 2>&1; then eval "$(mise activate zsh)"; fi
+if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out zsh); fi
+if command -v kubectl >/dev/null 2>&1; then source <(kubectl completion zsh); fi
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 source "$XDG_CONFIG_HOME/zsh/ni"
-source "$XDG_CONFIG_HOME/zsh/new-worktree"
-source <(procs --gen-completion-out zsh)
-source <(kubectl completion zsh)
 
 
 # everytime i do cd it lists all content of that directory
