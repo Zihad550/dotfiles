@@ -3,33 +3,34 @@
 sudo apt update -y
 sudo apt upgrade -y
 
-sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
-curl -L https://nixos.org/nix/install | sh
-source $HOME/.nix-profile/etc/profile.d/nix.sh
+# sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
+# curl -L https://nixos.org/nix/install | sh
+# source $HOME/.nix-profile/etc/profile.d/nix.sh
+# . /home/vscode/.nix-profile/etc/profile.d/nix.sh
 
-nix-env -iA nixpkgs.stow
-nix-env -iA nixpkgs.procs
-nix-env -iA nixpkgs.starship
-nix-env -iA nixpkgs.fastfetch
-nix-env -iA nixpkgs.fzf
-nix-env -iA nixpkgs.bat
-nix-env -iA nixpkgs.bottom
-nix-env -iA nixpkgs.ripgrep
-nix-env -iA nixpkgs.git
-nix-env -iA nixpkgs.curl
-nix-env -iA nixpkgs.zoxide
-nix-env -iA nixpkgs.eza
-nix-env -iA nixpkgs.tealdeer
-nix-env -iA nixpkgs.net-tools
-nix-env -iA nixpkgs.wl-clipboard
-nix-env -iA nixpkgs.trash-cli
-nix-env -iA nixpkgs.zsh
+# nix-env -iA nixpkgs.stow
+# nix-env -iA nixpkgs.procs
+# nix-env -iA nixpkgs.starship
+# nix-env -iA nixpkgs.fastfetch
+# nix-env -iA nixpkgs.fzf
+# nix-env -iA nixpkgs.bat
+# nix-env -iA nixpkgs.bottom
+# nix-env -iA nixpkgs.ripgrep
+# nix-env -iA nixpkgs.git
+# nix-env -iA nixpkgs.curl
+# nix-env -iA nixpkgs.zoxide
+# nix-env -iA nixpkgs.eza
+# nix-env -iA nixpkgs.tealdeer
+# nix-env -iA nixpkgs.net-tools
+# nix-env -iA nixpkgs.wl-clipboard
+# nix-env -iA nixpkgs.trash-cli
+# nix-env -iA nixpkgs.zsh
 
-# neovim
-nix-env -iA nixpkgs.neovim
-nix-env -iA nixpkgs.gcc
-nix-env -iA nixpkgs.unzip
-nix-env -iA nixpkgs.xclip
+# # neovim
+# nix-env -iA nixpkgs.neovim
+# nix-env -iA nixpkgs.gcc
+# nix-env -iA nixpkgs.unzip
+# nix-env -iA nixpkgs.xclip
 
 ~/dotfiles/setup/devpod-ubuntu/stow
 

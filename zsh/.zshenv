@@ -68,13 +68,19 @@ export POSTGRES_DB=postgres
 export OLLAMA_FLASH_ATTENTION=true
 
 # dotfiles bin
-export DOTFILES_BIN="$HOME/dotfiles/bin"
+export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker"
+
+# api keys
+# export OPENROUTER_API_KEY=
 
 # docker
 # export DOCKER_HOST=unix:///run/user/1000/docker.sock
 
 # gemini
 # export GEMINI_SANDBOX=podman
+export GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
+export AICHAT_PLATFORM="gemini"
+export AICHAT_MODEL="gemini:gemini-2.5-flash"
 
 # PATH Configuration
 # export PATH="$BUN_INSTALL/bin:$DOTFILES_BIN:$PATH:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$DENO_INSTALL/bin"

@@ -312,6 +312,9 @@ alias break="pomodoro 'break'"
 # mise aliases
 alias mrd='mise run dev'
 
+# worktrunk
+alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
+
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE
 # nerd-dictation end

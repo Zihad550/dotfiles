@@ -64,7 +64,7 @@
     conf = config --global --edit
     puf = push --force-with-lease
     pu = push -u
-    ; git commit -am msg, add all and commit with msg
+    ; git commit -am msg, add Automatically stage modified and deleted tracked files, It does NOT stage: New untracked files
     ci = commit
     co = checkout
     sw = switch

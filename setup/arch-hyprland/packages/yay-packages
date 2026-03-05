@@ -3,10 +3,12 @@
 #  tools
 # beekeper - db editor
 # ufw-docker - ufw rules for docker
+# worktrunk - git worktree made simple
 yay -S --noconfirm \
    pnpm-shell-completion \
    ufw-docker \
-   dragon-drop
+   dragon-drop \
+   worktrunk-bin
 # beekeeper-studio-bin \
 # mongodb-tools-bin
 # hoppscotch-bin

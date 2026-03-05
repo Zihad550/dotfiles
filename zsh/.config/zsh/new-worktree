@@ -110,6 +110,117 @@ EOF
    # mise run install
 }
 
+new-dev-worktree() {
+   usage() {
+      cat <<EOF
+Usage:
+  new-worktree dir=<directory> branch=<branch> base=<base-branch>
+
+Options:
+  dir=       Target directory (required)
+  branch=    New branch name (required)
+  base=      Base branch or commit (required)
+
+Examples:
+  new-worktree dir=feature-x branch=feature/x base=main
+  new-worktree --help
+EOF
+   }
+
+   # Show help if no args or --help/-h
+   if [ "$#" -eq 0 ]; then
+      usage
+      return 1
+   fi
+
+   for arg in "$@"; do
+      case "$arg" in
+      dir=*)
+         directory="${arg#dir=}"
+         directory="${directory/#\~/$HOME}"
+         ;;
+      branch=*)
+         branch="${arg#branch=}"
+         ;;
+      base=*)
+         base="${arg#base=}"
+         ;;
+      --help | -h)
+         usage
+         return 0
+         ;;
+      *)
+         echo "Unknown option: $arg"
+         echo
+         usage
+         return 1
+         ;;
+      esac
+   done
+
+   if [[ -z "$directory" || -z "$branch" ]]; then
+      echo "Error: dir, branch, and base are required."
+      echo
+      usage
+      return 1
+   fi
+
+   # Make sure remote refs are up to date
+   git fetch origin --quiet
+
+   local repo_root
+   repo_root="$(git rev-parse --show-toplevel)" || return 1
+
+   # git worktree add "$directory" --checkout "$branch" "$base" || return 1
+
+   remote_ref="refs/remotes/origin/$branch"
+   local_ref="refs/heads/$branch"
+
+   if git show-ref --verify --quiet "$local_ref"; then
+      # Local branch already exists
+      git worktree add "$directory" "$branch" || return 1
+
+   elif git show-ref --verify --quiet "$remote_ref"; then
+      # Remote branch exists, create local tracking branch
+      git worktree add "$directory" -b "$branch" --track "origin/$branch" || return 1
+
+   else
+      # Neither local nor remote branch exists — require base
+      if [[ -z "$base" ]]; then
+         echo "error: branch '$branch' does not exist and no base was provided"
+         echo
+         usage
+         return 1
+      fi
+
+      git worktree add "$directory" -b "$branch" "$base" || return 1
+   fi
+
+   if [ -f "$repo_root/.gitlocal" ]; then
+      while IFS= read -r line; do
+         [ -z "$line" ] && continue
+
+         local src="$repo_root/$line"
+
+         if [ ! -e "$src" ]; then
+            echo "Skipping missing: $line"
+            continue
+         fi
+
+         echo "Copying: $line"
+         cp -a "$src" "$directory/"
+      done <"$repo_root/.gitlocal"
+   else
+      echo "No .gitlocal found in repo root"
+   fi
+
+   cd "$directory" || return 1
+   mise trust
+
+   # ln -snf "$repo_root/node_modules" "$directory/.config/theme"
+   # mise run install
+}
+
 # new-worktree() {
 #    if [ -z "$1" ]; then
 #       echo "Please provide a directory name"
