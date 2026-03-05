@@ -311,6 +311,7 @@ alias break="pomodoro 'break'"
 
 # mise aliases
 alias mrd='mise run dev'
+alias mt='mise trust'
 
 # worktrunk
 alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
