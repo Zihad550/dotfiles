@@ -314,6 +314,7 @@ alias mrd='mise run dev'
 
 # worktrunk
 alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
+alias wtc="wt step commit"
 
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE
