@@ -4,7 +4,10 @@ sudo apt install nfs-common
 
 #### temporary mounting
 # sudo mount ip:config-source-dir dist-dir
+# echo "sudo mount ip:config-source-dir dist-dir"
 
 #### parmanent mounting
+echo "sudo -e /etc/fstab"
+echo "source-ip:source-dir dist-dir nfs defaults,timeo=900,retrans=5,_netdev 0 0"
 # sudo -e /etc/fstab
 # source-ip:source-dir dist-dir nfs defaults,timeo=900,retrans=5,_netdev 0 0

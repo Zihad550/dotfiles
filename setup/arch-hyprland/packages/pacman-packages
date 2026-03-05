@@ -5,6 +5,7 @@
 # xournalpp - pdf editor
 # gum - shell script
 # dosfstools - fat32 support
+# aichat - commit msg generation for worktrunk
 sudo pacman -S --noconfirm \
    curl \
    git \
@@ -18,12 +19,13 @@ sudo pacman -S --noconfirm \
    xorg-xhost \
    mission-center \
    xournalpp \
-   zellij \
    gum \
    dosfstools \
    rclone \
    veracrypt \
-   net-tools
+   net-tools \
+   aichat
+# zellij \
 
 # fonts
 sudo pacman -S --noconfirm \

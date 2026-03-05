@@ -24,3 +24,5 @@ stow themes
 stow starship
 stow ghostty
 stow yazi
+stow voxtype
+stow tmux

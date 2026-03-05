@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+arch-launch-floating-terminal-with-presentation "voxtype setup model"
+
+systemctl --user restart waybar.service
+# arch-restart-waybar

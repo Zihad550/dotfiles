@@ -2,54 +2,45 @@
   ////////////////////////
   // ai
   ///////////////////////
+  "diff_view_style": "unified",
   "ssh_connections": [
     {
       "host": "dev",
       "args": [],
       "projects": [
         {
-          "paths": [
-            "/home/saleh"
-          ]
+          "paths": ["/home/saleh"],
         },
         {
-          "paths": [
-            "/home/saleh/dev/473-session-expiry-flow"
-          ]
+          "paths": ["/home/saleh/dev/473-session-expiry-flow"],
         },
         {
-          "paths": [
-            "/home/saleh/dev/mamacrm/frontend-wt/feat/jd-e2e-tests"
-          ]
+          "paths": ["/home/saleh/dev/mamacrm/frontend-wt/feat/jd-e2e-tests"],
         },
         {
-          "paths": [
-            "/home/saleh/dev/musealy"
-          ]
+          "paths": ["/home/saleh/dev/musealy"],
         },
         {
-          "paths": [
-            "/home/saleh/dev/toolbox"
-          ]
-        }
-      ]
-    }
+          "paths": ["/home/saleh/dev/toolbox"],
+        },
+      ],
+    },
   ],
   "agent_servers": {
     "qwen-code": {
-      "type": "registry"
+      "type": "registry",
     },
     "mistral-vibe": {
-      "type": "registry"
+      "type": "registry",
     },
     "kimi": {
-      "type": "registry"
+      "type": "registry",
     },
     "codebuddy-code": {
-      "type": "registry"
+      "type": "registry",
     },
     "auggie": {
-      "type": "registry"
+      "type": "registry",
     },
     "opencode": {
       "type": "registry",
@@ -146,17 +137,16 @@
     "default_profile": "ask",
     "inline_assistant_model": {
       "provider": "google",
-      "model": "gemini-3-flash-preview",
-      // "provider": "opencode",
-      // "model": "kimi-k2.5-free",
+      "model": "gemini-3-flash",
     },
     "commit_message_model": {
       "provider": "google",
-      "model": "gemini-3-flash-preview",
+      "model": "gemini-3-flash",
     },
     "default_model": {
-      "provider": "openrouter",
-      "model": "openrouter/free",
+      "enable_thinking": false,
+      "provider": "google",
+      "model": "gemini-3-flash-preview",
     },
     "model_parameters": [],
   },
@@ -215,7 +205,7 @@
   ///////////////////////////
   "edit_predictions": {
     "provider": "zed",
-    "mode": "subtle",
+    "mode": "eager",
   },
   "vim_mode": true,
   // "linked_edits": false,
@@ -297,18 +287,18 @@
   ///////////////////////
   // languages
   ////////////////////////
-  // "languages": {
-  //   "Shell Script": {
-  //     "format_on_save": "on",
-  //     "formatter": {
-  //       "external": {
-  //         "command": "shfmt",
-  //         // Change `--indent 2` to match your preferred tab_size
-  //         "arguments": ["--filename", "{buffer_path}", "--indent", "3"],
-  //       },
-  //     },
-  //   },
-  // },
+  "languages": {
+    "Shell Script": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "shfmt",
+          // Change `--indent 2` to match your preferred tab_size
+          "arguments": ["--filename", "{buffer_path}", "--indent", "3"],
+        },
+      },
+    },
+  },
 
   //////////////////////////////
   // others

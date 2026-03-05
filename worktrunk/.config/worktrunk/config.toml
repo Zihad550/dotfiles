@@ -1,0 +1,12 @@
+skip-commit-generation-prompt = true
+
+[post-start]
+copy = 'wt step copy-ignored'
+mise-trust = '[ -f mise.toml ] && mise trust'
+mise-install = '[ -f mise.toml ] && mise install'
+
+[post-switch]
+tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | sanitize}}"
+
+[commit.generation]
+command = "aichat -m gemini:gemini-2.5-flash"

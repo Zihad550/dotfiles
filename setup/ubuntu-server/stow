@@ -7,7 +7,7 @@ stow zsh
 stow starship
 stow opencode
 stow agents
-stow zellij
+stow tmux
 
 ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
 mkdir -p .kilocode/skills
