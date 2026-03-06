@@ -4,11 +4,13 @@
 # beekeper - db editor
 # ufw-docker - ufw rules for docker
 # worktrunk - git worktree made simple
+# diffnav - diff  with file explorer similar to delta, depends on delta
 yay -S --noconfirm \
    pnpm-shell-completion \
    ufw-docker \
    dragon-drop \
-   worktrunk-bin
+   worktrunk-bin \
+   diffnav-bin
 # beekeeper-studio-bin \
 # mongodb-tools-bin
 # hoppscotch-bin

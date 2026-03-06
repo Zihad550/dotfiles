@@ -15,6 +15,7 @@
 [core]
 	editor = nvim
 	excludesfile = /home/jehad/.config/git/.gitignore_global
+	pager = delta --side-by-side
 [submodule]
 	recurse = true
 [push]
@@ -56,6 +57,7 @@
     ; add
 	ap = add --patch
 	; diff
+	df = diff
 	ds = diff --staged
     ; status
     st = status -s
