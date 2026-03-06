@@ -49,3 +49,5 @@ mise use -g npm:codebuff # has free plan and adds
 
 # roo code cli
 curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh
+
+# mise use -g t3
