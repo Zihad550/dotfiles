@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+sudo pacman -S --noconfirm tlp tlp-rdw
+sudo systemctl enable --now tlp.service
+sudo systemctl mask systemd-rfkill.service
+sudo systemctl mask systemd-rfkill.socket
+
+echo "adjust sudo -e /etc/tlp.conf as needed"
