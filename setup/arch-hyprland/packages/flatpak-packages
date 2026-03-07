@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 
-# zen browser
-flatpak install app.zen_browser.zen -y
-
-# mongodb compass
-flatpak install com.mongodb.Compass -y
+flatpak install -y \
+   app.zen_browser.zen \
+   com.mongodb.Compass \
+   com.getpostman.Postman \
+   io.beekeeperstudio.Studio
 
 # obsidian
 # flatpak install md.obsidian.Obsidian -y
 
 # podman desktop
 # flatpak install io.podman_desktop.PodmanDesktop -y
-
-# postman
-flatpak install com.getpostman.Postman -y
 
 # brave browser -> meet video call does not work properly -> probabely issue with hardware acceleration
 # flatpak install flathub com.brave.Browser -y
@@ -32,6 +29,3 @@ flatpak install com.getpostman.Postman -y
 
 # dev toolbox (utilities for development)
 # flatpak install me.iepure.devtoolbox
-
-# beekeper
-flatpak install flathub io.beekeeperstudio.Studio -y

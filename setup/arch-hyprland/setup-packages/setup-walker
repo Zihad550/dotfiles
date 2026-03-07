@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-yay -Sua \
+yay -S --noconfirm \
    elephant-bin \
    elephant-desktopapplications-bin \
    elephant-bluetooth-bin \
@@ -17,5 +17,5 @@ yay -Sua \
    elephant-winows-bin
 
 elephant service enable
-systemctl --user enable --now elephant.service
-yay -Sua walker-bin
+systemctl --user enable elephant.service
+yay -S walker-bin
