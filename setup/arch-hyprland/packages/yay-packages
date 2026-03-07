@@ -30,6 +30,7 @@ yay -S --noconfirm warp-terminal-bin
 # yay -S --noconfirm claude-code
 # yay -S --noconfirm qwen-code
 # yay -S --noconfirm crush-bin
+# yay -S --noconfirm t3code-bin
 # pnpm install -g @augmentcode/auggie
 
 # code editors

@@ -3,7 +3,56 @@
 
 # zip -r backup.zip -9 ~/work ~/dotfiles ~/course-resources ~/courses ~/data-gen ~/Documents ~/learn ~/Music ~/Pictures ~/playgrounds ~/projects ~/scripts ~/test ~/tool ~/Templates -x "*/node_modules/*" "*/dist/*" "*/logs/*" "*/cache/*" && zip -T backup.zip
 
-zip -r backup.zip -9 ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads ~/Music ~/Pictures ~/Videos ~/Templates ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.obsidian-vault ~/.ssh ~/test ~/bk.json -x "*/node_modules/*" "*/dist/*" "*/logs/*" "*/cache/*"
+FOLDER_NAME="$(date +"%d-%b-%Y" | tr '[:upper:]' '[:lower:]')-backup"
+# mkdir -p "$FOLDER_NAME"
+# zip -r "${FOLDER_NAME}.zip" "$FOLDER_NAME"
+
+# zip -r "${FOLDER_NAME}.zip" -9 ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads ~/Music ~/Pictures ~/Videos ~/Templates ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.obsidian-vault ~/.ssh ~/bk.json -x "*/node_modules/*" "*/dist/*" "*/logs/*" "*/cache/*" "*/.next/*" "*/.nuxt/*" "*/.pnpm-store/*"
+
+zip -r "${FOLDER_NAME}.zip" -9 \
+   ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads ~/Music ~/Pictures ~/Videos ~/Templates \
+   ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.ssh ~/bk.json \
+   -x "*/node_modules/*" \
+   "*/.next/*" \
+   "*/.nuxt/*" \
+   "*/dist/*" \
+   "*/dump/*" \
+   "*/.cache/*" \
+   "*/logs/*" \
+   "*/cache/*" \
+   "*.log" \
+   "*.tmp" \
+   "*/__pycache__/*" \
+   "*.pyc" \
+   "*/.venv/*" \
+   "*/venv/*" \
+   "*/.vs/*" \
+   "*/cmake-build-*/*" \
+   "*.o" \
+   "*.exe" \
+   ".DS_Store" \
+   "Thumbs.db" \
+   "*.swp" \
+   "*.swo" \
+   "*.exe~" \
+   "*.dll" \
+   "*.so" \
+   "*.dylib" \
+   "*.out" \
+   "*/.output/*" \
+   "*/.vercel/*" \
+   "*/.netlify/*" \
+   "*/.turbo/*" \
+   "*/.storybook-out/*" \
+   "*/.svelte-kit/*" \
+   "*/.astro/*" \
+   "*/.remix/*" \
+   "*/.solid/*" \
+   "*/.qwik/*" \
+   "*/.build/*" \
+   "*/compiled/*" \
+   "*.tsbuildinfo" \
+   "*/.pnpm-store/*"
 
 # test zip
-zip -T backup.zip
+zip -T "${FOLDER_NAME}.zip"
