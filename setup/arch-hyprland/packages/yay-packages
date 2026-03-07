@@ -6,6 +6,7 @@
 # worktrunk - git worktree made simple
 # diffnav - diff  with file explorer similar to delta, depends on delta
 # opencode - ai tui
+# ventoy-bin - image writer
 yay -S --noconfirm \
    pnpm-shell-completion \
    ufw-docker \
@@ -16,6 +17,7 @@ yay -S --noconfirm \
    helium-browser-bin \
    opencode-bin
 
+# ventoy-bin \
 # beekeeper-studio-bin \
 # mongodb-tools-bin
 # hoppscotch-bin
