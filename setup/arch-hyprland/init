@@ -70,7 +70,7 @@ mkdir -p ~/dev-0
 mkdir -p ~/.obsidian-vault
 
 # update grub-btrfsd if setuped disk with encryption for snapper backup to work properly
-sudo env EDITOR=nvim systemctl edit --full grub-btrfsd
+# sudo env EDITOR=nvim systemctl edit --full grub-btrfsd # no need to do anything for snapper
 # enable gdm
 sudo pacman -S --noconfirm gdm
 sudo systemctl enable gdm.service
