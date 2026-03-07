@@ -61,29 +61,17 @@ ln -snf ~/dotfiles/setup/applications/icons $HOME/.local/share/applications
 # create keyring
 ~/dotfiles/setup/arch-hyprland/keyring
 
-# performance optimization for laptop
-sudo pacman -Syu tlp tlp-rdw
-sudo systemctl enable --now tlp.service
-sudo systemctl mask systemd-rfkill.service
-sudo systemctl mask systemd-rfkill.socket
-
-# adjust sudo -e /etc/tlp.conf as needed
-
-# yay -Sua auto-cpufreq --noconfirm
-# cd ~/dotfiles
-# stow auto-cpufreq
-# sudo auto-cpufreq --install
-# systemctl enable --now auto-cpufreq
-# sudo auto-cpufreq --force=powersave
-# sudo pacman -Syu thermald
-# sudo systemctl enable --nwo thermald
+# performance optimization for laptop (tlp)
+~/dotfiles/setup/arch-hyprland/setup-packages/setup-tlp
 
 # create useful directories
 mkdir -p ~/dev
+mkdir -p ~/dev-0
 mkdir -p ~/.obsidian-vault
 
-# enable gdm
+# update grub-btrfsd if setuped disk with encryption for snapper backup to work properly
 sudo env EDITOR=nvim systemctl edit --full grub-btrfsd
+# enable gdm
 sudo pacman -S --noconfirm gdm
 sudo systemctl enable gdm.service
 

@@ -10,8 +10,7 @@ stow kanata
 # stow nvim
 stow zsh
 stow zed
-stow zellij
-# stow yazi
+# stow zellij
 # stow gemini
 stow lazygit
 stow opencode
