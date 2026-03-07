@@ -7,7 +7,7 @@ sudo pacman -Syu --noconfirm stow
 mkdir -p $HOME/.local/share/applications/icons
 ln -snf ~/dotfiles/setup/applications/icons $HOME/.local/share/applications
 # ln -snf ~/dotfiles/devcontainers/dev/.devcontainer $HOME/dev/base-setup/.devcontainer
-cp ~/dotfiles/devcontainers/dev/.devcontainer $HOME/dev/base-setup -r
+# cp ~/dotfiles/devcontainers/dev/.devcontainer $HOME/dev/base-setup -r
 
 # stow
 ~/dotfiles/scripts/stow/stow-base

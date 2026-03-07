@@ -298,6 +298,15 @@
         },
       },
     },
+    // "Vue.js": {
+    //   "prettier": { "allowed": false },
+    //   "formatter": [
+    //     "auto",
+    //     {
+    //       "code_action": "source.fixAll.eslint",
+    //     },
+    //   ],
+    // },
   },
 
   //////////////////////////////

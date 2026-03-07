@@ -25,7 +25,7 @@ yay -S --noconfirm \
 # ai CLIs
 yay -S --noconfirm opencode-bin
 # yay -S --noconfirm openai-codex-bin
-yay -S --noconfirm warp-terminal-bin
+# yay -S --noconfirm warp-terminal-bin
 # yay -S --noconfirm  amazon-q-bin
 # yay -S --noconfirm claude-code
 # yay -S --noconfirm qwen-code
