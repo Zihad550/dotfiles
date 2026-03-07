@@ -16,8 +16,12 @@ export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 
 # keys
-export CONTEXT7_API_KEY="$(pass env/context7_api_key)"
-export BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
+if command -v pass &>/dev/null; then
+   export CONTEXT7_API_KEY="$(pass env/context7_api_key)"
+   export BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
+   export MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
+   export GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
+fi
 
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
@@ -38,9 +42,6 @@ export CARGO_HOME="$XDG_DATA_HOME/cargo"
 # export CARGO_BIN="$CARGO_HOME/bin"
 # export DENO_INSTALL="$(mise where deno)"
 # export BUN_INSTALL="$(mise where bun)"
-
-# mise
-export MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
 
 # uv tools
 export UV_HOME="$XDG_DATA_HOME/../bin"
@@ -78,7 +79,6 @@ export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfile
 
 # gemini
 # export GEMINI_SANDBOX=podman
-export GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
 export AICHAT_PLATFORM="gemini"
 export AICHAT_MODEL="gemini:gemini-2.5-flash"
 
