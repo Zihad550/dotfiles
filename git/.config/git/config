@@ -15,7 +15,8 @@
 [core]
 	editor = nvim
 	excludesfile = /home/jehad/.config/git/.gitignore_global
-	pager = delta --side-by-side
+	; pager = delta --side-by-side
+	pager = diffnav
 [submodule]
 	recurse = true
 [push]
