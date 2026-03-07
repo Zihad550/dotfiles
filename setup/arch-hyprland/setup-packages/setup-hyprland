@@ -23,7 +23,8 @@ sudo pacman -S --noconfirm \
    hyprsunset \
    hyprpolkitagent \
    hyprland-guiutils \
-   pavucontrol
+   pavucontrol \
+   swayosd
 
 # rofi and application launcher
 
