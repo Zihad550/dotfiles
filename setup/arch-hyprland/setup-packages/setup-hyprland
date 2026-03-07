@@ -6,6 +6,7 @@
 # nwg-look - theming gtk apps
 # screensharing and file picking - xdg-desktop-portal-hyprland
 # polkit for app authentication
+# pavucontrol - volume control
 sudo pacman -S --noconfirm \
    hyprland \
    ttf-font-awesome \
@@ -21,13 +22,12 @@ sudo pacman -S --noconfirm \
    xdg-desktop-portal-hyprland \
    hyprsunset \
    hyprpolkitagent \
-   hyprland-guiutils
+   hyprland-guiutils \
+   pavucontrol
 
 # rofi and application launcher
-# pavucontrol - volume control
-sudo pacman -S --noconfirm \
-   rofi \
-   pavucontrol
+
+# rofi\
 # rofi-emoji \
 # rofi-calc \
 

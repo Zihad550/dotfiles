@@ -3,18 +3,11 @@
 # mise install github:user/repo # install from github backend
 # mise install npm:package-name # install from npm backend
 
-mise use -g node@24 node
-mise use -g go rust
-mise use -g firebase
+mise use -g node@24 node go rust github:microsoft/TypeScript
 mise use -g deno bun uv pnpm
-mise use -g github:microsoft/TypeScript
-mise use -g shfmt
-mise use -g npm:turbo
-mise use -g npm:vercel
-mise use -g npm:netlify-cli
+mise use -g firebase shfmt graphite dotenvx
+mise use -g npm:vercel npm:netlify-cli npm:turbo
 # mise use -g npm:@fission-ai/openspec
-mise use -g dotenvx
-mise use -g graphite
 
 # shell autocompletions
 curl -fsSL https://raw.githubusercontent.com/oven-sh/bun/main/completions/bun.zsh | sudo tee /usr/share/zsh/site-functions/_bun >/dev/null

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 sudo pacman -S --noconfirm wtype
-yay -Sua --noconfirm voxtype-bin
+yay -S --noconfirm voxtype-bin
 
 voxtype setup --download --no-post-install
 voxtype setup systemd

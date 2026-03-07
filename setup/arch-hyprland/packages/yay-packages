@@ -5,25 +5,25 @@
 # ufw-docker - ufw rules for docker
 # worktrunk - git worktree made simple
 # diffnav - diff  with file explorer similar to delta, depends on delta
+# opencode - ai tui
 yay -S --noconfirm \
    pnpm-shell-completion \
    ufw-docker \
    dragon-drop \
    worktrunk-bin \
-   diffnav-bin
+   diffnav-bin \
+   google-chrome \
+   helium-browser-bin \
+   opencode-bin
+
 # beekeeper-studio-bin \
 # mongodb-tools-bin
 # hoppscotch-bin
 
 # applications
-# yay -S sublime-merge git ui
-yay -S --noconfirm \
-   google-chrome \
-   helium-browser-bin
-# brave-bin
+# yay -S sublime-merge git ui brave-bin
 
 # ai CLIs
-yay -S --noconfirm opencode-bin
 # yay -S --noconfirm openai-codex-bin
 # yay -S --noconfirm warp-terminal-bin
 # yay -S --noconfirm  amazon-q-bin
@@ -34,8 +34,8 @@ yay -S --noconfirm opencode-bin
 # pnpm install -g @augmentcode/auggie
 
 # code editors
-yay -S --noconfirm \
-   visual-studio-code-bin
+# yay -S --noconfirm \
+# visual-studio-code-bin
 # cursor-bin
 # yay -S --noconfirm android-studio
 # yay -S --noconfirm windsurf
