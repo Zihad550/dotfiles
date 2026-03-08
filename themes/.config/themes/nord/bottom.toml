@@ -1,0 +1,39 @@
+# This is a default config file for bottom.
+
+[flags]
+basic = true
+battery = true
+process_memory_as_value = true
+enable_cache_memory = true
+
+[styles.cpu]
+all_entry_color = "#e5e9f0"
+avg_entry_color = "#81a1c1"
+cpu_core_colors = ["#bf616a","#ebcb8b","#a3be8c","#81a1c1","#b48ead","#88c0d0"]
+[styles.memory]
+ram_color = "#81a1c1"
+cache_color = "#bf616a"
+swap_color = "#ebcb8b"
+gpu_colors = ["#b48ead","#88c0d0","#bf616a","#ebcb8b","#a3be8c","#81a1c1"]
+arc_color = "#88c0d0"
+[styles.network]
+rx_color = "#81a1c1"
+tx_color = "#bf616a"
+rx_total_color = "#88c0d0"
+tx_total_color = "#81a1c1"
+[styles.battery]
+high_battery_color = "#81a1c1"
+medium_battery_color = "#ebcb8b"
+low_battery_color = "#bf616a"
+[styles.tables]
+headers = {color = "#e5e9f0"}
+[styles.graphs]
+graph_color = "#4c566a"
+legend_text = {color = "#4c566a"}
+[styles.widgets]
+border_color = "#4c566a"
+selected_border_color = "#81a1c1"
+widget_title = {color = "#e5e9f0"}
+text = {color = "#e5e9f0"}
+selected_text = {color = "#2e3440", bg_color = "#81a1c1"}
+disabled_text = {color = "#4c566a"}

@@ -1,104 +1,104 @@
-# see https://github.com/eza-community/eza-themes/blob/main/themes/gruvbox-dark.yml
+# Theme generated from colors.toml
 
 colourful: true
 
 filekinds:
   normal: {foreground: "#ebdbb2"}
-  directory: {foreground: "#83a598"}
-  symlink: {foreground: "#8ec07c"}
-  pipe: {foreground: "#928374"}
-  block_device: {foreground: "#fb4934"}
-  char_device: {foreground: "#fb4934"}
-  socket: {foreground: "#665c54"}
-  special: {foreground: "#d3869b"}
-  executable: {foreground: "#b8bb26"}
-  mount_point: {foreground: "#fe8019"}
+  directory: {foreground: "#458588"}
+  symlink: {foreground: "#928374"}
+  pipe: {foreground: "#a89984"}
+  block_device: {foreground: "#689d6a"}
+  char_device: {foreground: "#d79921"}
+  socket: {foreground: "#928374"}
+  special: {foreground: "#b16286"}
+  executable: {foreground: "#b16286"}
+  mount_point: {foreground: "#928374"}
 
 perms:
-  user_read: {foreground: "#ebdbb2"}
-  user_write: {foreground: "#fabd2f"}
-  user_execute_file: {foreground: "#b8bb26"}
-  user_execute_other: {foreground: "#b8bb26"}
-  group_read: {foreground: "#ebdbb2"}
-  group_write: {foreground: "#fabd2f"}
-  group_execute: {foreground: "#b8bb26"}
-  other_read: {foreground: "#bdae93"}
-  other_write: {foreground: "#fabd2f"}
-  other_execute: {foreground: "#b8bb26"}
-  special_user_file: {foreground: "#d3869b"}
+  user_read: {foreground: "#a89984"}
+  user_write: {foreground: "#928374"}
+  user_execute_file: {foreground: "#b16286"}
+  user_execute_other: {foreground: "#b16286"}
+  group_read: {foreground: "#a89984"}
+  group_write: {foreground: "#928374"}
+  group_execute: {foreground: "#b16286"}
+  other_read: {foreground: "#a89984"}
+  other_write: {foreground: "#928374"}
+  other_execute: {foreground: "#b16286"}
+  special_user_file: {foreground: "#b16286"}
   special_other: {foreground: "#928374"}
-  attribute: {foreground: "#bdae93"}
+  attribute: {foreground: "#a89984"}
 
 size:
-  major: {foreground: "#bdae93"}
-  minor: {foreground: "#8ec07c"}
-  number_byte: {foreground: "#ebdbb2"}
-  number_kilo: {foreground: "#ebdbb2"}
-  number_mega: {foreground: "#83a598"}
-  number_giga: {foreground: "#d3869b"}
-  number_huge: {foreground: "#d3869b"}
-  unit_byte: {foreground: "#bdae93"}
-  unit_kilo: {foreground: "#83a598"}
-  unit_mega: {foreground: "#d3869b"}
-  unit_giga: {foreground: "#d3869b"}
-  unit_huge: {foreground: "#fe8019"}
+  major: {foreground: "#a89984"}
+  minor: {foreground: "#458588"}
+  number_byte: {foreground: "#a89984"}
+  number_kilo: {foreground: "#928374"}
+  number_mega: {foreground: "#98971a"}
+  number_giga: {foreground: "#b16286"}
+  number_huge: {foreground: "#b16286"}
+  unit_byte: {foreground: "#a89984"}
+  unit_kilo: {foreground: "#98971a"}
+  unit_mega: {foreground: "#b16286"}
+  unit_giga: {foreground: "#b16286"}
+  unit_huge: {foreground: "#458588"}
 
 users:
-  user_you: {foreground: "#ebdbb2"}
-  user_root: {foreground: "#fb4934"}
-  user_other: {foreground: "#d3869b"}
-  group_yours: {foreground: "#ebdbb2"}
-  group_other: {foreground: "#928374"}
-  group_root: {foreground: "#fb4934"}
+  user_you: {foreground: "#d79921"}
+  user_root: {foreground: "#cc241d"}
+  user_other: {foreground: "#b16286"}
+  group_yours: {foreground: "#928374"}
+  group_other: {foreground: "#a89984"}
+  group_root: {foreground: "#cc241d"}
 
 links:
-  normal: {foreground: "#8ec07c"}
-  multi_link_file: {foreground: "#fe8019"}
+  normal: {foreground: "#458588"}
+  multi_link_file: {foreground: "#98971a"}
 
 git:
-  new: {foreground: "#b8bb26"}
-  modified: {foreground: "#fabd2f"}
-  deleted: {foreground: "#fb4934"}
-  renamed: {foreground: "#8ec07c"}
-  typechange: {foreground: "#d3869b"}
-  ignored: {foreground: "#928374"}
-  conflicted: {foreground: "#cc241d"}
+  new: {foreground: "#458588"}
+  modified: {foreground: "#d79921"}
+  deleted: {foreground: "#cc241d"}
+  renamed: {foreground: "#98971a"}
+  typechange: {foreground: "#b16286"}
+  ignored: {foreground: "#a89984"}
+  conflicted: {foreground: "#689d6a"}
 
 git_repo:
-  branch_main: {foreground: "#ebdbb2"}
-  branch_other: {foreground: "#d3869b"}
-  git_clean: {foreground: "#b8bb26"}
-  git_dirty: {foreground: "#fb4934"}
+  branch_main: {foreground: "#a89984"}
+  branch_other: {foreground: "#b16286"}
+  git_clean: {foreground: "#458588"}
+  git_dirty: {foreground: "#cc241d"}
 
 security_context:
-  colon: {foreground: "#928374"}
-  user: {foreground: "#ebdbb2"}
-  role: {foreground: "#d3869b"}
-  typ: {foreground: "#665c54"}
-  range: {foreground: "#d3869b"}
+  colon: {foreground: "#a89984"}
+  user: {foreground: "#458588"}
+  role: {foreground: "#b16286"}
+  typ: {foreground: "#a89984"}
+  range: {foreground: "#b16286"}
 
 file_type:
-  image: {foreground: "#fabd2f"}
-  video: {foreground: "#fb4934"}
-  music: {foreground: "#b8bb26"}
-  lossless: {foreground: "#8ec07c"}
+  image: {foreground: "#d79921"}
+  video: {foreground: "#cc241d"}
+  music: {foreground: "#458588"}
+  lossless: {foreground: "#a89984"}
   crypto: {foreground: "#928374"}
-  document: {foreground: "#ebdbb2"}
-  compressed: {foreground: "#d3869b"}
-  temp: {foreground: "#cc241d"}
-  compiled: {foreground: "#83a598"}
-  build: {foreground: "#928374"}
-  source: {foreground: "#83a598"}
+  document: {foreground: "#a89984"}
+  compressed: {foreground: "#b16286"}
+  temp: {foreground: "#689d6a"}
+  compiled: {foreground: "#98971a"}
+  build: {foreground: "#a89984"}
+  source: {foreground: "#689d6a"}
 
 punctuation: {foreground: "#928374"}
-date: {foreground: "#fabd2f"}
-inode: {foreground: "#bdae93"}
+date: {foreground: "#98971a"}
+inode: {foreground: "#a89984"}
 blocks: {foreground: "#a89984"}
-header: {foreground: "#ebdbb2"}
-octal: {foreground: "#8ec07c"}
-flags: {foreground: "#d3869b"}
+header: {foreground: "#a89984"}
+octal: {foreground: "#458588"}
+flags: {foreground: "#b16286"}
 
-symlink_path: {foreground: "#8ec07c"}
-control_char: {foreground: "#83a598"}
-broken_symlink: {foreground: "#fb4934"}
+symlink_path: {foreground: "#458588"}
+control_char: {foreground: "#98971a"}
+broken_symlink: {foreground: "#cc241d"}
 broken_path_overlay: {foreground: "#928374"}

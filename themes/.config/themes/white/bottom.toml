@@ -1,0 +1,39 @@
+# This is a default config file for bottom.
+
+[flags]
+basic = true
+battery = true
+process_memory_as_value = true
+enable_cache_memory = true
+
+[styles.cpu]
+all_entry_color = "#000000"
+avg_entry_color = "#6e6e6e"
+cpu_core_colors = ["#2a2a2a","#4a4a4a","#3a3a3a","#1a1a1a","#2e2e2e","#3e3e3e"]
+[styles.memory]
+ram_color = "#1a1a1a"
+cache_color = "#2a2a2a"
+swap_color = "#4a4a4a"
+gpu_colors = ["#2e2e2e","#3e3e3e","#2a2a2a","#4a4a4a","#3a3a3a","#1a1a1a"]
+arc_color = "#3e3e3e"
+[styles.network]
+rx_color = "#1a1a1a"
+tx_color = "#2a2a2a"
+rx_total_color = "#3e3e3e"
+tx_total_color = "#1a1a1a"
+[styles.battery]
+high_battery_color = "#1a1a1a"
+medium_battery_color = "#4a4a4a"
+low_battery_color = "#2a2a2a"
+[styles.tables]
+headers = {color = "#000000"}
+[styles.graphs]
+graph_color = "#c0c0c0"
+legend_text = {color = "#c0c0c0"}
+[styles.widgets]
+border_color = "#c0c0c0"
+selected_border_color = "#6e6e6e"
+widget_title = {color = "#000000"}
+text = {color = "#000000"}
+selected_text = {color = "#ffffff", bg_color = "#6e6e6e"}
+disabled_text = {color = "#c0c0c0"}

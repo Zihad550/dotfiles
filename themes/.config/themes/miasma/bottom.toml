@@ -1,0 +1,39 @@
+# This is a default config file for bottom.
+
+[flags]
+basic = true
+battery = true
+process_memory_as_value = true
+enable_cache_memory = true
+
+[styles.cpu]
+all_entry_color = "#d7c483"
+avg_entry_color = "#78824b"
+cpu_core_colors = ["#685742","#b36d43","#5f875f","#78824b","#bb7744","#c9a554"]
+[styles.memory]
+ram_color = "#78824b"
+cache_color = "#685742"
+swap_color = "#b36d43"
+gpu_colors = ["#bb7744","#c9a554","#685742","#b36d43","#5f875f","#78824b"]
+arc_color = "#c9a554"
+[styles.network]
+rx_color = "#78824b"
+tx_color = "#685742"
+rx_total_color = "#c9a554"
+tx_total_color = "#78824b"
+[styles.battery]
+high_battery_color = "#78824b"
+medium_battery_color = "#b36d43"
+low_battery_color = "#685742"
+[styles.tables]
+headers = {color = "#d7c483"}
+[styles.graphs]
+graph_color = "#666666"
+legend_text = {color = "#666666"}
+[styles.widgets]
+border_color = "#666666"
+selected_border_color = "#78824b"
+widget_title = {color = "#d7c483"}
+text = {color = "#d7c483"}
+selected_text = {color = "#222222", bg_color = "#78824b"}
+disabled_text = {color = "#666666"}
