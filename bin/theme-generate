@@ -67,6 +67,20 @@ add_derived_colors() {
 
 add_derived_colors
 
+safe_cp() {
+    local source="$1"
+    local dest="$2"
+    local resolved_source resolved_dest
+
+    if [[ -f "$source" ]]; then
+        resolved_source=$(readlink -f "$source")
+        resolved_dest=$(readlink -f "$dest")
+        if [[ "$resolved_source" != "$resolved_dest" ]]; then
+            cp "$source" "$dest"
+        fi
+    fi
+}
+
 process_template() {
     local template_file="$1"
     local output_file="$2"
@@ -93,27 +107,35 @@ done
 
 if [[ -d "$THEME_SOURCE/$THEME_NAME/backgrounds" ]]; then
     mkdir -p "$OUTPUT_DIR/backgrounds"
-    cp -r "$THEME_SOURCE/$THEME_NAME/backgrounds"/* "$OUTPUT_DIR/backgrounds/" 2>/dev/null || true
+    for f in "$THEME_SOURCE/$THEME_NAME/backgrounds"/*; do
+        if [[ -f "$f" ]]; then
+            resolved_source=$(readlink -f "$f")
+            resolved_dest=$(readlink -f "$OUTPUT_DIR/backgrounds/$(basename "$f")")
+            if [[ "$resolved_source" != "$resolved_dest" ]]; then
+                cp "$f" "$OUTPUT_DIR/backgrounds/"
+            fi
+        fi
+    done
 fi
 
 if [[ -f "$THEME_SOURCE/$THEME_NAME/light.mode" ]]; then
-    cp "$THEME_SOURCE/$THEME_NAME/light.mode" "$OUTPUT_DIR/"
+    safe_cp "$THEME_SOURCE/$THEME_NAME/light.mode" "$OUTPUT_DIR/light.mode"
 fi
 
 if [[ -f "$THEME_SOURCE/$THEME_NAME/preview.png" ]]; then
-    cp "$THEME_SOURCE/$THEME_NAME/preview.png" "$OUTPUT_DIR/"
+    safe_cp "$THEME_SOURCE/$THEME_NAME/preview.png" "$OUTPUT_DIR/preview.png"
 fi
 
 if [[ -f "$THEME_SOURCE/$THEME_NAME/icons.theme" ]]; then
-    cp "$THEME_SOURCE/$THEME_NAME/icons.theme" "$OUTPUT_DIR/"
+    safe_cp "$THEME_SOURCE/$THEME_NAME/icons.theme" "$OUTPUT_DIR/icons.theme"
 fi
 
 if [[ -f "$THEME_SOURCE/$THEME_NAME/vscode.json" ]]; then
-    cp "$THEME_SOURCE/$THEME_NAME/vscode.json" "$OUTPUT_DIR/"
+    safe_cp "$THEME_SOURCE/$THEME_NAME/vscode.json" "$OUTPUT_DIR/vscode.json"
 fi
 
 if [[ -f "$THEME_SOURCE/$THEME_NAME/neovim.lua" ]]; then
-    cp "$THEME_SOURCE/$THEME_NAME/neovim.lua" "$OUTPUT_DIR/"
+    safe_cp "$THEME_SOURCE/$THEME_NAME/neovim.lua" "$OUTPUT_DIR/neovim.lua"
 fi
 
 echo "Done! Theme generated at: $OUTPUT_DIR"
