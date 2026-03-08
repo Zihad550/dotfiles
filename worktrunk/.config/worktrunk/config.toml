@@ -10,3 +10,6 @@ tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | saniti
 
 [commit.generation]
 command = "aichat -m gemini:gemini-2.5-flash"
+
+[list]
+summary = true 
