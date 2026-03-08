@@ -48,9 +48,10 @@ sudo pacman -S --noconfirm \
 sudo pacman -S --noconfirm \
    ttf-jetbrains-mono \
    ttf-hack-nerd \
-   noto-fonts
+   noto-fonts \
+   ttf-nerd-fonts-symbols-mono
 # sudo pacman -S --noconfirm ttf-fira-code
-# sudo pacman -S --noconfirm ttf-nerd-fonts-symbols-mono
+# sudo pacman -S --noconfirm
 
 #  alternatives to core packages
 # zoxide - cd, eza - ls, ripgrep - grep, bat - cat, bottom - htop, fd - find, dust - du, procs - ps, tealdeer - tldr
