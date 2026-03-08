@@ -59,11 +59,11 @@ export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
 export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 
 # .net
-export DOTNET_CLI_TELEMETRY_OPTOUT=1
+# export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 # postgres
-export POSTGRES_USER=postgres
-export POSTGRES_DB=postgres
+# export POSTGRES_USER=postgres
+# export POSTGRES_DB=postgres
 
 # ollama
 export OLLAMA_FLASH_ATTENTION=true
