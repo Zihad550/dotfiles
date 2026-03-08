@@ -1,4 +1,4 @@
-include=~/.local/share/omarchy/default/mako/core.ini
+include=~/.local/share/mako/core.ini
 
 text-color={{ foreground }}
 border-color={{ accent }}
