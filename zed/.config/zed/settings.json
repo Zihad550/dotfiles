@@ -276,7 +276,7 @@
   },
   "centered_layout": {
     "left_padding": 0.1,
-    "right_padding": 0,
+    "right_padding": 0.1,
   },
   "minimap": {
     "show": "auto",

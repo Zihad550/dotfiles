@@ -50,7 +50,7 @@ ln -snf ~/dotfiles/setup/applications/icons $HOME/.local/share/applications
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-kanata
 
 # github cli
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
+# ~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
 
 # additional
 ~/dotfiles/setup/arch-hyprland/setup-packages/additional-packages
@@ -74,9 +74,12 @@ mkdir -p ~/.obsidian-vault
 # enable gdm
 sudo pacman -S --noconfirm gdm
 sudo systemctl enable gdm.service
+tldr --update
 
 # To test if AppArmor has been correctly enabled:
 echo "Is app armor enabled: $(aa-enabled)"
+echo "make sure to run this # ~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
+after gh auth login"
 
 echo "Do you want to restart? [y/N] "
 read -r response
