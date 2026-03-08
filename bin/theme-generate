@@ -4,10 +4,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
-THEMES_DIR="$DOTFILES_DIR/themes"
-TEMPLATES_DIR="$THEMES_DIR/templates"
-THEME_SOURCE="$THEMES_DIR/.config/themes"
-OUTPUT_BASE="$THEMES_DIR/.config/themes"
+THEMES_DIR="$HOME/.config/themes"
+TEMPLATE_DIR="$DOTFILES_DIR/themes/templates"
 
 usage() {
     echo "Usage: $0 <theme-name>"
@@ -20,8 +18,9 @@ if [[ $# -ne 1 ]]; then
 fi
 
 THEME_NAME="$1"
+THEME_SOURCE="$DOTFILES_DIR/themes/.config/themes"
 COLORS_FILE="$THEME_SOURCE/$THEME_NAME/colors.toml"
-OUTPUT_DIR="$OUTPUT_BASE/$THEME_NAME"
+OUTPUT_DIR="$THEMES_DIR/$THEME_NAME"
 
 if [[ ! -f "$COLORS_FILE" ]]; then
     echo "Error: colors.toml not found for theme '$THEME_NAME'"
@@ -85,7 +84,7 @@ process_template() {
 }
 
 echo "Templates:"
-for template in "$TEMPLATES_DIR"/*.tpl; do
+for template in "$TEMPLATE_DIR"/*.tpl; do
     if [[ -f "$template" ]]; then
         template_name=$(basename "$template" .tpl)
         process_template "$template" "$template_name"
