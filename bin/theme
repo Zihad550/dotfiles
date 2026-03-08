@@ -49,7 +49,8 @@ switch_theme() {
 
     echo "Switching to theme: $theme"
 
-    ln -snf "$THEMES_DIR/$theme" ~/.config/theme
+    rm -f ~/.config/theme
+    ln -snf "$HOME/.config/themes/$theme" ~/.config/theme
 
     ln -snf ~/.config/theme/neovim.lua ~/.config/nvim/lua/plugins/theme.lua 2>/dev/null || true
 
