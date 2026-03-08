@@ -1,0 +1,120 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+THEMES_DIR="$DOTFILES_DIR/themes"
+TEMPLATES_DIR="$THEMES_DIR/templates"
+THEME_SOURCE="$THEMES_DIR/.config/themes"
+OUTPUT_BASE="$THEMES_DIR/.config/themes"
+
+usage() {
+    echo "Usage: $0 <theme-name>"
+    echo "Generate theme config files from templates"
+    exit 1
+}
+
+if [[ $# -ne 1 ]]; then
+    usage
+fi
+
+THEME_NAME="$1"
+COLORS_FILE="$THEME_SOURCE/$THEME_NAME/colors.toml"
+OUTPUT_DIR="$OUTPUT_BASE/$THEME_NAME"
+
+if [[ ! -f "$COLORS_FILE" ]]; then
+    echo "Error: colors.toml not found for theme '$THEME_NAME'"
+    exit 1
+fi
+
+echo "Generating theme: $THEME_NAME"
+
+mkdir -p "$OUTPUT_DIR"
+
+parse_colors() {
+    local colors_file="$1"
+    while IFS='= ' read -r key value; do
+        if [[ ! "$key" =~ ^\[ && "$key" =~ ^[a-z_]+$ ]]; then
+            value="${value//\"/}"
+            echo "$key=$value"
+        fi
+    done < "$colors_file"
+}
+
+declare -A COLORS
+while IFS='= ' read -r key value; do
+    if [[ -n "$key" && ! "$key" =~ ^\[ && "$key" =~ ^[a-z_0-9]+$ ]]; then
+        value="${value//\"/}"
+        COLORS["$key"]="$value"
+    fi
+done < "$COLORS_FILE"
+
+add_derived_colors() {
+    local bg="${COLORS[background]}"
+    local fg="${COLORS[foreground]}"
+    local accent="${COLORS[accent]}"
+
+    COLORS[background_rgb]="${bg#\#}"
+    COLORS[foreground_rgb]="${fg#\#}"
+    COLORS[accent_rgb]="${accent#\#}"
+
+    local accent_hex="${accent#\#}"
+    local r=$((16#${accent_hex:0:2}))
+    local g=$((16#${accent_hex:2:2}))
+    local b=$((16#${accent_hex:4:2}))
+    COLORS[accent_strip]="${accent_hex}"
+}
+
+add_derived_colors
+
+process_template() {
+    local template_file="$1"
+    local output_file="$2"
+    local template_name=$(basename "$template_file" .tpl)
+
+    echo "  Processing: $template_name"
+
+    content=$(cat "$template_file")
+
+    for key in "${!COLORS[@]}"; do
+        content="${content//\{\{ $key \}\}/${COLORS[$key]}}"
+    done
+
+    echo "$content" > "$OUTPUT_DIR/$output_file"
+}
+
+echo "Templates:"
+for template in "$TEMPLATES_DIR"/*.tpl; do
+    if [[ -f "$template" ]]; then
+        template_name=$(basename "$template" .tpl)
+        process_template "$template" "$template_name"
+    fi
+done
+
+if [[ -d "$THEME_SOURCE/$THEME_NAME/backgrounds" ]]; then
+    mkdir -p "$OUTPUT_DIR/backgrounds"
+    cp -r "$THEME_SOURCE/$THEME_NAME/backgrounds"/* "$OUTPUT_DIR/backgrounds/" 2>/dev/null || true
+fi
+
+if [[ -f "$THEME_SOURCE/$THEME_NAME/light.mode" ]]; then
+    cp "$THEME_SOURCE/$THEME_NAME/light.mode" "$OUTPUT_DIR/"
+fi
+
+if [[ -f "$THEME_SOURCE/$THEME_NAME/preview.png" ]]; then
+    cp "$THEME_SOURCE/$THEME_NAME/preview.png" "$OUTPUT_DIR/"
+fi
+
+if [[ -f "$THEME_SOURCE/$THEME_NAME/icons.theme" ]]; then
+    cp "$THEME_SOURCE/$THEME_NAME/icons.theme" "$OUTPUT_DIR/"
+fi
+
+if [[ -f "$THEME_SOURCE/$THEME_NAME/vscode.json" ]]; then
+    cp "$THEME_SOURCE/$THEME_NAME/vscode.json" "$OUTPUT_DIR/"
+fi
+
+if [[ -f "$THEME_SOURCE/$THEME_NAME/neovim.lua" ]]; then
+    cp "$THEME_SOURCE/$THEME_NAME/neovim.lua" "$OUTPUT_DIR/"
+fi
+
+echo "Done! Theme generated at: $OUTPUT_DIR"

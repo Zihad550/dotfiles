@@ -1,0 +1,47 @@
+[colors.primary]
+background = "#ffffff"
+foreground = "#000000"
+
+[colors.cursor]
+text = "#ffffff"
+cursor = "#000000"
+
+[colors.vi_mode_cursor]
+text = "#ffffff"
+cursor = "#000000"
+
+[colors.search.matches]
+foreground = "#ffffff"
+background = "#4a4a4a"
+
+[colors.search.focused_match]
+foreground = "#ffffff"
+background = "#2a2a2a"
+
+[colors.footer_bar]
+foreground = "#ffffff"
+background = "#000000"
+
+[colors.selection]
+text = "#ffffff"
+background = "#1a1a1a"
+
+[colors.normal]
+black = "#ffffff"
+red = "#2a2a2a"
+green = "#3a3a3a"
+yellow = "#4a4a4a"
+blue = "#1a1a1a"
+magenta = "#2e2e2e"
+cyan = "#3e3e3e"
+white = "#000000"
+
+[colors.bright]
+black = "#c0c0c0"
+red = "#2a2a2a"
+green = "#3a3a3a"
+yellow = "#4a4a4a"
+blue = "#1a1a1a"
+magenta = "#2e2e2e"
+cyan = "#3e3e3e"
+white = "#000000"
