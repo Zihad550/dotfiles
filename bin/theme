@@ -52,6 +52,20 @@ switch_theme() {
     rm -f ~/.config/theme
     ln -snf "$HOME/.config/themes/$theme" ~/.config/theme
 
+    if [[ ! -L ~/.config/theme ]]; then
+        echo "Error: Failed to create symlink ~/.config/theme"
+        exit 1
+    fi
+
+    local linked_theme
+    linked_theme=$(basename "$(readlink ~/.config/theme)")
+    if [[ "$linked_theme" != "$theme" ]]; then
+        echo "Error: Symlink verification failed. Expected '$theme' but got '$linked_theme'"
+        exit 1
+    fi
+
+    echo "Symlink verified: ~/.config/theme -> $(readlink ~/.config/theme)"
+
     ln -snf ~/.config/theme/neovim.lua ~/.config/nvim/lua/plugins/theme.lua 2>/dev/null || true
 
     mkdir -p ~/.config/bottom
