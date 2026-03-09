@@ -5,7 +5,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
 THEMES_DIR="$HOME/.config/themes"
-TEMPLATE_DIR="~/.config/themes/templates"
+TEMPLATE_DIR="$DOTFILES_DIR/themes/templates"
 
 usage() {
    echo "Usage: $0 <theme-name>"
