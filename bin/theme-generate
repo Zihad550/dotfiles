@@ -18,7 +18,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 THEME_NAME="$1"
-THEME_SOURCE="$DOTFILES_DIR/themes/.config/themes"
+THEME_SOURCE="$HOME/.config/themes"
 COLORS_FILE="$THEME_SOURCE/$THEME_NAME/colors.toml"
 OUTPUT_DIR="$THEMES_DIR/$THEME_NAME"
 

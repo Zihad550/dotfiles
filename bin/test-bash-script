@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 
-FOLDER_NAME="$(date +"%d-%b-%Y" | tr '[:upper:]' '[:lower:]')-backup"
-
-echo $FOLDER_NAME
+THEMES_DIR="$HOME/.config/themes"
+echo $THEMES_DIR

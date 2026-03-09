@@ -4,7 +4,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
-THEMES_DIR="$DOTFILES_DIR/themes/.config/themes"
+THEMES_DIR="$HOME/.config/themes"
 GENERATE_SCRIPT="$DOTFILES_DIR/bin/theme-generate"
 
 usage() {
@@ -73,24 +73,24 @@ switch_theme() {
    mkdir -p ~/.config/mako
    ln -snf ~/.config/theme/mako.ini ~/.config/mako/config
 
-    mkdir -p ~/.config/eza
-    ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
+   mkdir -p ~/.config/eza
+   ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
 
-    # Background symlink
-    mkdir -p ~/.config/theme/backgrounds
-    BACKGROUND_PATH=""
-    for bg in ~/.config/theme/backgrounds/*; do
+   # Background symlink
+   mkdir -p ~/.config/theme/backgrounds
+   BACKGROUND_PATH=""
+   for bg in ~/.config/theme/backgrounds/*; do
       if [[ -f "$bg" ]]; then
-        BACKGROUND_PATH="$bg"
-        break
+         BACKGROUND_PATH="$bg"
+         break
       fi
-    done
-    if [[ -n "$BACKGROUND_PATH" ]]; then
+   done
+   if [[ -n "$BACKGROUND_PATH" ]]; then
       rm -f ~/.config/theme/background
       ln -snf "$BACKGROUND_PATH" ~/.config/theme/background
-    fi
+   fi
 
-    # Obsidian style settings
+   # Obsidian style settings
    rm -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
    cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json 2>/dev/null || true
 
