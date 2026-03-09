@@ -94,6 +94,11 @@ switch_theme() {
    rm -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
    cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json 2>/dev/null || true
 
+   # reload apps
+   if pgrep -x ghostty >/dev/null; then
+      killall -SIGUSR2 ghostty
+   fi
+
    echo "Theme '$theme' is now active"
 }
 
