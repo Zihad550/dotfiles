@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-THEMES_DIR="$HOME/.config/themes"
-echo $THEMES_DIR
+[ -f mise.toml ] && echo "mise file exists"
