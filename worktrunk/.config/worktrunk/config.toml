@@ -14,62 +14,62 @@ tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | saniti
 [commit.generation]
 command = "aichat -m gemini:gemini-2.5-flash"
 
-template = """
-Write a commit message for this diff. Follow these 3 steps:
+# template = """
+# Write a commit message for this diff. Follow these 3 steps:
 
-STEP 1 — HEADER (required): One line, under 50 chars,
-Format: <type>[scope][!]: <description>
-- type: `feat` (new feature), `fix` (bug), or any noun (`docs`, `chore`, `refactor`...)
-- scope: optional noun in parentheses → `feat(auth):`
-- `!`: add before `:` if breaking change → `feat(api)!:`
-- description: short summary after the colon+space
+# STEP 1 — HEADER (required): One line, under 50 chars,
+# Format: <type>[scope][!]: <description>
+# - type: `feat` (new feature), `fix` (bug), or any noun (`docs`, `chore`, `refactor`...)
+# - scope: optional noun in parentheses → `feat(auth):`
+# - `!`: add before `:` if breaking change → `feat(api)!:`
+# - description: short summary after the colon+space
 
-STEP 2 — BODY (optional):
-- Blank line after header, then explain WHY the change was made.
-- Free-form paragraphs, skip if header is self-explanatory.
+# STEP 2 — BODY (optional):
+# - Blank line after header, then explain WHY the change was made.
+# - Free-form paragraphs, skip if header is self-explanatory.
 
-STEP 3 — FOOTER (optional):
-- Blank line after body, then add metadata tokens.
-- Format: `Token: value` (use `-` for spaces in token names)
-- Breaking change not marked with `!`: add `BREAKING CHANGE: <what breaks + migration>`
+# STEP 3 — FOOTER (optional):
+# - Blank line after body, then add metadata tokens.
+# - Format: `Token: value` (use `-` for spaces in token names)
+# - Breaking change not marked with `!`: add `BREAKING CHANGE: <what breaks + migration>`
 
-Output plain text only — no code blocks, no backticks, no markdown.
+# Output plain text only — no code blocks, no backticks, no markdown.
 
-Branch: {{ branch }}
-Diff:
-{{ git_diff }}
-"""
+# Branch: {{ branch }}
+# Diff:
+# {{ git_diff }}
+# """
 
-squash-template = """
-Combine these {{ commits | length }} commits into one squashed commit message. Follow these 3 steps:
+# squash-template = """
+# Combine these {{ commits | length }} commits into one squashed commit message. Follow these 3 steps:
 
-STEP 1 — HEADER (required): One line, under 50 chars
-Format: <type>[scope][!]: <description>
-- type: `feat` (new feature), `fix` (bug), or any noun (`docs`, `chore`, `refactor`...)
-- scope: optional noun in parentheses → `feat(auth):`
-- `!`: add before `:` if breaking change → `feat(api)!:`
-- description: single summary capturing the overall change across all commits
+# STEP 1 — HEADER (required): One line, under 50 chars
+# Format: <type>[scope][!]: <description>
+# - type: `feat` (new feature), `fix` (bug), or any noun (`docs`, `chore`, `refactor`...)
+# - scope: optional noun in parentheses → `feat(auth):`
+# - `!`: add before `:` if breaking change → `feat(api)!:`
+# - description: single summary capturing the overall change across all commits
 
-STEP 2 — BODY (optional):
-- Blank line after header, then explain the combined intent of the commits.
-- If useful, briefly list the key changes as short bullet points.
-- Skip if the header is self-explanatory.
+# STEP 2 — BODY (optional):
+# - Blank line after header, then explain the combined intent of the commits.
+# - If useful, briefly list the key changes as short bullet points.
+# - Skip if the header is self-explanatory.
 
-STEP 3 — FOOTER (optional):
-- Blank line after body, then add metadata tokens.
-- Format: `Token: value` (use `-` for spaces in token names)
-- If any commit introduced a breaking change: add `BREAKING CHANGE: <what breaks + migration>`
+# STEP 3 — FOOTER (optional):
+# - Blank line after body, then add metadata tokens.
+# - Format: `Token: value` (use `-` for spaces in token names)
+# - If any commit introduced a breaking change: add `BREAKING CHANGE: <what breaks + migration>`
 
-Output plain text only — no code blocks, no backticks, no markdown.
+# Output plain text only — no code blocks, no backticks, no markdown.
 
-Commits:
-{% for c in commits %}
-- {{ c }}
-{% endfor %}
+# Commits:
+# {% for c in commits %}
+# - {{ c }}
+# {% endfor %}
 
-Diff:
-{{ git_diff }}
-"""
+# Diff:
+# {{ git_diff }}
+# """
 
 [list]
 summary = true
