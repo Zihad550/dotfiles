@@ -1,11 +1,14 @@
 skip-commit-generation-prompt = true
 
-[post-start]
+# blocking, complete before post start
+[post-create]
 copy = 'wt step copy-ignored'
+
+[post-start]
+mise-trust = '[ -f mise.toml ] && mise trust'
 
 [post-switch]
 tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | sanitize}}"
-mise-trust = '[ -f mise.toml ] && mise trust'
 # mise-install = '[ -f mise.toml ] && mise install'
 
 [commit.generation]
