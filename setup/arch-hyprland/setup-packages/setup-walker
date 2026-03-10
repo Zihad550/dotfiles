@@ -15,7 +15,7 @@ yay -S --noconfirm \
    elephant-unicode \
    elephant-websearch \
    elephant-todo \
-   walker
+   walker-bin
 
 elephant service enable
 systemctl --user enable elephant.service
