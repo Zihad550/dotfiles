@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 
-sudo pacman -Syu --noconfirm libqalculate
-yay -S --noconfirm walker-bin
+sudo pacman -S --noconfirm libqalculate
+yay -S --noconfirm \
+   elephant \
+   elephant-calc \
+   elephant-clipboard \
+   elephant-bluetooth \
+   elephant-desktopapplications \
+   elephant-files \
+   elephant-menus \
+   elephant-providerlist \
+   elephant-runner \
+   elephant-symbols \
+   elephant-unicode \
+   elephant-websearch \
+   elephant-todo \
+   walker
 
 elephant service enable
 systemctl --user enable elephant.service
