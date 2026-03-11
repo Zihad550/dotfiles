@@ -8,7 +8,7 @@ sudo apt install qemu-guest-agent -y
 sudo systemctl enable --now qemu-guest-agent.service
 
 # packages
-sudo apt install stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
+sudo apt install nfs-common stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
 # sudo apt install procs -y # available from ubuntu 25.04
 
 # install the latest version of neovim
