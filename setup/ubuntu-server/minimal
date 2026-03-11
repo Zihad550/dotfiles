@@ -1,29 +1,14 @@
 #!/usr/bin/env bash
 
+CREATE_USER=$1
+
 sudo apt update -y
 sudo apt upgrade -y
 sudo apt install qemu-guest-agent -y
 sudo systemctl enable --now qemu-guest-agent.service
 
-sudo apt install stow -y
-
-# stow
-cd ~/dotfiles
-
-stow git
-stow opencode
-stow agents
-stow tmux
-stow zsh # to get the aliasrc file
-rm -rf ~/.bashrc
-stow bash
-
-ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
-mkdir -p .kilocode/skills
-ln -snf ~/.agents/skills/* ~/.kilocode/skills/
-
 # packages
-sudo apt install ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
+sudo apt install stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
 # sudo apt install procs -y # available from ubuntu 25.04
 
 # install the latest version of neovim
@@ -31,12 +16,33 @@ sudo add-apt-repository ppa:neovim-ppa/unstable -y
 sudo apt update
 sudo apt install make gcc ripgrep unzip xclip neovim -y
 
-~/dotfiles/setup/ubuntu-server/setup-mise
+# add mise
+sudo apt update -y && sudo apt install -y curl
+sudo install -dm 755 /etc/apt/keyrings
+curl -fSs https://mise.jdx.dev/gpg-key.pub | sudo tee /etc/apt/keyrings/mise-archive-keyring.asc 1>/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
+sudo apt update -y
+sudo apt install -y mise
 
-mise use -g fzf@latest
-mise use -g bottom
-
+# remove snap
 ~/dotfiles/setup/ubuntu-server/rm-snap
-git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+
+# add user
+useradd -m -s /bin/bash $CREATE_USER
+passwd $CREATE_USER
+# add user to sudoers
+usermod -aG sudo $CREATE_USER
+# allow user to run sudo without password
+echo "$CREATE_USER ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/$CREATE_USER
+chmod 440 /etc/sudoers.d/$CREATE_USER
+visudo -c -f /etc/sudoers.d/$CREATE_USER
+# create ssh keys for user
+mkdir -p /home/$CREATE_USER/.ssh
+cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
+chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
+
+echo "edit vi /etc/ssh/sshd_config"
+echo "with this settings"
+echo "PermitRootLogin no PasswordAuthentication no"
 
 echo "now logout and log back in"

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# stow
+cd ~/dotfiles
+
+stow git
+stow opencode
+stow agents
+stow tmux
+stow zsh # to get the aliasrc file
+rm -rf ~/.bashrc
+stow bash
+
+ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
+mkdir -p .kilocode/skills
+ln -snf ~/.agents/skills/* ~/.kilocode/skills/
+
+# sudo apt install procs -y # available from ubuntu 25.04
+
+# install the latest version of neovim
+sudo add-apt-repository ppa:neovim-ppa/unstable -y
+sudo apt update
+sudo apt install make gcc ripgrep unzip xclip neovim -y
+
+mise use -g usage
+mise use -g fzf@latest
+mise use -g bottom
+
+# mise completion zsh >_mise
+# sudo mkdir -p /usr/local/share/zsh/site-functions
+# sudo mv _mise /usr/local/share/zsh/site-functions
+
+git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+
+echo "now logout and log back in"
