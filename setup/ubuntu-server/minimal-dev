@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+~/dotfiles/setup/ubuntu-server/setup-ufw
+
+# not working cpu type othe than host
+mise use -g uv
+mise use -g bun deno node@lts pnpm
+mise use -g lazygit
+
+mise use -g opencode
+mise use -g github:Kilo-Org/kilo
+mise use -g npm:cline
+mise use -g gemini
+mise use -g npm:@qwen-code/qwen-code
+# roo code cli
+curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh
+mise use -g npm:btca # better context engine by bendevis
+
+# mise use -g t3 # waiting for t3 cli
+
+# prompt for btca
+# Set up btca for this project: scan package.json for major dependencies (frameworks, libraries, tools), suggest adding each as a btca resource with sensible defaults, then create a btca.config.jsonc file in the project root and update AGENTS.md with usage instructions. Ask me to confirm each resource before adding.
