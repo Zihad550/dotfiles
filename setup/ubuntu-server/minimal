@@ -2,8 +2,8 @@
 
 sudo apt update -y
 sudo apt upgrade -y
-sudo apt install qemu-guest-agent -y
-sudo systemctl enable --now qemu-guest-agent.service
+# sudo apt install qemu-guest-agent -y
+# sudo systemctl enable --now qemu-guest-agent.service
 
 sudo apt install stow -y
 
@@ -23,7 +23,7 @@ mkdir -p .kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # packages
-sudo apt install fzf ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
+sudo apt install ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
 
 # install the latest version of neovim
 sudo add-apt-repository ppa:neovim-ppa/unstable -y
@@ -32,7 +32,7 @@ sudo apt install make gcc ripgrep unzip xclip neovim -y
 
 ~/dotfiles/setup/ubuntu-server/setup-mise
 
-# mise use -g fzf@latest
+mise use -g fzf@latest
 mise use -g bottom
 mise use -g rust@latest
 mise use -g cargo:procs
