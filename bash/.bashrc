@@ -105,11 +105,15 @@ if ! shopt -oq posix; then
    fi
 fi
 
-# Set up fzf key bindings and fuzzy completion
-eval "$(fzf --bash)"
+#################
+# Shell integrations
+#################
+if command -v fzf >/dev/null 2>&1; then eval "$(fzf --bash)"; fi
+if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd bash)"; fi
+if command -v mise >/dev/null 2>&1; then eval "$(mise activate bash)"; fi
+if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out bash); fi
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi
 
 source "$HOME/.config/zsh/aliasrc"
 
 bind -x '"\ec": fzf_open_dir'
-
-if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi
