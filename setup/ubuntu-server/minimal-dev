@@ -3,8 +3,8 @@
 ~/dotfiles/setup/ubuntu-server/setup-ufw
 
 # not working cpu type othe than host
-mise use -g uv
 mise use -g bun deno node@lts pnpm
+mise use -g uv
 mise use -g lazygit
 
 mise use -g opencode
