@@ -110,7 +110,7 @@ fi
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --bash)"
 
-source "$XDG_CONFIG_HOME/zsh/aliasrc"
+source "$HOME/.config/zsh/aliasrc"
 
 bind -x '"\ec": fzf_open_dir'
 

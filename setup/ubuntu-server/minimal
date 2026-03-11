@@ -14,6 +14,7 @@ stow git
 stow opencode
 stow agents
 stow tmux
+stow zsh # to get the aliasrc file
 stow bash
 
 ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
@@ -32,6 +33,7 @@ sudo apt install make gcc ripgrep unzip xclip neovim -y
 
 mise use -g fzf@latest
 mise use -g bottom
+mise use -g rust@latest
 mise use -g cargo:procs
 
 ~/dotfiles/setup/ubuntu-server/rm-snap
