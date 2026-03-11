@@ -15,6 +15,7 @@ stow opencode
 stow agents
 stow tmux
 stow zsh # to get the aliasrc file
+rm -rf ~/.bashrc
 stow bash
 
 ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
