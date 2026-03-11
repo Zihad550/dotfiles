@@ -1,6 +1,4 @@
-#
-# ~/.bashrc
-#
+source "$HOME/.config/zsh/.zshenv"
 
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
