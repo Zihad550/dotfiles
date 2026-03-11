@@ -24,6 +24,7 @@ ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # packages
 sudo apt install ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
+# sudo apt install procs -y # available from ubuntu 25.04
 
 # install the latest version of neovim
 sudo add-apt-repository ppa:neovim-ppa/unstable -y
@@ -34,8 +35,6 @@ sudo apt install make gcc ripgrep unzip xclip neovim -y
 
 mise use -g fzf@latest
 mise use -g bottom
-mise use -g rust@latest
-mise use -g cargo:procs
 
 ~/dotfiles/setup/ubuntu-server/rm-snap
 git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
