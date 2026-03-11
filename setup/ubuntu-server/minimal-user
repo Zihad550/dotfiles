@@ -11,8 +11,8 @@ stow zsh # to get the aliasrc file
 rm -rf ~/.bashrc
 stow bash
 
+mkdir -p ~/.kilocode/skills
 ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
-mkdir -p .kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # sudo apt install procs -y # available from ubuntu 25.04
