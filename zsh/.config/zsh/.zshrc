@@ -64,6 +64,7 @@ zinit light g-plane/pnpm-shell-completion
 
 # aliases
 source "$XDG_CONFIG_HOME/zsh/aliasrc"
+source "$XDG_CONFIG_HOME/zsh/zshalias"
 
 
 

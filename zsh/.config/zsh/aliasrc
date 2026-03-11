@@ -51,25 +51,6 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 
-# suffix aliases
-alias -s md="bat"
-alias -s mov="open"
-alias -s png="open"
-alias -s mp4="open"
-alias -s go="$EDITOR"
-alias -s js="$EDITOR"
-alias -s ts="$EDITOR"
-alias -s yaml="bat -l yaml"
-alias -s json="bat -l json"
-
-# global aliases
-alias -g NE='2>/dev/null'      # null error
-alias -g DN='> /dev/null'      # pipe standard output to /dev/null
-alias -g NUL='>/dev/null 2>&1' # pipe standard output and error to /dev/null
-alias -g C='| wl-copy'
-alias -g P='wl-paste'
-alias -g L='| less'
-
 # Function to list directories and open the selected one in editor
 # Regular function version for command line use
 fzf_dir() {
@@ -163,23 +144,23 @@ fzf_open_dir_func() {
    esac
 }
 
-# ZLE widget version for keybinding
 fzf_open_dir() {
    local dir
    dir=$(fzf_dir)
 
-   # Clear current line
-   zle kill-whole-line
-
-   # Check if fzf was cancelled or no selection was made
-   if [[ -z $dir ]]; then
-      zle reset-prompt
-      return 1
+   if [[ -n "$ZSH_VERSION" ]]; then
+      zle kill-whole-line
+      [[ -z "$dir" ]] && {
+         zle reset-prompt
+         return 1
+      }
+      BUFFER="cd \"$dir\""
+      zle accept-line
+   else
+      [[ -z "$dir" ]] && return 1
+      cd "$dir"
+      pwd
    fi
-
-   # Set the command line to cd command
-   BUFFER="cd \"$dir\""
-   zle accept-line
 }
 
 # fzf mappings

@@ -28,3 +28,4 @@ stow tmux
 stow gh-dash
 stow mise
 stow worktrunk
+stow bash
