@@ -64,3 +64,22 @@ if [[ -n $ZELLIJ ]]; then
    add-zsh-hook precmd set_tab_to_working_dir
    # add-zsh-hook preexec set_tab_to_command_line
 fi
+
+# promodoro
+declare -A pomo_options
+pomo_options["work"]="60"
+pomo_options["typing"]="11"
+pomo_options["break"]="10"
+
+pomodoro() {
+   if [ -n "$1" -a -n "${pomo_options["$1"]}" ]; then
+      val=$1
+      # echo $val | lolcat
+      timer ${pomo_options["$val"]}m
+      # spd-say "'$val' session done"
+      notify-send "'$val' session done"
+   fi
+}
+alias work="pomodoro 'work'"
+alias typing="pomodoro 'typing'"
+alias break="pomodoro 'break'"
