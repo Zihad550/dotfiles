@@ -3,6 +3,8 @@ source "$HOME/.zshenv"
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
+source "$HOME/.config/zsh/aliasrc"
+
 # don't put duplicate lines or lines starting with space in the history.
 # See bash(1) for more options
 HISTCONTROL=ignoreboth
@@ -105,17 +107,6 @@ if ! shopt -oq posix; then
    fi
 fi
 
-#################
-# Shell integrations
-#################
-if command -v fzf >/dev/null 2>&1; then eval "$(fzf --bash)"; fi
-if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd bash)"; fi
-if command -v mise >/dev/null 2>&1; then eval "$(mise activate bash)"; fi
-if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out bash); fi
-if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi
-
-source "$HOME/.config/zsh/aliasrc"
-
 bind -x '"\ec": fzf_open_dir'
 
 # hook to show the contents of the current directory when changing directories
@@ -127,3 +118,12 @@ _chpwd() {
    fi
 }
 PROMPT_COMMAND="_chpwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+
+#################
+# Shell integrations
+#################
+if command -v fzf >/dev/null 2>&1; then eval "$(fzf --bash)"; fi
+if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd bash)"; fi
+if command -v mise >/dev/null 2>&1; then eval "$(mise activate bash)"; fi
+if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out bash); fi
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi

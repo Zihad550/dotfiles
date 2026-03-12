@@ -13,10 +13,12 @@ sudo apk add tealdeer@testing
 # add user
 adduser -D -s /bin/sh $CREATE_USER
 passwd $CREATE_USER
+# allow sudo without pwd
 # add to wheel group (Alpine's sudo equivalent)
 addgroup $CREATE_USER wheel
-# allow wheel group sudo
-echo '%wheel ALL=(ALL) ALL' >>/etc/sudoers
+echo "$CREATE_USER ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/$CREATE_USER
+chmod 440 /etc/sudoers.d/$CREATE_USER
+visudo -c -f /etc/sudoers.d/$CREATE_USER
 # create ssh keys
 mkdir -p /home/$CREATE_USER/.ssh
 cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
