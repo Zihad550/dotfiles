@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+sudo apt install ufw -y
+if command -v docker &>/dev/null; then
+   sudo wget -O /usr/local/bin/ufw-docker \
+      https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker
+   sudo chmod +x /usr/local/bin/ufw-docker
+fi
+
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow nothing in, everything out
+# sudo ufw allow from 192.168.0.0/24 to any port 22 proto tcp
+# sudo ufw allow from 192.168.0.0/24 to any app syncthing
+# sudo ufw allow from 192.168.0.0/24 to any app SSH
+sudo ufw allow from 192.168.0.0/24 to any app OpenSSH
+sudo ufw allow from 192.168.0.0/24 to any app nfs
+# sudo ufw allow from 192.168.0.0/24 to any port 2049 #nfs
+
+# for development
+sudo ufw allow from 192.168.0.0/24 to any port 5173 proto tcp
+sudo ufw allow from 192.168.0.0/24 to any port 3000 proto tcp
+sudo ufw allow from 192.168.0.0/24 to any port 3500 proto tcp
+sudo ufw allow from 192.168.0.0/24 to any port 9000 proto tcp
+sudo ufw allow from 192.168.0.0/24 to any port 8000 proto tcp
+
+# Allow Docker containers to use DNS on host
+if command -v docker &>/dev/null; then
+   sudo ufw allow in proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment 'allow-docker-dns'
+fi
+
+sudo ufw --force enable
+sudo systemctl enable ufw.service
+
+# Turn on Docker protections
+if command -v docker &>/dev/null; then
+   sudo ufw-docker install
+fi
+sudo ufw reload

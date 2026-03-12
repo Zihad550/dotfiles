@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+CREATE_USER=$1
+
+apk update && apk upgrade
+
+# packages
+apk add nfs-utils stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli make gcc unzip xclip mise neovim fzf bottom
+
+# add user
+adduser -D -s /bin/sh $CREATE_USER
+passwd $CREATE_USER
+# add to wheel group (Alpine's sudo equivalent)
+addgroup $CREATE_USER wheel
+# allow wheel group sudo
+echo '%wheel ALL=(ALL) ALL' >>/etc/sudoers
+# create ssh keys
+mkdir -p /home/$CREATE_USER/.ssh
+cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
+chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
+
+echo "edit vi /etc/ssh/sshd_config"
+echo "with this settings"
+echo "PermitRootLogin no PasswordAuthentication no"
+
+echo "now logout and log back in"

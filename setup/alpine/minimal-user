@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# stow
+cd ~/dotfiles
+
+stow git
+stow opencode
+stow agents
+stow tmux
+stow zsh # to get the aliasrc file
+rm -rf ~/.bashrc
+stow bash
+stow mise
+
+mkdir -p ~/dev-0
+mkdir -p ~/.kilocode/skills
+ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
+ln -snf ~/.agents/skills/* ~/.kilocode/skills/
+
+mise use -g usage
+
+echo "now logout and log back in"
