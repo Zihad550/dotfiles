@@ -117,3 +117,13 @@ if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash
 source "$HOME/.config/zsh/aliasrc"
 
 bind -x '"\ec": fzf_open_dir'
+
+# hook to show the contents of the current directory when changing directories
+_chpwd_last=""
+_chpwd() {
+   if [[ "$PWD" != "$_chpwd_last" ]]; then
+      _chpwd_last="$PWD"
+      eza -lh --group-directories-first --icons=auto --color=auto
+   fi
+}
+PROMPT_COMMAND="_chpwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"

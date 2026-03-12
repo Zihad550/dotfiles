@@ -3,18 +3,16 @@
 ~/dotfiles/setup/ubuntu-server/setup-ufw
 
 # not working cpu type othe than host
-mise use -g bun deno node@lts pnpm
-mise use -g uv
-mise use -g lazygit
+mise use -g bun deno node@lts node@20.12 pnpm
+# sudo apt install lazygit # replace with this after ubuntu 25.10
+mise use -g uv lazygit
 
-mise use -g opencode
-mise use -g github:Kilo-Org/kilo
-mise use -g npm:cline
-mise use -g gemini
-mise use -g npm:@qwen-code/qwen-code
+mise use -g opencode github:Kilo-Org/kilo npm:cline
+mise use -g gemini npm:@qwen-code/qwen-code
+mise use -g npm:btca # better context engine by bendevis
+
 # roo code cli
 curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh
-mise use -g npm:btca # better context engine by bendevis
 
 # mise use -g t3 # waiting for t3 cli
 

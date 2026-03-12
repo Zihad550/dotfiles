@@ -12,9 +12,11 @@ sudo apt install nfs-common stow ripgrep git curl zoxide eza bat tealdeer wl-cli
 # sudo apt install procs -y # available from ubuntu 25.04
 
 # install the latest version of neovim
-sudo add-apt-repository ppa:neovim-ppa/unstable -y
-sudo apt update
-sudo apt install make gcc ripgrep unzip xclip neovim -y
+# add-apt-repository not available in lxc
+# sudo add-apt-repository ppa:neovim-ppa/unstable -y
+# sudo apt update
+# sudo apt install make gcc ripgrep unzip xclip neovim -y
+sudo apt install make gcc ripgrep unzip xclip -y
 
 # add mise
 sudo apt update -y && sudo apt install -y curl

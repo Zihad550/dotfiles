@@ -158,7 +158,8 @@ fzf_open_dir() {
       zle accept-line
    else
       [[ -z "$dir" ]] && return 1
-      cd "$dir"
+      # cd "$dir"
+      builtin cd "$dir" && eza -lh --group-directories-first --icons=auto --color=auto
       pwd
    fi
 }

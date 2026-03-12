@@ -15,3 +15,4 @@ syncthing cli config options releases-url set ""
 # create sync directories
 mkdir ~/dev
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
+ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev-0/.stignore
