@@ -2,10 +2,10 @@
 
 CREATE_USER=$1
 
-apk update && apk upgrade
+sudo apk update && sudo apk upgrade
 
 # packages
-apk add nfs-utils stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli make gcc unzip xclip mise neovim fzf bottom
+sudo apk add nfs-utils stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli make gcc unzip xclip mise neovim fzf bottom
 
 # add user
 adduser -D -s /bin/sh $CREATE_USER
