@@ -8,10 +8,11 @@ sudo apk update && sudo apk upgrade
 sudo apk add nfs-utils stow ripgrep git curl zoxide eza bat wl-clipboard trash-cli make gcc unzip xclip mise neovim fzf bottom
 
 # echo "add testing repo before proceding"
-sudo apk add tealdeer@testing
+# echo "add nfs feature to the lxc"
+# sudo apk add tealdeer@testing
 
 # add user
-adduser -D -s /bin/sh $CREATE_USER
+adduser -D -s /bin/bash $CREATE_USER
 passwd $CREATE_USER
 # allow sudo without pwd
 # add to wheel group (Alpine's sudo equivalent)
@@ -23,6 +24,13 @@ visudo -c -f /etc/sudoers.d/$CREATE_USER
 mkdir -p /home/$CREATE_USER/.ssh
 cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
 chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
+
+rc-update del sshd
+rc-update add rpcbind
+rc-update add nfsmount
+rc-update add sshd
+
+# tldr --update
 
 echo "edit vi /etc/ssh/sshd_config"
 echo "with this settings"
