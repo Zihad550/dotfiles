@@ -25,10 +25,13 @@ mkdir -p /home/$CREATE_USER/.ssh
 cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
 chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
 
+# Move sshd back to default
 rc-update del sshd
-rc-update add rpcbind
-rc-update add nfsmount
-rc-update add sshd
+rc-update add sshd default
+
+# Make sure rpcbind and nfsmount are in boot
+rc-update add rpcbind boot
+rc-update add nfsmount boot
 
 # tldr --update
 
