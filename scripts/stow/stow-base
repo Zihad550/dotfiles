@@ -26,6 +26,8 @@ stow yazi
 stow voxtype
 stow tmux
 stow gh-dash
-stow mise
+# stow mise
+mkdir -p ~/.config/mise
+cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 stow worktrunk
 stow bash

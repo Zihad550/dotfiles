@@ -10,7 +10,8 @@ stow tmux
 stow zsh # to get the aliasrc file
 rm -rf ~/.bashrc
 stow bash
-stow mise
+mkdir -p ~/.config/mise
+cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 
 mkdir -p ~/dev-0
 mkdir -p ~/.kilocode/skills

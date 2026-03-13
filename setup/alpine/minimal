@@ -28,10 +28,10 @@ chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
 # Move sshd back to default
 rc-update del sshd
 rc-update add sshd default
+rc-update add nfsmount default
 
 # Make sure rpcbind and nfsmount are in boot
 rc-update add rpcbind boot
-rc-update add nfsmount boot
 
 # tldr --update
 
