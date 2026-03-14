@@ -7,9 +7,9 @@ dotfiles-cmd-present "$EDITOR" || EDITOR=nvim
 
 case "$EDITOR" in
 nvim | vim | nano | micro | hx | helix | fresh)
-   exec arch-launch-tui "$EDITOR" "$@"
-   ;;
+    exec arch-launch-tui "$EDITOR" "$@"
+    ;;
 *)
-   exec setsid uwsm-app -- "$EDITOR" "$@"
-   ;;
+    exec setsid uwsm-app -- "$EDITOR" "$@"
+    ;;
 esac

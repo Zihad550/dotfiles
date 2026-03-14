@@ -6,3 +6,11 @@ approved-commands = [
     "[ -f mise.toml ] && mise trust",
     "[ -f mise.toml ] && mise install",
 ]
+
+[projects."github.com/mamacrm/frontend"]
+approved-commands = [
+    "npm run format_check",
+    "npm run check",
+    "npm run lint",
+    "npm run build",
+]

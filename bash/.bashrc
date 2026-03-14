@@ -55,7 +55,6 @@ fi
 
 if [ "$color_prompt" = yes ]; then
    # PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-   # PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1 " on  \[\033[35m\]%s\[\033[00m\]")\n\[\033[01;32m\]>\[\033[00m\] '
    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\[\033[01;32m\]>\[\033[00m\] '
 else
    # PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
@@ -131,3 +130,8 @@ if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd bash)"; 
 if command -v mise >/dev/null 2>&1; then eval "$(mise activate bash)"; fi
 if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out bash); fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/home/jehad/.lmstudio/bin"
+# End of LM Studio CLI section
+

@@ -14,31 +14,32 @@
 # yazi 7zip - terminal file browser
 # resvg - tui svg renderer
 sudo pacman -S --noconfirm \
-   curl \
-   git \
-   less \
-   jq \
-   pass \
-   fzf \
-   man-db \
-   man-pages \
-   starship \
-   xorg-xhost \
-   mission-center \
-   xournalpp \
-   gum \
-   dosfstools \
-   rclone \
-   veracrypt \
-   net-tools \
-   aichat \
-   git-delta \
-   atuin \
-   pastel \
-   lazydocker \
-   lazygit \
-   yazi 7zip trash-cli resvg \
-   github-cli
+    curl \
+    git \
+    less \
+    jq \
+    pass \
+    fzf \
+    man-db \
+    man-pages \
+    starship \
+    xorg-xhost \
+    mission-center \
+    xournalpp \
+    gum \
+    dosfstools \
+    rclone \
+    veracrypt \
+    net-tools \
+    aichat \
+    git-delta \
+    atuin \
+    pastel \
+    lazydocker \
+    lazygit \
+    yazi 7zip trash-cli resvg \
+    github-cli \
+    shellcheck
 
 # atac
 # termdown
@@ -46,25 +47,25 @@ sudo pacman -S --noconfirm \
 
 # fonts
 sudo pacman -S --noconfirm \
-   ttf-jetbrains-mono \
-   ttf-hack-nerd \
-   noto-fonts \
-   ttf-nerd-fonts-symbols-mono
+    ttf-jetbrains-mono \
+    ttf-hack-nerd \
+    noto-fonts \
+    ttf-nerd-fonts-symbols-mono
 # sudo pacman -S --noconfirm ttf-fira-code
 # sudo pacman -S --noconfirm
 
 #  alternatives to core packages
 # zoxide - cd, eza - ls, ripgrep - grep, bat - cat, bottom - htop, fd - find, dust - du, procs - ps, tealdeer - tldr
 sudo pacman -S --noconfirm \
-   zoxide \
-   eza \
-   ripgrep \
-   bat \
-   bottom \
-   fd \
-   dust \
-   procs \
-   tealdeer
+    zoxide \
+    eza \
+    ripgrep \
+    bat \
+    bottom \
+    fd \
+    dust \
+    procs \
+    tealdeer
 
 # install languages and dev tools
 sudo pacman -S --noconfirm gcc
@@ -74,28 +75,28 @@ sudo pacman -S --noconfirm gcc
 # swappy slurp grim - screenshot
 # blueberry - bluetooth
 sudo pacman -S --noconfirm \
-   zed \
-   neovim \
-   transmission-gtk \
-   ghostty \
-   obs-studio \
-   discord \
-   obsidian \
-   mpv \
-   converseen \
-   wl-clipboard \
-   swappy slurp grim
+    zed \
+    neovim \
+    transmission-gtk \
+    ghostty \
+    obs-studio \
+    discord \
+    obsidian \
+    mpv \
+    converseen \
+    wl-clipboard \
+    swappy slurp grim
 # gemini
 
 # install gnome apps
 sudo pacman -S --noconfirm \
-   nautilus \
-   nautilus-image-converter \
-   gnome-calculator \
-   gnome-characters \
-   gnome-disk-utility \
-   gnome-font-viewer \
-   gnome-keyring seahorse
+    nautilus \
+    nautilus-image-converter \
+    gnome-calculator \
+    gnome-characters \
+    gnome-disk-utility \
+    gnome-font-viewer \
+    gnome-keyring seahorse
 
 # sudo pacman -S --noconfirm gitg # git ui
 # sudo pacman -S --noconfirm podman
