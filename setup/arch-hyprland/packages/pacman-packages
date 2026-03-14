@@ -39,7 +39,7 @@ sudo pacman -S --noconfirm \
     lazygit \
     yazi 7zip trash-cli resvg \
     github-cli \
-    shellcheck
+    shellcheck shfmt
 
 # atac
 # termdown
