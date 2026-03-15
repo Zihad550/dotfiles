@@ -12,7 +12,8 @@ tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | saniti
 # mise-install = '[ -f mise.toml ] && mise install'
 
 [commit.generation]
-command = "aichat -m gemini:gemini-2.5-flash"
+# command = "aichat -m gemini:gemini-2.5-flash"
+command = "opencode run -m google/gemini-3-flash-preview"
 
 # template = """
 # Write a commit message for this diff. Follow these 3 steps:
