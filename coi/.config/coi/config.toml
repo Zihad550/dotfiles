@@ -1,0 +1,6 @@
+[defaults]
+persistent = true
+
+[tool]
+name = "opencode"              # Default AI tool
+permission_mode = "bypass"   # "bypass" (default) or "interactive"

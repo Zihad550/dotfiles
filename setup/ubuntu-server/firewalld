@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# Install firewalld
+sudo apt install firewalld -y
+sudo systemctl enable --now firewalld
+
+# ─── Default zone policy: deny incoming, allow outgoing ───────────────────────
+# firewalld's default "public" zone drops incoming by default.
+# We'll use a custom zone called "localnet" for the 192.168.0.0/24 source rules
+# and keep "public" as the default (deny-all) zone.
+
+sudo firewall-cmd --permanent --new-zone=localnet 2>/dev/null || true
+sudo firewall-cmd --permanent --zone=localnet --add-source=192.168.0.0/24
+
+# ─── SSH / OpenSSH ────────────────────────────────────────────────────────────
+sudo firewall-cmd --permanent --zone=localnet --add-service=ssh
+
+# ─── NFS ──────────────────────────────────────────────────────────────────────
+sudo firewall-cmd --permanent --zone=localnet --add-service=nfs
+
+# ─── Development ports ────────────────────────────────────────────────────────
+for port in 5173 3000 3500 9000 8000; do
+    sudo firewall-cmd --permanent --zone=localnet --add-port=${port}/tcp
+done
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+if command -v docker &>/dev/null; then
+    # Allow Docker containers (172.16.0.0/12) to reach host DNS (172.17.0.1:53/udp)
+    sudo firewall-cmd --permanent --new-zone=docker-dns 2>/dev/null || true
+    sudo firewall-cmd --permanent --zone=docker-dns --add-source=172.16.0.0/12
+    sudo firewall-cmd --permanent --zone=docker-dns --add-rich-rule='
+    rule family="ipv4"
+      destination address="172.17.0.1"
+      port protocol="udp" port="53"
+      accept'
+
+    # Prevent Docker from bypassing firewalld via direct iptables manipulation.
+    # Add to /etc/docker/daemon.json
+    sudo mkdir -p /etc/docker
+    if [ ! -f /etc/docker/daemon.json ]; then
+        echo '{}' | sudo tee /etc/docker/daemon.json >/dev/null
+    fi
+    # Merge iptables:false into daemon.json
+    sudo python3 - <<'EOF'
+import json, pathlib
+p = pathlib.Path("/etc/docker/daemon.json")
+cfg = json.loads(p.read_text()) if p.stat().st_size else {}
+cfg["iptables"] = False
+p.write_text(json.dumps(cfg, indent=2))
+EOF
+    echo "NOTE: Docker daemon.json updated with iptables=false."
+    echo "      Restart Docker for changes to take effect: sudo systemctl restart docker"
+fi
+
+# ─── Apply all permanent rules ────────────────────────────────────────────────
+sudo firewall-cmd --reload
+
+echo "firewalld configuration applied."
+sudo firewall-cmd --list-all-zones | grep -A20 "localnet\|docker-dns"
