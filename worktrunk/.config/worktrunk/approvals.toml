@@ -13,4 +13,5 @@ approved-commands = [
     "npm run check",
     "npm run lint",
     "npm run build",
+    "mise run blc",
 ]

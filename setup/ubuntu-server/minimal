@@ -8,7 +8,7 @@ sudo apt install qemu-guest-agent -y
 sudo systemctl enable --now qemu-guest-agent.service
 
 # packages
-sudo apt install nfs-common stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli -y
+sudo apt install nfs-common stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli fzf -y
 # sudo apt install procs -y # available from ubuntu 25.04
 
 # install the latest version of neovim
@@ -30,18 +30,20 @@ sudo apt install -y mise
 ~/dotfiles/setup/ubuntu-server/rm-snap
 
 # add user
-useradd -m -s /bin/bash $CREATE_USER
-passwd $CREATE_USER
-# add user to sudoers
-usermod -aG sudo $CREATE_USER
-# allow user to run sudo without password
-echo "$CREATE_USER ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/$CREATE_USER
-chmod 440 /etc/sudoers.d/$CREATE_USER
-visudo -c -f /etc/sudoers.d/$CREATE_USER
-# create ssh keys for user
-mkdir -p /home/$CREATE_USER/.ssh
-cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
-chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
+if [ -n "$CREATE_USER" ]; then
+    useradd -m -s /bin/bash $CREATE_USER
+    passwd $CREATE_USER
+    # add user to sudoers
+    usermod -aG sudo $CREATE_USER
+    # allow user to run sudo without password
+    echo "$CREATE_USER ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/$CREATE_USER
+    chmod 440 /etc/sudoers.d/$CREATE_USER
+    visudo -c -f /etc/sudoers.d/$CREATE_USER
+    # create ssh keys for user
+    mkdir -p /home/$CREATE_USER/.ssh
+    cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
+    chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
+fi
 
 echo "edit vi /etc/ssh/sshd_config"
 echo "with this settings"

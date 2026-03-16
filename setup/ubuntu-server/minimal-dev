@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-~/dotfiles/setup/ubuntu-server/setup-ufw
+# ~/dotfiles/setup/ubuntu-server/setup-ufw
+~/dotfiles/setup/ubuntu-server/firewalld
 
 # not working cpu type othe than host
 mise use -g bun deno node@lts node@20.12 pnpm

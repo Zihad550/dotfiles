@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # stow
-cd ~/dotfiles
+cd ~/dotfiles || exit
 
 stow git
 stow opencode
@@ -10,6 +10,7 @@ stow tmux
 stow zsh # to get the aliasrc file
 rm -rf ~/.bashrc
 stow bash
+stow coi
 
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
@@ -28,7 +29,7 @@ sudo apt install make gcc ripgrep unzip xclip neovim -y
 
 # mise use -g neovim
 mise use -g usage
-mise use -g fzf@latest
+# mise use -g fzf@latest
 mise use -g bottom
 
 # mise completion zsh >_mise
