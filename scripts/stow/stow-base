@@ -10,6 +10,9 @@ stow kanata
 # stow nvim
 stow zsh
 stow zed
+mkdir -p ~/.local/share/zed/extensions
+ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions/index.json
+/home/jehad/.local/share/zed/extensions
 # stow zellij
 # stow gemini
 stow lazygit
