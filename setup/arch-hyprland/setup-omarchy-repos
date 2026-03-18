@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Setup omarchy pacman repository
+set -e
+
+REPO_CONFIG="$HOME/dotfiles/setup/arch-hyprland/pacman/omarchy-repo.conf"
+
+if [[ ! -f "$REPO_CONFIG" ]]; then
+    echo "Error: omarchy repo config not found at $REPO_CONFIG"
+    exit 1
+fi
+
+echo "Adding omarchy repository to pacman..."
+if grep -q "^\[omarchy\]" /etc/pacman.conf 2>/dev/null; then
+    echo "Omarchy repo already configured in pacman.conf"
+else
+    echo "" | sudo tee -a /etc/pacman.conf >/dev/null
+    sudo tee -a /etc/pacman.conf <"$REPO_CONFIG" >/dev/null
+    echo "Added omarchy repo to pacman.conf"
+fi
+
+# Sync first so omarchy-keyring is discoverable
+echo "Syncing pacman databases..."
+sudo pacman -Sy
+
+# Install keyring (this registers the repo's keys properly)
+echo "Installing omarchy-keyring..."
+sudo pacman -S --noconfirm omarchy-keyring
+
+echo "Omarchy repository setup complete!"

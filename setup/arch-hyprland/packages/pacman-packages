@@ -13,6 +13,8 @@
 # termdown - terminal counter
 # yazi 7zip - terminal file browser
 # resvg - tui svg renderer
+# worktrunk - git worktree made simple
+# opencode - ai tui
 sudo pacman -S --noconfirm \
     curl \
     git \
@@ -39,7 +41,10 @@ sudo pacman -S --noconfirm \
     lazygit \
     yazi 7zip trash-cli resvg \
     github-cli \
-    shellcheck shfmt
+    shellcheck shfmt \
+    opencode \
+    ufw-docker \
+    worktrunk
 
 # atac
 # termdown

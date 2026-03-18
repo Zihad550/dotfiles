@@ -3,19 +3,17 @@
 #  tools
 # beekeper - db editor
 # ufw-docker - ufw rules for docker
-# worktrunk - git worktree made simple
 # diffnav - diff  with file explorer similar to delta, depends on delta
-# opencode - ai tui
 # ventoy-bin - image writer
 yay -S --noconfirm \
-   pnpm-shell-completion \
-   ufw-docker \
-   dragon-drop \
-   worktrunk-bin \
-   diffnav-bin \
-   google-chrome \
-   helium-browser-bin \
-   opencode-bin
+    pnpm-shell-completion \
+    dragon-drop \
+    diffnav-bin \
+    google-chrome \
+    helium-browser-bin
+
+# installed from omarchy repo
+# ufw-docker \
 
 # ventoy-bin \
 # beekeeper-studio-bin \

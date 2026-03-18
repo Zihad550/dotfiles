@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm libqalculate
-yay -S --noconfirm \
-   elephant \
-   elephant-calc \
-   elephant-clipboard \
-   elephant-bluetooth \
-   elephant-desktopapplications \
-   elephant-files \
-   elephant-menus \
-   elephant-providerlist \
-   elephant-runner \
-   elephant-symbols \
-   elephant-unicode \
-   elephant-websearch \
-   elephant-todo \
-   walker-bin
+sudo pacman -S --noconfirm libqalculate omarchy-walker
 
 elephant service enable
 systemctl --user enable elephant.service

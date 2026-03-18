@@ -23,6 +23,7 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles
 ```bash
 flatpak uninstall --unused
 yay -Scc # remove cache
+sudo rm -rf /var/cache/pacman/pkg/download-*/ # if needed by the privious one
 sudo pacman -Rs --noconfirm $(pacman -Qtdq) # remove unused
 ```
 
@@ -51,6 +52,7 @@ flatpak update
 mise up --bump
 zinit update
 zinit self-update
+aichat --sync-models
 ```
 
 # nc - connect network
