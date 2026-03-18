@@ -17,12 +17,13 @@ export XDG_CACHE_HOME="$HOME/.cache"
 
 # keys
 if command -v pass &>/dev/null; then
-    export CONTEXT7_API_KEY="$(pass env/context7_api_key)"
-    export BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
-    export MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
-    # export GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
-    # export GEMINI_API_KEY="$(pass webdev/gemini-api-key)"
-    export GEMINI_API_KEY="$(pass env/gemini_api_key)"
+    CONTEXT7_API_KEY="$(pass env/context7_api_key)"
+    BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
+    MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
+    # GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
+    # GEMINI_API_KEY="$(pass webdev/gemini-api-key)"
+    GEMINI_API_KEY="$(pass env/gemini_api_key)"
+    export CONTEXT7_API_KEY BROWSER_USE_API_KEY MISE_GITHUB_TOKEN GEMINI_API_KEY
 fi
 
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
