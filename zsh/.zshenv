@@ -17,12 +17,12 @@ export XDG_CACHE_HOME="$HOME/.cache"
 
 # keys
 if command -v pass &>/dev/null; then
-   export CONTEXT7_API_KEY="$(pass env/context7_api_key)"
-   export BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
-   export MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
-   # export GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
-   # export GEMINI_API_KEY="$(pass webdev/gemini-api-key)"
-   export GEMINI_API_KEY="$(pass env/gemini_api_key)"
+    export CONTEXT7_API_KEY="$(pass env/context7_api_key)"
+    export BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
+    export MISE_GITHUB_TOKEN=$(pass github/personal-access-token-mise)
+    # export GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
+    # export GEMINI_API_KEY="$(pass webdev/gemini-api-key)"
+    export GEMINI_API_KEY="$(pass env/gemini_api_key)"
 fi
 
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
@@ -82,7 +82,8 @@ export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfile
 # gemini
 # export GEMINI_SANDBOX=podman
 export AICHAT_PLATFORM="gemini"
-export AICHAT_MODEL="gemini:gemini-2.5-flash"
+# export AICHAT_MODEL="gemini:gemini-2.5-flash"
+export AICHAT_MODEL="gemini:gemini-3-flash-preview"
 
 # PATH Configuration
 # export PATH="$BUN_INSTALL/bin:$DOTFILES_BIN:$PATH:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$DENO_INSTALL/bin"
