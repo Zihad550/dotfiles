@@ -16,6 +16,9 @@ ln -snf ~/dotfiles/setup/applications/icons $HOME/.local/share/applications
 # theme
 ~/dotfiles/setup/arch-hyprland/theme
 
+# gnome theme
+~/dotfiles/setup/arch-hyprland/gnome-theme
+
 # setup package managers (yay, flatpak, mise)
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-flatpak
 ~/dotfiles/setup/arch-hyprland/setup-packages/setup-mise
@@ -84,5 +87,5 @@ after gh auth login"
 echo "Do you want to restart? [y/N] "
 read -r response
 if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-   shutdown -r now
+    shutdown -r now
 fi
