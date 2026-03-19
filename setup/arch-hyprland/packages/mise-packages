@@ -7,7 +7,7 @@ mise use -g node@24 node go rust github:microsoft/TypeScript
 mise use -g deno bun uv pnpm
 mise use -g firebase shfmt graphite dotenvx
 mise use -g npm:vercel npm:netlify-cli npm:turbo
-mise use -g github:Kilo-Org/kilo
+mise use -g npm:@kilocode/cli
 # mise use -g npm:@fission-ai/openspec
 
 # shell autocompletions

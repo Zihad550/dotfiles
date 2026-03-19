@@ -11,7 +11,7 @@ uv tool install openhands --python 3.12
 # uv tool install --force --python python3.12 --with pip aider-chat@latest # not working
 
 mise use -g opencode
-mise use -g github:Kilo-Org/kilo
+mise use -g npm:@kilocode/cli
 mise use -g gemini
 # mise use -g npm:@continuedev/cli # cn # doesn't work
 

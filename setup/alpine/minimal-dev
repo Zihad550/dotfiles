@@ -5,7 +5,7 @@
 mise use -g bun deno node@lts node@20.12 pnpm
 mise use -g uv lazygit
 
-mise use -g opencode github:Kilo-Org/kilo npm:cline
+mise use -g opencode npm:@kilocode/cli npm:cline
 mise use -g gemini npm:@qwen-code/qwen-code
 mise use -g npm:btca
 

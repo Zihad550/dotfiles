@@ -12,7 +12,7 @@ mise use -g bun deno node@lts pnpm
 mise use -g lazygit
 
 mise use -g opencode
-mise use -g github:Kilo-Org/kilo
+mise use -g npm:@kilocode/cli
 mise use -g npm:cline
 mise use -g gemini
 mise use -g npm:btca # better context engine by bendevis

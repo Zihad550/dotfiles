@@ -8,7 +8,7 @@ mise use -g bun deno node@lts node@20.12 pnpm
 # sudo apt install lazygit # replace with this after ubuntu 25.10
 mise use -g uv lazygit
 
-mise use -g opencode github:Kilo-Org/kilo npm:cline
+mise use -g opencode npm:@kilocode/cli npm:cline
 mise use -g gemini npm:@qwen-code/qwen-code
 mise use -g npm:btca # better context engine by bendevis
 
