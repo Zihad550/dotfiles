@@ -4,6 +4,12 @@ sudo pacman -S --noconfirm mise
 
 mise use -g usage
 
-mise completion zsh > _mise
+mise completion zsh >_mise
 sudo mkdir -p /usr/share/zsh/site-functions
 sudo mv _mise /usr/share/zsh/site-functions/
+
+kilo completion >_kilo
+sudo mv _kilo /usr/share/zsh/site-functions/
+
+opencode completion >_opencode
+sudo mv _opencode /usr/share/zsh/site-functions/
