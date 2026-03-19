@@ -7,7 +7,7 @@
 ~/dotfiles/bin/arch-webapp-install "Perplexity" https://www.perplexity.ai perplexity.png
 ~/dotfiles/bin/arch-webapp-install "Gemini" https://gemini.google.com/app gemini.png
 ~/dotfiles/bin/arch-webapp-install "Calendar" https://calendar.google.com/calendar google-calendar.png
-# ~/dotfiles/bin/arch-webapp-install "Mail" https://mail.google.com/mail google-mail.png
+~/dotfiles/bin/arch-webapp-install "Mail" https://mail.google.com/mail google-mail.png
 ~/dotfiles/bin/arch-webapp-install "LinkedIn" https://linkedin.com/ linkedin.png
 ~/dotfiles/bin/arch-webapp-install "Facebook" https://facebook.com/ facebook.png
 ~/dotfiles/bin/arch-webapp-install "Proton Mail" https://mail.proton.me proton-mail.png
