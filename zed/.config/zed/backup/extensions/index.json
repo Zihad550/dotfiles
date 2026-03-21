@@ -69,7 +69,7 @@
       "manifest": {
         "id": "emmet",
         "name": "Emmet",
-        "version": "0.0.9",
+        "version": "0.0.10",
         "schema_version": 1,
         "description": "Emmet support",
         "repository": "https://github.com/zed-extensions/emmet",
@@ -104,7 +104,8 @@
               "Vue.js",
               "Nunjucks",
               "Django",
-              "Angular"
+              "Angular",
+              "Jinja2"
             ],
             "language_ids": {
               "SCSS": "scss",
@@ -118,9 +119,10 @@
               "LESS": "less",
               "Nunjucks": "html",
               "Django": "html",
+              "Jinja2": "html",
               "HTML/ERB": "eruby",
-              "HEEX": "heex",
               "JavaScript": "javascriptreact",
+              "HEEX": "heex",
               "Vue.js": "vue",
               "Elixir": "heex",
               "Angular": "angular"
@@ -389,7 +391,7 @@
       "manifest": {
         "id": "lua",
         "name": "Lua",
-        "version": "0.1.8",
+        "version": "0.1.9",
         "schema_version": 1,
         "description": "Lua support.",
         "repository": "https://github.com/zed-extensions/lua",
@@ -403,8 +405,8 @@
         "themes": [],
         "icon_themes": [],
         "languages": [
-          "languages/lua",
-          "languages/emmyluadoc"
+          "languages/emmyluadoc",
+          "languages/lua"
         ],
         "grammars": {
           "emmyluadoc": {
