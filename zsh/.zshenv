@@ -15,7 +15,8 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 
-# keys
+########## api keys
+# export OPENROUTER_API_KEY=
 if command -v pass &>/dev/null; then
     CONTEXT7_API_KEY="$(pass env/context7_api_key)"
     BROWSER_USE_API_KEY="$(pass env/browser_use_test)"
@@ -61,31 +62,23 @@ export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
 # npm
 export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 
-# .net
-# export DOTNET_CLI_TELEMETRY_OPTOUT=1
-
-# postgres
+###### application configs
+# export DOTNET_CLI_TELEMETRY_OPTOUT=1 # .net
 # export POSTGRES_USER=postgres
 # export POSTGRES_DB=postgres
-
-# ollama
-export OLLAMA_FLASH_ATTENTION=true
-
-# dotfiles bin
-export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker"
-
-# api keys
-# export OPENROUTER_API_KEY=
+# export GEMINI_SANDBOX=podman # gemini
+# export AICHAT_MODEL="gemini:gemini-2.5-flash" # aichat
+PORTLESS_HTTPS=1                             # portless
+OLLAMA_FLASH_ATTENTION=true                  # ollama
+AICHAT_PLATFORM="gemini"                     # aichat
+AICHAT_MODEL="gemini:gemini-3-flash-preview" # aichat
+export PORTLESS_HTTPS OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
 
 # docker
 # export DOCKER_HOST=unix:///run/user/1000/docker.sock
 
-# gemini
-# export GEMINI_SANDBOX=podman
-export AICHAT_PLATFORM="gemini"
-# export AICHAT_MODEL="gemini:gemini-2.5-flash"
-export AICHAT_MODEL="gemini:gemini-3-flash-preview"
-
 # PATH Configuration
+# dotfiles bin
+export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker"
 # export PATH="$BUN_INSTALL/bin:$DOTFILES_BIN:$PATH:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$DENO_INSTALL/bin"
 export PATH="$DOTFILES_BIN:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$PATH"
