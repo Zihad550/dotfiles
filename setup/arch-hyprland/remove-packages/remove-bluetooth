@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# sudo pacman -Rns --noconfirm bluez bluez-utils
+sudo pacman -Rns --noconfirm bluez bluez-tools gnome-bluetooth blueberry
