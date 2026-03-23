@@ -88,6 +88,10 @@ switch_theme() {
     if [[ -n "$BACKGROUND_PATH" ]]; then
         rm -f ~/.config/theme/background
         ln -snf "$BACKGROUND_PATH" ~/.config/theme/background
+        
+        # Restart swaybg with new background
+        pkill -x swaybg
+        setsid uwsm-app -- swaybg -i "$BACKGROUND_PATH" -m fill >/dev/null 2>&1 &
     fi
 
     # Obsidian style settings
