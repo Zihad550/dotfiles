@@ -76,6 +76,9 @@ switch_theme() {
     mkdir -p ~/.config/eza
     ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
 
+    mkdir -p ~/.config/lazygit
+    ln -snf ~/.config/theme/lazygit.yml ~/.config/lazygit/config.yml
+
     # Background symlink
     mkdir -p ~/.config/theme/backgrounds
     BACKGROUND_PATH=""
