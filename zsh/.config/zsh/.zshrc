@@ -30,6 +30,22 @@ source "${ZINIT_HOME}/zinit.zsh"
 #           atpull"%atclone" src"init.zsh"
 # zinit light starship/starship
 
+
+
+#### mise
+# zinit as="command" lucid from="gh-r" for \
+#     id-as="usage" \
+#     atpull="%atclone" \
+#     jdx/usage
+#     #atload='eval "$(mise activate zsh)"' \
+
+# zinit as="command" lucid from="gh-r" for \
+#     id-as="mise" mv="mise* -> mise" \
+#     atclone="./mise* completion zsh > _mise" \
+#     atpull="%atclone" \
+#     atload='eval "$(mise activate zsh)"' \
+#     jdx/mise
+
 # pure
 # zinit ice compile'(pure|async).zsh' pick'async.zsh' src'pure.zsh'
 # zinit light sindresorhus/pure
@@ -39,6 +55,7 @@ zinit light zsh-users/zsh-syntax-highlighting
 zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
+zinit light g-plane/pnpm-shell-completion
 
 # Add in snippets
 zinit snippet OMZL::git.zsh
@@ -56,7 +73,6 @@ autoload -Uz compinit && compinit
 zinit cdreplay -q
 
 zinit ice atload"zpcdreplay" atclone"./zplug.zsh" atpull"%atclone"
-zinit light g-plane/pnpm-shell-completion
 
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 # [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
@@ -114,6 +130,7 @@ if command -v mise >/dev/null 2>&1; then eval "$(mise activate zsh)"; fi
 if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out zsh); fi
 if command -v kubectl >/dev/null 2>&1; then source <(kubectl completion zsh); fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
 source "$XDG_CONFIG_HOME/zsh/ni"
 
 

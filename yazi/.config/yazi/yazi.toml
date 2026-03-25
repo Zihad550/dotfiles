@@ -8,4 +8,4 @@ image_bound      = [ 10000, 10000 ]
 
 [opener]
 play = [{ run = 'mpv "$@"', orphan = true, for = "unix" }]
-edit = [{ run = 'zeditor "$@"', block = true, for = "unix" }]
+edit = [{ run = 'nvim "$@"', block = true, for = "unix" }]

@@ -68,11 +68,14 @@ export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 # export POSTGRES_DB=postgres
 # export GEMINI_SANDBOX=podman # gemini
 # export AICHAT_MODEL="gemini:gemini-2.5-flash" # aichat
-PORTLESS_HTTPS=1                             # portless
+### portless
+# PORTLESS_PORT=80
+PORTLESS_HTTPS=1
+export PORTLESS_HTTPS
 OLLAMA_FLASH_ATTENTION=true                  # ollama
 AICHAT_PLATFORM="gemini"                     # aichat
 AICHAT_MODEL="gemini:gemini-3-flash-preview" # aichat
-export PORTLESS_HTTPS OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
+export OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
 
 # docker
 # export DOCKER_HOST=unix:///run/user/1000/docker.sock

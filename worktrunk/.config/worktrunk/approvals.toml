@@ -14,4 +14,6 @@ approved-commands = [
     "npm run lint",
     "npm run build",
     "mise run blc",
+    "rm -rf node_modules",
+    "npm i",
 ]
