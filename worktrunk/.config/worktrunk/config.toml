@@ -1,7 +1,7 @@
 skip-commit-generation-prompt = true
 
 # blocking, complete before post start
-[post-create]
+[pre-start]
 copy = 'wt step copy-ignored'
 
 [post-start]
