@@ -3,14 +3,17 @@
 monitor=$1
 
 if hyprctl monitors | grep -q "^Monitor $monitor"; then
-   # monitor exists → close/disable it
-   hyprctl keyword monitor "$monitor,disable"
+    # monitor exists → close/disable it
+    hyprctl keyword monitor "$monitor,disable"
+    setsid uwsm-app -- swaybg -i "$HOME/.config/theme/background" -m solid_color
 else
-   # monitor does not exist → start/enable it
-   if [ "$monitor" = "eDP-1" ]; then
-      hyprctl keyword monitor "$monitor,preferred,1080x860,1"
-   elif [ "$monitor" = "HDMI-A-1" ]; then
-      hyprctl keyword monitor "$monitor,1920x1080@75,0x0,1,transform,1"
-      hyprctl keyword monitor "$monitor,addreserved,340,40,0,0"
-   fi
+    # monitor does not exist → start/enable it
+    if [ "$monitor" = "eDP-1" ]; then
+        hyprctl keyword monitor "$monitor,preferred,1080x860,1"
+        setsid uwsm-app -- swaybg -i "$HOME/.config/theme/background" -m solid_color
+    elif [ "$monitor" = "HDMI-A-1" ]; then
+        hyprctl keyword monitor "$monitor,1920x1080@75,0x0,1,transform,1"
+        hyprctl keyword monitor "$monitor,addreserved,340,40,0,0"
+        setsid uwsm-app -- swaybg -i "$HOME/.config/theme/background" -m solid_color
+    fi
 fi
