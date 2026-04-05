@@ -1,0 +1,13 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
+  "permission": {
+    "bash": {
+      "pnpm run build *": "allow",
+      "tail *": "allow",
+      "pnpm run lint *": "allow",
+      "git log *": "allow",
+      "head *": "allow",
+    },
+  },
+}
