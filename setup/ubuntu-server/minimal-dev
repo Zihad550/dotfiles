@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# ~/dotfiles/setup/ubuntu-server/setup-ufw
-~/dotfiles/setup/ubuntu-server/firewalld
+~/dotfiles/setup/ubuntu-server/setup-ufw
+# ~/dotfiles/setup/ubuntu-server/firewalld
 
 # not working cpu type othe than host
 mise use -g bun deno node@lts node@20.12 pnpm
@@ -13,7 +13,7 @@ mise use -g gemini npm:@qwen-code/qwen-code
 mise use -g npm:btca # better context engine by bendevis
 
 # roo code cli
-curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh
+# curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh
 
 # mise use -g t3 # waiting for t3 cli
 

@@ -4,8 +4,8 @@ CREATE_USER=$1
 
 sudo apt update -y
 sudo apt upgrade -y
-sudo apt install qemu-guest-agent -y
-sudo systemctl enable --now qemu-guest-agent.service
+# sudo apt install qemu-guest-agent -y
+# sudo systemctl enable --now qemu-guest-agent.service
 
 # packages
 sudo apt install nfs-common stow ripgrep git curl zoxide eza bat tealdeer wl-clipboard trash-cli fzf -y

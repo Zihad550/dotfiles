@@ -8,6 +8,7 @@ stow starship
 stow opencode
 stow agents
 stow tmux
+stow bash
 
 ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
 mkdir -p .kilocode/skills
