@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 ~/dotfiles/setup/ubuntu-server/setup-mise
-~/dotfiles/setup/ubuntu-server/setup-syncthing
+# ~/dotfiles/setup/ubuntu-server/setup-syncthing
+~/dotfiles/setup/ubuntu-server/setup-nfs
 ~/dotfiles/setup/ubuntu-server/setup-ufw
 ~/dotfiles/setup/ubuntu-server/ai-tools

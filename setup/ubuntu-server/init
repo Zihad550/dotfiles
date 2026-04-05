@@ -2,8 +2,8 @@
 
 sudo apt update -y
 sudo apt upgrade -y
-sudo apt install qemu-guest-agent -y
-sudo systemctl enable --now qemu-guest-agent.service
+# sudo apt install qemu-guest-agent -y
+# sudo systemctl enable --now qemu-guest-agent.service
 
 sudo apt install stow -y
 ~/dotfiles/setup/ubuntu-server/stow
@@ -20,7 +20,7 @@ nix-env -iA nixpkgs.fastfetch
 nix-env -iA nixpkgs.fzf
 nix-env -iA nixpkgs.bat
 nix-env -iA nixpkgs.bottom
-nix-env -iA nixpkgs.zellij
+# nix-env -iA nixpkgs.zellij
 
 git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
 
