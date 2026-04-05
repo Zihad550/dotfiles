@@ -24,7 +24,8 @@ if command -v pass &>/dev/null; then
     # GEMINI_API_KEY="$(pass jehad.logs/gemini-api-key)"
     # GEMINI_API_KEY="$(pass webdev/gemini-api-key)"
     GEMINI_API_KEY="$(pass env/gemini_api_key)"
-    export CONTEXT7_API_KEY BROWSER_USE_API_KEY MISE_GITHUB_TOKEN GEMINI_API_KEY
+    OPENROUTER_API_KEY="$(pass env/openrouter-opencode-key)"
+    export CONTEXT7_API_KEY BROWSER_USE_API_KEY MISE_GITHUB_TOKEN GEMINI_API_KEY OPENROUTER_API_KEY
 fi
 
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
