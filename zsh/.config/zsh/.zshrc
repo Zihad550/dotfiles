@@ -133,7 +133,6 @@ if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)
 if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
 source "$XDG_CONFIG_HOME/zsh/ni"
 
-
 # everytime i do cd it lists all content of that directory
 chpwd() {
     eza -lh --group-directories-first --icons=auto --color=auto

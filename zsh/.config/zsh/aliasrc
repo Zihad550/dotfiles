@@ -22,27 +22,27 @@ alias z='zeditor'
 
 # short aliases
 alias \
-   zj="zellij" \
-   s="ssh" \
-   c="clear" \
-   v="nvim" \
-   n="nvim" \
-   e="nvim" \
-   cat="bat" \
-   ls="eza -lh --group-directories-first --icons=auto --color=auto" \
-   la="ls -a" \
-   lt='eza --tree --level=2 --long --icons --git' \
-   lta='lt -a' \
-   grep="rg" \
-   shell="exec $SHELL -l" \
-   mv="mv -i" \
-   df="df -h" \
-   du="du -h -d 1" \
-   p="procs" \
-   f="yazi" \
-   g="git" \
-   t='tmux' \
-   m='mise'
+    zj="zellij" \
+    s="ssh" \
+    c="clear" \
+    v="nvim" \
+    n="nvim" \
+    e="nvim" \
+    cat="bat" \
+    ls="eza -lh --group-directories-first --icons=auto --color=auto" \
+    la="ls -a" \
+    lt='eza --tree --level=2 --long --icons --git' \
+    lta='lt -a' \
+    shell="exec $SHELL -l" \
+    mv="mv -i" \
+    df="df -h" \
+    du="du -h -d 1" \
+    p="procs" \
+    f="yazi" \
+    g="git" \
+    t='tmux' \
+    m='mise' \
+    grep="rg"
 # rm="rm -Iv" \
 # k="killall" \
 
@@ -54,114 +54,114 @@ alias ....='cd ../../..'
 # Function to list directories and open the selected one in editor
 # Regular function version for command line use
 fzf_dir() {
-   local dir
-   dir=$(find ~ -maxdepth 6 -type d \( -name .local -o -name node_modules -o -name .git -o -name .obsidian-vault -o -name .var -o -name Cache -o -name cache -o -name .npm -o -name .nuget -o -name .cache -o -name Kiro -o -name .kiro -o -name .cursor -o -name Cypress -o -name cypress -o -name discord -o -name go -o -name obs-studio -o -name mpv -o -name transmission \) -prune -o -type d -print 2>/dev/null | sed "s|^$HOME/||" | sed "s|^$HOME$|~|" | fzf --bind 'ctrl-c:abort' --exit-0)
+    local dir
+    dir=$(find ~ -maxdepth 6 -type d \( -name .local -o -name node_modules -o -name .git -o -name .obsidian-vault -o -name .var -o -name Cache -o -name cache -o -name .npm -o -name .nuget -o -name .cache -o -name Kiro -o -name .kiro -o -name .cursor -o -name Cypress -o -name cypress -o -name discord -o -name go -o -name obs-studio -o -name mpv -o -name transmission \) -prune -o -type d -print 2>/dev/null | sed "s|^$HOME/||" | sed "s|^$HOME$|~|" | fzf --bind 'ctrl-c:abort' --exit-0)
 
-   # Check if fzf was cancelled or no selection was made
-   if [[ -z $dir ]]; then
-      return 1
-   fi
+    # Check if fzf was cancelled or no selection was made
+    if [[ -z $dir ]]; then
+        return 1
+    fi
 
-   # Convert back to full path if it's a relative path
-   if [[ "$dir" == "~" ]]; then
-      echo "$HOME"
-   elif [[ "$dir" != /* ]]; then
-      echo "$HOME/$dir"
-   else
-      echo "$dir"
-   fi
+    # Convert back to full path if it's a relative path
+    if [[ "$dir" == "~" ]]; then
+        echo "$HOME"
+    elif [[ "$dir" != /* ]]; then
+        echo "$HOME/$dir"
+    else
+        echo "$dir"
+    fi
 }
 
 fzf_open_dir_func() {
-   local editor=$1
-   local dir
-   dir=$(fzf_dir)
+    local editor=$1
+    local dir
+    dir=$(fzf_dir)
 
-   # Check if fzf was cancelled or no selection was made
-   if [[ -z $dir ]]; then
-      return 1
-   fi
+    # Check if fzf was cancelled or no selection was made
+    if [[ -z $dir ]]; then
+        return 1
+    fi
 
-   # If no editor parameter is provided, just cd into the directory
-   if [[ -z $editor ]]; then
-      echo "No editor provied"
-      return 0
-   fi
+    # If no editor parameter is provided, just cd into the directory
+    if [[ -z $editor ]]; then
+        echo "No editor provied"
+        return 0
+    fi
 
-   # local base=$(basename $dir)
-   # local address=$(hyprctl clients -j | jq -r --arg p "$base" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+    # local base=$(basename $dir)
+    # local address=$(hyprctl clients -j | jq -r --arg p "$base" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
 
-   # if [[ -n $address ]]; then
-   #    hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
-   #    return 0
-   # fi
+    # if [[ -n $address ]]; then
+    #    hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
+    #    return 0
+    # fi
 
-   case $editor in
-   "code")
-      uwsm-app -- code "$dir" && exit
-      ;;
-   "zed")
-      # uwsm-app -- zeditor "$dir" && hyprctl dispatch focuscurrentorlast >/dev/null 2>&1 && exit
-      uwsm-app -- zeditor "$dir"
-      sleep 0.2
-      hyprctl dispatch focuscurrentorlast >/dev/null 2>&1
-      # local address
+    case $editor in
+    "code")
+        uwsm-app -- code "$dir" && exit
+        ;;
+    "zed")
+        # uwsm-app -- zeditor "$dir" && hyprctl dispatch focuscurrentorlast >/dev/null 2>&1 && exit
+        uwsm-app -- zeditor "$dir"
+        sleep 0.2
+        hyprctl dispatch focuscurrentorlast >/dev/null 2>&1
+        # local address
 
-      # sleep 0.2
-      # for i in {1..10}; do
-      #    address=$(hyprctl activewindow -j | jq -r '.address')
-      #    if [[ -n "$address" && "$address" != "null" ]]; then
-      #       break
-      #    fi
-      #    sleep 0.2
-      # done
-      # hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
-      exit
-      ;;
-   "cursor")
-      uwsm-app -- cursor "$dir" &
-      disown && exit
-      ;;
-   "windsurf")
-      uwsm-app -- windsurf "$dir" && exit
-      ;;
-   "kiro")
-      uwsm-app -- kiro "$dir" && exit
-      ;;
-   "nautilus")
-      uwsm-app -- nautilus "$dir" &
-      disown && exit
-      ;;
-   "nvim")
-      cd "$dir" && nvim .
-      # Not adding exit here as you typically want to keep the terminal open with nvim
-      ;;
-   *)
-      echo "Unsupported editor: $editor"
-      echo "Supported editors: code, zed, nvim"
-      return 1
-      ;;
-   esac
+        # sleep 0.2
+        # for i in {1..10}; do
+        #    address=$(hyprctl activewindow -j | jq -r '.address')
+        #    if [[ -n "$address" && "$address" != "null" ]]; then
+        #       break
+        #    fi
+        #    sleep 0.2
+        # done
+        # hyprctl dispatch focuswindow "address:$address" >/dev/null 2>&1
+        exit
+        ;;
+    "cursor")
+        uwsm-app -- cursor "$dir" &
+        disown && exit
+        ;;
+    "windsurf")
+        uwsm-app -- windsurf "$dir" && exit
+        ;;
+    "kiro")
+        uwsm-app -- kiro "$dir" && exit
+        ;;
+    "nautilus")
+        uwsm-app -- nautilus "$dir" &
+        disown && exit
+        ;;
+    "nvim")
+        cd "$dir" && nvim .
+        # Not adding exit here as you typically want to keep the terminal open with nvim
+        ;;
+    *)
+        echo "Unsupported editor: $editor"
+        echo "Supported editors: code, zed, nvim"
+        return 1
+        ;;
+    esac
 }
 
 fzf_open_dir() {
-   local dir
-   dir=$(fzf_dir)
+    local dir
+    dir=$(fzf_dir)
 
-   if [[ -n "$ZSH_VERSION" ]]; then
-      zle kill-whole-line
-      [[ -z "$dir" ]] && {
-         zle reset-prompt
-         return 1
-      }
-      BUFFER="cd \"$dir\""
-      zle accept-line
-   else
-      [[ -z "$dir" ]] && return 1
-      # cd "$dir"
-      builtin cd "$dir" && eza -lh --group-directories-first --icons=auto --color=auto
-      pwd
-   fi
+    if [[ -n "$ZSH_VERSION" ]]; then
+        zle kill-whole-line
+        [[ -z "$dir" ]] && {
+            zle reset-prompt
+            return 1
+        }
+        BUFFER="cd \"$dir\""
+        zle accept-line
+    else
+        [[ -z "$dir" ]] && return 1
+        # cd "$dir"
+        builtin cd "$dir" && eza -lh --group-directories-first --icons=auto --color=auto
+        pwd
+    fi
 }
 
 # fzf mappings
@@ -172,56 +172,56 @@ alias lg='lazygit'
 alias fcode='fzf_open_dir_func code'
 alias fcursor='fzf_open_dir_func cursor'
 zed_open_dir() {
-   fzf_open_dir_func zed
+    fzf_open_dir_func zed
 }
 alias fnvim='fzf_open_dir_func nvim'
 alias fwind='fzf_open_dir_func windsurf'
 fod() {
-   fzf_open_dir_func nautilus
+    fzf_open_dir_func nautilus
 }
 
 # run code
 run() {
-   if [ -z "$1" ]; then
-      echo "Usage: run <filename>"
-      echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
-      return 1
-   fi
+    if [ -z "$1" ]; then
+        echo "Usage: run <filename>"
+        echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
+        return 1
+    fi
 
-   local file="$1"
-   if [ ! -f "$file" ]; then
-      echo "Error: File '$file' not found."
-      return 1
-   fi
+    local file="$1"
+    if [ ! -f "$file" ]; then
+        echo "Error: File '$file' not found."
+        return 1
+    fi
 
-   local extension="${file##*.}"
-   local basename="${file%.*}"
+    local extension="${file##*.}"
+    local basename="${file%.*}"
 
-   case "$extension" in
-   go)
-      go run "$file"
-      ;;
-   js)
-      bun run "$file"
-      ;;
-   ts)
-      bun run "$file"
-      ;;
-   c)
-      gcc "$file" -o "$basename" && ./"$basename"
-      ;;
-   cpp)
-      g++ "$file" -o "$basename" && ./"$basename"
-      ;;
-   py)
-      uv run "$file"
-      ;;
-   *)
-      echo "Error: Unsupported file type '.$extension'."
-      echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
-      return 1
-      ;;
-   esac
+    case "$extension" in
+    go)
+        go run "$file"
+        ;;
+    js)
+        bun run "$file"
+        ;;
+    ts)
+        bun run "$file"
+        ;;
+    c)
+        gcc "$file" -o "$basename" && ./"$basename"
+        ;;
+    cpp)
+        g++ "$file" -o "$basename" && ./"$basename"
+        ;;
+    py)
+        uv run "$file"
+        ;;
+    *)
+        echo "Error: Unsupported file type '.$extension'."
+        echo "Supported extensions: .go, .js, .ts, .c, .cpp, .py"
+        return 1
+        ;;
+    esac
 }
 
 # pnpm aliases
@@ -249,19 +249,19 @@ alias gcl="git clone"
 # alias gs='git status'
 # alias gss='git status --short'
 gitpush() {
-   if [ -z "$1" ]; then
-      echo "Please provide a commit message."
-      return 1
-   fi
+    if [ -z "$1" ]; then
+        echo "Please provide a commit message."
+        return 1
+    fi
 
-   branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 
-   if [ -z "$branch" ]; then
-      echo "Not on a branch."
-      return 1
-   fi
+    if [ -z "$branch" ]; then
+        echo "Not on a branch."
+        return 1
+    fi
 
-   git add -A && git commit -m "$1" && git push -u origin "$branch"
+    git add -A && git commit -m "$1" && git push -u origin "$branch"
 }
 
 # github cli
@@ -278,9 +278,15 @@ alias mt='mise trust'
 alias mr='mise run'
 
 # worktrunk
-alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
+# alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
+wt-switch-active() {
+    local branch
+    branch=$(wt list --format json | jq -r '.[].branch' | fzf)
+    [[ -n "$branch" ]] && wt switch "$branch"
+}
 alias wtc="wt step commit"
 alias wtp="wtc && gp"
+alias wtl="wt list"
 
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE
