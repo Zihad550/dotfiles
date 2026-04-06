@@ -95,7 +95,7 @@ switch_theme() {
     if [[ -n "$BACKGROUND_PATH" ]]; then
         rm -f ~/.config/theme/background
         ln -snf "$BACKGROUND_PATH" ~/.config/theme/background
-        
+
         # Restart swaybg with new background
         pkill -x swaybg
         setsid uwsm-app -- swaybg -i "$BACKGROUND_PATH" -m fill >/dev/null 2>&1 &
@@ -108,6 +108,10 @@ switch_theme() {
     # reload apps
     if pgrep -x ghostty >/dev/null; then
         killall -SIGUSR2 ghostty
+    fi
+
+    if pgrep -x waybar >/dev/null; then
+        systemctl --user restart waybar.service
     fi
 
     if command -v dotfiles-restart-tmux &>/dev/null; then
