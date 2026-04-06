@@ -266,7 +266,7 @@
     "enable_keep_preview_on_code_navigation": true,
   },
   "project_panel": {
-    "hide_hidden": true,
+    "hide_hidden": false,
     "hide_gitignore": false,
     "dock": "right",
     "default_width": 280,
