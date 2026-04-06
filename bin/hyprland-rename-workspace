@@ -1,0 +1,15 @@
+#!/bin/bash
+
+ACTIVE_WS=$(hyprctl activeworkspace -j)
+WS_ID=$(echo "$ACTIVE_WS" | jq -r '.id')
+WS_NAME=$(echo "$ACTIVE_WS" | jq -r '.name')
+
+NEW_NAME=$(echo "" | walker -d -I -p "Rename workspace $WS_ID ($WS_NAME)" --theme default)
+
+if [ -z "$NEW_NAME" ] || [ "$NEW_NAME" = "CNCLD" ]; then
+    hyprctl dispatch renameworkspace $WS_ID "$WS_ID"
+    exit 0
+fi
+
+hyprctl dispatch renameworkspace $WS_ID "$WS_ID($NEW_NAME)"
+notify-send "Workspace renamed" "Workspace $WS_ID: '$WS_NAME' → '$NEW_NAME'"

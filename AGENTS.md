@@ -2,9 +2,7 @@
 
 ```btca-resources
 resources:
-    - name: omarchy
-      path: resources/omarchy
-    - name: lazygit
-      path: resources/lazygit
+    - name: elephant
+      path: resources/elephant
 
-
+```
