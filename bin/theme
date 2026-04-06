@@ -79,6 +79,10 @@ switch_theme() {
     mkdir -p ~/.config/lazygit
     ln -snf ~/.config/theme/lazygit.yml ~/.config/lazygit/config.yml
 
+    # Tmux theme symlink
+    mkdir -p ~/.config/tmux
+    ln -snf ~/.config/theme/tmux.conf ~/.config/tmux/tmux.theme.conf
+
     # Background symlink
     mkdir -p ~/.config/theme/backgrounds
     BACKGROUND_PATH=""
@@ -104,6 +108,10 @@ switch_theme() {
     # reload apps
     if pgrep -x ghostty >/dev/null; then
         killall -SIGUSR2 ghostty
+    fi
+
+    if command -v dotfiles-restart-tmux &>/dev/null; then
+        dotfiles-restart-tmux
     fi
 
     echo "Theme '$theme' is now active"

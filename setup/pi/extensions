@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+pi install npm:pi-subagents              # Pi extension for delegating tasks to subagents with chains, parallel execution, and TUI clarification
+pi install npm:@plannotator/pi-extension # Plannotator extension for Pi coding agent - interactive plan review with visual annotation
+pi install npm:taskplane                 # AI agent orchestration for pi — parallel task execution with checkpoint discipline
+pi install npm:pi-lens                   # Real-time code feedback for pi — LSP, linters, formatters, type-checking, structural analysis & booboo
+pi install npm:pi-web-access             # Web search, URL fetching, GitHub repo cloning, PDF extraction, YouTube video understanding, and local video analysis for Pi coding agent
+pi install npm:@lnittman/pi-interview    # Multiple-choice + notes interview for pi — ask-deep style structured prompting after every agent turn

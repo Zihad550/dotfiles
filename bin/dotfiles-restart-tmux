@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Reload tmux configuration (used by dotfiles theme switching)
+
+if pgrep -x tmux >/dev/null; then
+  tmux source-file ~/.tmux.conf
+fi
