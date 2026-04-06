@@ -114,6 +114,12 @@ switch_theme() {
         systemctl --user restart waybar.service
     fi
 
+    if systemctl --user is-active --quiet mako.service 2>/dev/null; then
+        systemctl --user restart mako.service
+    fi
+
+    hyprctl reload >/dev/null 2>&1 || true
+
     if command -v dotfiles-restart-tmux &>/dev/null; then
         dotfiles-restart-tmux
     fi
@@ -123,6 +129,11 @@ switch_theme() {
     # Apply GNOME theme settings
     if command -v dotfiles-set-gnome-theme &>/dev/null; then
         dotfiles-set-gnome-theme
+    fi
+
+    # Apply VSCode theme
+    if command -v dotfiles-set-vscode-theme &>/dev/null; then
+        dotfiles-set-vscode-theme >/dev/null 2>&1
     fi
 }
 

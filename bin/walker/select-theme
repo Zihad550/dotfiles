@@ -3,12 +3,9 @@
 set -e
 
 THEME_DIR="$HOME/.config/themes"
-DOTFILES_DIR="$HOME/dotfiles"
-GENERATE_SCRIPT="$DOTFILES_DIR/bin/theme-generate"
 
 current_theme=$(basename "$(readlink ~/.config/theme 2>/dev/null)" 2>/dev/null || echo "")
 
-# Build options (skip dirs without colors.toml)
 options=""
 for theme in "$THEME_DIR"/*; do
    basename_theme="$(basename "$theme")"
@@ -20,72 +17,9 @@ for theme in "$THEME_DIR"/*; do
    fi
 done
 
-# Launch walker and get selection
 selected=$(echo -e "$options" | walker --dmenu --theme default -p "Select theme…")
 
-# If something selected
 if [ -n "$selected" ]; then
-   # Remove " (current)" suffix if present
    selected="${selected% (current)}"
-
-   # Generate theme configs
-   "$GENERATE_SCRIPT" "$selected"
-
-   # Create main theme symlink
-   rm -f ~/.config/theme
-   ln -snf "$HOME/.config/themes/$selected" ~/.config/theme
-
-   if [[ ! -L ~/.config/theme ]]; then
-      echo "Error: Failed to create symlink ~/.config/theme"
-      exit 1
-   fi
-
-   local linked_theme
-   linked_theme=$(basename "$(readlink ~/.config/theme)")
-   if [[ "$linked_theme" != "$selected" ]]; then
-      echo "Error: Symlink verification failed. Expected '$selected' but got '$linked_theme'"
-      exit 1
-   fi
-
-   ln -snf ~/.config/theme/neovim.lua ~/.config/nvim/lua/plugins/theme.lua 2>/dev/null || true
-
-   mkdir -p ~/.config/bottom
-   ln -snf ~/.config/theme/bottom.toml ~/.config/bottom/bottom.toml
-
-   mkdir -p ~/.config/mako
-   ln -snf ~/.config/theme/mako.ini ~/.config/mako/config
-
-   mkdir -p ~/.config/eza
-   ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
-
-   # Background symlink
-   mkdir -p ~/.config/theme/backgrounds
-   BACKGROUND_PATH=""
-   for bg in ~/.config/theme/backgrounds/*; do
-      if [[ -f "$bg" ]]; then
-         BACKGROUND_PATH="$bg"
-         break
-      fi
-   done
-   if [[ -n "$BACKGROUND_PATH" ]]; then
-      rm -f ~/.config/theme/background
-      ln -snf "$BACKGROUND_PATH" ~/.config/theme/background
-      
-      pkill -x swaybg
-      setsid uwsm-app -- swaybg -i "$BACKGROUND_PATH" -m fill >/dev/null 2>&1 &
-   fi
-
-   # Restart applications
-   killall -SIGUSR2 ghostty
-   systemctl --user restart waybar.service
-   systemctl --user restart mako.service
-   hyprctl reload >/dev/null 2>&1
-
-   # Obsidian style settings
-   rm -f ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json
-   cp ~/.config/theme/obsidian-border-theme.json ~/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json 2>/dev/null || true
-
-   # Change gnome, browser, vscode themes
-   dotfiles-set-gnome-theme >/dev/null 2>&1
-   dotfiles-set-vscode-theme >/dev/null 2>&1
+   theme "$selected"
 fi
