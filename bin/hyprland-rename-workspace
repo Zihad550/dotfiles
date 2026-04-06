@@ -11,5 +11,5 @@ if [ -z "$NEW_NAME" ] || [ "$NEW_NAME" = "CNCLD" ]; then
     exit 0
 fi
 
-hyprctl dispatch renameworkspace $WS_ID "$WS_ID($NEW_NAME)"
+hyprctl dispatch renameworkspace $WS_ID "$WS_ID-($NEW_NAME)"
 notify-send "Workspace renamed" "Workspace $WS_ID: '$WS_NAME' → '$NEW_NAME'"
