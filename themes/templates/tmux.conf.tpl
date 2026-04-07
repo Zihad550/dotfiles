@@ -11,4 +11,4 @@ set -g pane-active-border-style "fg={{ accent }}"
 set -g message-style "bg=default,fg={{ accent }}"
 set -g message-command-style "bg=default,fg={{ accent }}"
 set -g mode-style "bg={{ accent }},fg={{ color0 }}"
-setw -g clock-mode-colour {{ accent }}
+# setw -g clock-mode-colour "{{ accent }}"
