@@ -16,6 +16,7 @@ yay -S --noconfirm \
 # ufw-docker \
 
 # ventoy-bin \
+# yay -Sua balena-etcher
 # beekeeper-studio-bin \
 # mongodb-tools-bin
 # hoppscotch-bin
