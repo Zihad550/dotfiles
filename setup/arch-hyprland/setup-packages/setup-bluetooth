@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm blueberry
-sudo systemctl enable bluetooth.service
+sudo pacman -S --noconfirm bluetui
+sudo systemctl enable --now bluetooth.service
