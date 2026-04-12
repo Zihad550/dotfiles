@@ -4,5 +4,13 @@
 resources:
     - name: elephant
       path: resources/elephant
+    - name: Waybar
+      path: resources/Waybar
+    - name: lazygit
+      path: resources/lazygit
+    - name: omarchy
+      path: resources/omarchy
+    - name: walker
+      path: resources/walker
 
-```
+
