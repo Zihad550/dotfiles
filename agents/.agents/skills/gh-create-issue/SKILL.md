@@ -1,5 +1,5 @@
 ---
-name: create-github-issue
+name: gh-create-issue
 displayName: Create github issue
 description: Create github issue by using user provided instructions an also by exploring current codebase.
 version: 1.0.0

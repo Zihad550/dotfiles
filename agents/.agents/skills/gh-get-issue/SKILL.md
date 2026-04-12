@@ -1,5 +1,5 @@
 ---
-name: get-github-issue-information
+name: gh-get-issue
 displayName: get github issue informations
 description: get github issue information by using the provided issue id and the gh cli
 version: 1.0.0
