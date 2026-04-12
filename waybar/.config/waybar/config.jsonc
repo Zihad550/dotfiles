@@ -10,6 +10,7 @@
     "custom/voxtype",
     "pulseaudio",
     "bluetooth",
+    "custom/tailscale",
     "network",
     // "temperature",
     "battery",
@@ -137,5 +138,13 @@
     "tooltip": true,
     "on-click-right": "arch-voxtype-config",
     "on-click": "arch-voxtype-model",
+  },
+  "custom/tailscale": {
+    "exec": "bash ~/.config/waybar/scripts/tailscale_status.sh",
+    "return-type": "json",
+    "format": "{}",
+    "interval": 10,
+    "tooltip": true,
+    // "on-click": "systemctl --user status tailscaled || pkexec systemctl status tailscaled",
   },
 }

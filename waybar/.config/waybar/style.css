@@ -64,3 +64,20 @@ tooltip {
     min-width: 12px;
     margin: 0 0 0 7.5px;
 }
+
+#custom-tailscale {
+    min-width: 12px;
+    margin: 0 8px;
+}
+
+#custom-tailscale.connected {
+    color: #a6e3a1;
+}
+
+#custom-tailscale.disconnected {
+    color: #f38ba8;
+}
+
+#custom-tailscale.not-installed {
+    color: #fab387;
+}
