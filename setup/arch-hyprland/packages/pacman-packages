@@ -15,6 +15,7 @@
 # resvg - tui svg renderer
 # worktrunk - git worktree made simple
 # opencode - ai tui
+# tea - gh equavalent for forgejo instance
 sudo pacman -S --noconfirm \
     curl \
     git \
@@ -44,7 +45,8 @@ sudo pacman -S --noconfirm \
     shellcheck shfmt \
     opencode \
     ufw-docker \
-    worktrunk
+    worktrunk \
+    tea
 
 # atac
 # termdown
