@@ -1,4 +1,3 @@
-
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.config/zsh/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -14,8 +13,8 @@ ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 
 # Download Zinit, if it's not there yet
 if [ ! -d "$ZINIT_HOME" ]; then
-   mkdir -p "$(dirname $ZINIT_HOME)"
-   git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+    mkdir -p "$(dirname $ZINIT_HOME)"
+    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
 # Source/Load zinit
@@ -29,8 +28,6 @@ source "${ZINIT_HOME}/zinit.zsh"
 #           atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
 #           atpull"%atclone" src"init.zsh"
 # zinit light starship/starship
-
-
 
 #### mise
 # zinit as="command" lucid from="gh-r" for \
@@ -77,12 +74,9 @@ zinit ice atload"zpcdreplay" atclone"./zplug.zsh" atpull"%atclone"
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 # [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
 
-
 # aliases
 source "$XDG_CONFIG_HOME/zsh/aliasrc"
 source "$XDG_CONFIG_HOME/zsh/zshalias"
-
-
 
 ##############
 # History
@@ -106,11 +100,11 @@ setopt hist_find_no_dups
 ############
 setopt extendedglob nomatch notify
 unsetopt beep
-setopt autocd # type a dir to cd
-setopt globdots # include dotfiles
-setopt extended_glob # match ~ # ^
+setopt autocd               # type a dir to cd
+setopt globdots             # include dotfiles
+setopt extended_glob        # match ~ # ^
 setopt interactive_comments # allow comments in shell
-unsetopt prompt_sp # don't autoclean blanklines
+unsetopt prompt_sp          # don't autoclean blanklines
 
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
@@ -158,8 +152,8 @@ autoload -Uz zmv
 # zmv -i '(*).log' '$1.txt'        # Interactive mode (confirm each)
 
 # Helpful aliases for zmv
-alias zcp='zmv -C'  # Copy with patterns
-alias zln='zmv -L'  # Link with patterns
+alias zcp='zmv -C' # Copy with patterns
+alias zln='zmv -L' # Link with patterns
 
 # -------------------------------------------
 # 8. Named Directories - Bookmark Folders
@@ -220,8 +214,8 @@ bindkey "^f" fod
 
 # open lazygit
 openLazygit() {
- lazygit <$TTY
- zle redisplay
+    lazygit <$TTY
+    zle redisplay
 }
 zle -N openLazygit
 bindkey "^g" openLazygit
@@ -229,7 +223,6 @@ bindkey "^g" openLazygit
 # useful custom keybindings for custom autocompletions
 bindkey -s '^Xgc' 'git commit -m ""\C-b'
 bindkey -s '^Xgp' 'git push'
-
 
 # profiling
 # zprof
