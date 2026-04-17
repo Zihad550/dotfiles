@@ -1,6 +1,6 @@
-# name = "other"
-# name_pretty = "Other"
-# icon = "applications-other"
+name = "other"
+name_pretty = "Other"
+icon = "applications-other"
 
 
 [[entries]]
