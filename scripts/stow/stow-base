@@ -34,3 +34,4 @@ mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 stow worktrunk
 stow bash
+stow branch-creator
