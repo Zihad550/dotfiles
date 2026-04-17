@@ -1,6 +1,9 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
+  "plugin": [
+    // "superpowers@git+https://github.com/obra/superpowers.git",
+    "@warp-dot-dev/opencode-warp",
+  ],
   "permission": {
     "bash": {
       "pnpm run build *": "allow",
@@ -8,6 +11,12 @@
       "pnpm run lint *": "allow",
       "git log *": "allow",
       "head *": "allow",
+      "mise run lint": "allow",
+      "npm run check": "allow",
+      "npm run typecheck": "allow",
+      "npm run check *": "allow",
+      "npm run typecheck *": "allow",
+      "git status": "allow",
     },
   },
 }
