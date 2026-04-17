@@ -526,7 +526,7 @@
       "manifest": {
         "id": "opencode",
         "name": "OpenCode",
-        "version": "1.4.1",
+        "version": "1.4.6",
         "schema_version": 1,
         "description": "The open source coding agent.",
         "repository": "https://github.com/anomalyco/opencode",
@@ -550,7 +550,7 @@
             "icon": "./icons/opencode.svg",
             "targets": {
               "linux-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.1/opencode-linux-arm64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-linux-arm64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -559,7 +559,7 @@
                 "env": {}
               },
               "linux-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.1/opencode-linux-x64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-linux-x64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -568,7 +568,7 @@
                 "env": {}
               },
               "windows-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.1/opencode-windows-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-windows-x64.zip",
                 "cmd": "./opencode.exe",
                 "args": [
                   "acp"
@@ -577,7 +577,7 @@
                 "env": {}
               },
               "darwin-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.1/opencode-darwin-arm64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-darwin-arm64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -586,7 +586,7 @@
                 "env": {}
               },
               "darwin-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.1/opencode-darwin-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-darwin-x64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
