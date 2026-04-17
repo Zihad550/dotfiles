@@ -1,0 +1,51 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@kilocode/plugin':
+        specifier: 7.2.0
+        version: 7.2.0
+      '@opencode-ai/plugin':
+        specifier: 1.0.25
+        version: 1.0.25
+
+packages:
+
+  '@kilocode/plugin@7.2.0':
+    resolution: {integrity: sha512-QbRRJ0GNOnfrpB2Ffs/7epi7Ktjge3uqOGyEUBzkc2aLFnMyPU5An2BL75QfVPUBIW6wUkJPfTbki6tBjhFAmQ==}
+
+  '@kilocode/sdk@7.2.0':
+    resolution: {integrity: sha512-lwOUj+j50LfJ81sZpbTIImwD+7B0j7RucgxmAxQTPVRWd8UKGts4jBcRkxTvXvx49gFljs6qvru0kMYoQi9N9g==}
+
+  '@opencode-ai/plugin@1.0.25':
+    resolution: {integrity: sha512-GXCr2YK7YWCRtmmcMFW3kbtNJuANHj+gZbsWTZgFuxXJuelPVozm59Ice3sylhKFhbnruW8p9W3fXQOloxnDsg==}
+
+  '@opencode-ai/sdk@1.0.25':
+    resolution: {integrity: sha512-45+j+LRLS0qy349IeR6VNYybJ3l9inK1vAJhGVLEqzmGVWLD0IUrxvy3I07S2DHog/7Szli61rMcOapMMhp8cw==}
+
+  zod@4.1.8:
+    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
+
+snapshots:
+
+  '@kilocode/plugin@7.2.0':
+    dependencies:
+      '@kilocode/sdk': 7.2.0
+      zod: 4.1.8
+
+  '@kilocode/sdk@7.2.0': {}
+
+  '@opencode-ai/plugin@1.0.25':
+    dependencies:
+      '@opencode-ai/sdk': 1.0.25
+      zod: 4.1.8
+
+  '@opencode-ai/sdk@1.0.25': {}
+
+  zod@4.1.8: {}
