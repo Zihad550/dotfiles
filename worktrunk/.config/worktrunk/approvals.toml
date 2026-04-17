@@ -7,6 +7,13 @@ approved-commands = [
     "[ -f mise.toml ] && mise install",
 ]
 
+[projects."git.tail7d3230.ts.net/mamacrm/frontend"]
+approved-commands = [
+    "mise run blc",
+    "rm -rf node_modules",
+    "npm i",
+]
+
 [projects."github.com/mamacrm/frontend"]
 approved-commands = [
     "npm run format_check",
