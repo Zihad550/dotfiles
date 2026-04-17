@@ -3,4 +3,3 @@
 sudo pacman -S --noconfirm libqalculate omarchy-walker
 
 elephant service enable
-systemctl --user enable elephant.service
