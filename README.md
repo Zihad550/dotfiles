@@ -59,3 +59,5 @@ aichat --sync-models
 nc -z -vv localhost 6379
 
 hyprctl keyword monitor "eDP-1,preferred,1080x860,1"
+
+tea issues create --repo <owner>/<repo> --title "test issue title" --description "test issue description" --login <login-name>
