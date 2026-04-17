@@ -1,0 +1,24 @@
+{
+  "general": {
+    "enableNotifications": true
+  },
+  "security": {
+    "auth": {
+      "selectedType": "qwen-oauth"
+    }
+  },
+  "model": {
+    "name": "coder-model"
+  },
+  "$version": 3,
+  "tools": {
+    "approvalMode": "plan",
+    "allowed": [
+      "run_shell_command(mise run lint)",
+      "run_shell_command(npx vue-tsc)"
+    ]
+  },
+  "ui": {
+    "feedbackLastShownTimestamp": 1776139105194
+  }
+}
