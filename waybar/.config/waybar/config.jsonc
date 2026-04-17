@@ -80,7 +80,7 @@
     "tooltip-format-disconnected": "Disconnected",
     "interval": 3,
     "spacing": 1,
-    "on-click": "$TERMINAL -e nmtui",
+    "on-click": "ghostty -e nmtui",
   },
   "battery": {
     "format": "{icon} {capacity}%",
@@ -112,7 +112,7 @@
     "format-disabled": "󰂲",
     "format-connected": "",
     "tooltip-format": "Devices connected: {num_connections}",
-    "on-click": "blueberry",
+    "on-click": "ghostty -e bluetui",
   },
   "pulseaudio": {
     "format": "{icon}  {volume}%",
