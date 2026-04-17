@@ -8,3 +8,4 @@ mkdir -p ~/.local/share/mako
 ln -snf ~/dotfiles/mako/.local/share/mako/core.ini ~/.local/share/mako/core.ini
 stow swappy
 stow walker
+stow elephant
