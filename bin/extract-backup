@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+file="$1"
+folder="${file%.tar.xz}"
+mkdir -p "$folder" && tar -xJvf "$file" -C "$folder"
+echo "Extracted to: $folder"

@@ -1,58 +1,42 @@
 #!/usr/bin/env bash
-# tar --exclude="*/node_modules" --exclude="*/dist" --exclude="*/logs" --exclude="*/cache" -cJvf backup.tar.xz ~/work ~/dotfiles ~/course-resources ~/courses ~/data-gen ~/Documents ~/learn ~/Music ~/Pictures ~/playgrounds ~/projects ~/scripts ~/test ~/tool ~/Templates
-
-# zip -r backup.zip -9 ~/work ~/dotfiles ~/course-resources ~/courses ~/data-gen ~/Documents ~/learn ~/Music ~/Pictures ~/playgrounds ~/projects ~/scripts ~/test ~/tool ~/Templates -x "*/node_modules/*" "*/dist/*" "*/logs/*" "*/cache/*" && zip -T backup.zip
 
 FOLDER_NAME="$(date +"%d-%b-%Y" | tr '[:upper:]' '[:lower:]')-backup"
-# mkdir -p "$FOLDER_NAME"
-# zip -r "${FOLDER_NAME}.zip" "$FOLDER_NAME"
 
-# zip -r "${FOLDER_NAME}.zip" -9 ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads ~/Music ~/Pictures ~/Videos ~/Templates ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.obsidian-vault ~/.ssh ~/bk.json -x "*/node_modules/*" "*/dist/*" "*/logs/*" "*/cache/*" "*/.next/*" "*/.nuxt/*" "*/.pnpm-store/*"
+tar \
+    --exclude="*/node_modules" \
+    --exclude="*/.pnpm-store" \
+    --exclude="*/.next" \
+    --exclude="*/.nuxt" \
+    --exclude="*/dist" \
+    --exclude="*/.cache" \
+    --exclude="*/cache" \
+    --exclude="*/logs" \
+    --exclude="*/__pycache__" \
+    --exclude="*/.venv" \
+    --exclude="*/venv" \
+    --exclude="*/.turbo" \
+    --exclude="*/.svelte-kit" \
+    --exclude="*/.astro" \
+    --exclude="*/.build" \
+    --exclude="*/compiled" \
+    --exclude="*/.vercel" \
+    --exclude="*/.netlify" \
+    --exclude="*/.output" \
+    --exclude="*/cmake-build-*" \
+    --exclude="*.log" \
+    --exclude="*.tmp" \
+    --exclude="*.pyc" \
+    --exclude="*.tsbuildinfo" \
+    --exclude="*.o" \
+    --exclude="*.out" \
+    --exclude="*.so" \
+    --exclude="*.dll" \
+    --exclude="*.dylib" \
+    --exclude=".DS_Store" \
+    --exclude="Thumbs.db" \
+    -cJvf "${FOLDER_NAME}.tar.xz" \
+    ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads \
+    ~/Music ~/Pictures ~/Videos ~/Templates \
+    ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.ssh ~/bk.json
 
-zip -r "${FOLDER_NAME}.zip" -9 \
-   ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads ~/Music ~/Pictures ~/Videos ~/Templates \
-   ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.ssh ~/bk.json \
-   -x "*/node_modules/*" \
-   "*/.next/*" \
-   "*/.nuxt/*" \
-   "*/dist/*" \
-   "*/dump/*" \
-   "*/.cache/*" \
-   "*/logs/*" \
-   "*/cache/*" \
-   "*.log" \
-   "*.tmp" \
-   "*/__pycache__/*" \
-   "*.pyc" \
-   "*/.venv/*" \
-   "*/venv/*" \
-   "*/.vs/*" \
-   "*/cmake-build-*/*" \
-   "*.o" \
-   "*.exe" \
-   ".DS_Store" \
-   "Thumbs.db" \
-   "*.swp" \
-   "*.swo" \
-   "*.exe~" \
-   "*.dll" \
-   "*.so" \
-   "*.dylib" \
-   "*.out" \
-   "*/.output/*" \
-   "*/.vercel/*" \
-   "*/.netlify/*" \
-   "*/.turbo/*" \
-   "*/.storybook-out/*" \
-   "*/.svelte-kit/*" \
-   "*/.astro/*" \
-   "*/.remix/*" \
-   "*/.solid/*" \
-   "*/.qwik/*" \
-   "*/.build/*" \
-   "*/compiled/*" \
-   "*.tsbuildinfo" \
-   "*/.pnpm-store/*"
-
-# test zip
-zip -T "${FOLDER_NAME}.zip"
+echo "Done: ${FOLDER_NAME}.tar.xz ($(du -sh "${FOLDER_NAME}.tar.xz" | cut -f1))"
