@@ -76,7 +76,7 @@ desc = "Restore last deleted files/folders"
 # run = "plugin restore -- --interactive --interactive-overwrite"
 # desc = "Restore deleted files/folders (Interactive overwrite)"
 
-# resycle bin
+# resycle bin trash bin
 [[mgr.prepend_keymap]]
 on = ["R","b"]
 run = "plugin recycle-bin"
