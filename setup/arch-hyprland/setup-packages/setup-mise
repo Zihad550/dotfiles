@@ -10,6 +10,3 @@ sudo mv _mise /usr/share/zsh/site-functions/
 
 kilo completion >_kilo
 sudo mv _kilo /usr/share/zsh/site-functions/
-
-opencode completion >_opencode
-sudo mv _opencode /usr/share/zsh/site-functions/
