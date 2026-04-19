@@ -46,7 +46,8 @@ sudo pacman -S --noconfirm \
     opencode \
     ufw-docker \
     worktrunk \
-    tea
+    tea \
+    rsync
 
 # atac
 # termdown
