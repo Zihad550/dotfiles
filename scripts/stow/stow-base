@@ -17,6 +17,7 @@ ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions
 # stow gemini
 stow lazygit
 stow opencode
+stow kilo
 stow agents
 ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
 mkdir -p .kilocode/skills

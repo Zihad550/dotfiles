@@ -24,24 +24,24 @@ source "${ZINIT_HOME}/zinit.zsh"
 # zinit ice depth=1; zinit light romkatv/powerlevel10k
 
 # starship
-# zinit ice as"command" from"gh-r" \
-#           atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
-#           atpull"%atclone" src"init.zsh"
-# zinit light starship/starship
+zinit ice as"command" from"gh-r" \
+    atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
+    atpull"%atclone" src"init.zsh"
+zinit light starship/starship
 
 #### mise
-# zinit as="command" lucid from="gh-r" for \
-#     id-as="usage" \
-#     atpull="%atclone" \
-#     jdx/usage
-#     #atload='eval "$(mise activate zsh)"' \
+zinit as="command" lucid from="gh-r" for \
+    id-as="usage" \
+    atpull="%atclone" \
+    jdx/usage
+#atload='eval "$(mise activate zsh)"' \
 
-# zinit as="command" lucid from="gh-r" for \
-#     id-as="mise" mv="mise* -> mise" \
-#     atclone="./mise* completion zsh > _mise" \
-#     atpull="%atclone" \
-#     atload='eval "$(mise activate zsh)"' \
-#     jdx/mise
+zinit as="command" lucid from="gh-r" for \
+    id-as="mise" mv="mise* -> mise" \
+    atclone="./mise* completion zsh > _mise" \
+    atpull="%atclone" \
+    atload='eval "$(mise activate zsh)"' \
+    jdx/mise
 
 # pure
 # zinit ice compile'(pure|async).zsh' pick'async.zsh' src'pure.zsh'

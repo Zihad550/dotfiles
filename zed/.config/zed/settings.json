@@ -2,6 +2,13 @@
   ////////////////////////
   // ai
   ///////////////////////
+  "cli_default_open_behavior": "new_window",
+  "collaboration_panel": {
+    "dock": "left"
+  },
+  "git_panel": {
+    "dock": "left"
+  },
   "diff_view_style": "unified",
   "ssh_connections": [
     {
@@ -134,6 +141,7 @@
   //   },
   // },
   "agent": {
+    "dock": "right",
     "default_profile": "ask",
     "inline_assistant_model": {
       "provider": "google",

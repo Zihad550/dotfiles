@@ -69,7 +69,7 @@
       "manifest": {
         "id": "emmet",
         "name": "Emmet",
-        "version": "0.0.11",
+        "version": "0.0.12",
         "schema_version": 1,
         "description": "Emmet support",
         "repository": "https://github.com/zed-extensions/emmet",
@@ -104,7 +104,8 @@
               "Nunjucks",
               "Django",
               "Angular",
-              "Jinja2"
+              "Jinja2",
+              "Liquid"
             ],
             "language_ids": {
               "SCSS": "scss",
@@ -123,6 +124,7 @@
               "JavaScript": "javascriptreact",
               "Elixir": "elixir",
               "Vue.js": "vue",
+              "Liquid": "html",
               "Angular": "angular"
             },
             "code_action_kinds": null
@@ -140,7 +142,7 @@
       "manifest": {
         "id": "git-firefly",
         "name": "Git Firefly",
-        "version": "0.1.4",
+        "version": "0.1.5",
         "schema_version": 1,
         "description": "Provides Git Syntax Highlighting",
         "repository": "https://github.com/d1y/git_firefly",
@@ -526,7 +528,7 @@
       "manifest": {
         "id": "opencode",
         "name": "OpenCode",
-        "version": "1.4.6",
+        "version": "1.14.18",
         "schema_version": 1,
         "description": "The open source coding agent.",
         "repository": "https://github.com/anomalyco/opencode",
@@ -550,7 +552,7 @@
             "icon": "./icons/opencode.svg",
             "targets": {
               "linux-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-linux-arm64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.18/opencode-linux-arm64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -559,7 +561,7 @@
                 "env": {}
               },
               "linux-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-linux-x64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.18/opencode-linux-x64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -568,7 +570,7 @@
                 "env": {}
               },
               "windows-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-windows-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.18/opencode-windows-x64.zip",
                 "cmd": "./opencode.exe",
                 "args": [
                   "acp"
@@ -577,7 +579,7 @@
                 "env": {}
               },
               "darwin-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-darwin-arm64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.18/opencode-darwin-arm64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -586,7 +588,7 @@
                 "env": {}
               },
               "darwin-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.4.6/opencode-darwin-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.18/opencode-darwin-x64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -682,7 +684,7 @@
       "manifest": {
         "id": "toml",
         "name": "TOML",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "schema_version": 1,
         "description": "TOML support.",
         "repository": "https://github.com/zed-extensions/toml",
@@ -719,7 +721,7 @@
       "manifest": {
         "id": "vue",
         "name": "Vue",
-        "version": "0.3.2",
+        "version": "0.3.3",
         "schema_version": 1,
         "description": "Vue support.",
         "repository": "https://github.com/zed-extensions/vue",
