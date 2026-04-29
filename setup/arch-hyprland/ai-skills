@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# npx skills add -g --all
+npx skills add https://github.com/github/awesome-copilot --skill ai-prompt-engineering-safety-review -g --all
+npx skills add https://github.com/vercel/ai --skill ai-sdk
+npx skills add https://github.com/biomejs/biome --skill biome-developer
+npx skills add https://github.com/steipete/clawdis --skill mcporter
+
+# deepagents
+npx skills add https://github.com/langchain-ai/deepagents --skill arxiv-search
+npx skills add https://github.com/langchain-ai/deepagents --skill blog-post
+npx skills add https://github.com/langchain-ai/deepagents --skill coding-prefs
+npx skills add https://github.com/langchain-ai/deepagents --skill competitor-analysis
+npx skills add https://github.com/langchain-ai/deepagents --skill cudf-analytics
+npx skills add https://github.com/langchain-ai/deepagents --skill cuml-machine-learning
+npx skills add https://github.com/langchain-ai/deepagents --skill query-writing
+npx skills add https://github.com/langchain-ai/deepagents --skill remember
+npx skills add https://github.com/langchain-ai/deepagents --skill schema-exploration
+npx skills add https://github.com/langchain-ai/deepagents --skill social-media
+npx skills add https://github.com/langchain-ai/deepagents --skill web-research
+
+# anthropics
+npx skills add https://github.com/anthropics/knowledge-work-plugins --skill code-review
+npx skills add https://github.com/anthropics/knowledge-work-plugins --skill data-visualization
+npx skills add https://github.com/anthropics/skills --skill theme-factory
+
+# vue (antfu)
+npx skills add https://github.com/antfu/skills --skill vue
+npx skills add https://github.com/antfu/skills --skill vue-best-practices
+npx skills add https://github.com/antfu/skills --skill web-design-guidelines
+npx skills add antfu/skills
+
+# vercel labs
+npx skills add https://github.com/vercel-labs/agent-skills --skill web-design-guidelines
