@@ -34,6 +34,7 @@ stow gh-dash
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 stow worktrunk
+rm -rf ~/.bashrc
 stow bash
 stow branch-creator
 
