@@ -40,3 +40,4 @@ stow branch-creator
 
 mkdir -p ~/.claude
 ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
+ln -snf ~/dotfiles/.claude/statusline-command.sh ~/.claude/statusline-command.sh
