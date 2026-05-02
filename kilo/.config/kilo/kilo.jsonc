@@ -11,7 +11,7 @@
       "pnpm run lint *": "allow",
       "git log *": "allow",
       "head *": "allow",
-      "mise run lint": "allow",
+      "mise run lint *": "allow",
       "npm run check": "allow",
       "npm run typecheck": "allow",
       "npm run check *": "allow",
@@ -24,6 +24,7 @@
       "npx vue-tsc *": "allow",
       "npx tsc *": "allow",
       "openspec *": "allow",
+      "npx biome *": "allow",
     },
   },
 }
