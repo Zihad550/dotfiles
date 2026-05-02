@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-cd ~/dotfiles
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+cd "$DOTFILES"
+# cd ~/dotfiles
 
 # stow fonts
 # stow bottom
