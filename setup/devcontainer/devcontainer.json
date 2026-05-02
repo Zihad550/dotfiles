@@ -5,10 +5,6 @@
 
   "features": {
     // "ghcr.io/devcontainers-extra/features/opencode:1": {},
-    // doesn't work
-    // "ghcr.io/devcontainers/features/nix:1": {
-    //   "packages": "stow,procs,starship,fastfetch,fzf,bat,bottom,ripgrep,git,curl,zoxide,eza,tealdeer,net-tools,wl-clipboard,trash-cli,zsh,neovim,gcc,unzip,xclip",
-    // },
     // "ghcr.io/devcontainers/features/sshd:1": {},
     // "ghcr.io/devcontainers/features/common-utils:2": {
     // "installOhMyZsh": true,
@@ -45,4 +41,8 @@
   //   "targetPath": "~/setup/devcontainer",
   //   "installCommand": "install.sh",
   // },
+  "mounts": [
+    "source=${localEnv:HOME}/dotfiles,target=/home/vscode/dotfiles,type=bind",
+  ],
+  "postCreateCommand": "bash ~/dotfiles/setup/devcontainer/install.sh",
 }
