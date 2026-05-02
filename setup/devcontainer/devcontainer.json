@@ -1,0 +1,48 @@
+{
+  "name": "Dev setup",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  // "image": "mcr.microsoft.com/devcontainers/javascript-node",
+
+  "features": {
+    // "ghcr.io/devcontainers-extra/features/opencode:1": {},
+    // doesn't work
+    // "ghcr.io/devcontainers/features/nix:1": {
+    //   "packages": "stow,procs,starship,fastfetch,fzf,bat,bottom,ripgrep,git,curl,zoxide,eza,tealdeer,net-tools,wl-clipboard,trash-cli,zsh,neovim,gcc,unzip,xclip",
+    // },
+    // "ghcr.io/devcontainers/features/sshd:1": {},
+    // "ghcr.io/devcontainers/features/common-utils:2": {
+    // "installOhMyZsh": true,
+    // "installZsh": true,
+    // "configureZshAsDefaultShell": true,
+    // },
+    // "ghcr.io/devcontainers-extra/features/mise:1": {},
+    // "ghcr.io/w3cj/devcontainer-features/firewall:latest": {
+    //   "githubIps": true,
+    //   "claudeCode": true
+    // }
+  },
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [3000, 3001, 3002, 4173, 5175, 5176, 5177, 5178, 5179, 5180],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "pnpm i",
+  // Configure tool-specific properties.
+  // "customizations": {},
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+  // "workspaceMount": "source=/home/jehad/test/devcontainers-features,target=/workspace,type=bind",
+  // "workspaceFolder": "/workspace",
+  // "customizations": {
+  //   "vscode": {
+  //     "settings": {},
+  //     "extensions": []
+  //   }
+  // },
+  // "remoteUser": "node",
+
+  // "dotfiles": {
+  //   "repository": "https://github.com/Zihad550/dotfiles.git",
+  //   "targetPath": "~/setup/devcontainer",
+  //   "installCommand": "install.sh",
+  // },
+}

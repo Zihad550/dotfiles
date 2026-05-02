@@ -23,6 +23,7 @@ npx skills add https://github.com/langchain-ai/deepagents --skill web-research
 npx skills add https://github.com/anthropics/knowledge-work-plugins --skill code-review
 npx skills add https://github.com/anthropics/knowledge-work-plugins --skill data-visualization
 npx skills add https://github.com/anthropics/skills --skill theme-factory
+npx skills add https://github.com/anthropics/skills --skill frontend-design -g --all
 
 # vue (antfu)
 npx skills add https://github.com/antfu/skills --skill vue

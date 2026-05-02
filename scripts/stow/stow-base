@@ -36,3 +36,6 @@ cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 stow worktrunk
 stow bash
 stow branch-creator
+
+mkdir ~/.claude
+ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
