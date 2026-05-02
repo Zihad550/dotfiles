@@ -10,7 +10,7 @@
 mise use -g uv
 mise use -g bun deno node@lts pnpm
 mise use -g lazygit
-mise use -g mcporter # use mcp server using cli
+# mise use -g mcporter # use mcp server using cli
 
 mise use -g opencode
 mise use -g npm:@kilocode/cli
