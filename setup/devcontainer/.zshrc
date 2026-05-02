@@ -226,3 +226,5 @@ bindkey -s '^Xgp' 'git push'
 
 # profiling
 # zprof
+
+alias rm='rm -i'

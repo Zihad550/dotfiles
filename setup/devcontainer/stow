@@ -1,20 +1,9 @@
 #!/usr/bin/env bash
+
 DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 cd "$DOTFILES"
 
-# stow fonts
-# stow bottom
-stow ghostty
 stow git
-stow kanata
-# stow nushell
-# stow nvim
-stow zsh
-stow zed
-mkdir -p ~/.local/share/zed/extensions
-ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions/index.json
-# stow zellij
-# stow gemini
 stow lazygit
 stow opencode
 stow kilo
@@ -23,20 +12,9 @@ ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
 mkdir -p ~/.kilocode/skills # correct path, after symlink
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
-stow themes
-stow starship
-stow ghostty
-stow yazi
-stow voxtype
-stow tmux
-stow gh-dash
 # stow mise
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
-stow worktrunk
-rm -rf ~/.bashrc
-stow bash
-stow branch-creator
 
 mkdir -p ~/.claude
 ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
