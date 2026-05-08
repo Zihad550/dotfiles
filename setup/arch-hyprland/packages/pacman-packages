@@ -16,6 +16,7 @@
 # worktrunk - git worktree made simple
 # opencode - ai tui
 # tea - gh equavalent for forgejo instance
+# bubblewrap socat - needed for claude code sandboxing
 sudo pacman -S --noconfirm \
     curl \
     git \
@@ -47,7 +48,8 @@ sudo pacman -S --noconfirm \
     ufw-docker \
     worktrunk \
     tea \
-    rsync
+    rsync \
+    bubblewrap socat
 
 # atac
 # termdown
