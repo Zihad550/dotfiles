@@ -1,0 +1,4 @@
+#!/usr/env/bin bash
+alias \
+    ls="ls -lh --group-directories-first --color=auto" \
+    lt='ls --tree --level=2 --long --icons --git'

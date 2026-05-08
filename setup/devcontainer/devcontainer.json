@@ -4,14 +4,17 @@
   // "image": "mcr.microsoft.com/devcontainers/javascript-node",
 
   "features": {
+    // "ghcr.io/devcontainers-extra/features/mise:1": {},
     // "ghcr.io/devcontainers-extra/features/opencode:1": {},
+    // "ghcr.io/devcontainers-extra/features/pnpm:2": {},
+    // "ghcr.io/devcontainers-extra/features/uv:1": {},
+    // "ghcr.io/devcontainer-community/devcontainer-features/biomejs.dev:1": {},
     // "ghcr.io/devcontainers/features/sshd:1": {},
     // "ghcr.io/devcontainers/features/common-utils:2": {
     // "installOhMyZsh": true,
     // "installZsh": true,
     // "configureZshAsDefaultShell": true,
     // },
-    "ghcr.io/devcontainers-extra/features/mise:1": {},
     // "ghcr.io/w3cj/devcontainer-features/firewall:latest": {
     //   "githubIps": true,
     //   "claudeCode": true
