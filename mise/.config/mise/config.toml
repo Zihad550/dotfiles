@@ -1,2 +1,13 @@
 [settings]
 http_retries = 3
+
+[env]
+  _.path = [
+    "{{env.HOME}}/dotfiles/bin",
+    "{{env.HOME}}/dotfiles/bin/voxtype",
+    "{{env.HOME}}/dotfiles/bin/walker",
+    "{{env.HOME}}/.local/share/go/bin",
+    "{{env.HOME}}/.local/share/pnpm",
+    "{{env.HOME}}/.local/share/cargo/bin",
+    "{{env.HOME}}/.local/bin",
+  ]
