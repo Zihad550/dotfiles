@@ -84,6 +84,7 @@ export OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
 
 # PATH Configuration
 # dotfiles bin
-export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker"
-# export PATH="$BUN_INSTALL/bin:$DOTFILES_BIN:$PATH:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$DENO_INSTALL/bin"
-export PATH="$DOTFILES_BIN:$GOBIN:$CARGO_BIN:$PNPM_HOME:$UV_HOME:$PATH"
+# export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker"
+# PATH entries are managed by mise (see ~/.config/mise/config.toml [env]._.path)
+# because `mise activate zsh` rebuilds PATH on every prompt and would otherwise
+# clobber any additions made here.

@@ -276,6 +276,7 @@ alias gh-create-pvt='git init && gh repo create --private --source=. --remote=or
 alias mrd='mise run dev'
 alias mt='mise trust'
 alias mr='mise run'
+alias mi='mise install'
 
 # worktrunk
 # alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
@@ -301,7 +302,8 @@ devup() {
     if [ ! -f ".devcontainer/devcontainer.json" ]; then
         echo "No devcontainer.json found, copying from template..."
         mkdir -p .devcontainer
-        cp ~/dotfiles/setup/devcontainer/devcontainer.json .devcontainer/devcontainer.json
+        # cp ~/dotfiles/setup/devcontainer/devcontainer.json .devcontainer/devcontainer.json
+        cp ~/dotfiles/setup/devcontainer-2/devcontainer.json .devcontainer/devcontainer.json
     fi
 
     # devpod up . \
