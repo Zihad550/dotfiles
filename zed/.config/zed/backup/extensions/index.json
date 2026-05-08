@@ -142,7 +142,7 @@
       "manifest": {
         "id": "git-firefly",
         "name": "Git Firefly",
-        "version": "0.1.5",
+        "version": "0.1.6",
         "schema_version": 1,
         "description": "Provides Git Syntax Highlighting",
         "repository": "https://github.com/d1y/git_firefly",
@@ -158,24 +158,24 @@
         "icon_themes": [],
         "languages": [
           "languages/gitignore",
+          "languages/gitconfig",
           "languages/gitattributes",
-          "languages/gitrebase",
-          "languages/gitconfig"
+          "languages/gitrebase"
         ],
         "grammars": {
           "git_config": {
             "repository": "https://github.com/the-mikedavis/tree-sitter-git-config",
-            "rev": "9c2a1b7894e6d9eedfe99805b829b4ecd871375e",
+            "rev": "0fbc9f99d5a28865f9de8427fb0672d66f9d83a5",
             "path": null
           },
           "git_rebase": {
             "repository": "https://github.com/the-mikedavis/tree-sitter-git-rebase",
-            "rev": "d8a4207ebbc47bd78bacdf48f883db58283f9fd8",
+            "rev": "39bf3b7566c86ccffd70aaa5105c7c8b76788975",
             "path": null
           },
           "gitattributes": {
             "repository": "https://github.com/tree-sitter-grammars/tree-sitter-gitattributes",
-            "rev": "41940e199ba5763abea1d21b4f717014b45f01ea",
+            "rev": "1b7af09d45b579f9f288453b95ad555f1f431645",
             "path": null
           },
           "gitignore": {
@@ -528,7 +528,7 @@
       "manifest": {
         "id": "opencode",
         "name": "OpenCode",
-        "version": "1.14.29",
+        "version": "1.14.41",
         "schema_version": 1,
         "description": "The open source coding agent.",
         "repository": "https://github.com/anomalyco/opencode",
@@ -552,7 +552,7 @@
             "icon": "./icons/opencode.svg",
             "targets": {
               "linux-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.29/opencode-linux-arm64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.41/opencode-linux-arm64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -561,7 +561,7 @@
                 "env": {}
               },
               "linux-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.29/opencode-linux-x64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.41/opencode-linux-x64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -570,7 +570,7 @@
                 "env": {}
               },
               "windows-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.29/opencode-windows-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.41/opencode-windows-x64.zip",
                 "cmd": "./opencode.exe",
                 "args": [
                   "acp"
@@ -579,7 +579,7 @@
                 "env": {}
               },
               "darwin-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.29/opencode-darwin-arm64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.41/opencode-darwin-arm64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -588,7 +588,7 @@
                 "env": {}
               },
               "darwin-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.29/opencode-darwin-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.14.41/opencode-darwin-x64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
