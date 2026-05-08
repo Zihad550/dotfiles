@@ -73,10 +73,10 @@ export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 # PORTLESS_PORT=80
 PORTLESS_HTTPS=1
 export PORTLESS_HTTPS
-OLLAMA_FLASH_ATTENTION=true # ollama
-AICHAT_PLATFORM="gemini"    # aichat
-# AICHAT_MODEL="gemini:gemini-3-flash-preview" # aichat
-AICHAT_MODEL="gemini:gemini-2.5-flash" # aichat
+OLLAMA_FLASH_ATTENTION=true                  # ollama
+AICHAT_PLATFORM="gemini"                     # aichat
+AICHAT_MODEL="gemini:gemini-3-flash-preview" # aichat
+# AICHAT_MODEL="gemini:gemini-2.5-flash" # aichat
 export OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
 
 # docker
