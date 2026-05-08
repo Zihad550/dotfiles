@@ -311,3 +311,8 @@ devup() {
     #     --dotfiles-script setup/devcontainer/install.sh
     devpod up .
 }
+
+ssht() {
+    local remote_dir="${PWD/$USER/vscode}"
+    ssh -t "$@" "cd '$remote_dir' && exec \$SHELL"
+}
