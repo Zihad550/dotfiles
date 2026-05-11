@@ -1,7 +1,7 @@
 .vscode
 node_modules
 .stfolder
-**/.zcompdump
 .aider*
 repos
 resources
+.zcompdump*
