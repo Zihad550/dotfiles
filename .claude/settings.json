@@ -4,6 +4,7 @@
     "ENABLE_TOOL_SEARCH": "true"
   },
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(npm run *)",
       "Bash(mise run *)",
@@ -41,6 +42,6 @@
     "enabled": true,
     "mode": "tap"
   },
-  "theme": "dark",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark"
 }
