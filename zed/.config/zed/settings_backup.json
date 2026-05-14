@@ -2,138 +2,74 @@
   ////////////////////////
   // ai
   ///////////////////////
-  "agent_servers": {
-    "opencode": {
-      "type": "registry",
-    },
+  "cli_default_open_behavior": "new_window",
+  "collaboration_panel": {
+    "dock": "left"
   },
-  // "language_models": {
-  //   "openai_compatible": {
-  //     "Z.ai": {
-  //       "api_url": "https://api.z.ai/api/coding/paas/v4",
-  //       "available_models": [
-  //         {
-  //           "name": "GLM-4.5",
-  //           "display_name": null,
-  //           "max_tokens": 128000,
-  //           "max_output_tokens": 96000,
-  //           "max_completion_tokens": 128000,
-  //           "capabilities": {
-  //             "tools": true,
-  //             "images": true,
-  //             "parallel_tool_calls": true,
-  //             "prompt_cache_key": true,
-  //           },
-  //         },
-  //         {
-  //           "name": "GLM-4.5-Air",
-  //           "display_name": null,
-  //           "max_tokens": 128000,
-  //           "max_output_tokens": 96000,
-  //           "max_completion_tokens": 128000,
-  //           "capabilities": {
-  //             "tools": true,
-  //             "images": true,
-  //             "parallel_tool_calls": true,
-  //             "prompt_cache_key": true,
-  //           },
-  //         },
-  //         {
-  //           "name": "GLM-4.5-X",
-  //           "display_name": null,
-  //           "max_tokens": 128000,
-  //           "max_output_tokens": 96000,
-  //           "max_completion_tokens": 128000,
-  //           "capabilities": {
-  //             "tools": true,
-  //             "images": true,
-  //             "parallel_tool_calls": true,
-  //             "prompt_cache_key": true,
-  //           },
-  //         },
-  //         {
-  //           "name": "GLM-4.5-AirX",
-  //           "display_name": null,
-  //           "max_tokens": 128000,
-  //           "max_output_tokens": 96000,
-  //           "max_completion_tokens": 128000,
-  //           "capabilities": {
-  //             "tools": true,
-  //             "images": true,
-  //             "parallel_tool_calls": true,
-  //             "prompt_cache_key": true,
-  //           },
-  //         },
-  //         {
-  //           "name": "GLM-4.5-Flash",
-  //           "display_name": null,
-  //           "max_tokens": 128000,
-  //           "max_output_tokens": 96000,
-  //           "max_completion_tokens": 128000,
-  //           "capabilities": {
-  //             "tools": true,
-  //             "images": true,
-  //             "parallel_tool_calls": true,
-  //             "prompt_cache_key": true,
-  //           },
-  //         },
-  //         {
-  //           "name": "GLM-4-32B-0414-128K",
-  //           "display_name": null,
-  //           "max_tokens": 128000,
-  //           "max_output_tokens": 16000,
-  //           "max_completion_tokens": 128000,
-  //           "capabilities": {
-  //             "tools": true,
-  //             "images": true,
-  //             "parallel_tool_calls": true,
-  //             "prompt_cache_key": true,
-  //           },
-  //         },
-  //       ],
-  //     },
-  //   },
-  // },
+  "git_panel": {
+    "dock": "left"
+  },
+  "diff_view_style": "split",
+  "agent_servers": {
+    "qwen-code": {
+      "type": "registry"
+    },
+    "mistral-vibe": {
+      "type": "registry"
+    },
+    "kimi": {
+      "type": "registry"
+    },
+    "codebuddy-code": {
+      "type": "registry"
+    },
+    "auggie": {
+      "type": "registry"
+    },
+    "opencode": {
+      "type": "registry"
+    }
+  },
   "agent": {
+    "dock": "right",
     "default_profile": "ask",
     "inline_assistant_model": {
       "provider": "google",
-      "model": "gemini-3-flash-preview",
-      // "provider": "opencode",
-      // "model": "kimi-k2.5-free",
+      "model": "gemini-3-flash"
     },
     "commit_message_model": {
       "provider": "google",
-      "model": "gemini-3-flash-preview",
+      "model": "gemini-3-flash"
     },
     "default_model": {
-      "provider": "opencode",
-      "model": "opencode/kimi-k2.5-free",
+      "enable_thinking": false,
+      "provider": "google",
+      "model": "gemini-3-flash-preview"
     },
-    "model_parameters": [],
+    "model_parameters": []
   },
 
   "context_servers": {
     "prisma-mcp": {
       "enabled": false,
-      "settings": {},
+      "settings": {}
     },
     "browser-tools-context-server": {
       "enabled": false,
-      "settings": {},
+      "settings": {}
     },
     "mcp-server-mui": {
       "enabled": false,
       "settings": {
         "preferred_theme": "",
-        "component_filter": [""],
-      },
+        "component_filter": [""]
+      }
     },
     "mcp-server-context7": {
       "enabled": false,
       "settings": {
-        "default_minimum_tokens": "10000",
-      },
+        "default_minimum_tokens": "10000"
+      }
     },
     // "MCP_DOCKER": {
     //   "source": "custom",
@@ -143,33 +79,31 @@
     "shadcn": {
       "enabled": false,
       "command": "pnpx",
-      "args": ["shadcn@latest", "mcp"],
+      "args": ["shadcn@latest", "mcp"]
     },
     "grep": {
-      // "url": "https://mcp.grep.app",
+      "enabled": false,
       "command": "",
-      "args": ["https://mcp.grep.app"],
+      "args": ["https://mcp.grep.app"]
     },
     "playwright": {
       "enabled": false,
       "command": "pnpx",
-      "args": ["@playwright/mcp@latest", "--extension"],
+      "args": ["@playwright/mcp@latest", "--extension"]
     },
     "chrome-devtools": {
       "enabled": false,
       "command": "pnpx",
-      "args": ["chrome-devtools-mcp@latest"],
-    },
+      "args": ["chrome-devtools-mcp@latest"]
+    }
   },
 
   ///////////////////////////
   // features
   ///////////////////////////
-  "features": {
-    "edit_prediction_provider": "zed",
-  },
   "edit_predictions": {
-    "mode": "subtle",
+    "provider": "zed",
+    "mode": "eager"
   },
   "vim_mode": true,
   // "linked_edits": false,
@@ -178,7 +112,7 @@
   "autosave": "on_window_change",
   "extend_comment_on_newline": false,
   "inlay_hints": {
-    "edit_debounce_ms": 0,
+    "edit_debounce_ms": 0
   },
   // "use_smartcase_search": true,
   // "use_multiline_search": true
@@ -207,14 +141,18 @@
   /////////////////////
   // ui
   /////////////////////
-  "icon_theme": "Catppuccin Mocha",
+  "icon_theme": {
+    "mode": "dark",
+    "light": "Catppuccin Mocha",
+    "dark": "Catppuccin Mocha"
+  },
   "tab_bar": {
-    "show": false,
+    "show": false
   },
   "theme": {
-    "mode": "light",
-    "dark": "Kanagawa Wave",
-    "light": "Lilac Light",
+    "mode": "dark",
+    "dark": "Kanagawa Wave - No Italics - custom",
+    "light": "Lilac Light"
   },
   "ui_font_size": 16,
   "buffer_font_size": 16.5,
@@ -223,53 +161,64 @@
   "tabs": {
     "git_status": true,
     "file_icons": true,
-    "show_diagnostics": "all",
+    "show_diagnostics": "all"
   },
   "preview_tabs": {
     "enabled": true,
-    "enable_keep_preview_on_code_navigation": true,
+    "enable_keep_preview_on_code_navigation": true
   },
   "project_panel": {
+    "hide_hidden": false,
+    "hide_gitignore": false,
     "dock": "right",
     "default_width": 280,
-    "auto_fold_dirs": false,
+    "auto_fold_dirs": false
     // "hide_root": true
   },
   "outline_panel": {
-    "dock": "left",
+    "dock": "left"
   },
   "centered_layout": {
     "left_padding": 0.1,
-    "right_padding": 0,
+    "right_padding": 0.1
   },
   "minimap": {
     "show": "auto",
     "max_width_columns": 40,
-    "current_line_highlight": "all",
+    "current_line_highlight": "all"
   },
 
   ///////////////////////
   // languages
   ////////////////////////
-  // "languages": {
-  //   "Shell Script": {
-  //     "format_on_save": "on",
-  //     "formatter": {
-  //       "external": {
-  //         "command": "shfmt",
-  //         // Change `--indent 2` to match your preferred tab_size
-  //         "arguments": ["--filename", "{buffer_path}", "--indent", "3"],
-  //       },
-  //     },
-  //   },
-  // },
+  "languages": {
+    // "Shell Script": {
+    //   "format_on_save": "on",
+    //   "formatter": {
+    //     "external": {
+    //       "command": "shfmt",
+    //       // Change `--indent 2` to match your preferred tab_size
+    //       "arguments": ["--filename", "{buffer_path}", "--indent", "3"],
+    //     },
+    //   },
+    // },
+    // "Vue.js": {
+    //   "prettier": { "allowed": false },
+    //   "formatter": [
+    //     "auto",
+    //     {
+    //       "code_action": "source.fixAll.eslint",
+    //     },
+    //   ],
+    // },
+  },
 
   //////////////////////////////
   // others
   //////////////////////////////
   "telemetry": {
     "diagnostics": false,
-    "metrics": false,
+    "metrics": false
   },
 
   /////////////////////////////
@@ -290,7 +239,7 @@
         "punctuation.delimiter": {
           "color": "#8F96A0",
           "font_style": null,
-          "font_weight": null,
+          "font_weight": null
         },
         // "punctuation.bracket": {
         //   "color": "#CBC6AC"
@@ -319,8 +268,8 @@
         // },
         "property": {
           "color": "#CBC6AC",
-          "font_weight": 400,
-        },
+          "font_weight": 400
+        }
         // "tag": {
         //   "color": "#CBC6AC"
         // }
@@ -328,10 +277,10 @@
         // //   "color": "#CBC6AC"
         // // }
       },
-      "deleted": "#A1786C",
+      "deleted": "#A1786C"
       // "deleted": "#FF7676"
       // "deleted.border": "#FF7676",
       // "deleted.background": "#FF7676"
-    },
-  },
+    }
+  }
 }
