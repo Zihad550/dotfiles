@@ -230,10 +230,7 @@ alias pna='pn approve-builds'
 
 # npm aliases
 alias nr='pnpm run'
-# alias nr='bun run'
-# alias ni='npm install'
-alias nrd='pnpm run dev'
-alias nird='ni && bun run dev'
+alias nird='ni && nrd'
 alias nrb='bun run build'
 alias nbp='bun run build:preview'
 
@@ -312,7 +309,9 @@ devup() {
     devpod up .
 }
 
-ssht() {
+scd() {
     local remote_dir="${PWD/$USER/vscode}"
     ssh -t "$@" "cd '$remote_dir' && exec \$SHELL"
 }
+
+# alias obs='obsidian'
