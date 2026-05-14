@@ -41,6 +41,7 @@
   "mounts": [
     "source=${localEnv:HOME}/dotfiles,target=/home/vscode/dotfiles,type=bind",
     "source=${localEnv:HOME}/dev-0,target=/home/vscode/dev-0,type=bind",
+    "source=${localEnv:HOME}/Pictures/Screenshots,target=/home/vscode/Pictures/Screenshots,type=bind",
   ],
   "postCreateCommand": "bash ~/dotfiles/setup/devcontainer-2/install.sh",
 }
