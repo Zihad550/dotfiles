@@ -23,9 +23,9 @@ mkdir -p ~/dev-0
 mkdir -p ~/.kilocode
 ln -snf ~/dotfiles/kilocode/.kilocode/kilo.jsonc ~/.kilocode/kilo.jsonc
 ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
-ln -snf ~/dotfiles/kilocode/.kilocode/agent ~/.kilocode/agent
-ln -snf ~/dotfiles/kilocode/.kilocode/command ~/.kilocode/command
-ln -snf ~/dotfiles/kilocode/.kilocode/AGENTS.md ~/.kilocode/AGENTS.md
+ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.kilocode/agent
+ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.kilocode/command
+ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.kilocode/AGENTS.md
 mkdir -p ~/.kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
