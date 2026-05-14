@@ -27,6 +27,10 @@ ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 
+mkdir -p ~/.config/worktrunk
+ln -snf "$DOTFILES/worktrunk/.config/worktrunk/config.toml" ~/.config/worktrunk/config.toml
+ln -snf "$DOTFILES/worktrunk/.config/worktrunk/approvals.toml" ~/.config/worktrunk/approvals.toml
+
 mkdir -p ~/.claude
 ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
 

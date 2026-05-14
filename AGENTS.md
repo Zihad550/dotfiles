@@ -14,3 +14,21 @@ resources:
       path: resources/walker
 
 
+
+
+## resources for context
+
+```btca-resources
+resources:
+    - name: lazygit
+      path: resources/lazygit
+    - name: omarchy
+      path: resources/omarchy
+    - name: walker
+      path: resources/walker
+    - name: Waybar
+      path: resources/Waybar
+    - name: elephant
+      path: resources/elephant
+
+```

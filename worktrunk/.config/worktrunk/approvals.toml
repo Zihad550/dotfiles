@@ -13,6 +13,9 @@ approved-commands = [
     "rm -rf node_modules",
     "npm i",
     "btca -sync",
+    "wt step copy-ignored",
+    "ln -sfn {{ primary_worktree_path }}/CLAUDE.md {{ worktree_path }}/CLAUDE.md",
+    "ln -sfrn {{ primary_worktree_path }}/CLAUDE.md {{ worktree_path }}/CLAUDE.md",
 ]
 
 [projects."github.com/mamacrm/frontend"]
