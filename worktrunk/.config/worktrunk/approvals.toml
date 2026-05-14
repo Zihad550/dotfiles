@@ -12,6 +12,7 @@ approved-commands = [
     "mise run blc",
     "rm -rf node_modules",
     "npm i",
+    "btca -sync",
 ]
 
 [projects."github.com/mamacrm/frontend"]
