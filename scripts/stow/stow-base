@@ -16,11 +16,21 @@ ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions
 # stow zellij
 # stow gemini
 stow lazygit
-stow opencode
-stow kilo
+mkdir -p ~/.config/opencode
+ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.config/opencode/agent
+ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.config/opencode/command
+ln -snf ~/dotfiles/opencode/.config/opencode/plugin ~/.config/opencode/plugin
+ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.config/opencode/AGENTS.md
+ln -snf ~/dotfiles/opencode/.config/opencode/opencode.jsonc ~/.config/opencode/opencode.jsonc
+ln -snf ~/dotfiles/opencode/.config/opencode/tui.json ~/.config/opencode/tui.json
+mkdir -p ~/.kilocode
+ln -snf ~/dotfiles/kilocode/.kilocode/kilo.jsonc ~/.kilocode/kilo.jsonc
+ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
+ln -snf ~/dotfiles/kilocode/.kilocode/agent ~/.kilocode/agent
+ln -snf ~/dotfiles/kilocode/.kilocode/command ~/.kilocode/command
+ln -snf ~/dotfiles/kilocode/.kilocode/AGENTS.md ~/.kilocode/AGENTS.md
 stow agents
-ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
-mkdir -p ~/.kilocode/skills # correct path, after symlink
+mkdir -p ~/.kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 stow themes

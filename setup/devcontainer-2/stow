@@ -6,11 +6,21 @@ cd "$DOTFILES"
 mkdir -p ~/.config
 ln -snf "$DOTFILES/git/.config/git" ~/.config/git
 # ln -snf "$DOTFILES/lazygit/.config/lazygit" ~/.config/lazygit
-ln -snf "$DOTFILES/opencode/.config/opencode" ~/.config/opencode
-ln -snf "$DOTFILES/kilo/.config/kilo" ~/.config/kilo
+mkdir -p ~/.config/opencode
+ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.config/opencode/agent
+ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.config/opencode/command
+ln -snf "$DOTFILES/opencode/.config/opencode/plugin" ~/.config/opencode/plugin
+ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
+ln -snf "$DOTFILES/opencode/.config/opencode/opencode.jsonc" ~/.config/opencode/opencode.jsonc
+ln -snf "$DOTFILES/opencode/.config/opencode/tui.json" ~/.config/opencode/tui.json
+mkdir -p ~/.kilocode
+ln -snf "$DOTFILES/kilocode/.kilocode/kilo.jsonc" ~/.kilocode/kilo.jsonc
+ln -snf "$DOTFILES/kilocode/.kilocode/plugin" ~/.kilocode/plugin
+ln -snf "$DOTFILES/kilocode/.kilocode/agent" ~/.kilocode/agent
+ln -snf "$DOTFILES/kilocode/.kilocode/command" ~/.kilocode/command
+ln -snf "$DOTFILES/kilocode/.kilocode/AGENTS.md" ~/.kilocode/AGENTS.md
 ln -snf "$DOTFILES/agents/.agents" ~/.agents
-ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
-mkdir -p ~/.kilocode/skills # correct path, after symlink
+mkdir -p ~/.kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # stow mise

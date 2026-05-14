@@ -4,7 +4,13 @@
 cd ~/dotfiles || exit
 
 stow git
-stow opencode
+mkdir -p ~/.config/opencode
+ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.config/opencode/agent
+ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.config/opencode/command
+ln -snf ~/dotfiles/opencode/.config/opencode/plugin ~/.config/opencode/plugin
+ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.config/opencode/AGENTS.md
+ln -snf ~/dotfiles/opencode/.config/opencode/opencode.jsonc ~/.config/opencode/opencode.jsonc
+ln -snf ~/dotfiles/opencode/.config/opencode/tui.json ~/.config/opencode/tui.json
 stow agents
 stow tmux
 stow zsh # to get the aliasrc file
@@ -16,8 +22,13 @@ mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 
 mkdir -p ~/dev-0
+mkdir -p ~/.kilocode
+ln -snf ~/dotfiles/kilocode/.kilocode/kilo.jsonc ~/.kilocode/kilo.jsonc
+ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
+ln -snf ~/dotfiles/kilocode/.kilocode/agent ~/.kilocode/agent
+ln -snf ~/dotfiles/kilocode/.kilocode/command ~/.kilocode/command
+ln -snf ~/dotfiles/kilocode/.kilocode/AGENTS.md ~/.kilocode/AGENTS.md
 mkdir -p ~/.kilocode/skills
-ln -snf ~/dotfiles/opencode/.config/opencode ~/.kilocode
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # sudo apt install procs -y # available from ubuntu 25.04
