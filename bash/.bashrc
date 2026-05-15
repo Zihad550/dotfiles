@@ -121,7 +121,12 @@ _chpwd() {
         eza -lh --group-directories-first --icons=auto --color=auto
     fi
 }
-PROMPT_COMMAND="_chpwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+# Emit OSC 7 (current working directory) so the outer terminal / tmux can
+# track the remote cwd across an ssh session (#{pane_path}).
+_emit_osc7_cwd() {
+    printf '\033]7;file://%s%s\033\\' "${HOSTNAME:-$(hostname)}" "$PWD"
+}
+PROMPT_COMMAND="_chpwd; _emit_osc7_cwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 #################
 # Shell integrations

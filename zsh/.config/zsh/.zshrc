@@ -128,6 +128,15 @@ if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
 # if command -v tea >/dev/null 2>&1; then source <(tea completion zsh); fi
 source "$XDG_CONFIG_HOME/zsh/ni"
 
+# Emit OSC 7 (current working directory) so the outer terminal / tmux can
+# track the remote cwd across an ssh session. Tmux exposes this as
+# #{pane_path}, which the new-window-ssh-aware script reads.
+_emit_osc7_cwd() {
+    printf '\e]7;file://%s%s\e\\' "${HOST:-${HOSTNAME:-$(hostname)}}" "$PWD"
+}
+typeset -ga precmd_functions
+precmd_functions+=(_emit_osc7_cwd)
+
 # everytime i do cd it lists all content of that directory
 chpwd() {
     eza -lh --group-directories-first --icons=auto --color=auto
