@@ -16,6 +16,7 @@ approved-commands = [
     "wt step copy-ignored",
     "ln -sfn {{ primary_worktree_path }}/CLAUDE.md {{ worktree_path }}/CLAUDE.md",
     "ln -sfrn {{ primary_worktree_path }}/CLAUDE.md {{ worktree_path }}/CLAUDE.md",
+    "for p in CLAUDE.md AGENTS.md mise.toml .agents .claude .opencode .kilo .kilocode resources; do [ -e {{ primary_worktree_path }}/$p ] || continue; rm -rf {{ worktree_path }}/$p && ln -srn {{ primary_worktree_path }}/$p {{ worktree_path }}/$p; done",
 ]
 
 [projects."github.com/mamacrm/frontend"]
