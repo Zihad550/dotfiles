@@ -56,5 +56,5 @@ ssh_cmd=$(find_ssh "$pane_pid")
 if [ -n "$ssh_cmd" ]; then
     tmux new-window "$ssh_cmd"
 else
-    tmux new-window -c "$(tmux display-message -p -t :1 "#{pane_current_path}")"
+    tmux new-window -c "$pane_path"
 fi
