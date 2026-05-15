@@ -54,7 +54,7 @@ find_ssh() {
 ssh_cmd=$(find_ssh "$pane_pid")
 
 if [ -n "$ssh_cmd" ]; then
-    tmux new-window "$ssh_cmd"
+    tmux new-window -a "$ssh_cmd"
 else
-    tmux new-window -c "$pane_path"
+    tmux new-window -a -c "$pane_path"
 fi
