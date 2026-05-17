@@ -721,7 +721,7 @@
       "manifest": {
         "id": "vue",
         "name": "Vue",
-        "version": "0.3.3",
+        "version": "0.3.4",
         "schema_version": 1,
         "description": "Vue support.",
         "repository": "https://github.com/zed-extensions/vue",
