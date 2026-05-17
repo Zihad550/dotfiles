@@ -12,13 +12,10 @@ resources:
       path: resources/omarchy
     - name: walker
       path: resources/walker
+    - name: Hyprland
+      path: resources/Hyprland
 
-
-
-
-## resources for context
-
-```btca-resources
+btca-resources
 resources:
     - name: lazygit
       path: resources/lazygit

@@ -2,20 +2,31 @@
 
 set -e
 
-THEME_DIR="$HOME/.config/theme"
-BACKGROUNDS_PATH="$THEME_DIR/backgrounds/"
-CURRENT_BACKGROUND_LINK="$THEME_DIR/background"
+THEME_LINK="$HOME/.config/theme"
+BG_DIR="$HOME/.config/backgrounds"
+CURRENT_BACKGROUND_LINK="$THEME_LINK/background"
 
-if [[ ! -d "$BACKGROUNDS_PATH" ]]; then
-  echo "No backgrounds directory found: $BACKGROUNDS_PATH"
+if [[ ! -L $THEME_LINK || ! -e $THEME_LINK ]]; then
+  echo "No active theme: $THEME_LINK"
+  exit 1
+fi
+THEME="$(basename "$(readlink "$THEME_LINK")")"
+
+if [[ ! -d $BG_DIR ]]; then
+  echo "No backgrounds directory: $BG_DIR"
   exit 1
 fi
 
-mapfile -d '' -t BACKGROUNDS < <(find -L "$BACKGROUNDS_PATH" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) -print0 2>/dev/null | sort -z)
+mapfile -d '' -t BACKGROUNDS < <(
+  find -L "$BG_DIR" -maxdepth 1 -type f \
+    \( -iname "$THEME.jpg" -o -iname "$THEME.jpeg" -o -iname "$THEME.png" -o -iname "$THEME.webp" \
+       -o -iname "$THEME-*.jpg" -o -iname "$THEME-*.jpeg" -o -iname "$THEME-*.png" -o -iname "$THEME-*.webp" \) \
+    -print0 2>/dev/null | sort -z
+)
 TOTAL=${#BACKGROUNDS[@]}
 
 if (( TOTAL == 0 )); then
-  echo "No backgrounds found in $BACKGROUNDS_PATH"
+  echo "No backgrounds for theme '$THEME' in $BG_DIR"
   exit 1
 fi
 
@@ -27,7 +38,7 @@ fi
 
 INDEX=-1
 for i in "${!BACKGROUNDS[@]}"; do
-  if [[ ${BACKGROUNDS[$i]} == $CURRENT_BACKGROUND ]]; then
+  if [[ ${BACKGROUNDS[$i]} == "$CURRENT_BACKGROUND" ]]; then
     INDEX=$i
     break
   fi

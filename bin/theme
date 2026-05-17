@@ -83,15 +83,16 @@ switch_theme() {
     mkdir -p ~/.config/tmux
     ln -snf ~/.config/theme/tmux.conf ~/.config/tmux/tmux.theme.conf
 
-    # Background symlink
-    mkdir -p ~/.config/theme/backgrounds
+    # Background: pick ~/.config/backgrounds/<theme>.<ext>
     BACKGROUND_PATH=""
-    for bg in ~/.config/theme/backgrounds/*; do
+    shopt -s nullglob
+    for bg in "$HOME"/.config/backgrounds/"$theme".*; do
         if [[ -f "$bg" ]]; then
             BACKGROUND_PATH="$bg"
             break
         fi
     done
+    shopt -u nullglob
     if [[ -n "$BACKGROUND_PATH" ]]; then
         rm -f ~/.config/theme/background
         ln -snf "$BACKGROUND_PATH" ~/.config/theme/background
@@ -99,6 +100,8 @@ switch_theme() {
         # Restart swaybg with new background
         pkill -x swaybg
         setsid uwsm-app -- swaybg -i "$BACKGROUND_PATH" -m fill >/dev/null 2>&1 &
+    else
+        echo "warn: no background found at ~/.config/backgrounds/$theme.* — run scripts/utils/migrate-theme-backgrounds" >&2
     fi
 
     # Obsidian style settings

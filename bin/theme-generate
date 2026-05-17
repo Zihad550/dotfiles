@@ -105,25 +105,8 @@ for template in "$TEMPLATE_DIR"/*.tpl; do
    fi
 done
 
-if [[ -d "$THEME_SOURCE/$THEME_NAME/backgrounds" ]]; then
-   mkdir -p "$OUTPUT_DIR/backgrounds"
-   for f in "$THEME_SOURCE/$THEME_NAME/backgrounds"/*; do
-      if [[ -f "$f" ]]; then
-         resolved_source=$(readlink -f "$f")
-         resolved_dest=$(readlink -f "$OUTPUT_DIR/backgrounds/$(basename "$f")")
-         if [[ "$resolved_source" != "$resolved_dest" ]]; then
-            cp "$f" "$OUTPUT_DIR/backgrounds/"
-         fi
-      fi
-   done
-fi
-
 if [[ -f "$THEME_SOURCE/$THEME_NAME/light.mode" ]]; then
    safe_cp "$THEME_SOURCE/$THEME_NAME/light.mode" "$OUTPUT_DIR/light.mode"
-fi
-
-if [[ -f "$THEME_SOURCE/$THEME_NAME/preview.png" ]]; then
-   safe_cp "$THEME_SOURCE/$THEME_NAME/preview.png" "$OUTPUT_DIR/preview.png"
 fi
 
 if [[ -f "$THEME_SOURCE/$THEME_NAME/icons.theme" ]]; then

@@ -69,7 +69,7 @@ color1 = "#b4637a"
 
 1. Create a new directory in `themes/.config/themes/<theme-name>/`
 2. Create a `colors.toml` file with the theme colors
-3. Optionally add `backgrounds/`, `preview.png`, `light.mode`, etc.
+3. Optionally add `light.mode`, etc.
 4. Run `./bin/theme-generate <theme-name>` to generate the configs
 
 ## Templates
