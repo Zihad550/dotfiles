@@ -125,6 +125,7 @@ if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out zs
 if command -v kubectl >/dev/null 2>&1; then source <(kubectl completion zsh); fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
+if command -v atuin >/dev/null 2>&1; then eval "$(atuin init zsh)"; fi
 # if command -v tea >/dev/null 2>&1; then source <(tea completion zsh); fi
 source "$XDG_CONFIG_HOME/zsh/ni"
 
@@ -195,7 +196,7 @@ bindkey "^H" backward-kill-word
 # ctrl J & K for going up and down in prev commands
 bindkey "^J" history-search-forward
 bindkey "^K" history-search-backward
-bindkey '^R' fzf-history-widget
+# bindkey '^R' fzf-history-widget
 
 # custom plugins, zle(zshell line editor)
 # clear but keep current
