@@ -2,7 +2,7 @@ Name = "dotfilesBackgrounds"
 NamePretty = "Backgrounds"
 Icon = "preferences-desktop-wallpaper"
 Cache = false
-HideFromProviderlist = true
+HideFromProviderlist = false
 SearchName = true
 
 local function ShellEscape(s)

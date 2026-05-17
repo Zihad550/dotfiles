@@ -11,7 +11,7 @@ themes/
 │   ├── btop.theme.tpl
 │   ├── eza.yml.tpl
 │   ├── ghostty.conf.tpl
-│   ├── hyprland.conf.tpl
+│   ├── hyprland.lua.tpl
 │   ├── hyprlock.conf.tpl
 │   ├── kitty.conf.tpl
 │   ├── mako.ini.tpl

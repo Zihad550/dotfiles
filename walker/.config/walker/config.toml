@@ -4,7 +4,7 @@ theme = "default"                                                   # theme to u
 additional_theme_location = "~/.config/walker/themes/"
 
 [placeholders]
-"default" = { input = " Search...", list = "No Results" } # placeholders for input and empty list, key is the providers name, so f.e. "desktopapplications" or "menus:other"
+"default" = { input = " Search...", list = "No Results" } # placeholders for input and empty list, key is the providers name, so f.e. "desktopapplications" or "menus:other"
 
 # [keybinds]
 # quick_activate = []
@@ -18,6 +18,13 @@ default = [
   "calc",
   "windows"
 ] # providers to be queried by default
+
+[providers.actions]
+"menus:dotfilesDirs" = [
+  { action = "menus:default", default = true, bind = "Return", label = "open in zed", after = "Close" },
+  { action = "menus:open", bind = "shift Return", label = "open with...", after = "Nothing" },
+  { action = "menus:parent", bind = "Escape", after = "Nothing" },
+]
 
 [[providers.prefixes]]
 prefix = "?"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Open the walker/elephant menu to select a theme from ~/.config/themes.
+# Selecting an entry runs `theme <name>` on the chosen theme.
+
+set -e
+
+if ! pgrep -x elephant >/dev/null; then
+  setsid uwsm-app -- elephant &
+fi
+
+if ! pgrep -f "walker --gapplication-service" >/dev/null; then
+  setsid uwsm-app -- walker --gapplication-service &
+fi
+
+exec walker -m menus:dotfilesThemes --width 800 --maxheight 500 --minheight 500 "$@"
