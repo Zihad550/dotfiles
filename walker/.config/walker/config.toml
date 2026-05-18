@@ -13,11 +13,16 @@ additional_theme_location = "~/.config/walker/themes/"
 [providers]
 default = [
   "desktopapplications",
-  "menus",
+  "menus:system",
+  "menus:media",
+  "menus:other",
+  "menus:dotfilesDirs",
+  "menus:dotfilesThemes",
+  "menus:dotfilesBackgrounds",
   "websearch",
   "calc",
   "windows"
-] # providers to be queried by default
+] # providers to be queried by default. Heavy menus read from cache files; lua refreshes them in background when stale.
 
 [providers.actions]
 "menus:dotfilesDirs" = [

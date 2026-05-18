@@ -10,7 +10,10 @@ LAUNCH_COMMAND="${2:-"uwsm-app -- $WINDOW_PATTERN"}"
 WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
 
 if [[ -n $WINDOW_ADDRESS ]]; then
-   hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS"
+   # In lua-config mode `hyprctl dispatch <X>` is evaluated as Lua, so try the
+   # lua syntax first and fall back to legacy for conf mode.
+   hyprctl dispatch "hl.dsp.focus({ window = \"address:$WINDOW_ADDRESS\" })" >/dev/null 2>&1 \
+      || hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS"
 else
    eval exec $LAUNCH_COMMAND
 fi

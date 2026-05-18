@@ -1,17 +1,40 @@
 #!/usr/bin/env bash
 
+# In Hyprland's lua-config mode, `hyprctl dispatch <X>` evaluates <X> as a Lua
+# expression (HyprCtl.cpp:1102-1116). The legacy dispatcher names below only
+# work in conf mode, so try the lua syntax first and fall back to legacy —
+# this keeps the script portable across both modes. Pattern borrowed from
+# resources/omarchy/bin/omarchy-launch-or-focus.
+
 WINDOW_PATTERN="$1"
 app="$2"
 workspace="$3"
+
 WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
 
 CURRENT_WS=$(hyprctl activewindow -j | jq -r '.workspace.name')
 
+toggle_special() {
+   hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$1\")" >/dev/null 2>&1 \
+      || hyprctl dispatch togglespecialworkspace "$1"
+}
+
+focus_address() {
+   hyprctl dispatch "hl.dsp.focus({ window = \"address:$1\" })" >/dev/null 2>&1 \
+      || hyprctl dispatch focuswindow "address:$1"
+}
+
+exec_on_special() {
+   local ws="$1" cmd="$2"
+   hyprctl dispatch "hl.dsp.exec_cmd([=[[workspace special:$ws] $cmd]=])" >/dev/null 2>&1 \
+      || hyprctl dispatch exec "[workspace special:$ws] $cmd"
+}
+
 if [[ "$CURRENT_WS" == "special:$workspace" ]]; then
-   hyprctl dispatch togglespecialworkspace $workspace
+   toggle_special "$workspace"
 elif [[ -n $WINDOW_ADDRESS ]]; then
-   hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS"
+   focus_address "$WINDOW_ADDRESS"
 else
-   hyprctl dispatch togglespecialworkspace $workspace
-   hyprctl dispatch exec "[workspace special:$workspace]" "uwsm-app -- $app"
+   toggle_special "$workspace"
+   exec_on_special "$workspace" "uwsm-app -- $app"
 fi

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# In lua-config mode, `hyprctl dispatch <X>` evaluates <X> as Lua (HyprCtl.cpp:1102-1116).
+# Try lua syntax first, fall back to legacy so this script works in both modes.
+
 tag="${1:-}"
 app="${2:-}"
 workspace="$tag"
@@ -15,19 +19,34 @@ window_address=$(
 
 current_ws=$(hyprctl activewindow -j | jq -r '.workspace.name')
 
+toggle_special() {
+   hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$1\")" >/dev/null 2>&1 \
+      || hyprctl dispatch togglespecialworkspace "$1"
+}
+
+focus_address() {
+   hyprctl dispatch "hl.dsp.focus({ window = \"address:$1\" })" >/dev/null 2>&1 \
+      || hyprctl dispatch focuswindow "address:$1"
+}
+
+exec_on_special() {
+   local ws="$1" cmd="$2"
+   hyprctl dispatch "hl.dsp.exec_cmd([=[[workspace special:$ws] $cmd]=])" >/dev/null 2>&1 \
+      || hyprctl dispatch exec "[workspace special:$ws] $cmd"
+}
+
+tag_active() {
+   hyprctl dispatch "hl.dsp.window.tag({ tag = \"+$1\" })" >/dev/null 2>&1 \
+      || hyprctl dispatch tagwindow "+$1"
+}
+
 if [[ "$current_ws" == "special:$workspace" ]]; then
-   hyprctl dispatch togglespecialworkspace $workspace
+   toggle_special "$workspace"
 elif [[ -n $window_address ]]; then
-   hyprctl dispatch focuswindow "address:$window_address"
+   focus_address "$window_address"
 else
-
-   hyprctl dispatch togglespecialworkspace $workspace
-   hyprctl dispatch exec "[workspace special:$workspace]" "$app"
-
-   # sleep 0.8
-   # address=$(hyprctl activewindow -j | jq -r '.address')
-   # hyprctl dispatch tagwindow "+$tag" address:$address
-   # hyprctl dispatch tagwindow "+$tag"
+   toggle_special "$workspace"
+   exec_on_special "$workspace" "$app"
 
    sleep 0.2
    for i in {1..10}; do
@@ -38,8 +57,7 @@ else
       sleep 0.2
    done
 
-   # tag the window
    if [[ -n "$address" && "$address" != "null" ]]; then
-      hyprctl dispatch tagwindow "+$tag"
+      tag_active "$tag"
    fi
 fi

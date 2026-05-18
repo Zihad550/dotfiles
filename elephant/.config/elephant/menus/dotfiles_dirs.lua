@@ -6,6 +6,11 @@ HideFromProviderlist = false
 SearchName = true
 SubMenu = "dotfilesDirOpener"
 
+-- Menu-level action: %VALUE% is replaced with entry.Value (the path) at activate time.
+Actions = {
+    ["menus:default"] = "setsid uwsm-app -- zeditor %VALUE% >/dev/null 2>&1",
+}
+
 local function ShellEscape(s)
     return "'" .. s:gsub("'", "'\\''") .. "'"
 end
@@ -16,45 +21,67 @@ local PRUNE = {
     "Cypress", "cypress", "discord", "go", "obs-studio", "mpv", "transmission",
 }
 
+local function BuildCacheCmd(home, cache_file, tmp_file)
+    local prune = ""
+    for i, name in ipairs(PRUNE) do
+        if i > 1 then prune = prune .. " -o " end
+        prune = prune .. "-name " .. ShellEscape(name)
+    end
+    return "mkdir -p " .. ShellEscape(cache_file:match("(.*)/")) .. " && "
+        .. "find " .. ShellEscape(home)
+        .. " -maxdepth 6 -type d \\( " .. prune .. " \\) -prune"
+        .. " -o -type d -print 2>/dev/null > " .. ShellEscape(tmp_file)
+        .. " && mv " .. ShellEscape(tmp_file) .. " " .. ShellEscape(cache_file)
+end
+
 function GetEntries()
     local entries = {}
     local home = os.getenv("HOME") or ""
     if home == "" then return entries end
+    local home_prefix_len = #home + 2
 
-    local prune_expr = ""
-    for i, name in ipairs(PRUNE) do
-        if i > 1 then prune_expr = prune_expr .. " -o " end
-        prune_expr = prune_expr .. "-name " .. ShellEscape(name)
+    local cache_dir = home .. "/.cache/dotfiles-dir-picker"
+    local cache_file = cache_dir .. "/folders.list"
+    local tmp_file = cache_file .. ".tmp"
+
+    local check = io.popen("test -s " .. ShellEscape(cache_file) .. " && echo ok 2>/dev/null")
+    local exists = false
+    if check then
+        exists = check:read("*l") == "ok"
+        check:close()
     end
 
-    local cmd = "find " .. ShellEscape(home)
-        .. " -maxdepth 6 -type d \\( " .. prune_expr .. " \\) -prune"
-        .. " -o -type d -print 2>/dev/null"
+    if not exists then
+        os.execute(BuildCacheCmd(home, cache_file, tmp_file))
+    else
+        -- Background refresh if cache is older than 5 minutes and no rebuild in progress.
+        -- The tmp_file acts as a lock: find writes to it then renames atomically, so a
+        -- present tmp_file means another rebuild is already running.
+        local refresh = "if [ ! -e " .. ShellEscape(tmp_file) .. " ] && "
+            .. "[ $(($(date +%s) - $(stat -c %Y " .. ShellEscape(cache_file) .. "))) -gt 300 ]; then "
+            .. BuildCacheCmd(home, cache_file, tmp_file)
+            .. "; fi"
+        os.execute("(" .. refresh .. ") >/dev/null 2>&1 &")
+    end
 
-    local handle = io.popen(cmd)
+    local handle = io.popen("cat " .. ShellEscape(cache_file) .. " 2>/dev/null")
     if not handle then return entries end
 
     for path in handle:lines() do
-        local rel
-        if path == home then
-            rel = "~"
-        else
-            rel = path:sub(#home + 2)
+        if path ~= "" then
+            local rel
+            if path == home then
+                rel = "~"
+            else
+                rel = path:sub(home_prefix_len)
+            end
+
+            entries[#entries + 1] = {
+                Text = rel,
+                Subtext = path,
+                Value = path,
+            }
         end
-
-        local label = rel
-        local subtext = path
-        local name = path:match("([^/]+)$") or path
-
-        table.insert(entries, {
-            Text = label,
-            Subtext = subtext,
-            Value = path,
-            Keywords = { name },
-            Actions = {
-                ["menus:default"] = "setsid uwsm-app -- zeditor " .. ShellEscape(path) .. " >/dev/null 2>&1",
-            },
-        })
     end
     handle:close()
 
