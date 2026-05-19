@@ -20,6 +20,8 @@ PRUNE_NAMES=(
   .cache Kiro .kiro .cursor Cypress cypress discord go obs-studio mpv transmission
 )
 
+ROOTS=("$HOME/.dotfiles" "$HOME/dev-0" "$HOME/dev")
+
 build_cache() {
   local prune_args=()
   for name in "${PRUNE_NAMES[@]}"; do
@@ -28,8 +30,14 @@ build_cache() {
   # Drop the leading -o from the first entry
   prune_args=("${prune_args[@]:1}")
 
+  local existing=()
+  for r in "${ROOTS[@]}"; do
+    [[ -d $r ]] && existing+=("$r")
+  done
+  [[ ${#existing[@]} -eq 0 ]] && return 0
+
   mkdir -p "$CACHE_DIR"
-  find "$HOME" -maxdepth 6 -type d \( "${prune_args[@]}" \) -prune \
+  find "${existing[@]}" -maxdepth 6 -type d \( "${prune_args[@]}" \) -prune \
     -o -type d -print 2>/dev/null >"$TMP_FILE"
   mv "$TMP_FILE" "$CACHE_FILE"
 }
