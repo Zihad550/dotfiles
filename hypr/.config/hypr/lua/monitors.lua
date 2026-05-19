@@ -45,7 +45,7 @@ hl.monitor({
     reserved_area = { top = 340, bottom = 40, left = 0, right = 0 },
 })
 -- hl.monitor({ output = "HDMI-A-1", reserved_area = { top = 200, bottom = 80, left = 0, right = 0 } })  -- alt: addreserved 200 80 0 0
--- hl.monitor({ output = "eDP-1",    mode = "preferred", position = "1080x860", scale = "1" })
+hl.monitor({ output = "eDP-1", mode = "preferred", position = "1080x860", scale = "1" })
 
 -- show workspace 3-10 on monitor hdmi-a-1 (primary)
 hl.workspace_rule({ workspace = "3", monitor = "HDMI-A-1", default = true })
