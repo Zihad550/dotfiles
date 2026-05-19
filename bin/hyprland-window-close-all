@@ -1,9 +1,18 @@
 #!/bin/bash
 
+# In lua-config mode `hyprctl dispatch <X>` is evaluated as Lua, so try the
+# lua syntax first and fall back to legacy for conf mode.
+close_address() {
+   hyprctl dispatch "hl.dsp.window.close({ window = \"address:$1\" })" >/dev/null 2>&1 \
+      || hyprctl dispatch closewindow "address:$1"
+}
+export -f close_address
+
 # Close all open windows
 hyprctl clients -j |
    jq -r ".[].address" |
-   xargs -I{} hyprctl dispatch closewindow address:{}
+   xargs -I{} bash -c 'close_address "$@"' _ {}
 
 # Move to first workspace
-hyprctl dispatch workspace 1
+hyprctl dispatch "hl.dsp.focus({ workspace = \"1\" })" >/dev/null 2>&1 \
+   || hyprctl dispatch workspace 1
