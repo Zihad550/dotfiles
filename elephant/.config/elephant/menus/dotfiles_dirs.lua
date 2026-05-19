@@ -21,14 +21,30 @@ local PRUNE = {
     "Cypress", "cypress", "discord", "go", "obs-studio", "mpv", "transmission",
 }
 
+local ROOTS = { ".dotfiles", "dev-0", "dev" }
+
 local function BuildCacheCmd(home, cache_file, tmp_file)
     local prune = ""
     for i, name in ipairs(PRUNE) do
         if i > 1 then prune = prune .. " -o " end
         prune = prune .. "-name " .. ShellEscape(name)
     end
+
+    local existing = {}
+    for _, name in ipairs(ROOTS) do
+        local path = home .. "/" .. name
+        local f = io.open(path, "r")
+        if f then f:close(); existing[#existing + 1] = path end
+    end
+    if #existing == 0 then return "true" end
+
+    local roots = ""
+    for _, p in ipairs(existing) do
+        roots = roots .. " " .. ShellEscape(p)
+    end
+
     return "mkdir -p " .. ShellEscape(cache_file:match("(.*)/")) .. " && "
-        .. "find " .. ShellEscape(home)
+        .. "find" .. roots
         .. " -maxdepth 6 -type d \\( " .. prune .. " \\) -prune"
         .. " -o -type d -print 2>/dev/null > " .. ShellEscape(tmp_file)
         .. " && mv " .. ShellEscape(tmp_file) .. " " .. ShellEscape(cache_file)
