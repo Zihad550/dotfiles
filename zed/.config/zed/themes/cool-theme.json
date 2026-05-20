@@ -94,15 +94,14 @@
         "created": "#76946A",
         "created.border": "#76946A",
         "created.background": "#1a1a22",
-        // updated to megenta
-        // "deleted": "#FF00FF",
-        // "deleted.border": "#C940C9",
-        // "deleted.background": "#1a1320",
-
+        // updated to red
+        "deleted": "#E46876",
+        "deleted.border": "#C34043",
+        "deleted.background": "#1c1214",
         // updated to gray
-        "deleted": "#888888",
-        "deleted.border": "#777777",
-        "deleted.background": "#1a1a1a",
+        // "deleted": "#888888",
+        // "deleted.border": "#777777",
+        // "deleted.background": "#1a1a1a",
         "error": "#E82424",
         "error.border": "#E82424",
         "error.background": "#1a1a22",
