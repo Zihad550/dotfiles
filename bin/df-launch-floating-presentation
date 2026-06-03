@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Launch a floating terminal with df-show-logo, execute the command, then df-show-done.
+# Used by actions such as Update System.
+
+cmd="$*"
+# exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.arch.terminal --title=Arch -e bash -c "df-show-logo; $cmd; if [ \$? -ne 130 ]; then df-show-done; fi"
+exec setsid uwsm-app -- ghostty --title=Arch -e bash -c "df-show-logo; $cmd; if [ \$? -ne 130 ]; then df-show-done; fi"

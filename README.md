@@ -1,50 +1,116 @@
 # dotfiles
 
-## clone only the last commit
-```bash
-git clone --depth 1 https://github.com/Zihad550/dotfiles
-```
+Personal dotfiles for Arch + Hyprland (with Ubuntu / Fedora / Alpine / arch-gnome variants under `setup/`).
+Inspired by [omarchy](https://github.com/basecamp/omarchy) — see `resources/omarchy/` for the upstream reference.
 
-## arch setup
-1. disk configuration, btrfs with snapper snapshots
-2. disk encryption
-
-## notes hyprland
+## clone
 
 ```bash
- hyprctl dispatch focuscurrentorlast
- hyprctl dispatch fullscreen 0
- hyprctl dispatch focuscurrentorlast
- hyprctl dispatch fullscreen 0
- hyprctl dispatch movewindow u
+# full history
+git clone https://github.com/Zihad550/dotfiles ~/dotfiles
+
+# or shallow
+git clone --depth 1 https://github.com/Zihad550/dotfiles ~/dotfiles
 ```
 
-## remove unused
+## install
+
+```bash
+~/dotfiles/setup/boot.sh                 # auto-detects distro
+~/dotfiles/setup/boot.sh arch-hyprland   # explicit target
+~/dotfiles/setup/boot.sh --help          # list targets
+```
+
+## arch setup notes
+
+1. Disk: btrfs with snapper snapshots
+2. Disk encryption (LUKS)
+
+## layout
+
+| Path | Purpose |
+|---|---|
+| `bin/` | `df-*` user scripts (theme, font, launch, restart helpers) |
+| `hypr/` | Hyprland Lua config (entrypoint: `hypr/.config/hypr/hyprland.lua`) |
+| `themes/` | Theme palettes + templates (`df-theme-set <name>` switches) |
+| `setup/` | Per-distro install scripts; `boot.sh` dispatches |
+| `scripts/` | Misc utilities (stow, kanata, rclone, syncthing, …) |
+| `resources/` | Read-only upstream references (omarchy, walker, elephant, …) |
+
+## common bins
+
+```bash
+df-theme-set <name>                # switch theme; no args = show current + list
+df-theme-picker                    # walker menu (with inline previews)
+df-theme-install <git-url> [--apply] [--force]
+                                   # clone external theme into ~/.config/themes/
+df-theme-remove <name> [--force]   # remove a user-installed theme (refuses built-ins)
+df-theme-refresh [--apply]         # regen all themes from current templates
+df-theme-colors-from-alacritty <theme-dir>
+                                   # derive colors.toml from alacritty.toml
+df-theme-set-{vscode,gnome,browser,obsidian}
+                                   # per-app theme appliers (called by df-theme-set)
+
+df-font-set <family>               # switch monospace font across configs
+df-font-list                       # list installed mono families
+df-font-current                    # print current font
+
+df-launch-tui <cmd>                # launch TUI in ghostty (guards missing bin)
+df-launch-app <cmd>                # launch GUI (guards missing bin)
+df-cmd-present <cmd>...            # exit 0 if all on PATH
+df-system-update                   # full system update (pacman/yay/flatpak/mise)
+```
+
+### theme paths
+
+| Path | Contents |
+|---|---|
+| `~/.config/themes/<name>/` | active theme source (`colors.toml`) + generated outputs |
+| `~/.config/theme` | symlink → active `~/.config/themes/<name>/` |
+| `~/.config/backgrounds/<name>.<ext>` | per-theme background (primary + `<name>-1.<ext>` extras) |
+| `~/.config/theme-previews/<name>.<ext>` | thumbnail shown in `df-theme-picker` |
+
+Built-in themes live in this repo at `themes/.config/themes/<name>/` and are
+stowed into `~/.config/themes/` as symlinks. `df-theme-remove` refuses to
+delete those — edit the repo instead. Backgrounds/previews directories are
+themselves stow-managed symlinks; writes through them land in the repo.
+
+---
+
+## scratch notes
+
+### hyprland dispatch examples
+
+```bash
+hyprctl dispatch focuscurrentorlast
+hyprctl dispatch fullscreen 0
+hyprctl dispatch movewindow u
+hyprctl dispatch movetoworkspace special:zellij,title:zellij
+hyprctl keyword monitor "eDP-1,preferred,1080x860,1"
+```
+
+### remove unused
+
 ```bash
 flatpak uninstall --unused
-yay -Scc # remove cache
-sudo rm -rf /var/cache/pacman/pkg/download-*/ # if needed by the privious one
-sudo pacman -Rs --noconfirm $(pacman -Qtdq) # remove unused
+yay -Scc                                            # remove cache
+sudo rm -rf /var/cache/pacman/pkg/download-*/       # if needed
+sudo pacman -Rs --noconfirm $(pacman -Qtdq)         # remove unused
 ```
 
-```sh
+### grub / LUKS
+
+```bash
 sudo nvim /etc/default/grub
-# Uncomment to enable booting from LUKS encrypted devices
+# Uncomment to enable booting from LUKS encrypted devices, not needed if use snapper from archinstall
 GRUB_ENABLE_CRYPTODISK=y
 
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
-
-hyprctl dispatch movetoworkspace special:zellij,title:zellij
-
-# get architecture of a installed tool, installed by mise
-file "$(mise where deno)/bin/deno"
-
-# zsh site-functions, completion files
-/usr/share/zsh/site-functions
 ```
 
-# updates
+### updates
+
 ```bash
 sudo pacman -Syu
 yay -Sua
@@ -55,9 +121,20 @@ zinit self-update
 aichat --sync-models
 ```
 
-# nc - connect network
+### misc
+
+```bash
+# get architecture of a tool installed via mise
+file "$(mise where deno)/bin/deno"
+
+# zsh site-functions / completion files
+/usr/share/zsh/site-functions
+
+# probe a port
 nc -z -vv localhost 6379
 
-hyprctl keyword monitor "eDP-1,preferred,1080x860,1"
+# create a forgejo issue
+tea issues create --repo <owner>/<repo> --title "title" --description "desc" --login <login>
+```
 
-tea issues create --repo <owner>/<repo> --title "test issue title" --description "test issue description" --login <login-name>
+https://codeberg.org/jehad/dotfiles

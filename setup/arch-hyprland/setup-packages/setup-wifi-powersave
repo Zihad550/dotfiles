@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Toggle wifi power_save based on AC state:
+#   plugged in   -> off  (stable, no random latency spikes / drops)
+#   on battery   -> on   (saves power)
+# Laptop-only; init gates this with is_laptop.
+
+sudo pacman -S --noconfirm --needed iw
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+HELPER="$DOTFILES_DIR/bin/df-wifi-powersave"
+
+[[ -x "$HELPER" ]] || { echo "missing helper: $HELPER" >&2; exit 1; }
+
+sudo tee /etc/udev/rules.d/99-wifi-powersave.rules >/dev/null <<EOF
+SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="/usr/bin/systemd-run --no-block --collect --unit=arch-wifi-powersave-on $HELPER on"
+SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", RUN+="/usr/bin/systemd-run --no-block --collect --unit=arch-wifi-powersave-off $HELPER off"
+EOF
+
+sudo udevadm control --reload
+sudo udevadm trigger --subsystem-match=power_supply

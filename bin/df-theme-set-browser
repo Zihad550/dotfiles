@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# Apply the current theme color to Chromium-family browsers (Chromium, Helium,
+# Brave) via managed-policy color.json. Helium shares Chromium's policy dir
+# (/etc/chromium/policies). No sudo: the policy dirs are made world-writable
+# once at setup (see setup/arch-hyprland/theme), so this can run from rofi.
+
+CHROMIUM_THEME=~/.config/theme/chromium.theme
+
+if [[ -f $CHROMIUM_THEME ]]; then
+   rgb=$(<"$CHROMIUM_THEME")
+   THEME_HEX_COLOR=$(printf '#%02x%02x%02x' ${rgb//,/ })
+else
+   # Use a default, neutral grey if theme doesn't have a color
+   THEME_HEX_COLOR="#1c2027"
+fi
+
+# Set the color scheme explicitly from the theme's light.mode marker rather than
+# "device": under Hyprland the desktop portal doesn't reliably relay the OS
+# appearance to Chromium, so "device" resolves to light on dark themes and flips
+# active/inactive tab shading. The marker is the same signal df-theme-set-gnome uses.
+if [[ -f ~/.config/theme/light.mode ]]; then
+   THEME_COLOR_SCHEME="light"
+else
+   THEME_COLOR_SCHEME="dark"
+fi
+
+set_browser_policy() {
+   local dir="$1"
+   [[ -d $dir && -w $dir ]] || return
+   echo "{\"BrowserThemeColor\": \"$THEME_HEX_COLOR\", \"BrowserColorScheme\": \"$THEME_COLOR_SCHEME\"}" >"$dir/color.json"
+}
+
+refresh_running() {
+   local proc="$1" cmd="$2"
+   if df-cmd-present "$cmd" && pgrep -x "$proc" >/dev/null; then
+      "$cmd" --refresh-platform-policy --no-startup-window &>/dev/null
+   fi
+}
+
+# Helium + Chromium share /etc/chromium policy dir
+set_browser_policy /etc/chromium/policies/managed
+refresh_running chromium chromium
+refresh_running helium helium-browser
+
+set_browser_policy /etc/brave/policies/managed
+refresh_running brave brave

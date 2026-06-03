@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+is_laptop() {
+    if compgen -G "/sys/class/power_supply/BAT*" >/dev/null; then
+        return 0
+    fi
+    if command -v hostnamectl >/dev/null 2>&1; then
+        local chassis
+        chassis=$(hostnamectl chassis 2>/dev/null || true)
+        [[ "$chassis" == "laptop" || "$chassis" == "portable" ]] && return 0
+    fi
+    return 1
+}
+
+has_nvidia() {
+    command -v lspci >/dev/null 2>&1 && lspci | grep -qi nvidia
+}
+
+has_intel_cpu() {
+    grep -q GenuineIntel /proc/cpuinfo
+}
+
+has_amd_cpu() {
+    grep -q AuthenticAMD /proc/cpuinfo
+}

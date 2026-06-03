@@ -30,6 +30,12 @@ default = [
   { action = "menus:open", bind = "shift Return", label = "open with...", after = "Nothing" },
   { action = "menus:parent", bind = "Escape", after = "Nothing" },
 ]
+"menus:dotfilesThemes" = [
+  { action = "menus:default", default = true, bind = "Return", label = "apply theme", after = "Close" },
+]
+"menus:dotfilesBackgrounds" = [
+  { action = "menus:default", default = true, bind = "Return", label = "set background", after = "Close" },
+]
 
 [[providers.prefixes]]
 prefix = "?"

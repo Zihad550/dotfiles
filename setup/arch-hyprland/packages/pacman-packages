@@ -49,8 +49,10 @@ sudo pacman -S --noconfirm \
     worktrunk \
     tea \
     rsync \
-    bubblewrap socat
+    bubblewrap socat \
+    claude-code
 
+# mise
 # atac
 # termdown
 # zellij \

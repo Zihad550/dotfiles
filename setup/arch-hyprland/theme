@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
 
+# Make Chromium-family policy dirs world-writable so df-theme-set-browser can
+# write color.json without sudo (Helium shares Chromium's dir).
+sudo mkdir -p /etc/chromium/policies/managed
+sudo chmod a+rw /etc/chromium/policies/managed
+if command -v brave &>/dev/null; then
+   sudo mkdir -p /etc/brave/policies/managed
+   sudo chmod a+rw /etc/brave/policies/managed
+fi
+
 # Use new theme system - generates configs from colors.toml + sets default theme
-~/.dotfiles/bin/theme default
+~/dotfiles/bin/df-theme-set default

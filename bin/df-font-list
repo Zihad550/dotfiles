@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# List installed monospace font families.
+
+if ! df-cmd-present fc-list; then
+   echo "Error: fontconfig (fc-list) not installed" >&2
+   exit 1
+fi
+
+fc-list :mono family | tr ',' '\n' | sed 's/^[[:space:]]*//' | sort -u | grep -v '^$'

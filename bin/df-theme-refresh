@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Regenerate output files for every theme from current templates.
+# With --apply, also re-runs df-theme-set on the active theme so visible
+# daemons (waybar, mako, etc.) reload.
+
+set -e
+
+THEMES_DIR="$HOME/.config/themes"
+APPLY=0
+
+for arg in "$@"; do
+   case "$arg" in
+      --apply) APPLY=1 ;;
+      -h|--help)
+         echo "Usage: df-theme-refresh [--apply]"
+         echo "  Regenerate all themes from templates."
+         echo "  --apply  also re-run df-theme-set on the active theme"
+         exit 0
+         ;;
+      *)
+         echo "Unknown arg: $arg" >&2
+         exit 1
+         ;;
+   esac
+done
+
+if [[ ! -d $THEMES_DIR ]]; then
+   echo "Error: $THEMES_DIR does not exist" >&2
+   exit 1
+fi
+
+count=0
+for d in "$THEMES_DIR"/*/; do
+   name="$(basename "$d")"
+   [[ -f "$d/colors.toml" ]] || continue
+   echo "Refreshing: $name"
+   df-theme-generate "$name"
+   count=$((count + 1))
+done
+
+echo "Refreshed $count theme(s)."
+
+if (( APPLY )) && [[ -L "$HOME/.config/theme" ]]; then
+   current="$(basename "$(readlink "$HOME/.config/theme")")"
+   echo "Re-applying active theme: $current"
+   df-theme-set "$current"
+fi

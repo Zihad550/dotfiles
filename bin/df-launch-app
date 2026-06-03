@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Launch a GUI command. See df-launch-tui for why there is no pre-check.
+
+exec setsid uwsm-app -- "$@"

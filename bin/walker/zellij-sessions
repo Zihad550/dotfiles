@@ -14,6 +14,6 @@ selection=$(echo -e "$options" | walker -d --theme default -p "systemd services"
 if [ -n "$selection" ]; then
    $selection
 
-   ~/dotfiles/bin/hyprland-launch-special-app "$selection" "ghostty -e zellij -l $selection attach --create $selection options --on-force-close quit" "$selection"
+   ~/dotfiles/bin/df-launch-special-app "$selection" "ghostty -e zellij -l $selection attach --create $selection options --on-force-close quit" "$selection"
    exit 0
 fi

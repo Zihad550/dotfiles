@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+
+# Ported from omarchy's install helpers (presentation.sh + logging.sh +
+# errors.sh). Same model: commands run in the FOREGROUND writing to a log file,
+# while a backgrounded viewer continuously redraws the tail of that log under
+# the logo. No per-step gum spinner — progress is the rolling log panel.
+
+ARCH_SETUP_STATE_DIR="${ARCH_SETUP_STATE_DIR:-$HOME/.local/state/arch-setup}"
+LOG_FILE="${LOG_FILE:-$ARCH_SETUP_STATE_DIR/install.log}"
+mkdir -p "$ARCH_SETUP_STATE_DIR"
+touch "$LOG_FILE"
+
+_ts() { date '+%Y-%m-%d %H:%M:%S'; }
+_has_gum() { command -v gum &>/dev/null; }
+_is_tty() { [[ -t 1 ]]; }
+
+# Cursor is hidden while the viewer runs; restore it on the way out.
+show_cursor() { printf '\033[?25h'; }
+_show_cursor() { show_cursor; }
+
+# Self-bootstrap gum on first install so the UI lights up from step 1.
+# Silent fallback if pacman/sudo missing (e.g. running on non-Arch host).
+ensure_gum() {
+    _has_gum && return 0
+    command -v pacman &>/dev/null || return 1
+    echo "Installing gum for nicer install UI..."
+    sudo pacman -S --noconfirm --needed gum >>"$LOG_FILE" 2>&1 || return 1
+    _has_gum
+}
+
+# --- presentation (omarchy presentation.sh) -----------------------------
+# Terminal size from /dev/tty (works direct, sourced, or piped).
+if [[ -e /dev/tty ]]; then
+    TERM_SIZE=$(stty size 2>/dev/null </dev/tty || true)
+    if [[ -n "$TERM_SIZE" ]]; then
+        export TERM_HEIGHT=$(echo "$TERM_SIZE" | cut -d' ' -f1)
+        export TERM_WIDTH=$(echo "$TERM_SIZE" | cut -d' ' -f2)
+    else
+        export TERM_WIDTH=80 TERM_HEIGHT=24
+    fi
+else
+    export TERM_WIDTH=80 TERM_HEIGHT=24
+fi
+
+export LOGO_PATH="${ARCH_HYPR_DIR:-}/logo.txt"
+export LOGO_WIDTH=$(awk '{ if (length > max) max = length } END { print max+0 }' "$LOGO_PATH" 2>/dev/null || echo 0)
+export LOGO_HEIGHT=$(wc -l <"$LOGO_PATH" 2>/dev/null || echo 0)
+
+export PADDING_LEFT=$(((TERM_WIDTH - LOGO_WIDTH) / 2))
+((PADDING_LEFT < 0)) && PADDING_LEFT=0
+export PADDING_LEFT_SPACES=$(printf "%*s" "$PADDING_LEFT" "")
+
+# Tokyo Night theme for gum widgets (omarchy values).
+export GUM_CONFIRM_PROMPT_FOREGROUND="6"
+export GUM_CONFIRM_SELECTED_FOREGROUND="0"
+export GUM_CONFIRM_SELECTED_BACKGROUND="2"
+export GUM_CONFIRM_UNSELECTED_FOREGROUND="7"
+export GUM_CONFIRM_UNSELECTED_BACKGROUND="0"
+export PADDING="0 0 0 $PADDING_LEFT"
+export GUM_CHOOSE_PADDING="$PADDING"
+export GUM_FILTER_PADDING="$PADDING"
+export GUM_INPUT_PADDING="$PADDING"
+export GUM_SPIN_PADDING="$PADDING"
+export GUM_TABLE_PADDING="$PADDING"
+export GUM_CONFIRM_PADDING="$PADDING"
+
+clear_logo() {
+    printf "\033[H\033[2J" # clear screen, cursor to top-left
+    if _has_gum && [[ -f "$LOGO_PATH" ]]; then
+        gum style --foreground 2 --padding "1 0 0 $PADDING_LEFT" "$(<"$LOGO_PATH")"
+    elif [[ -f "$LOGO_PATH" ]]; then
+        printf '\033[32m'; cat "$LOGO_PATH"; printf '\033[0m\n'
+    fi
+}
+
+# --- background log viewer (omarchy logging.sh) -------------------------
+start_log_output() {
+    local ANSI_SAVE_CURSOR="\033[s"
+    local ANSI_RESTORE_CURSOR="\033[u"
+    local ANSI_CLEAR_LINE="\033[2K"
+    local ANSI_HIDE_CURSOR="\033[?25l"
+    local ANSI_RESET="\033[0m"
+    local ANSI_GRAY="\033[90m"
+
+    printf "$ANSI_SAVE_CURSOR"
+    printf "$ANSI_HIDE_CURSOR"
+
+    (
+        local log_lines=20
+        local max_line_width=$((LOGO_WIDTH - 4))
+        ((max_line_width < 20)) && max_line_width=$((TERM_WIDTH - 4))
+
+        while true; do
+            mapfile -t current_lines < <(tail -n $log_lines "$LOG_FILE" 2>/dev/null)
+
+            output=""
+            for ((i = 0; i < log_lines; i++)); do
+                line="${current_lines[i]:-}"
+                if ((${#line} > max_line_width)); then
+                    line="${line:0:$max_line_width}..."
+                fi
+                if [[ -n "$line" ]]; then
+                    output+="${ANSI_CLEAR_LINE}${ANSI_GRAY}${PADDING_LEFT_SPACES}  → ${line}${ANSI_RESET}\n"
+                else
+                    output+="${ANSI_CLEAR_LINE}${PADDING_LEFT_SPACES}\n"
+                fi
+            done
+
+            printf "${ANSI_RESTORE_CURSOR}%b" "$output"
+            sleep 0.1
+        done
+    ) &
+    monitor_pid=$!
+}
+
+stop_log_output() {
+    if [[ -n "${monitor_pid:-}" ]]; then
+        kill "$monitor_pid" 2>/dev/null || true
+        wait "$monitor_pid" 2>/dev/null || true
+        unset monitor_pid
+    fi
+}
+
+# --- header / footer ----------------------------------------------------
+# ui_header "title" "subtitle" — logo + banner, then start the live log panel.
+ui_header() {
+    local title="$1" sub="$2"
+    export ARCH_SETUP_START_EPOCH="${ARCH_SETUP_START_EPOCH:-$(date +%s)}"
+    echo "[$(_ts)] $title — $sub" >>"$LOG_FILE"
+
+    if _is_tty; then
+        clear_logo
+        if _has_gum; then
+            gum style --foreground 3 --padding "1 0 0 $PADDING_LEFT" "$title"
+            echo
+        else
+            echo "=== $title — $sub ==="
+        fi
+        start_log_output
+    fi
+}
+
+# ui_done "message" — stop the panel, restore cursor, print summary box.
+ui_done() {
+    local msg="${1:-Installation complete!}"
+    stop_log_output
+    show_cursor
+
+    local elapsed_line=""
+    if [[ -n "${ARCH_SETUP_START_EPOCH:-}" ]]; then
+        local now=$(date +%s)
+        local secs=$((now - ARCH_SETUP_START_EPOCH))
+        elapsed_line="Installed in $((secs / 60))m $((secs % 60))s"
+        echo "[$(_ts)] Total time: $elapsed_line" >>"$LOG_FILE"
+    fi
+    echo "[$(_ts)] $msg" >>"$LOG_FILE"
+
+    if _has_gum && _is_tty; then
+        if [[ -n "$elapsed_line" ]]; then
+            gum style --border rounded --padding "1 2" \
+                --border-foreground 2 --foreground 2 "✓ $msg" "$elapsed_line"
+        else
+            gum style --border rounded --padding "1 2" \
+                --border-foreground 2 --foreground 2 "✓ $msg"
+        fi
+    else
+        echo "=== $msg ${elapsed_line:+— $elapsed_line} ==="
+    fi
+}
+
+# ui_skip "message" — log only; the panel surfaces it (no direct terminal write
+# so the redraw region stays intact).
+ui_skip() {
+    echo "[$(_ts)] skip: $1" >>"$LOG_FILE"
+}
+
+# --- run a step (omarchy run_logged) ------------------------------------
+# run_step "name" command [args...] — runs FOREGROUND, output to the log only.
+# Under `set -e` a failure aborts straight into the ERR trap (catch_errors).
+run_step() {
+    local name="$1"
+    shift
+    export CURRENT_STEP="$name"
+
+    echo "[$(_ts)] Starting: $name" >>"$LOG_FILE"
+    "$@" </dev/null >>"$LOG_FILE" 2>&1
+    local rc=$?
+    if ((rc == 0)); then
+        echo "[$(_ts)] Completed: $name" >>"$LOG_FILE"
+    else
+        echo "[$(_ts)] Failed: $name (exit $rc)" >>"$LOG_FILE"
+    fi
+    return $rc
+}
+
+# --- error handling (omarchy errors.sh) ---------------------------------
+ERROR_HANDLING=false
+
+# Show the tail of the install log on the error screen.
+show_log_tail() {
+    [[ -f "$LOG_FILE" ]] || return 0
+    local log_lines=$((TERM_HEIGHT - LOGO_HEIGHT - 12))
+    ((log_lines < 5)) && log_lines=15
+    local max_line_width=$((LOGO_WIDTH - 4))
+    ((max_line_width < 20)) && max_line_width=$((TERM_WIDTH - 4))
+
+    tail -n "$log_lines" "$LOG_FILE" | while IFS= read -r line; do
+        ((${#line} > max_line_width)) && line="${line:0:$max_line_width}..."
+        gum style "$line"
+    done
+    echo
+}
+
+# Save/restore the real terminal stdout/stderr (defensive, matches omarchy).
+save_original_outputs() { exec 3>&1 4>&2; }
+restore_outputs() {
+    if [[ -e /proc/self/fd/3 ]] && [[ -e /proc/self/fd/4 ]]; then
+        exec 1>&3 2>&4
+    fi
+}
+
+catch_errors() {
+    local exit_code=$?
+    trap - ERR # no re-entrancy: nothing inside here should retrigger us
+    [[ "$ERROR_HANDLING" == "true" ]] && return
+    ERROR_HANDLING=true
+
+    stop_log_output
+    restore_outputs
+    clear_logo
+    show_cursor
+
+    if _has_gum && _is_tty; then
+        gum style --foreground 1 --padding "1 0 1 $PADDING_LEFT" "arch-hyprland setup stopped!"
+        show_log_tail
+        gum style "Step '${CURRENT_STEP:-?}' halted with exit code $exit_code."
+        gum style "Full log: $LOG_FILE"
+        echo
+        while true; do
+            local choice
+            choice=$(gum choose "Retry installation" "View full log" "Show last 30 lines" "Exit" \
+                --header "What would you like to do?" --height 6 --padding "1 $PADDING_LEFT" 2>/dev/null || echo "Exit")
+            case "$choice" in
+                "Retry installation") exec "${ARCH_HYPR_DIR:?}/init" ;;
+                "View full log") command -v less &>/dev/null && less "$LOG_FILE" || tail "$LOG_FILE" ;;
+                "Show last 30 lines") tail -30 "$LOG_FILE" ;;
+                "Exit" | "") exit "$exit_code" ;;
+            esac
+        done
+    else
+        echo "FAILED at step: ${CURRENT_STEP:-?} (exit $exit_code)" >&2
+        tail -30 "$LOG_FILE" >&2
+        exit "$exit_code"
+    fi
+}
+
+# Invoked on SIGINT/SIGTERM.
+ui_interrupted() {
+    stop_log_output
+    show_cursor
+    echo "[$(_ts)] Interrupted at step: ${CURRENT_STEP:-?}" >>"$LOG_FILE"
+    if _has_gum && _is_tty; then
+        echo
+        gum style --foreground 3 --border thick --padding "1 2" --border-foreground 3 \
+            "⚠ Interrupted at step: ${CURRENT_STEP:-?}"
+    else
+        echo "Interrupted at step: ${CURRENT_STEP:-?}" >&2
+    fi
+    exit 130
+}
+
+# Ensures cleanup on any exit; runs the optional on_exit_extra hook last so the
+# sourcing script can tear down its own resources (e.g. sudo keep-alive).
+exit_handler() {
+    local exit_code=$?
+    trap - ERR # we're exiting; don't let anything below retrigger catch_errors
+    if ((exit_code != 0)) && [[ "$ERROR_HANDLING" != "true" ]]; then
+        catch_errors
+    else
+        stop_log_output
+        show_cursor
+    fi
+    if declare -F on_exit_extra >/dev/null; then
+        on_exit_extra || true
+    fi
+    return 0
+}
+
+trap catch_errors ERR
+trap ui_interrupted INT TERM
+trap exit_handler EXIT
+save_original_outputs

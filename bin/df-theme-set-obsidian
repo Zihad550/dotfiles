@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Apply the current theme's obsidian style-settings.
+# Reads ~/.config/theme/obsidian-border-theme.json (from the active theme)
+# and writes it to the obsidian style-settings plugin's data.json.
+
+set -e
+
+SRC="$HOME/.config/theme/obsidian-border-theme.json"
+DEST="$HOME/.obsidian-vault/.obsidian/plugins/obsidian-style-settings/data.json"
+
+if [[ ! -f $SRC ]]; then
+   exit 0
+fi
+
+if [[ ! -d "$(dirname "$DEST")" ]]; then
+   exit 0
+fi
+
+rm -f "$DEST"
+cp "$SRC" "$DEST"

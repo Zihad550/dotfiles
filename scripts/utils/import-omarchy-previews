@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Copy theme preview images into ~/.config/theme-previews/<theme>.<ext>.
+# Sources, in order:
+#   1. resources/omarchy/themes/<theme>/preview.png (upstream omarchy themes)
+#   2. ~/.config/themes/<theme>/preview.{png,jpg,jpeg,webp} (user-installed)
+# Consumed by the walker theme picker.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+OMARCHY_SRC="$REPO/resources/omarchy/themes"
+USER_SRC="$HOME/.config/themes"
+DEST="$HOME/.config/theme-previews"
+
+# DEST may be a symlink managed by stow — don't replace it. Just ensure the
+# target dir exists.
+mkdir -p "$DEST"
+
+copied=0
+skipped=0
+
+if [[ -d $OMARCHY_SRC ]]; then
+    for theme_dir in "$OMARCHY_SRC"/*/; do
+        theme="$(basename "$theme_dir")"
+        preview="$theme_dir/preview.png"
+        if [[ ! -f $preview ]]; then
+            echo "skip: $theme (no preview.png)"
+            skipped=$((skipped + 1))
+            continue
+        fi
+
+        target="$DEST/$theme.png"
+        cp -f -- "$preview" "$target"
+        echo "copied (omarchy): $target"
+        copied=$((copied + 1))
+    done
+else
+    echo "warn: omarchy themes dir not found: $OMARCHY_SRC" >&2
+fi
+
+if [[ -d $USER_SRC ]]; then
+    for theme_dir in "$USER_SRC"/*/; do
+        # Skip symlinked theme dirs (= built-ins, handled via the repo)
+        [[ -L "${theme_dir%/}" ]] && continue
+        theme="$(basename "${theme_dir%/}")"
+
+        for ext in png jpg jpeg webp; do
+            preview="$theme_dir/preview.$ext"
+            if [[ -f $preview ]]; then
+                target="$DEST/$theme.$ext"
+                cp -f -- "$preview" "$target"
+                echo "copied (user): $target"
+                copied=$((copied + 1))
+                break
+            fi
+        done
+    done
+fi
+
+echo
+echo "done. copied=$copied skipped=$skipped → $DEST"

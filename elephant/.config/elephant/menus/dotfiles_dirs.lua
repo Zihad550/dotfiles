@@ -56,7 +56,7 @@ function GetEntries()
     if home == "" then return entries end
     local home_prefix_len = #home + 2
 
-    local cache_dir = home .. "/.cache/dotfiles-dir-picker"
+    local cache_dir = home .. "/.cache/df-dir-picker"
     local cache_file = cache_dir .. "/folders.list"
     local tmp_file = cache_file .. ".tmp"
 

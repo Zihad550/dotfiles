@@ -14,7 +14,6 @@
   {
     "bindings": {
       "ctrl-b": "workspace::ToggleRightDock",
-      "ctrl-j": "workspace::ToggleBottomDock",
       "ctrl-shift-b": "workspace::ToggleLeftDock",
       // selection with tab
       "tab": "menu::SelectNext",
@@ -39,8 +38,8 @@
         "task::Spawn",
         {
           "task_name": "File explorer",
-          "reveal_target": "center"
-        }
+          "reveal_target": "center",
+        },
       ],
     },
   },
@@ -103,12 +102,6 @@
   //   }
   // }
   {
-    "context": "Editor",
-    "bindings": {
-      "ctrl-alt-j": "workspace::OpenInTerminal",
-    },
-  },
-  {
     "context": "!Terminal",
     "bindings": {
       "ctrl-g ctrl-c": "git::ExpandCommitEditor",
@@ -120,4 +113,46 @@
       "ctrl-g ctrl-u": "git::Push",
     },
   },
+  {
+    "context": "Editor",
+    "bindings": {
+      "ctrl-alt-j": "workspace::OpenInTerminal",
+    },
+  },
+  {
+    "context": "Workspace && !Terminal",
+    "bindings": {
+      "ctrl-p": "file_finder::Toggle",
+    },
+  },
+  {
+    "context": "Terminal",
+    "unbind": {
+      "ctrl-p": "file_finder::Toggle",
+    },
+  },
+  {
+    "context": "",
+    "bindings": {
+      "ctrl-j": "workspace::ToggleBottomDock",
+    },
+  },
+  {
+    "context": "Workspace",
+    "unbind": {
+      "ctrl-alt-b": "workspace::ToggleRightDock"
+    }
+  },
+  {
+    "context": "Workspace",
+    "bindings": {
+      "ctrl-alt-b": "multi_workspace::ToggleWorkspaceSidebar"
+    }
+  },
+  {
+    "context": "Workspace",
+    "unbind": {
+      "ctrl-alt-j": "multi_workspace::ToggleWorkspaceSidebar"
+    }
+  }
 ]

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+window_address=$(
+   hyprctl clients -j |
+      jq -r --arg tag "$tag" '.[] | select(.initialClass == "app.zen_browser.zen") | .address'
+)
+echo $window_address
+
+# In lua-config mode `hyprctl dispatch <X>` is evaluated as Lua, so try the
+# lua syntax first and fall back to legacy for conf mode.
+eval exec hyprctl dispatch "hl.dsp.window.tag({ tag = \"$tag\", window = \"address:$window_address\" })" \
+   || eval exec hyprctl dispatch tagwindow "$tag" address:$window_address
+eval exec hyprctl clients -j | jq '.[].tags'

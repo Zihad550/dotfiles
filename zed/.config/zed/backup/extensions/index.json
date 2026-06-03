@@ -1,40 +1,5 @@
 {
   "extensions": {
-    "basher": {
-      "manifest": {
-        "id": "basher",
-        "name": "Basher",
-        "version": "0.0.5",
-        "schema_version": 1,
-        "description": "Bash-language-server support",
-        "repository": "https://github.com/zed-extensions/bash",
-        "authors": [
-          "d1y <chenhonzhou@gmail.com>"
-        ],
-        "lib": {
-          "kind": "Rust",
-          "version": "0.7.0"
-        },
-        "themes": [],
-        "icon_themes": [],
-        "languages": [],
-        "grammars": {},
-        "language_servers": {
-          "bash-language-server": {
-            "language": "Shell Script",
-            "languages": [],
-            "language_ids": {},
-            "code_action_kinds": null
-          }
-        },
-        "context_servers": {},
-        "agent_servers": {},
-        "slash_commands": {},
-        "snippets": null,
-        "capabilities": []
-      },
-      "dev": false
-    },
     "catppuccin-icons": {
       "manifest": {
         "id": "catppuccin-icons",
@@ -69,7 +34,7 @@
       "manifest": {
         "id": "emmet",
         "name": "Emmet",
-        "version": "0.0.12",
+        "version": "0.0.13",
         "schema_version": 1,
         "description": "Emmet support",
         "repository": "https://github.com/zed-extensions/emmet",
@@ -88,24 +53,25 @@
           "emmet-language-server": {
             "language": null,
             "languages": [
-              "HTML",
-              "PHP",
+              "Angular",
               "Blade",
-              "ERB",
-              "HTML+ERB",
-              "JavaScript",
-              "TSX",
               "CSS",
-              "SCSS",
-              "LESS",
+              "Django",
+              "ERB",
               "Elixir",
               "HEEx",
-              "Vue.js",
-              "Nunjucks",
-              "Django",
-              "Angular",
+              "HTML",
+              "HTML+ERB",
+              "JavaScript",
               "Jinja2",
-              "Liquid"
+              "LESS",
+              "Liquid",
+              "Nunjucks",
+              "PHP",
+              "SCSS",
+              "Statamic Antlers",
+              "TSX",
+              "Vue.js"
             ],
             "language_ids": {
               "SCSS": "scss",
@@ -113,18 +79,19 @@
               "HTML+ERB": "eruby",
               "HTML": "html",
               "Nunjucks": "html",
-              "PHP": "php",
               "ERB": "eruby",
-              "TSX": "typescriptreact",
               "CSS": "css",
               "LESS": "less",
+              "PHP": "php",
               "HEEx": "heex",
+              "TSX": "typescriptreact",
               "Django": "html",
               "Jinja2": "html",
+              "Statamic Antlers": "html",
               "JavaScript": "javascriptreact",
               "Elixir": "elixir",
-              "Vue.js": "vue",
               "Liquid": "html",
+              "Vue.js": "vue",
               "Angular": "angular"
             },
             "code_action_kinds": null
@@ -528,7 +495,7 @@
       "manifest": {
         "id": "opencode",
         "name": "OpenCode",
-        "version": "1.15.5",
+        "version": "1.15.13",
         "schema_version": 1,
         "description": "The open source coding agent.",
         "repository": "https://github.com/anomalyco/opencode",
@@ -552,7 +519,7 @@
             "icon": "./icons/opencode.svg",
             "targets": {
               "linux-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.5/opencode-linux-arm64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-linux-arm64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -561,7 +528,7 @@
                 "env": {}
               },
               "linux-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.5/opencode-linux-x64.tar.gz",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-linux-x64.tar.gz",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -570,7 +537,7 @@
                 "env": {}
               },
               "windows-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.5/opencode-windows-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-windows-x64.zip",
                 "cmd": "./opencode.exe",
                 "args": [
                   "acp"
@@ -579,7 +546,7 @@
                 "env": {}
               },
               "darwin-aarch64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.5/opencode-darwin-arm64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-darwin-arm64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"
@@ -588,7 +555,7 @@
                 "env": {}
               },
               "darwin-x86_64": {
-                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.5/opencode-darwin-x64.zip",
+                "archive": "https://github.com/anomalyco/opencode/releases/download/v1.15.13/opencode-darwin-x64.zip",
                 "cmd": "./opencode",
                 "args": [
                   "acp"

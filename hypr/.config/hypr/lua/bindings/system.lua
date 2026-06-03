@@ -10,13 +10,13 @@ o.bind("SUPER + CTRL + S",         "Suspend",          "systemctl suspend",{ loc
 o.bind("SUPER + CTRL + SHIFT + L", "Lock",             "hyprlock",         { locked = true })
 
 -- Internal display toggles
-o.bind("SUPER + CTRL + D",         "Close eDP-1",      dotfiles_bin .. "/hyprland-close-display eDP-1",    { locked = true })
-o.bind("SUPER + CTRL + SHIFT + D", "Close HDMI-A-1",   dotfiles_bin .. "/hyprland-close-display HDMI-A-1", { locked = true })
+o.bind("SUPER + CTRL + D",         "Close eDP-1",      dotfiles_bin .. "/df-hypr-close-display eDP-1",    { locked = true })
+o.bind("SUPER + CTRL + SHIFT + D", "Close HDMI-A-1",   dotfiles_bin .. "/df-hypr-close-display HDMI-A-1", { locked = true })
 
 -- Launchers
 o.bind("SUPER + SPACE",      "Walker",           "uwsm-app -- walker")
 o.bind("SUPER + SHIFT + P",  "Scripts",          dotfiles_bin .. "/walker/execute-command")
-o.bind("SUPER + SHIFT + R",  "Rename workspace", dotfiles_bin .. "/hyprland-rename-workspace")
+o.bind("SUPER + SHIFT + R",  "Rename workspace", dotfiles_bin .. "/df-hypr-rename-workspace")
 
 -- Screenshots
 o.bind("PRINT",        "Screenshot",

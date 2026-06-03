@@ -92,5 +92,5 @@ hl.workspace_rule({ workspace = "2", monitor = "eDP-1" })
 -- o.bind("switch:off:Lid Switch", nil,
 --     [[hyprctl keyword monitor "eDP-1,preferred,1080x860,1"]], { locked = true })
 -- o.bind("switch:on:Lid Switch",  nil, [[hyprctl keyword monitor "eDP-1, disable"]], { locked = true })
--- o.bind("switch:on:Lid Switch",  nil, os.getenv("HOME") .. "/dotfiles/bin/hyprland-lid-close",  { locked = true })
--- o.bind("switch:off:Lid Switch", nil, os.getenv("HOME") .. "/dotfiles/bin/hyprland-lid-close",  { locked = true })
+-- o.bind("switch:on:Lid Switch",  nil, os.getenv("HOME") .. "/dotfiles/bin/df-hypr-lid-close",  { locked = true })
+-- o.bind("switch:off:Lid Switch", nil, os.getenv("HOME") .. "/dotfiles/bin/df-hypr-lid-close",  { locked = true })

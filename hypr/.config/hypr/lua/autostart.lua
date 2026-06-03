@@ -11,7 +11,7 @@ o.exec_on_start("uwsm-app -- swaybg -i " .. os.getenv("HOME") .. "/.config/theme
 -- o.exec_on_start("uwsm-app -- hyprlauncher -d")
 
 -- custom apps
-o.exec_on_start(os.getenv("HOME") .. "/dotfiles/bin/startup-apps")
+o.exec_on_start(os.getenv("HOME") .. "/dotfiles/bin/df-startup-apps")
 
 -- Slow app launch fix -- set systemd vars
 o.exec_on_start("sh -c 'systemctl --user import-environment $(env | cut -d= -f1)'")

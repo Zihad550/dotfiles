@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Cut systemd stop timeout 90s -> 10s. No more staring at "A stop job is running"
+# for 90s per stuck service. Risk: a slow-to-flush service may get SIGKILL'd.
+sudo mkdir -p /etc/systemd/system.conf.d
+sudo tee /etc/systemd/system.conf.d/10-faster-shutdown.conf >/dev/null <<'EOF'
+[Manager]
+DefaultTimeoutStopSec=10s
+DefaultTimeoutAbortSec=10s
+EOF
+
+sudo mkdir -p /etc/systemd/system/user@.service.d
+sudo tee /etc/systemd/system/user@.service.d/faster-shutdown.conf >/dev/null <<'EOF'
+[Service]
+TimeoutStopSec=10s
+EOF
+
+sudo systemctl daemon-reload

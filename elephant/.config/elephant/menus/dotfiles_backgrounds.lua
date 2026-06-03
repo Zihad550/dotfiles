@@ -5,6 +5,11 @@ Cache = false
 HideFromProviderlist = false
 SearchName = true
 
+-- Menu-level action: %VALUE% is replaced with entry.Value (background path) at activate time.
+Actions = {
+    ["menus:default"] = os.getenv("HOME") .. "/dotfiles/bin/df-theme-bg-set '%VALUE%'",
+}
+
 local function ShellEscape(s)
     return "'" .. s:gsub("'", "'\\''") .. "'"
 end
@@ -22,7 +27,6 @@ function GetEntries()
     local entries = {}
     local home = os.getenv("HOME")
     local bg_dir = home .. "/.config/backgrounds"
-    local setter = home .. "/dotfiles/bin/dotfiles-theme-bg-set"
 
     local handle = io.popen(
         "find -L " .. ShellEscape(bg_dir)
@@ -36,9 +40,6 @@ function GetEntries()
                     Text = FormatName(filename),
                     Subtext = filename,
                     Value = background,
-                    Actions = {
-                        activate = setter .. " " .. ShellEscape(background),
-                    },
                     Preview = background,
                     PreviewType = "file",
                 })

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Print the current font as recorded in the ghostty config (canonical source).
+
+config="$HOME/dotfiles/ghostty/.config/ghostty/config"
+grep -E '^font-family' "$config" | head -1 | sed 's/^font-family[[:space:]]*=[[:space:]]*"\?\([^"]*\)"\?$/\1/'

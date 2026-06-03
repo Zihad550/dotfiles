@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Give 10 password tries before sudo/faillock locks you out (default 3).
+# Affects sudo + hyprlock (both use PAM faillock).
+echo "Defaults passwd_tries=10" | sudo tee /etc/sudoers.d/passwd-tries >/dev/null
+sudo chmod 440 /etc/sudoers.d/passwd-tries
+
+# faillock: only edit the commented-out default line. Won't touch a manually-set value.
+sudo sed -i 's/^# *deny = .*/deny = 10/' /etc/security/faillock.conf

@@ -83,8 +83,4 @@ export OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
 # export DOCKER_HOST=unix:///run/user/1000/docker.sock
 
 # PATH Configuration
-# dotfiles bin
-# export DOTFILES_BIN="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker"
-# PATH entries are managed by mise (see ~/.config/mise/config.toml [env]._.path)
-# because `mise activate zsh` rebuilds PATH on every prompt and would otherwise
-# clobber any additions made here.
+export PATH="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/dotfiles/bin/walker:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"

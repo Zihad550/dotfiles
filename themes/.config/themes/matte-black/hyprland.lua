@@ -1,5 +1,4 @@
--- Per-theme Hyprland overrides. Loaded via dofile() from ~/.config/hypr/lua/theme.lua.
--- Generated from themes/templates/hyprland.lua.tpl.
+-- Per-theme Hyprland overrides. Loaded via dofile() from lua/theme.lua.
 local accent = "e68e0d"
 local border = "rgb(" .. accent .. ")"
 

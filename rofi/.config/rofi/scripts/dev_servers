@@ -3,7 +3,7 @@
 # local url="$2"
 
 if [ -n "$1" ]; then
-   ~/dotfiles/bin/hyprland-launch-dev $1 >/dev/null 2>&1
+   ~/dotfiles/bin/df-launch-dev $1 >/dev/null 2>&1
    exit 0
 fi
 

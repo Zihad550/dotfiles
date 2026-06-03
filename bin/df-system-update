@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# setup
+# sudo mkdir -p /etc/systemd/system
+# sudo cp ~/dotfiles/setup/systemd/root/df-system-update.service /etc/systemd/system/
+# sudo cp ~/dotfiles/setup/systemd/root/df-system-update.timer /etc/systemd/system/
+# sudo systemctl daemon-reload && sudo systemctl enable df-system-update.timer && sudo systemctl start df-system-update.timer
+# sudo cp ~/dotfiles/bin/df-system-update /usr/local/bin/
+
+# Arch Linux update script with checks, logging, and notifications
+
+CACHE_DIR="$HOME/.cache/df-system-update"
+LOG_FILE="$HOME/.cache/df-system-update.log"
+NOTIFY_ICON="~/dotfiles/archlinux.svg"
+
+# Function to log messages
+log() {
+   echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >>"$LOG_FILE"
+}
+
+# Function to send notification
+notify() {
+   if command -v notify-send >/dev/null 2>&1; then
+      notify-send -i "$NOTIFY_ICON" "Arch Update" "$1"
+   fi
+}
+
+# Check if Saturday (1=Monday, 7=Sunday, 6=Saturday)
+if [ "$(date +%u)" != "6" ]; then
+   notify "Update skipped: Not Saturday"
+   exit 0
+fi
+
+# Check if time between 06:00 and 21:00
+current_hour=$(date +%H)
+if [ "$current_hour" -lt 6 ] || [ "$current_hour" -gt 21 ]; then
+   notify "Update skipped: Not between 06:00 and 21:00"
+   exit 0
+fi
+
+# Check daily flag
+flag_file="$CACHE_DIR/df-system-update-ran-$(date +%Y-%m-%d)"
+if [ -f "$flag_file" ]; then
+   exit 0
+fi
+
+# Check internet connectivity
+if ! ping -c 1 -W 5 archlinux.org >/dev/null 2>&1; then
+   log "No internet connection. Aborting update."
+   notify "Update failed: No internet connection."
+   exit 1
+fi
+
+log "Starting Arch Linux update..."
+
+# Update packages
+if sudo pacman -Syu --noconfirm >>"$LOG_FILE" 2>&1; then
+   log "Package update completed successfully."
+   notify "Arch Linux updated successfully."
+
+   # Clean package cache
+   sudo pacman -Sc --noconfirm >>"$LOG_FILE" 2>&1
+
+   # Check if reboot is needed (kernel update)
+   if pacman -Q linux | grep -q "linux"; then
+      if [ -f /var/run/reboot-required ]; then
+         notify "Reboot required after kernel update."
+      fi
+   fi
+else
+   log "Package update failed."
+   notify "Arch Linux update failed. Check $LOG_FILE for details."
+   exit 1
+fi
+
+touch "$flag_file"
+
+log "Update process completed."

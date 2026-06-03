@@ -11,6 +11,9 @@
   },
   "diff_view_style": "split",
   "agent_servers": {
+    "claude-acp": {
+      "type": "registry"
+    },
     "qwen-code": {
       "type": "registry",
     },

@@ -6,11 +6,11 @@
 # diffnav - diff  with file explorer similar to delta, depends on delta
 # ventoy-bin - image writer
 yay -S --noconfirm \
-    pnpm-shell-completion \
     dragon-drop \
     diffnav-bin \
     google-chrome \
     helium-browser-bin
+# pnpm-shell-completion \
 
 # installed from omarchy repo
 # ufw-docker \

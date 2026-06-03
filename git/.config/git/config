@@ -24,7 +24,7 @@
 	recurseSubmodules = on-demand
 	autoSetupRemote = true
 	default = current
-	followTags = true
+	# followTags = true
 [status]
 	branch = true
 	showStash = true
@@ -72,6 +72,7 @@
     pu = push -u
     ; git commit -am msg, add Automatically stage modified and deleted tracked files, It does NOT stage: New untracked files
     ci = commit
+    cmsg = commit -m
     co = checkout
     sw = switch
     ; switch back to the last commit discarding all changes. But it doesn't deletes any staged changes.

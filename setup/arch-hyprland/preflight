@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Sanity checks before running arch-hyprland setup.
+# Each check that fails offers a gum-confirm bypass (or plain prompt fallback).
+
+abort() {
+    local what="$1"
+    if command -v gum &>/dev/null && [[ -t 1 ]]; then
+        gum style --foreground 1 "✗ arch-hyprland setup requires: $what"
+        gum confirm "Proceed anyway?" || exit 1
+    else
+        echo "✗ arch-hyprland setup requires: $what" >&2
+        read -rp "Proceed anyway? [y/N] " ans
+        [[ "$ans" =~ ^[yY] ]] || exit 1
+    fi
+}
+
+# Must be an Arch distro
+[[ -f /etc/arch-release ]] || abort "Arch Linux"
+
+# Must not be running as root
+(( EUID != 0 )) || abort "running as user (not root)"
+
+# Must be x86_64
+[[ "$(uname -m)" == "x86_64" ]] || abort "x86_64 CPU"
+
+# pacman must exist
+command -v pacman &>/dev/null || abort "pacman"
+
+# user must be in wheel group (needed for sudo throughout setup)
+groups | grep -qw wheel || abort "user in wheel group"

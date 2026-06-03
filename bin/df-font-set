@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Switch monospace font across configs (ghostty, hyprlock, swayosd, waybar, zed)
+# and restart the visual daemons so the change is live.
+
+set -e
+
+font="$1"
+
+usage() {
+   echo "Usage: df-font-set <font-name>"
+   echo "       df-font-set                  # show current"
+   echo "       df-font-list                 # available families"
+   exit 1
+}
+
+if [[ -z $font ]]; then
+   df-font-current
+   exit 0
+fi
+
+if [[ $font == "-h" || $font == "--help" ]]; then
+   usage
+fi
+
+if df-cmd-present fc-list; then
+   if ! fc-list :mono family | grep -qiF "$font"; then
+      echo "Error: font '$font' not found among installed monospace families" >&2
+      echo "Run df-font-list to see available." >&2
+      exit 1
+   fi
+fi
+
+REPO="$HOME/dotfiles"
+
+# ghostty
+sed -i 's|^font-family[[:space:]]*=.*|font-family = "'"$font"'"|' \
+   "$REPO/ghostty/.config/ghostty/config"
+
+# hyprlock (two occurrences)
+sed -i 's|^\([[:space:]]*\)font_family[[:space:]]*=.*|\1font_family = '"$font"'|' \
+   "$REPO/hypr/.config/hypr/hyprlock.conf"
+
+# swayosd
+sed -i "s|font-family:[[:space:]]*'[^']*';|font-family: '$font';|" \
+   "$REPO/swayosd/.config/swayosd/style.css"
+
+# waybar (only the uncommented line)
+sed -i 's|^\([[:space:]]*\)font-family:[[:space:]]*"[^"]*";|\1font-family: "'"$font"'";|' \
+   "$REPO/waybar/.config/waybar/style.css"
+
+# zed
+if [[ -f "$REPO/zed/.config/zed/settings.json" ]]; then
+   sed -i 's|"buffer_font_family":[[:space:]]*"[^"]*"|"buffer_font_family": "'"$font"'"|' \
+      "$REPO/zed/.config/zed/settings.json"
+fi
+
+# Reload visual daemons
+if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
+   systemctl --user restart waybar.service
+fi
+
+if df-cmd-present ghostty && pgrep -x ghostty >/dev/null; then
+   killall -SIGUSR2 ghostty
+fi
+
+echo "Font set to: $font"

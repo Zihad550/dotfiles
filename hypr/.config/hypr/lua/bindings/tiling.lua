@@ -3,7 +3,7 @@ local dotfiles_bin = home .. "/dotfiles/bin"
 
 -- Close windows
 o.bind("SUPER + W",         "Close window",      hl.dsp.window.close())
-o.bind("CTRL + ALT + DELETE", "Close all windows", dotfiles_bin .. "/hyprland-window-close-all")
+o.bind("CTRL + ALT + DELETE", "Close all windows", dotfiles_bin .. "/df-hypr-window-close-all")
 
 -- Control tiling
 o.bind("SUPER + ALT + slash", "Toggle window split", hl.dsp.layout("togglesplit"))
@@ -12,7 +12,7 @@ o.bind("SUPER + ALT + T",     "Toggle floating",     hl.dsp.window.float({ actio
 o.bind("SUPER + ALT + F",     "Full screen",         hl.dsp.window.fullscreen({ mode = "fullscreen" }))
 o.bind("SUPER + CTRL + F",    "Tiled full screen",   hl.dsp.window.fullscreen_state({ internal = 0, client = 2 }))
 o.bind("SUPER + SHIFT + F",   "Full width",          hl.dsp.window.fullscreen({ mode = "maximized" }))
-o.bind("SUPER + ALT + L",     "Toggle workspace layout", dotfiles_bin .. "/hyprland-workspace-layout-toggle")
+o.bind("SUPER + ALT + L",     "Toggle workspace layout", dotfiles_bin .. "/df-hypr-workspace-layout-toggle")
 
 -- Move focus (vim keys)
 o.bind("SUPER + h", "Move focus left",  hl.dsp.focus({ direction = "l" }))

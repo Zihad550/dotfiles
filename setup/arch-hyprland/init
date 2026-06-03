@@ -1,92 +1,154 @@
 #!/usr/bin/env bash
 
-# upgrade and install stow
-sudo pacman -Syu --noconfirm stow
+set -eEo pipefail
 
-# setup additional application icons
-mkdir -p $HOME/.local/share/applications/icons
-ln -snf ~/dotfiles/setup/applications/icons $HOME/.local/share/applications
-# ln -snf ~/dotfiles/devcontainers/dev/.devcontainer $HOME/dev/base-setup/.devcontainer
-# cp ~/dotfiles/devcontainers/dev/.devcontainer $HOME/dev/base-setup -r
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+ARCH_HYPR_DIR="$DOTFILES_DIR/setup/arch-hyprland"
 
-# stow
-~/dotfiles/scripts/stow/stow-base
-~/dotfiles/scripts/stow/stow-hyprland
+export ARCH_SETUP_STATE_DIR="$HOME/.local/state/arch-setup"
+mkdir -p "$ARCH_SETUP_STATE_DIR"
+export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 
-# theme
-~/dotfiles/setup/arch-hyprland/theme
+# shellcheck source=utils/logging
+source "$ARCH_HYPR_DIR/utils/logging"
+# shellcheck source=utils/state
+source "$ARCH_HYPR_DIR/utils/state"
+# shellcheck source=utils/hw-detect
+source "$ARCH_HYPR_DIR/utils/hw-detect"
 
-# gnome theme
-~/dotfiles/setup/arch-hyprland/gnome-theme
+CURRENT_STEP="init"
 
-# setup package managers (yay, flatpak, mise)
-~/dotfiles/setup/arch-hyprland/setup-omarchy-repos
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-flatpak
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-mise
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-yay
+# logging (sourced above) owns the ERR/INT/TERM/EXIT traps, exactly like
+# omarchy's errors.sh. It calls on_exit_extra (if defined) last, so we drop the
+# temporary passwordless-sudo rule here.
+on_exit_extra() {
+    [[ -f /etc/sudoers.d/arch-setup-first-run ]] && \
+        sudo /usr/bin/rm -f /etc/sudoers.d/arch-setup-first-run 2>/dev/null
+}
 
-# install packages
-~/dotfiles/setup/arch-hyprland/packages/pacman-packages
-~/dotfiles/setup/arch-hyprland/packages/yay-packages
-~/dotfiles/setup/arch-hyprland/packages/flatpak-packages
-~/dotfiles/setup/arch-hyprland/packages/mise-packages
+# Bootstrap gum so the install UI works from step 1 (silent no-op if already present).
+ensure_gum || true
 
-# setup hyprland
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-hyprland
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-walker
+export ARCH_SETUP_START_EPOCH=$(date +%s)
 
-# setup docker
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-docker
+"$ARCH_HYPR_DIR/preflight"
 
-# setup syncthing
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-syncthing
+# Passwordless access for the noisy root commands used throughout setup, so
+# they never prompt mid-install. Self-removes via the cleanup trap. (Mirrors
+# omarchy's preflight/first-run-mode.sh.)
+sudo tee /etc/sudoers.d/arch-setup-first-run >/dev/null <<EOF
+Cmnd_Alias ARCH_SETUP_CLEANUP = /usr/bin/rm -f /etc/sudoers.d/arch-setup-first-run
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl
+$USER ALL=(ALL) NOPASSWD: /usr/bin/ufw
+$USER ALL=(ALL) NOPASSWD: ARCH_SETUP_CLEANUP
+EOF
+sudo chmod 440 /etc/sudoers.d/arch-setup-first-run
 
-# ufw setup
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-ufw
+ui_header "ARCH HYPRLAND SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 
-# zsh setup
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-zsh
+run_step "system upgrade + stow" sudo pacman -Syu --noconfirm stow
 
-# app armor
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-apparmor
+# additional application icons
+CURRENT_STEP="application icons"
+mkdir -p "$HOME/.local/share/applications/icons"
+ln -snf "$DOTFILES_DIR/setup/applications/icons" "$HOME/.local/share/applications"
 
-# script for setting up kanata on arch linux
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-kanata
+run_step "stow base" "$DOTFILES_DIR/scripts/stow/stow-base"
+run_step "stow backgrounds" "$DOTFILES_DIR/scripts/stow/stow-backgrounds"
+run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
 
-# github cli
-# ~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
+run_step "theme" "$ARCH_HYPR_DIR/theme"
+run_step "gnome-theme" "$ARCH_HYPR_DIR/gnome-theme"
 
-# additional
-~/dotfiles/setup/arch-hyprland/setup-packages/additional-packages
+# package managers
+run_step "omarchy repos" "$ARCH_HYPR_DIR/setup-omarchy-repos"
+run_step "flatpak" "$ARCH_HYPR_DIR/setup-packages/setup-flatpak"
+run_step "mise" "$ARCH_HYPR_DIR/setup-packages/setup-mise"
+run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 
-# go packages
-~/dotfiles/setup/arch-hyprland/packages/go-packages
+# packages
+run_step "pacman packages" "$ARCH_HYPR_DIR/packages/pacman-packages"
+run_step "yay packages" "$ARCH_HYPR_DIR/packages/yay-packages"
+run_step "flatpak packages" "$ARCH_HYPR_DIR/packages/flatpak-packages"
+run_step "mise packages" "$ARCH_HYPR_DIR/packages/mise-packages"
 
-# create keyring
-~/dotfiles/setup/arch-hyprland/keyring
+run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
+run_step "walker" "$ARCH_HYPR_DIR/setup-packages/setup-walker"
 
-# performance optimization for laptop (tlp)
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-tlp
+run_step "docker" "$ARCH_HYPR_DIR/setup-packages/setup-docker"
+run_step "syncthing" "$ARCH_HYPR_DIR/setup-packages/setup-syncthing"
+run_step "ufw" "$ARCH_HYPR_DIR/setup-packages/setup-ufw"
 
-# create useful directories
-mkdir -p ~/dev
-mkdir -p ~/dev-0
-mkdir -p ~/.obsidian-vault
-
-# update grub-btrfsd if setuped disk with encryption for snapper backup to work properly
-# sudo env EDITOR=nvim systemctl edit --full grub-btrfsd # no need to do anything for snapper
-# enable gdm
-sudo pacman -S --noconfirm gdm
-sudo systemctl enable gdm.service
-tldr --update
-
-# To test if AppArmor has been correctly enabled:
-echo "Is app armor enabled: $(aa-enabled)"
-echo "make sure to run this # ~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
-after gh auth login"
-
-echo "Do you want to restart? [y/N] "
-read -r response
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    shutdown -r now
+# Guard zsh: usermod -s is non-idempotent (records a change every run).
+CURRENT_STEP="zsh"
+if is_done zsh-shell; then
+    ui_skip "zsh shell already configured"
+else
+    run_step "zsh" "$ARCH_HYPR_DIR/setup-packages/setup-zsh"
+    mark_done zsh-shell
 fi
+
+# Guard apparmor: the sed appends `lsm=...` to GRUB_CMDLINE_LINUX_DEFAULT,
+# which would duplicate on rerun.
+CURRENT_STEP="apparmor"
+if is_done apparmor; then
+    ui_skip "apparmor already configured"
+else
+    run_step "apparmor" "$ARCH_HYPR_DIR/setup-packages/setup-apparmor"
+    mark_done apparmor
+fi
+
+run_step "kanata" "$ARCH_HYPR_DIR/setup-packages/setup-kanata"
+
+# setup-github-cli intentionally not run — needs `gh auth login` first.
+# Run manually after login: ~/dotfiles/setup/arch-hyprland/setup-packages/setup-github-cli
+
+# setup-voxtype intentionally not run — uncomment to enable.
+# run_step "voxtype" "$ARCH_HYPR_DIR/setup-packages/setup-voxtype"
+
+run_step "additional packages" "$ARCH_HYPR_DIR/packages/additional-packages"
+run_step "go packages" "$ARCH_HYPR_DIR/packages/go-packages"
+
+# Guard keyring: writes secret files, has built-in --check but re-running is wasteful.
+CURRENT_STEP="keyring"
+if "$ARCH_HYPR_DIR/keyring" --check >/dev/null 2>&1; then
+    ui_skip "keyring already exists"
+else
+    run_step "keyring" "$ARCH_HYPR_DIR/keyring"
+fi
+
+# System-wide QoL tweaks (sysctl, sudoers, systemd timeouts).
+run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
+run_step "sudo tries" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
+run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
+run_step "fast shutdown" "$ARCH_HYPR_DIR/setup-packages/setup-fast-shutdown"
+
+# Laptop-only power management. TLP chosen; auto-cpufreq is the alternative
+# (mutually exclusive — don't run both). Edit here to switch.
+if is_laptop; then
+    run_step "tlp (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-tlp"
+    # run_step "auto-cpufreq (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-auto-cpufreq"
+    run_step "bluetooth (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-bluetooth"
+    run_step "wifi powersave (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-wifi-powersave"
+else
+    ui_skip "not a laptop — skipping tlp/auto-cpufreq/bluetooth/wifi-powersave"
+fi
+
+CURRENT_STEP="useful directories"
+mkdir -p ~/dev ~/dev-0 ~/.obsidian-vault
+
+# gdm: install is idempotent via --needed; enable only if not enabled.
+CURRENT_STEP="gdm"
+# Output goes to the log only — direct terminal writes would corrupt the live
+# log panel that the background viewer is redrawing.
+sudo pacman -S --noconfirm --needed gdm >>"$LOG_FILE" 2>&1
+if systemctl is-enabled gdm.service &>/dev/null; then
+    ui_skip "gdm.service already enabled"
+else
+    sudo systemctl enable gdm.service >>"$LOG_FILE" 2>&1
+fi
+
+run_step "post-install" "$ARCH_HYPR_DIR/post-install"
+
+touch "$ARCH_SETUP_STATE_DIR/.initialized"
+ui_done "arch-hyprland setup completed"

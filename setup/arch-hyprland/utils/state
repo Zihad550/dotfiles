@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+ARCH_SETUP_STATE_DIR="${ARCH_SETUP_STATE_DIR:-$HOME/.local/state/arch-setup}"
+mkdir -p "$ARCH_SETUP_STATE_DIR"
+
+is_done() {
+    [[ -f "$ARCH_SETUP_STATE_DIR/done-$1" ]]
+}
+
+mark_done() {
+    touch "$ARCH_SETUP_STATE_DIR/done-$1"
+}

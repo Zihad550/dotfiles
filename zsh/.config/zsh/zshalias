@@ -22,7 +22,7 @@ alias -g L='| less'
 # keybindings
 openZellij() {
    # zellij <$TTY
-   dotfiles-zellij-f
+   df-zellij-f
    zle redisplay
 }
 zle -N openZellij

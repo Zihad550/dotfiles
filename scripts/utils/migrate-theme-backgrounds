@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Scan this repo for theme background images and move them to
+# ~/.config/backgrounds. Primary per theme becomes "<theme>.<ext>";
+# extras become "<theme>-<n>.<ext>".
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+DEST="$HOME/.config/backgrounds"
+
+# DEST may be a symlink managed by stow — don't replace it. Just ensure the
+# target dir exists.
+mkdir -p "$DEST"
+
+shopt -s nullglob
+
+# Per-theme backgrounds directories in the repo.
+for theme_dir in "$REPO"/themes/.config/themes/*/; do
+    theme="$(basename "$theme_dir")"
+    bg_dir="$theme_dir/backgrounds"
+    [[ -d "$bg_dir" ]] || continue
+
+    mapfile -t files < <(
+        find "$bg_dir" -maxdepth 1 -type f \
+            \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
+            | sort
+    )
+    (( ${#files[@]} == 0 )) && { rmdir "$bg_dir" 2>/dev/null || true; continue; }
+
+    primary="${files[0]}"
+    ext="${primary##*.}"
+    mv -n -- "$primary" "$DEST/$theme.$ext"
+    echo "moved: $DEST/$theme.$ext"
+
+    i=1
+    for f in "${files[@]:1}"; do
+        fext="${f##*.}"
+        target="$DEST/$theme-$i.$fext"
+        while [[ -e $target ]]; do ((i++)); target="$DEST/$theme-$i.$fext"; done
+        mv -n -- "$f" "$target"
+        echo "moved: $target"
+        ((i++))
+    done
+
+    rmdir "$bg_dir" 2>/dev/null || true
+    legacy="$theme_dir/background"
+    [[ -e "$legacy" || -L "$legacy" ]] && rm -f "$legacy"
+done
+
+# Flat backgrounds dir in repo (from an earlier migration). Move as-is.
+flat="$REPO/themes/.config/backgrounds"
+if [[ -d $flat ]]; then
+    for f in "$flat"/*; do
+        [[ -f $f ]] || continue
+        name="$(basename "$f")"
+        mv -n -- "$f" "$DEST/$name"
+        echo "moved: $DEST/$name"
+    done
+    rmdir "$flat" 2>/dev/null || true
+fi
+
+echo
+echo "done. $(find "$DEST" -maxdepth 1 -type f | wc -l) files in $DEST"

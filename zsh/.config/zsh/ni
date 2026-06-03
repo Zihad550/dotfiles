@@ -62,3 +62,15 @@ nrd() {
         pnpm run dev
     fi
 }
+
+nr() {
+    if [ -f package-lock.json ]; then
+        npm run "$@"
+    elif [ -f bun.lock ]; then
+        bun run "$@"
+    elif [ -f pnpm-lock.yaml ]; then
+        pnpm run "$@"
+    else
+        pnpm run "$@"
+    fi
+}

@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+
+THEME_LINK="$HOME/.config/theme"
+BG_DIR="$HOME/.config/backgrounds"
+CURRENT_BACKGROUND_LINK="$THEME_LINK/background"
+
+if [[ ! -L $THEME_LINK || ! -e $THEME_LINK ]]; then
+  echo "No active theme: $THEME_LINK"
+  exit 1
+fi
+THEME="$(basename "$(readlink "$THEME_LINK")")"
+
+if [[ ! -d $BG_DIR ]]; then
+  echo "No backgrounds directory: $BG_DIR"
+  exit 1
+fi
+
+mapfile -d '' -t BACKGROUNDS < <(
+  find -L "$BG_DIR" -maxdepth 1 -type f \
+    \( -iname "$THEME.jpg" -o -iname "$THEME.jpeg" -o -iname "$THEME.png" -o -iname "$THEME.webp" \
+       -o -iname "$THEME-*.jpg" -o -iname "$THEME-*.jpeg" -o -iname "$THEME-*.png" -o -iname "$THEME-*.webp" \) \
+    -print0 2>/dev/null | sort -z
+)
+TOTAL=${#BACKGROUNDS[@]}
+
+if (( TOTAL == 0 )); then
+  echo "No backgrounds for theme '$THEME' in $BG_DIR"
+  exit 1
+fi
+
+if [[ -L $CURRENT_BACKGROUND_LINK ]]; then
+  CURRENT_BACKGROUND=$(readlink "$CURRENT_BACKGROUND_LINK")
+else
+  CURRENT_BACKGROUND=""
+fi
+
+INDEX=-1
+for i in "${!BACKGROUNDS[@]}"; do
+  if [[ ${BACKGROUNDS[$i]} == "$CURRENT_BACKGROUND" ]]; then
+    INDEX=$i
+    break
+  fi
+done
+
+if (( INDEX == -1 )); then
+  NEW_BACKGROUND="${BACKGROUNDS[0]}"
+else
+  NEXT_INDEX=$(((INDEX + 1) % TOTAL))
+  NEW_BACKGROUND="${BACKGROUNDS[$NEXT_INDEX]}"
+fi
+
+ln -nsf "$NEW_BACKGROUND" "$CURRENT_BACKGROUND_LINK"
+
+echo "Background changed to: $(basename "$NEW_BACKGROUND")"
+
+if df-cmd-present swaybg; then
+  pkill -x swaybg
+  setsid uwsm-app -- swaybg -i "$CURRENT_BACKGROUND_LINK" -m fill >/dev/null 2>&1 &
+fi

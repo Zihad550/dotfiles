@@ -25,8 +25,8 @@ themes/
 │   │   └── backgrounds/
 │   └── ...
 └── bin/
-    ├── theme              # Theme switching script
-    └── theme-generate     # Theme generation script
+    ├── df-theme-set       # Theme switching script
+    └── df-theme-generate  # Theme generation script
 ```
 
 ## Theme Definition
@@ -50,19 +50,19 @@ color1 = "#b4637a"
 
 ### List available themes
 ```bash
-./bin/theme
+./bin/df-theme-set
 ```
 
 ### Switch to a theme
 ```bash
-./bin/theme <theme-name>
+./bin/df-theme-set <theme-name>
 # Example:
-./bin/theme rose-pine
+./bin/df-theme-set rose-pine
 ```
 
 ### Generate a theme manually
 ```bash
-./bin/theme-generate <theme-name>
+./bin/df-theme-generate <theme-name>
 ```
 
 ## Adding a New Theme
@@ -70,7 +70,7 @@ color1 = "#b4637a"
 1. Create a new directory in `themes/.config/themes/<theme-name>/`
 2. Create a `colors.toml` file with the theme colors
 3. Optionally add `light.mode`, etc.
-4. Run `./bin/theme-generate <theme-name>` to generate the configs
+4. Run `./bin/df-theme-generate <theme-name>` to generate the configs
 
 ## Templates
 

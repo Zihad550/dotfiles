@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# Fix SSH/Git hangs on paths with broken Path MTU Discovery (VPNs, container
+# networks, some ISPs). Kernel probes MTU and shrinks packets if ICMP is filtered.
+echo "net.ipv4.tcp_mtu_probing=1" | sudo tee /etc/sysctl.d/90-arch-ssh.conf >/dev/null
+sudo sysctl --system >/dev/null

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# Raise inotify watch cap so VS Code, webpack, jest --watch, vite, tsc --watch etc.
+# don't hit "ENOSPC: System limit for number of file watchers reached" in big repos.
+echo "fs.inotify.max_user_watches=524288" | sudo tee /etc/sysctl.d/90-arch-file-watchers.conf >/dev/null
+sudo sysctl --system >/dev/null

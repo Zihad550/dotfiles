@@ -1,3 +1,6 @@
+local home         = os.getenv("HOME")
+local dotfiles_bin = home .. "/dotfiles/bin"
+
 -- swayosd-client scoped to the focused monitor.
 local osdclient = [[swayosd-client --monitor "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')"]]
 
@@ -19,5 +22,5 @@ o.bind("XF86AudioPlay",  "Play",           osdclient .. " --playerctl play-pause
 o.bind("XF86AudioPrev",  "Previous track", osdclient .. " --playerctl previous",   { locked = true })
 
 o.bind("SUPER + XF86AudioMute", "Switch audio output",
-    os.getenv("HOME") .. "/dotfiles/bin/hyprland-cmd-audio-switch",
+    dotfiles_bin .. "/df-hypr-audio-switch",
     { locked = true })

@@ -8,7 +8,7 @@
 -- rofi -modi "drun,ssh,window,combi" -show combi -run-command "uwsm app -- {cmd}"
 
 -- o.bind("SUPER + B", "Zen Browser Dev",
---     os.getenv("HOME") .. [[/dotfiles/bin/hyprland-launch-zen "zendev" "uwsm-app -- flatpak run app.zen_browser.zen -P dev"]])
+--     os.getenv("HOME") .. [[/dotfiles/bin/df-launch-zen "zendev" "uwsm-app -- flatpak run app.zen_browser.zen -P dev"]])
 -- o.bind("SUPER + SHIFT + B", "Zen Browser 008", "uwsm-app -- flatpak run app.zen_browser.zen -P 008")
 -- o.bind("SUPER + SHIFT + F", nil, [[ghostty -e zsh -i -c "fod"]])
 -- gui application

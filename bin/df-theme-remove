@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# Remove a user-installed theme.
+# Refuses to remove built-in themes (those whose dir is a symlink managed by
+# the dotfiles repo) and refuses to remove the currently active theme.
+
+set -e
+
+THEMES_DIR="$HOME/.config/themes"
+BG_DIR="$HOME/.config/backgrounds"
+PREVIEW_DIR="$HOME/.config/theme-previews"
+THEME_LINK="$HOME/.config/theme"
+
+usage() {
+   echo "Usage: df-theme-remove [theme-name] [--force]"
+   echo "  Prompts for confirmation unless --force is passed."
+   echo "  With no theme-name, lists removable (user-installed) themes."
+   exit 1
+}
+
+FORCE=0
+NAME=""
+for arg in "$@"; do
+   case "$arg" in
+      --force) FORCE=1 ;;
+      -h|--help) usage ;;
+      *)
+         if [[ -n $NAME ]]; then
+            echo "Error: too many arguments" >&2
+            usage
+         fi
+         NAME="$arg"
+         ;;
+   esac
+done
+
+list_user_themes() {
+   for d in "$THEMES_DIR"/*/; do
+      [[ -d $d ]] || continue
+      # Skip symlinked dirs (= built-in / managed)
+      if [[ -L "${d%/}" ]]; then
+         continue
+      fi
+      basename "${d%/}"
+   done
+}
+
+if [[ -z $NAME ]]; then
+   echo "User-installed themes:"
+   themes="$(list_user_themes)"
+   if [[ -z $themes ]]; then
+      echo "  (none — only built-in themes present)"
+      exit 0
+   fi
+   echo "$themes" | sed 's/^/  - /'
+   echo
+   echo "Run: df-theme-remove <name>"
+   exit 0
+fi
+
+THEME_PATH="$THEMES_DIR/$NAME"
+
+if [[ ! -e $THEME_PATH ]]; then
+   echo "Error: theme '$NAME' not found at $THEME_PATH" >&2
+   exit 1
+fi
+
+if [[ -L $THEME_PATH ]]; then
+   echo "Error: '$NAME' is a built-in theme (symlink managed by the dotfiles repo)." >&2
+   echo "       Edit themes/.config/themes/$NAME in the repo instead." >&2
+   exit 1
+fi
+
+# Refuse to remove the active theme
+if [[ -L $THEME_LINK ]]; then
+   current="$(basename "$(readlink "$THEME_LINK")")"
+   if [[ $current == "$NAME" ]]; then
+      echo "Error: '$NAME' is the active theme." >&2
+      echo "       Switch first:  df-theme-set default" >&2
+      exit 1
+   fi
+fi
+
+if (( !FORCE )); then
+   read -r -p "Remove user theme '$NAME'? [y/N] " ans
+   case "$ans" in
+      y|Y|yes|YES) ;;
+      *) echo "Aborted."; exit 0 ;;
+   esac
+fi
+
+rm -rf "$THEME_PATH"
+# Primary background + numbered extras (<name>-1.png, etc.)
+rm -f "$BG_DIR/$NAME".* "$BG_DIR/$NAME"-*.* 2>/dev/null || true
+rm -f "$PREVIEW_DIR/$NAME".* 2>/dev/null || true
+
+echo "Removed: $NAME"

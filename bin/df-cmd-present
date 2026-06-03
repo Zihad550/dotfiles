@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Exit 0 if every argument is on PATH; exit 1 otherwise.
+
+for cmd in "$@"; do
+  command -v "$cmd" &>/dev/null || exit 1
+done
+
+exit 0

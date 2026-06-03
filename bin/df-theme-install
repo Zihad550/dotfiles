@@ -1,0 +1,143 @@
+#!/bin/bash
+
+# Install a theme from a git repository.
+# Clones into ~/.config/themes/<derived-name>/, validates colors.toml (auto-
+# derives from alacritty.toml if missing), copies preview + backgrounds into
+# their canonical dirs, and runs df-theme-generate. With --apply, also
+# switches to the new theme.
+
+set -e
+
+usage() {
+   echo "Usage: df-theme-install <git-url> [--apply] [--force]"
+   echo "  --apply  switch to the new theme after install"
+   echo "  --force  replace an existing user-installed theme with the same name"
+   exit 1
+}
+
+URL=""
+APPLY=0
+FORCE=0
+
+for arg in "$@"; do
+   case "$arg" in
+      --apply) APPLY=1 ;;
+      --force) FORCE=1 ;;
+      -h|--help) usage ;;
+      *)
+         if [[ -n $URL ]]; then
+            echo "Error: too many positional args" >&2
+            usage
+         fi
+         URL="$arg"
+         ;;
+   esac
+done
+
+if [[ -z $URL ]]; then
+   usage
+fi
+
+if ! df-cmd-present git; then
+   echo "Error: git is required" >&2
+   exit 1
+fi
+
+THEMES_DIR="$HOME/.config/themes"
+BG_DIR="$HOME/.config/backgrounds"
+PREVIEW_DIR="$HOME/.config/theme-previews"
+
+# Strip user@host: prefix from scp-style SSH URLs so basename sees just the path
+REPO_PATH="$URL"
+[[ $REPO_PATH != *"://"* && $REPO_PATH == *:*/* ]] && REPO_PATH="${REPO_PATH#*:}"
+
+NAME="$(basename "$REPO_PATH" .git | sed -E 's/^omarchy-//; s/^df-//; s/-theme$//' | tr '[:upper:]' '[:lower:]')"
+
+if [[ -z $NAME ]]; then
+   echo "Error: could not derive a theme name from URL '$URL'" >&2
+   exit 1
+fi
+
+THEME_PATH="$THEMES_DIR/$NAME"
+
+if [[ -L $THEME_PATH ]]; then
+   echo "Error: '$NAME' collides with a built-in theme (symlink)." >&2
+   echo "       Choose a different name or remove the symlink first." >&2
+   exit 1
+fi
+
+if [[ -d $THEME_PATH ]]; then
+   if (( FORCE )); then
+      rm -rf "$THEME_PATH"
+   else
+      echo "Error: theme '$NAME' already exists at $THEME_PATH" >&2
+      echo "       Re-run with --force to replace." >&2
+      exit 1
+   fi
+fi
+
+mkdir -p "$THEMES_DIR"
+
+echo "Cloning $URL → $THEME_PATH"
+if ! git clone --depth 1 "$URL" "$THEME_PATH"; then
+   echo "Error: git clone failed" >&2
+   exit 1
+fi
+
+# Auto-derive colors.toml from alacritty.toml if missing
+if [[ ! -f "$THEME_PATH/colors.toml" && -f "$THEME_PATH/alacritty.toml" ]]; then
+   echo "No colors.toml — deriving from alacritty.toml"
+   df-theme-colors-from-alacritty "$THEME_PATH"
+fi
+
+if [[ ! -f "$THEME_PATH/colors.toml" ]]; then
+   echo "Error: cloned repo has no colors.toml (and no alacritty.toml to derive from)" >&2
+   rm -rf "$THEME_PATH"
+   exit 1
+fi
+
+# Copy preview if present
+mkdir -p "$PREVIEW_DIR"
+for ext in png jpg jpeg webp; do
+   if [[ -f "$THEME_PATH/preview.$ext" ]]; then
+      cp -f "$THEME_PATH/preview.$ext" "$PREVIEW_DIR/$NAME.$ext"
+      echo "preview: $PREVIEW_DIR/$NAME.$ext"
+      break
+   fi
+done
+
+# Copy backgrounds if present (either single 'background' file or backgrounds/ dir)
+mkdir -p "$BG_DIR"
+copied_bg=0
+if [[ -d "$THEME_PATH/backgrounds" ]]; then
+   for src in "$THEME_PATH/backgrounds"/*; do
+      [[ -f $src ]] || continue
+      ext="${src##*.}"
+      if (( copied_bg == 0 )); then
+         dest="$BG_DIR/$NAME.$ext"
+      else
+         dest="$BG_DIR/$NAME-$copied_bg.$ext"
+      fi
+      cp -f "$src" "$dest"
+      echo "background: $dest"
+      copied_bg=$((copied_bg + 1))
+   done
+fi
+if (( copied_bg == 0 )); then
+   for ext in png jpg jpeg webp; do
+      if [[ -f "$THEME_PATH/background.$ext" ]]; then
+         cp -f "$THEME_PATH/background.$ext" "$BG_DIR/$NAME.$ext"
+         echo "background: $BG_DIR/$NAME.$ext"
+         break
+      fi
+   done
+fi
+
+echo "Generating outputs"
+df-theme-generate "$NAME"
+
+echo "Installed: $NAME"
+
+if (( APPLY )); then
+   df-theme-set "$NAME"
+fi

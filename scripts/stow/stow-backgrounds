@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd ~/.backgrounds
+
+stow backgrounds
+stow theme-previews

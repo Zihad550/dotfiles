@@ -21,5 +21,5 @@ selected=$(echo -e "$options" | walker --dmenu --theme default -p "Select themeâ
 
 if [ -n "$selected" ]; then
    selected="${selected% (current)}"
-   theme "$selected"
+   df-theme-set "$selected"
 fi

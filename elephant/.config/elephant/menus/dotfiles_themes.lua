@@ -5,6 +5,11 @@ Cache = false
 HideFromProviderlist = false
 SearchName = true
 
+-- Menu-level action: %VALUE% is replaced with entry.Value (theme name) at activate time.
+Actions = {
+    ["menus:default"] = os.getenv("HOME") .. "/dotfiles/bin/df-theme-set %VALUE%",
+}
+
 local function ShellEscape(s)
     return "'" .. s:gsub("'", "'\\''") .. "'"
 end
@@ -39,7 +44,6 @@ function GetEntries()
     local themes_dir = home .. "/.config/themes"
     local theme_link = home .. "/.config/theme"
     local preview_dir = home .. "/.config/theme-previews"
-    local setter = home .. "/dotfiles/bin/theme"
 
     local current = ""
     local link_handle = io.popen("readlink " .. ShellEscape(theme_link) .. " 2>/dev/null")
@@ -68,9 +72,6 @@ function GetEntries()
                     Text = text,
                     Subtext = name,
                     Value = name,
-                    Actions = {
-                        activate = setter .. " " .. ShellEscape(name),
-                    },
                 }
 
                 local preview = FindPreview(preview_dir, name)

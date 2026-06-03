@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Launch a TUI command in the default terminal.
+#
+# No cmd-present pre-check: Hyprland's binding-dispatch PATH is stripped
+# (doesn't include mise-managed dirs or sometimes /usr/bin), so a pre-check
+# returns false negatives on binaries that uwsm-app -- can resolve fine.
+# Missing binary will fail visibly inside ghostty.
+
+exec setsid uwsm-app -- ghostty -e "$@"

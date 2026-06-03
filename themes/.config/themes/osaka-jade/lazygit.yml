@@ -1,0 +1,24 @@
+git:
+  overrideGpg: true
+gui:
+  expandFocusedSidePanel: true
+  theme:
+    activeBorderColor:
+      - "#509475"
+      - bold
+    inactiveBorderColor:
+      - "#F6F5DD"
+    optionsTextColor:
+      - "#509475"
+    selectedLineBgColor:
+      - "#23372B"
+    cherryPickedCommitBgColor:
+      - "#FF5345"
+    cherryPickedCommitFgColor:
+      - "#509475"
+    unstagedChangesColor:
+      - "#FF5345"
+    defaultFgColor:
+      - "#C1C497"
+    searchingActiveBorderColor:
+      - "#459451"

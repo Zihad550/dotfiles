@@ -1,8 +1,0 @@
-[Unit]
-Description=Arch Linux Update Service
-
-[Service]
-Type=oneshot
-ExecStart=%h/dotfiles/bin/arch-user-update
-StandardOutput=journal
-StandardError=journal

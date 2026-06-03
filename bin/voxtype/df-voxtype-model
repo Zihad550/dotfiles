@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+df-launch-floating-presentation "voxtype setup model"
+
+systemctl --user restart waybar.service
+# df-restart-waybar

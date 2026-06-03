@@ -127,7 +127,7 @@
     },
   },
   "custom/voxtype": {
-    "exec": "arch-voxtype-status",
+    "exec": "df-voxtype-status",
     "return-type": "json",
     "format": "{icon}",
     "format-icons": {
@@ -136,8 +136,8 @@
       "transcribing": "󰔟",
     },
     "tooltip": true,
-    "on-click-right": "arch-voxtype-config",
-    "on-click": "arch-voxtype-model",
+    "on-click-right": "df-voxtype-config",
+    "on-click": "df-voxtype-model",
   },
   "custom/tailscale": {
     "exec": "bash ~/.config/waybar/scripts/tailscale_status.sh",

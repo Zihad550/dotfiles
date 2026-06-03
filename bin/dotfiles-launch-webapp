@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-# browser=$(xdg-settings get default-web-browser)
-browser='helium-browser --profile-directory="Profile 2"'
-
-exec setsid uwsm-app -- --app="$1" "${@:2}"
