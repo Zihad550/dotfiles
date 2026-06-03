@@ -3,7 +3,8 @@
 sudo apt update -y
 sudo apt upgrade -y
 
-sudo apt install -y zsh eza fzf ripgrep neovim trash-cli bat bubblewrap socat git-delta
+sudo apt install -y zsh eza fzf ripgrep trash-cli bat bubblewrap socat git-delta
+# neovim
 curl https://mise.run | sh
 # sudo add-apt-repository -y ppa:jdxcode/mise
 # sudo apt update -y
