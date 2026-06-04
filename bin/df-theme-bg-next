@@ -55,7 +55,7 @@ ln -nsf "$NEW_BACKGROUND" "$CURRENT_BACKGROUND_LINK"
 
 echo "Background changed to: $(basename "$NEW_BACKGROUND")"
 
-if df-cmd-present swaybg; then
-  pkill -x swaybg
+if command -v swaybg >/dev/null 2>&1; then
+  pkill -x swaybg || true
   setsid uwsm-app -- swaybg -i "$CURRENT_BACKGROUND_LINK" -m fill >/dev/null 2>&1 &
 fi

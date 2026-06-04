@@ -17,7 +17,7 @@ fi
 
 ln -nsf "$BACKGROUND" "$CURRENT_BACKGROUND_LINK"
 
-if df-cmd-present swaybg; then
+if command -v swaybg >/dev/null 2>&1; then
   pkill -x swaybg || true
   setsid uwsm-app -- swaybg -i "$CURRENT_BACKGROUND_LINK" -m fill >/dev/null 2>&1 &
 fi
