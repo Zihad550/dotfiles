@@ -47,29 +47,37 @@ source "${ZINIT_HOME}/zinit.zsh"
 # zinit ice compile'(pure|async).zsh' pick'async.zsh' src'pure.zsh'
 # zinit light sindresorhus/pure
 
-# Add in zsh plugins
-zinit light zsh-users/zsh-syntax-highlighting
-zinit light zsh-users/zsh-completions
-zinit light zsh-users/zsh-autosuggestions
-zinit light Aloxaf/fzf-tab
-zinit light g-plane/pnpm-shell-completion
+# Add in zsh plugins (turbo: load after first prompt -> off critical path).
+# Order matters: fzf-tab must load AFTER compinit but BEFORE the widget-wrapping
+# plugins (autosuggestions, syntax-highlighting). syntax-highlighting MUST be last.
+zinit wait lucid for \
+    blockf \
+    zsh-users/zsh-completions \
+    g-plane/pnpm-shell-completion \
+    Aloxaf/fzf-tab \
+    atload"_zsh_autosuggest_start" \
+    zsh-users/zsh-autosuggestions \
+    zsh-users/zsh-syntax-highlighting
 
-# Add in snippets
-zinit snippet OMZL::git.zsh
-zinit snippet OMZP::git
-zinit snippet OMZP::sudo
-zinit snippet OMZP::archlinux
+# Add in snippets (also deferred via turbo)
+zinit wait lucid for \
+    OMZL::git.zsh \
+    OMZP::git \
+    OMZP::sudo \
+    OMZP::archlinux \
+    OMZP::kubectl \
+    OMZP::command-not-found
 # zinit snippet OMZP::aws
-zinit snippet OMZP::kubectl
 # zinit snippet OMZP::kubectx
-zinit snippet OMZP::command-not-found
 
-# Load completions
-autoload -Uz compinit && compinit
-
+# Load completions synchronously (-C skips slow compaudit security scan).
+# Must run here so `compdef` exists for the shell integrations below; turbo
+# plugins/snippets register their completions via zinit's machinery + cdreplay.
+autoload -Uz compinit && compinit -C
 zinit cdreplay -q
 
-zinit ice atload"zpcdreplay" atclone"./zplug.zsh" atpull"%atclone"
+# zinit ice atload"zpcdreplay" atclone"./zplug.zsh" atpull"%atclone"
+# required for p10k
 
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 # [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
