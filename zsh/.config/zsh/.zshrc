@@ -70,10 +70,9 @@ zinit wait lucid for \
 # zinit snippet OMZP::aws
 # zinit snippet OMZP::kubectx
 
-# Load completions synchronously (-C skips slow compaudit security scan).
-# Must run here so `compdef` exists for the shell integrations below; turbo
-# plugins/snippets register their completions via zinit's machinery + cdreplay.
-autoload -Uz compinit && compinit -C
+# Load completions
+autoload -Uz compinit && compinit
+
 zinit cdreplay -q
 
 # zinit ice atload"zpcdreplay" atclone"./zplug.zsh" atpull"%atclone"
