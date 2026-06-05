@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 flatpak install -y \
-   app.zen_browser.zen \
-   com.mongodb.Compass \
-   com.getpostman.Postman \
-   io.beekeeperstudio.Studio
+    app.zen_browser.zen \
+    com.mongodb.Compass \
+    io.beekeeperstudio.Studio
+# com.getpostman.Postman \
 
 # obsidian
 # flatpak install md.obsidian.Obsidian -y

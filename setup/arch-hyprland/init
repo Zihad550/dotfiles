@@ -22,7 +22,7 @@ CURRENT_STEP="init"
 # omarchy's errors.sh. It calls on_exit_extra (if defined) last, so we drop the
 # temporary passwordless-sudo rule here.
 on_exit_extra() {
-    [[ -f /etc/sudoers.d/arch-setup-first-run ]] && \
+    [[ -f /etc/sudoers.d/arch-setup-first-run ]] &&
         sudo /usr/bin/rm -f /etc/sudoers.d/arch-setup-first-run 2>/dev/null
 }
 
@@ -119,7 +119,7 @@ fi
 
 # System-wide QoL tweaks (sysctl, sudoers, systemd timeouts).
 run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
-run_step "sudo tries" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
+# run_step "sudo tries" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
 run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
 run_step "fast shutdown" "$ARCH_HYPR_DIR/setup-packages/setup-fast-shutdown"
 
