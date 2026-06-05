@@ -50,8 +50,12 @@ run_step "system upgrade + stow" sudo pacman -Syu --noconfirm stow
 
 # additional application icons
 CURRENT_STEP="application icons"
-mkdir -p "$HOME/.local/share/applications/icons"
-ln -snf "$DOTFILES_DIR/setup/applications/icons" "$HOME/.local/share/applications"
+mkdir -p "$HOME/.local/share/applications"
+# Replace a stale real dir (e.g. created by an older buggy run) so ln can place
+# the symlink at the exact target instead of nesting inside it.
+[[ -d "$HOME/.local/share/applications/icons" && ! -L "$HOME/.local/share/applications/icons" ]] &&
+    rm -rf "$HOME/.local/share/applications/icons"
+ln -snf "$DOTFILES_DIR/setup/applications/icons" "$HOME/.local/share/applications/icons"
 
 run_step "stow base" "$DOTFILES_DIR/scripts/stow/stow-base"
 run_step "stow backgrounds" "$DOTFILES_DIR/scripts/stow/stow-backgrounds"
