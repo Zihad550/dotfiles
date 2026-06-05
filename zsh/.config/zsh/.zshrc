@@ -71,7 +71,32 @@ zinit wait lucid for \
 # zinit snippet OMZP::kubectx
 
 # Load completions
-autoload -Uz compinit && compinit
+# autoload -Uz compinit && compinit
+
+# Load completions.
+# Full security check (compaudit) + dump rebuild only once per 24h; otherwise
+# reuse cached dump with -C (skips compaudit, the startup bottleneck).
+autoload -Uz compinit
+zmodload zsh/datetime # provides $EPOCHSECONDS
+zmodload zsh/stat     # provides the zstat builtin
+zcd=${ZDOTDIR:-$HOME}/.zcompdump
+# Read dump's mtime (0 if missing) and compare against now.
+typeset -i zcd_mtime=0
+[[ -f $zcd ]] && zstat -A zcd_mtime +mtime "$zcd"
+# Dump modified < 24h ago -> fast path (-C: skip compaudit + rebuild).
+# Missing or stale -> full compinit (runs security check, rebuilds dump).
+if ((zcd_mtime && EPOCHSECONDS - zcd_mtime < 86400)); then
+    compinit -C -d "$zcd"
+else
+    compinit -d "$zcd"
+fi
+unset zcd_mtime
+# Compile dump to bytecode (.zwc) so the next startup reads it faster.
+# Recompile only when the dump is newer than its compiled form.
+if [[ ! -f $zcd.zwc || $zcd -nt $zcd.zwc ]]; then
+    zcompile -R -- "$zcd.zwc" "$zcd" 2>/dev/null
+fi
+unset zcd
 
 zinit cdreplay -q
 
