@@ -1,1 +1,8 @@
 # keybind = ctrl+d=new_split:right
+
+# Universal clipboard, matching omarchy/config/ghostty/config.
+# Ghostty intercepts these before tmux/nvim see them, so SUPER+C / SUPER+V
+# (which Hyprland synthesizes into Ctrl+Insert / Shift+Insert) work everywhere
+# inside the terminal stack.
+# keybind = shift+insert=paste_from_clipboard
+# keybind = control+insert=copy_to_clipboard
