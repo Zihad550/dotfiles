@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-cd ~/.backgrounds
+set -euo pipefail
+
+BACKGROUNDS_REPO="https://github.com/Zihad550/backgrounds"
+BACKGROUNDS_DIR="$HOME/.backgrounds"
+
+# Clone the backgrounds repo on first run; it holds the `backgrounds` and
+# `theme-previews` stow packages we link below.
+if [[ ! -d "$BACKGROUNDS_DIR/.git" ]]; then
+    git clone "$BACKGROUNDS_REPO" "$BACKGROUNDS_DIR"
+fi
+
+cd "$BACKGROUNDS_DIR"
 
 stow backgrounds
 stow theme-previews
