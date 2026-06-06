@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BACKGROUNDS_REPO="https://github.com/Zihad550/backgrounds"
-BACKGROUNDS_DIR="$HOME/.backgrounds"
+BACKGROUNDS_DIR="$HOME/backgrounds"
 
 # Clone the backgrounds repo on first run; it holds the `backgrounds` and
 # `theme-previews` stow packages we link below.
