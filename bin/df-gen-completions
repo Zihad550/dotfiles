@@ -10,6 +10,10 @@
 
 set -u
 
+# Expose mise-managed tools (deno/uv/bun/...) so this works both mid-setup
+# (bash, before mise activates) and standalone in an interactive shell.
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+
 COMP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions"
 mkdir -p "$COMP_DIR"
 

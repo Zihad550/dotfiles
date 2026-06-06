@@ -112,6 +112,7 @@ run_step "kanata" "$ARCH_HYPR_DIR/setup-packages/setup-kanata"
 
 run_step "additional packages" "$ARCH_HYPR_DIR/packages/additional-packages"
 run_step "go packages" "$ARCH_HYPR_DIR/packages/go-packages"
+run_step "shell completions" "$DOTFILES_DIR/bin/df-gen-completions"
 
 # Guard keyring: writes secret files, has built-in --check but re-running is wasteful.
 CURRENT_STEP="keyring"

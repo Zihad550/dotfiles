@@ -11,9 +11,3 @@ if ! command -v go >/dev/null 2>&1; then
 fi
 
 go install github.com/Zihad550/go-timer@latest
-
-# git clone https://github.com/Zihad550/go-timer.git
-# cd go-timer
-# go build -o timer .
-# cd ..
-# rm -rf go-timer

@@ -4,8 +4,8 @@ tldr --update
 
 # Test if AppArmor is correctly enabled.
 echo "Is app armor enabled: $(aa-enabled 2>/dev/null || echo 'unknown')"
-echo "AFTER REBOOTING, run # ~/dotfiles/bin/df-arch-hypr-post-install"
-echo "  (installs completions + go tools; configures gh once you've run 'gh auth login')"
+echo "AFTER 'gh auth login', run # ~/dotfiles/bin/df-arch-hypr-post-install"
+echo "  (configures GitHub CLI; completions + go tools already ran during setup)"
 
 if command -v gum &>/dev/null && [[ -t 1 ]]; then
     if gum confirm "Restart now?"; then

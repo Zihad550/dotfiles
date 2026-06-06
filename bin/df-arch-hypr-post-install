@@ -21,15 +21,11 @@ step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
 ok()   { printf '\033[1;32mok:\033[0m %s\n' "$1"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$1"; }
 
-# 1. Shell completions (bun/deno/uv/uvx/gt) ----------------------------------
-step "Generating shell completions"
-if [[ -x "$SCRIPT_DIR/df-gen-completions" ]]; then
-    "$SCRIPT_DIR/df-gen-completions"
-else
-    warn "df-gen-completions not found; skipping"
-fi
+# Note: shell completions and go tools now run inline during `init` (they only
+# needed mise's shims on PATH, which the setup steps provide). This script is
+# kept for the steps that genuinely can't run unattended during setup.
 
-# 2. Go tools ----------------------------------------------------------------
+# Go tools (idempotent re-run; also runs during init) ------------------------
 step "Installing go tools"
 if command -v go >/dev/null 2>&1; then
     "$ARCH_HYPR_DIR/packages/go-packages"
