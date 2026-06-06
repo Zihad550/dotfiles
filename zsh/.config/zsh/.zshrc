@@ -70,6 +70,19 @@ zinit wait lucid for \
 # zinit snippet OMZP::aws
 # zinit snippet OMZP::kubectx
 
+# mise: cached --shims activation.
+# Shims avoid the per-prompt `mise hook-env` fork (~44ms, the old startup hog).
+# Cache regenerates only when the mise binary changes (e.g. self-update).
+# Static [env]._.path entries already live on PATH via .zshenv, so shims lose nothing.
+if command -v mise >/dev/null 2>&1; then
+    _mise_cache="$XDG_CACHE_HOME/mise-shims.zsh"
+    if [[ ! -f $_mise_cache || $(command -v mise) -nt $_mise_cache ]]; then
+        mise activate zsh --shims >"$_mise_cache"
+    fi
+    source "$_mise_cache"
+    unset _mise_cache
+fi
+
 # Load completions
 # autoload -Uz compinit && compinit
 
@@ -152,7 +165,7 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 if command -v fzf >/dev/null 2>&1; then source <(fzf --zsh); fi
 if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd zsh)"; fi
 if command -v starship >/dev/null 2>&1; then eval "$(starship init zsh)"; fi
-if command -v mise >/dev/null 2>&1; then eval "$(mise activate zsh)"; fi
+# if command -v mise >/dev/null 2>&1; then eval "$(mise activate zsh)"; fi
 if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out zsh); fi
 if command -v kubectl >/dev/null 2>&1; then source <(kubectl completion zsh); fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
