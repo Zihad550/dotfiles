@@ -5,9 +5,7 @@ if command -v yay &>/dev/null; then
     exit 0
 fi
 
-sudo pacman -S --noconfirm --needed git base-devel
-git clone https://aur.archlinux.org/yay-bin.git --depth 1
-cd yay-bin
-makepkg -si --noconfirm
-cd ..
-rm -rf yay-bin
+# yay is in the official 'extra' repo, so install it directly — no AUR clone +
+# makepkg. This avoids makepkg's internal `sudo pacman -U` prompting for a
+# password mid-build (matches how omarchy installs it).
+sudo pacman -S --noconfirm --needed yay
