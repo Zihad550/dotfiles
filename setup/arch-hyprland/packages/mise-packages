@@ -13,20 +13,5 @@ mise use -g npm:vercel npm:netlify-cli
 # mise use -g npm:skills
 # mise use -g npm:@fission-ai/openspec portless
 
-# shell autocompletions (user-owned dir, no sudo; fpath set in .zshrc)
-COMP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions"
-mkdir -p "$COMP_DIR"
-
-curl -fsSL https://raw.githubusercontent.com/oven-sh/bun/main/completions/bun.zsh > "$COMP_DIR/_bun"
-
-deno completions zsh > "$COMP_DIR/_deno"
-
-uvx --generate-shell-completion zsh > "$COMP_DIR/_uvx"
-uv --generate-shell-completion zsh > "$COMP_DIR/_uv"
-
-gt completion > "$COMP_DIR/_gt"
-
-# Drop the compdump so the next zsh runs a full compinit and picks up the new
-# completions immediately (the .zshrc fast path would otherwise reuse a <24h
-# cached dump and ignore them).
-rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/.zcompdump" "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/.zcompdump.zwc"
+# Shell completions for these tools are generated post-reboot, when mise has
+# activated and the tools are on PATH. Run: ~/dotfiles/bin/df-gen-completions

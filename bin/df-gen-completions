@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+# Generate zsh completions for tools installed via mise (deno/uv/uvx/gt/bun).
+#
+# Run this AFTER the first reboot following `setup/boot`, when mise has
+# activated and the tools are on PATH. It writes user-owned completion files
+# (no sudo) into $XDG_DATA_HOME/zsh/site-functions, which .zshrc adds to fpath.
+#
+# Safe to re-run any time you add/upgrade one of these tools.
+
+set -u
+
+COMP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions"
+mkdir -p "$COMP_DIR"
+
+gen() {
+    local name="$1"; shift
+    if ! command -v "$name" >/dev/null 2>&1; then
+        echo "skip: $name not on PATH"
+        return
+    fi
+    if "$@" >"$COMP_DIR/_$name" 2>/dev/null; then
+        echo "ok:   _$name"
+    else
+        rm -f "$COMP_DIR/_$name"
+        echo "fail: $name completion generation failed"
+    fi
+}
+
+# bun ships its completion as a file in the repo, not a subcommand.
+if command -v bun >/dev/null 2>&1; then
+    if curl -fsSL https://raw.githubusercontent.com/oven-sh/bun/main/completions/bun.zsh \
+        >"$COMP_DIR/_bun"; then
+        echo "ok:   _bun"
+    else
+        rm -f "$COMP_DIR/_bun"
+        echo "fail: bun completion download failed"
+    fi
+fi
+
+gen deno deno completions zsh
+gen uvx  uvx --generate-shell-completion zsh
+gen uv   uv  --generate-shell-completion zsh
+gen gt   gt  completion
+
+# Drop the compdump so the next zsh runs a full compinit and picks up the new
+# completions immediately (the .zshrc fast path otherwise reuses a <24h cached
+# dump and ignores them).
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/.zcompdump" \
+      "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/.zcompdump.zwc"
+
+echo "Done. Open a new zsh (or run: exec zsh) to load completions."
