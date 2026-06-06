@@ -2,8 +2,24 @@
 
 # sync files with syncthing
 # syncthing cli config options --help | rg  relays # use it to find about available options
-sudo pacman -S --noconfirm syncthing
+sudo pacman -S --noconfirm --needed syncthing
+
+# Pre-generate config.xml + cert.pem so they exist before we touch them. This
+# avoids the race where `syncthing cli` runs before the freshly-started daemon
+# has initialized its config/keys.
+syncthing generate >/dev/null 2>&1 || true
+
 systemctl --user enable --now syncthing.service
+
+# Wait until the daemon's REST API is up before issuing cli config commands
+# (they talk to the running instance, not the file on disk).
+for _ in {1..30}; do
+    if syncthing cli config options relays-enabled get &>/dev/null; then
+        break
+    fi
+    sleep 1
+done
+
 syncthing cli config options relays-enabled set false
 syncthing cli config options natenabled set false
 syncthing cli config options global-ann-enabled set false
@@ -13,6 +29,6 @@ syncthing cli config options releases-url set ""
 # syncthing cli config options uraccepted set -1
 
 # create sync directories
-mkdir ~/dev
+mkdir -p ~/dev ~/dev-0
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev-0/.stignore
