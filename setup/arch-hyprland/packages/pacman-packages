@@ -51,7 +51,8 @@ sudo pacman -S --noconfirm \
     rsync \
     bubblewrap socat \
     claude-code \
-    mise
+    mise \
+    tmux
 
 # mise
 # atac
