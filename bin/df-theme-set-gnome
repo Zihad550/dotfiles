@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Skip when GNOME schemas aren't installed (e.g. hyprland-only setups).
+if ! command -v gsettings >/dev/null || \
+   ! gsettings list-schemas 2>/dev/null | grep -qx org.gnome.desktop.interface; then
+    exit 0
+fi
+
 # Change gnome modes
 if [[ -f ~/.config/theme/light.mode ]]; then
     gsettings set org.gnome.desktop.interface color-scheme "prefer-light"

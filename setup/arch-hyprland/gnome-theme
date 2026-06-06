@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Skip when GNOME schemas aren't installed (e.g. hyprland-only setups).
+if ! command -v gsettings >/dev/null || \
+   ! gsettings list-schemas 2>/dev/null | grep -qx org.gnome.desktop.interface; then
+    exit 0
+fi
+
 THEME_DIR=~/.config/theme
 
 if [[ -f "$THEME_DIR/light.mode" ]]; then
