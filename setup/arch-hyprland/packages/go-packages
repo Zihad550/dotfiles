@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+# go is installed via mise; its shims aren't on PATH in the setup shell, so
+# expose them. Best run post-reboot (see post-install reminder), but this also
+# works mid-setup if mise has already provisioned go.
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+
+if ! command -v go >/dev/null 2>&1; then
+    echo "skip: go not on PATH — run this after reboot (mise must be active)."
+    exit 0
+fi
+
 go install github.com/Zihad550/go-timer@latest
 
 # git clone https://github.com/Zihad550/go-timer.git

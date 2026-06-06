@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+# Run the setup steps that must happen AFTER the first reboot, when mise is
+# active and tools (go, deno, uv, ...) are on PATH. Idempotent — safe to re-run.
+#
+#   ~/dotfiles/bin/df-arch-hypr-post-install
+
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+ARCH_HYPR_DIR="$DOTFILES_DIR/setup/arch-hyprland"
+
+# Make mise-managed tools available even if this is run from a non-login shell.
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$SCRIPT_DIR:$PATH"
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate bash --shims)" 2>/dev/null || true
+fi
+
+step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
+ok()   { printf '\033[1;32mok:\033[0m %s\n' "$1"; }
+warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$1"; }
+
+# 1. Shell completions (bun/deno/uv/uvx/gt) ----------------------------------
+step "Generating shell completions"
+if [[ -x "$SCRIPT_DIR/df-gen-completions" ]]; then
+    "$SCRIPT_DIR/df-gen-completions"
+else
+    warn "df-gen-completions not found; skipping"
+fi
+
+# 2. Go tools ----------------------------------------------------------------
+step "Installing go tools"
+if command -v go >/dev/null 2>&1; then
+    "$ARCH_HYPR_DIR/packages/go-packages"
+else
+    warn "go not on PATH — is mise active? skipping go tools"
+fi
+
+# 3. GitHub CLI config (needs an authenticated gh) ---------------------------
+step "Configuring GitHub CLI"
+if ! command -v gh >/dev/null 2>&1; then
+    warn "gh not installed; skipping"
+elif gh auth status >/dev/null 2>&1; then
+    "$ARCH_HYPR_DIR/setup-packages/setup-github-cli" && ok "gh configured"
+else
+    warn "gh not authenticated. Run 'gh auth login' first, then re-run this script."
+fi
+
+printf '\n\033[1;32mPost-install complete.\033[0m Open a new shell (exec zsh) to pick up changes.\n'
