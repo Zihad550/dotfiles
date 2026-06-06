@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Copy theme preview images into ~/.config/theme-previews/<theme>.<ext>.
+# Import theme preview images into ~/.config/theme-previews/<theme>.webp.
 # Sources, in order:
 #   1. resources/omarchy/themes/<theme>/preview.png (upstream omarchy themes)
 #   2. ~/.config/themes/<theme>/preview.{png,jpg,jpeg,webp} (user-installed)
+# Previews are stored as WebP (q88) to match the rest of the preview/background
+# set; an already-webp source is copied as-is to avoid a re-encode.
 # Consumed by the walker theme picker.
 
 set -euo pipefail
@@ -12,6 +14,21 @@ REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
 OMARCHY_SRC="$REPO/resources/omarchy/themes"
 USER_SRC="$HOME/.config/themes"
 DEST="$HOME/.config/theme-previews"
+
+if ! command -v cwebp >/dev/null 2>&1; then
+    echo "error: cwebp not found — install libwebp (pacman -S libwebp)" >&2
+    exit 1
+fi
+
+# Emit a WebP preview from $1 (src) to $2 (.webp dest). Copy if already webp.
+emit_webp() {
+    local src="$1" dest="$2"
+    if [[ ${src##*.} == webp ]]; then
+        cp -f -- "$src" "$dest"
+    else
+        cwebp -q 88 -m 6 -quiet "$src" -o "$dest"
+    fi
+}
 
 # DEST may be a symlink managed by stow — don't replace it. Just ensure the
 # target dir exists.
@@ -30,9 +47,9 @@ if [[ -d $OMARCHY_SRC ]]; then
             continue
         fi
 
-        target="$DEST/$theme.png"
-        cp -f -- "$preview" "$target"
-        echo "copied (omarchy): $target"
+        target="$DEST/$theme.webp"
+        emit_webp "$preview" "$target"
+        echo "imported (omarchy): $target"
         copied=$((copied + 1))
     done
 else
@@ -48,9 +65,9 @@ if [[ -d $USER_SRC ]]; then
         for ext in png jpg jpeg webp; do
             preview="$theme_dir/preview.$ext"
             if [[ -f $preview ]]; then
-                target="$DEST/$theme.$ext"
-                cp -f -- "$preview" "$target"
-                echo "copied (user): $target"
+                target="$DEST/$theme.webp"
+                emit_webp "$preview" "$target"
+                echo "imported (user): $target"
                 copied=$((copied + 1))
                 break
             fi
