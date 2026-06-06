@@ -157,3 +157,21 @@ run_step "post-install" "$ARCH_HYPR_DIR/post-install"
 
 touch "$ARCH_SETUP_STATE_DIR/.initialized"
 ui_done "arch-hyprland setup completed"
+
+# Interactive wrap-up. ui_done has stopped the live log panel, so the terminal
+# is free again. These must run here (not inside post-install, which run_step
+# executes with stdin /dev/null and stdout redirected to the log).
+echo
+echo "Next steps:"
+echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-hypr-post-install"
+echo "    (configures GitHub CLI; completions + go tools already ran during setup)"
+echo
+
+if [[ -e /dev/tty ]]; then
+    if command -v gum &>/dev/null; then
+        gum confirm "Restart now?" </dev/tty && sudo shutdown -r now
+    else
+        read -r -p "Do you want to restart? [y/N] " response </dev/tty
+        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && sudo shutdown -r now
+    fi
+fi

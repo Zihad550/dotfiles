@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 
+# Non-interactive post-install tasks only. This runs via run_step (stdin
+# /dev/null, stdout -> log), so it must NOT prompt. The reboot confirmation and
+# the user-facing reminders live at the end of init, after ui_done frees the
+# terminal.
+
 tldr --update
 
 # Test if AppArmor is correctly enabled.
 echo "Is app armor enabled: $(aa-enabled 2>/dev/null || echo 'unknown')"
-echo "AFTER 'gh auth login', run # ~/dotfiles/bin/df-arch-hypr-post-install"
-echo "  (configures GitHub CLI; completions + go tools already ran during setup)"
-
-if command -v gum &>/dev/null && [[ -t 1 ]]; then
-    if gum confirm "Restart now?"; then
-        sudo shutdown -r now
-    fi
-else
-    echo "Do you want to restart? [y/N] "
-    read -r response
-    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        sudo shutdown -r now
-    fi
-fi
