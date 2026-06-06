@@ -86,6 +86,9 @@ fi
 # Load completions
 # autoload -Uz compinit && compinit
 
+# User-owned completions (bun/deno/uv/uvx/gt etc., installed without sudo).
+fpath=("${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions" $fpath)
+
 # Load completions.
 # Full security check (compaudit) + dump rebuild only once per 24h; otherwise
 # reuse cached dump with -C (skips compaudit, the startup bottleneck).
