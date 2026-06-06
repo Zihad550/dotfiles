@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if command -v yay &>/dev/null; then
+    echo "yay already installed ($(command -v yay)); skipping."
+    exit 0
+fi
+
 sudo pacman -S --noconfirm --needed git base-devel
 git clone https://aur.archlinux.org/yay-bin.git --depth 1
 cd yay-bin
