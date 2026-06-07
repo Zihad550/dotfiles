@@ -168,10 +168,19 @@ echo "    (configures GitHub CLI; completions + go tools already ran during setu
 echo
 
 if [[ -e /dev/tty ]]; then
+    restart=false
     if command -v gum &>/dev/null; then
-        gum confirm "Restart now?" </dev/tty && sudo shutdown -r now
+        gum confirm "Restart now?" </dev/tty && restart=true
     else
         read -r -p "Do you want to restart? [y/N] " response </dev/tty
-        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && sudo shutdown -r now
+        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && restart=true
+    fi
+
+    # Reboot races the EXIT trap: `shutdown -r now` returns at once and the
+    # kernel kills us before on_exit_extra's `rm` lands, leaving the temporary
+    # sudoers rule on disk. So tear it down explicitly before shutting down.
+    if [[ "$restart" == true ]]; then
+        on_exit_extra
+        sudo shutdown -r now
     fi
 fi
