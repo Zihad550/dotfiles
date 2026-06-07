@@ -18,7 +18,7 @@ if command -v mise >/dev/null 2>&1; then
 fi
 
 step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
-ok()   { printf '\033[1;32mok:\033[0m %s\n' "$1"; }
+ok() { printf '\033[1;32mok:\033[0m %s\n' "$1"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$1"; }
 
 # Note: shell completions and go tools now run inline during `init` (they only
@@ -26,12 +26,6 @@ warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$1"; }
 # kept for the steps that genuinely can't run unattended during setup.
 
 # Go tools (idempotent re-run; also runs during init) ------------------------
-step "Installing go tools"
-if command -v go >/dev/null 2>&1; then
-    "$ARCH_HYPR_DIR/packages/go-packages"
-else
-    warn "go not on PATH — is mise active? skipping go tools"
-fi
 
 # 3. GitHub CLI config (needs an authenticated gh) ---------------------------
 step "Configuring GitHub CLI"
