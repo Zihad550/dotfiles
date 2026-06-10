@@ -107,7 +107,7 @@
       "manifest": {
         "id": "git-firefly",
         "name": "Git Firefly",
-        "version": "0.1.6",
+        "version": "0.1.7",
         "schema_version": 1,
         "description": "Provides Git Syntax Highlighting",
         "repository": "https://github.com/d1y/git_firefly",
@@ -122,10 +122,10 @@
         "themes": [],
         "icon_themes": [],
         "languages": [
+          "languages/gitrebase",
           "languages/gitignore",
-          "languages/gitconfig",
           "languages/gitattributes",
-          "languages/gitrebase"
+          "languages/gitconfig"
         ],
         "grammars": {
           "git_config": {
@@ -830,6 +830,7 @@
           ".eslintignore",
           ".fdignore",
           ".gitignore",
+          ".gitignore_global",
           ".git-blame-ignore-revs",
           ".ignore",
           ".npmignore",
