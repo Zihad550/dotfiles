@@ -104,13 +104,21 @@ typeset -i zcd_mtime=0
 if ((zcd_mtime && EPOCHSECONDS - zcd_mtime < 86400)); then
     compinit -C -d "$zcd"
 else
-    compinit -d "$zcd"
+    compinit -i -d "$zcd" # -i: skip insecure dirs instead of prompting (prompt abort kills completion)
 fi
 unset zcd_mtime
 # Compile dump to bytecode (.zwc) so the next startup reads it faster.
 # Recompile only when the dump is newer than its compiled form.
+# Compile to a temp file + atomic rename: concurrent shells racing an
+# in-place zcompile corrupt the .zwc, which kills tab completion in every
+# shell opened afterwards.
 if [[ ! -f $zcd.zwc || $zcd -nt $zcd.zwc ]]; then
-    zcompile -R -- "$zcd.zwc" "$zcd" 2>/dev/null
+    # temp name must end in .zwc -- zcompile appends the suffix otherwise
+    if zcompile -R -- "$zcd.$$.zwc" "$zcd" 2>/dev/null; then
+        mv -f -- "$zcd.$$.zwc" "$zcd.zwc"
+    else
+        rm -f -- "$zcd.$$.zwc"
+    fi
 fi
 unset zcd
 
