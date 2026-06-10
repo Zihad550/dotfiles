@@ -299,7 +299,7 @@ devup() {
         echo "No devcontainer.json found, copying from template..."
         mkdir -p .devcontainer
         # cp ~/dotfiles/setup/devcontainer/devcontainer.json .devcontainer/devcontainer.json
-        cp ~/dotfiles/setup/devcontainer-2/devcontainer.json .devcontainer/devcontainer.json
+        cp ~/dotfiles/setup/devcontainer/devcontainer.json .devcontainer/devcontainer.json
     fi
 
     # devpod up . \

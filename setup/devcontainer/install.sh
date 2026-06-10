@@ -10,9 +10,9 @@ curl https://mise.run | sh
 # sudo apt update -y
 # sudo apt install -y mise
 
-$HOME/dotfiles/setup/devcontainer-2/stow
+$HOME/dotfiles/setup/devcontainer/stow
 mise trust
-$HOME/dotfiles/setup/devcontainer-2/tools
+$HOME/dotfiles/setup/devcontainer/tools
 
 sudo chsh -s $(which zsh) $USER
 

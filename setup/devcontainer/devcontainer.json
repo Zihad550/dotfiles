@@ -44,5 +44,5 @@
     "source=${localEnv:HOME}/Pictures/Screenshots,target=/home/vscode/Pictures/Screenshots,type=bind",
     "source=${localEnv:HOME}/.agents,target=/home/vscode/.agents,type=bind",
   ],
-  "postCreateCommand": "bash ~/dotfiles/setup/devcontainer-2/install.sh",
+  "postCreateCommand": "bash ~/dotfiles/setup/devcontainer/install.sh",
 }
