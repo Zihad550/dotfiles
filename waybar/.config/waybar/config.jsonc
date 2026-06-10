@@ -115,7 +115,7 @@
     "on-click": "ghostty -e bluetui",
   },
   "pulseaudio": {
-    "format": "{icon}  {volume}%",
+    "format": "{icon}   {volume}%",
     // "on-click": "$TERMINAL --class=Wiremix -e wiremix",
     "on-click": "pavucontrol",
     // "on-click-right": "pamixer -t",
