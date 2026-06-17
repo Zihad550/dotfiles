@@ -1,5 +1,6 @@
 [settings]
 http_retries = 3
+trusted_config_paths = ["/home/vscode"]
 
 [env]
   _.path = [
