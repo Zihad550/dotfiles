@@ -310,7 +310,7 @@ devup() {
 
 scd() {
     local remote_dir="${PWD/$USER/vscode}"
-    ssh -t "$@" "cd '$remote_dir' && exec \$SHELL"
+    ssh -t "$@" "cd '$remote_dir' 2>/dev/null; exec \$SHELL"
 }
 
 # alias obs='obsidian'
