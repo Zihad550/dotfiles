@@ -89,38 +89,11 @@ fi
 # User-owned completions (bun/deno/uv/uvx/gt etc., installed without sudo).
 fpath=("${XDG_DATA_HOME:-$HOME/.local/share}/zsh/site-functions" $fpath)
 
-# Load completions.
-# Full security check (compaudit) + dump rebuild only once per 24h; otherwise
-# reuse cached dump with -C (skips compaudit, the startup bottleneck).
-autoload -Uz compinit
-zmodload zsh/datetime # provides $EPOCHSECONDS
-zmodload zsh/stat     # provides the zstat builtin
-zcd=${ZDOTDIR:-$HOME}/.zcompdump
-# Read dump's mtime (0 if missing) and compare against now.
-typeset -i zcd_mtime=0
-[[ -f $zcd ]] && zstat -A zcd_mtime +mtime "$zcd"
-# Dump modified < 24h ago -> fast path (-C: skip compaudit + rebuild).
-# Missing or stale -> full compinit (runs security check, rebuilds dump).
-if ((zcd_mtime && EPOCHSECONDS - zcd_mtime < 86400)); then
-    compinit -C -d "$zcd"
-else
-    compinit -i -d "$zcd" # -i: skip insecure dirs instead of prompting (prompt abort kills completion)
-fi
-unset zcd_mtime
-# Compile dump to bytecode (.zwc) so the next startup reads it faster.
-# Recompile only when the dump is newer than its compiled form.
-# Compile to a temp file + atomic rename: concurrent shells racing an
-# in-place zcompile corrupt the .zwc, which kills tab completion in every
-# shell opened afterwards.
-if [[ ! -f $zcd.zwc || $zcd -nt $zcd.zwc ]]; then
-    # temp name must end in .zwc -- zcompile appends the suffix otherwise
-    if zcompile -R -- "$zcd.$$.zwc" "$zcd" 2>/dev/null; then
-        mv -f -- "$zcd.$$.zwc" "$zcd.zwc"
-    else
-        rm -f -- "$zcd.$$.zwc"
-    fi
-fi
-unset zcd
+# Load completions. Full compinit every startup rebuilds the dump, so turbo
+# plugins that add _* completions to fpath are always picked up. The old 24h
+# `-C` fast path reused a stale dump -> completion broke until the next rebuild.
+# -i: skip insecure dirs instead of prompting (a prompt abort kills completion).
+autoload -Uz compinit && compinit -i
 
 zinit cdreplay -q
 
