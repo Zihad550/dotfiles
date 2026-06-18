@@ -5,3 +5,4 @@ node_modules
 repos
 resources
 .zcompdump*
+themes/**/background
