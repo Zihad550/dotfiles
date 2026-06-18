@@ -12,10 +12,7 @@
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [
-    3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 4173, 4174,
-    4175, 5175, 5176, 5177, 5178, 5179, 5180, 6175, 8000, 9000,
-  ],
+  "forwardPorts": [3000, 5175, 5176, 6175, 8000],
   "otherPortsAttributes": { "onAutoForward": "silent" },
   // Use 'postCreateCommand' to run commands after the container is created.
   // "postCreateCommand": "pnpm i",
