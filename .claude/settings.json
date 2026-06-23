@@ -51,7 +51,7 @@
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true
   },
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "voice": {
     "enabled": true,
     "mode": "tap"
