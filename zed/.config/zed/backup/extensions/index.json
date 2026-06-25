@@ -107,7 +107,7 @@
       "manifest": {
         "id": "git-firefly",
         "name": "Git Firefly",
-        "version": "0.1.7",
+        "version": "0.1.8",
         "schema_version": 1,
         "description": "Provides Git Syntax Highlighting",
         "repository": "https://github.com/d1y/git_firefly",
@@ -593,7 +593,7 @@
       "manifest": {
         "id": "vue",
         "name": "Vue",
-        "version": "0.3.4",
+        "version": "0.3.6",
         "schema_version": 1,
         "description": "Vue support.",
         "repository": "https://github.com/zed-extensions/vue",
@@ -798,7 +798,9 @@
           ".gitattributes"
         ],
         "first_line_pattern": null,
-        "modeline_aliases": []
+        "modeline_aliases": [
+          "gitattributes"
+        ]
       },
       "hidden": false,
       "grammar": "gitattributes"
@@ -814,7 +816,9 @@
           ".lfsconfig"
         ],
         "first_line_pattern": null,
-        "modeline_aliases": []
+        "modeline_aliases": [
+          "gitconfig"
+        ]
       },
       "hidden": false,
       "grammar": "git_config"
@@ -839,7 +843,9 @@
           ".vscodeignore"
         ],
         "first_line_pattern": null,
-        "modeline_aliases": []
+        "modeline_aliases": [
+          "gitignore"
+        ]
       },
       "hidden": false,
       "grammar": "gitignore"
@@ -852,7 +858,9 @@
           "git-rebase-todo"
         ],
         "first_line_pattern": null,
-        "modeline_aliases": []
+        "modeline_aliases": [
+          "gitrebase"
+        ]
       },
       "hidden": false,
       "grammar": "git_rebase"
