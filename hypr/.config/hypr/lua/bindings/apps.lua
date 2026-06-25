@@ -76,3 +76,5 @@ o.bind("SUPER + T", "Tasks",
     dotfiles_bin .. [[/df-launch-special-webapp "tasks" "https://tasks.google.com/u/1/tasks/" "tasks"]])
 o.bind("SUPER + SHIFT + F", "Figma",
     dotfiles_bin .. [[/df-launch-special-webapp "figma" "https://www.figma.com" "figma"]])
+o.bind("SUPER + Q", "Quran",
+    dotfiles_bin .. [[/df-launch-special-webapp "quran" "https://quran.com" "holy-quran"]])
