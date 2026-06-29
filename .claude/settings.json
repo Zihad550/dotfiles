@@ -51,7 +51,8 @@
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true
   },
-  "effortLevel": "medium",
+  "effortLevel": "high",
+  "tui": "fullscreen",
   "voice": {
     "enabled": true,
     "mode": "tap"
