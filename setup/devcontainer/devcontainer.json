@@ -1,5 +1,5 @@
 {
-  "name": "Dev setup",
+  "name": "devcontainer",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   // "image": "mcr.microsoft.com/devcontainers/javascript-node",
 
@@ -12,7 +12,8 @@
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [3000, 5175, 5176, 6175, 8000],
+  // "forwardPorts": [3000, 5175, 5176, 6175, 8000],
+  "forwardPorts": [],
   "otherPortsAttributes": { "onAutoForward": "silent" },
   // Use 'postCreateCommand' to run commands after the container is created.
   // "postCreateCommand": "pnpm i",
