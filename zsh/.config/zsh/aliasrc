@@ -313,4 +313,7 @@ scd() {
     ssh -t "$@" "cd '$remote_dir' 2>/dev/null; exec \$SHELL"
 }
 
-# alias obs='obsidian'
+# forward work ports (8080, 5432, 3000)
+dp-work-ports() {
+    devpod ssh "${1:-devcontainer}" -L 6175:localhost:6175 -L 5175:localhost:5175 -L 5176:localhost:5176 -L 5177:localhost:5177
+}
