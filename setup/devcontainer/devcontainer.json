@@ -1,10 +1,13 @@
 {
   "name": "devcontainer",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu26.04",
   // "image": "mcr.microsoft.com/devcontainers/javascript-node",
 
   "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+    },
     // "ghcr.io/w3cj/devcontainer-features/firewall:latest": {
     //   "githubIps": true,
     //   "claudeCode": true,
