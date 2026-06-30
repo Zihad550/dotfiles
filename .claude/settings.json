@@ -24,7 +24,6 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "opus",
   "hooks": {
     "SessionStart": [
       {
@@ -58,5 +57,6 @@
     "mode": "tap"
   },
   "skipDangerousModePermissionPrompt": true,
-  "theme": "dark"
+  "theme": "dark",
+  "model": "opus"
 }
