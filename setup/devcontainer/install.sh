@@ -3,7 +3,7 @@
 sudo apt update -y
 sudo apt upgrade -y
 
-sudo apt install -y zsh eza fzf ripgrep trash-cli bat bubblewrap socat git-delta software-properties-common starship
+sudo apt install -y zsh eza fzf ripgrep trash-cli bat bubblewrap socat git-delta software-properties-common starship lazygit
 
 # mise
 sudo add-apt-repository -y ppa:jdxcode/mise
