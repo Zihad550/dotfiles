@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+CREATE_USER=$1
+if [ -n "$CREATE_USER" ]; then
+    useradd -m -s /bin/bash $CREATE_USER
+    passwd $CREATE_USER
+    # add user to sudoers
+    usermod -aG sudo $CREATE_USER
+    # allow user to run sudo without password
+    echo "$CREATE_USER ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/$CREATE_USER
+    chmod 440 /etc/sudoers.d/$CREATE_USER
+    visudo -c -f /etc/sudoers.d/$CREATE_USER
+    # create ssh keys for user
+    mkdir -p /home/$CREATE_USER/.ssh
+    cp /root/.ssh/authorized_keys /home/$CREATE_USER/.ssh/authorized_keys
+    chown -R $CREATE_USER:$CREATE_USER /home/$CREATE_USER/.ssh
+fi
