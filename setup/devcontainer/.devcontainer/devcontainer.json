@@ -1,0 +1,21 @@
+{
+  "name": "devcontainer",
+  "build": {
+    "dockerfile": "Dockerfile",
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+    },
+  },
+  "forwardPorts": [],
+  "otherPortsAttributes": { "onAutoForward": "silent" },
+  "remoteUser": "jehad",
+  "mounts": [
+    "source=${localEnv:HOME}/dotfiles,target=/home/jehad/dotfiles,type=bind",
+    "source=${localEnv:HOME}/dev-0,target=/home/jehad/dev-0,type=bind",
+    "source=${localEnv:HOME}/Pictures/Screenshots,target=/home/jehad/Pictures/Screenshots,type=bind",
+    "source=${localEnv:HOME}/.agents,target=/home/jehad/.agents,type=bind",
+  ],
+  "postCreateCommand": "bash ~/dotfiles/setup/devcontainer/install.sh",
+}
