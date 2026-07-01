@@ -19,8 +19,10 @@ alias oc='opencode'
 alias d='docker'
 alias zed='zeditor'
 alias z='zeditor'
+alias cl='claude'
 
 # short aliases
+# cat="bat" \
 alias \
     zj="zellij" \
     s="ssh" \
@@ -28,7 +30,6 @@ alias \
     v="nvim" \
     n="nvim" \
     e="nvim" \
-    cat="bat" \
     ls="eza -lh --group-directories-first --icons=auto --color=auto" \
     la="ls -a" \
     lt='eza --tree --level=2 --long --icons --git' \
