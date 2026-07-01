@@ -4,7 +4,10 @@
     "dockerfile": "Dockerfile",
   },
   "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+    // "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+    //   "moby": false,
+    // },
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {
       "moby": false,
     },
   },
@@ -17,5 +20,7 @@
     "source=${localEnv:HOME}/Pictures/Screenshots,target=/home/jehad/Pictures/Screenshots,type=bind",
     "source=${localEnv:HOME}/.agents,target=/home/jehad/.agents,type=bind",
   ],
-  "postCreateCommand": "bash ~/dotfiles/setup/devcontainer/install.sh",
+  "postCreateCommand": "sudo usermod -aG docker jehad && bash ~/dotfiles/setup/devcontainer/install.sh",
+  // "postCreateCommand": "bash ~/dotfiles/setup/devcontainer/install.sh",
+  // "postStartCommand": "sudo sh -c 'G=$(stat -c %g /var/run/docker-host.sock); groupadd -f -g $G hostdocker; usermod -aG hostdocker jehad'",
 }
