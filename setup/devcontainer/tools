@@ -4,7 +4,7 @@
 # mise use -g bun deno node@lts pnpm
 mise use -g node@lts go pnpm
 mise use -g npm:@kilocode/cli claude npm:@fission-ai/openspec@latest opencode
-mise use -g worktrunk
+mise use -g uv
 # neovim
 mise use -g npm:fallow
 mise install just

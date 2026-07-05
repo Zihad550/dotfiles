@@ -5,6 +5,9 @@ sudo apt upgrade -y
 
 sudo apt install -y zsh eza fzf ripgrep trash-cli bat bubblewrap socat git-delta software-properties-common starship lazygit
 
+# rename batcat to bat
+mkdir -p ~/.local/bin && ln -s /usr/bin/batcat ~/.local/bin/bat
+
 # mise
 sudo add-apt-repository -y ppa:jdxcode/mise
 sudo apt update -y

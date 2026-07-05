@@ -6,7 +6,8 @@ alias rm='trash-put'
 alias v='nvim'
 alias vi='nvim'
 alias cat='bat --color=always'
-alias top='btm'
+# alias top='btm'
+alias top='procs --sortd cpu -W 1'
 #alias find='fd'
 alias wifi='nmtui'
 # alias timer='termdown'
@@ -317,4 +318,23 @@ scd() {
 # forward work ports (8080, 5432, 3000)
 dp-work-ports() {
     devpod ssh "${1:-devcontainer}" -L 6175:localhost:6175 -L 5175:localhost:5175 -L 5176:localhost:5176 -L 5177:localhost:5177
+}
+
+dp-proj-ports() {
+    devpod ssh "${1:-devcontainer}" -L 8000:localhost:8000 -L 3000:localhost:3000
+}
+
+alias psb='ps au | bat -l conf'
+alias lsmodb='lsmod | bat -l conf'
+# alias sensorsb='watch -n 1 "sensors | bat -l cpuinfo"'
+alias sensorsb='watch -c -n 1 "sensors | COLORTERM= bat -l cpuinfo --color=always"'
+alias lscpub='lscpu | bat -l cpuinfo'
+
+batify() { "$@" | bat -l "${BAT_LANG:-conf}"; }
+
+# python
+alias sv='source .venv/bin/activate'
+rmpyc() {
+    find . -type d -name '__pycache__' -exec rm -rf {} +
+    find . -type f -name '*.pyc' -delete
 }
