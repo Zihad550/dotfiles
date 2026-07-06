@@ -141,3 +141,6 @@ if command -v tv >/dev/null 2>&1; then eval "$(tv init bash)"; fi
 # Added by LM Studio CLI (lms)
 export PATH="$PATH:/home/jehad/.lmstudio/bin"
 # End of LM Studio CLI section
+
+# Generated for envman. Do not edit.
+[ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
