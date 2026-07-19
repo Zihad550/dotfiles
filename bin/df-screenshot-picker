@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Open the walker/elephant menu to select a screenshot from ~/Pictures/Screenshots.
+# Return copies the image to the clipboard, shift+Return copies the file path.
+
+set -e
+
+# Ensure elephant is running
+if ! pgrep -x elephant >/dev/null; then
+  setsid uwsm-app -- elephant &
+fi
+
+# Ensure walker service is running
+if ! pgrep -f "walker --gapplication-service" >/dev/null; then
+  setsid uwsm-app -- walker --gapplication-service &
+fi
+
+exec walker -m menus:dotfilesScreenshots --width 800 --maxheight 500 --minheight 500 "$@"

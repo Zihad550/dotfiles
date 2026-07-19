@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Copy an image file's content to the Wayland clipboard (wl-clipboard).
+
+set -e
+
+file="$1"
+[ -f "$file" ] || exit 1
+
+wl-copy --type "$(file -b --mime-type "$file")" <"$file"
