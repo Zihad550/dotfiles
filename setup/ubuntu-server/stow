@@ -12,7 +12,6 @@ ln -snf ~/dotfiles/opencode/.config/opencode/plugin ~/.config/opencode/plugin
 ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.config/opencode/AGENTS.md
 ln -snf ~/dotfiles/opencode/.config/opencode/opencode.jsonc ~/.config/opencode/opencode.jsonc
 ln -snf ~/dotfiles/opencode/.config/opencode/tui.json ~/.config/opencode/tui.json
-stow agents
 stow tmux
 stow bash
 
@@ -22,5 +21,9 @@ ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
 ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.kilocode/agent
 ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.kilocode/command
 ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.kilocode/AGENTS.md
+
+# agents live in separate repo: https://github.com/Zihad550/.agents
+[ -d ~/.agents ] || git clone https://github.com/Zihad550/.agents.git ~/.agents
+
 mkdir -p ~/.kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
