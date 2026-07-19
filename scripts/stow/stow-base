@@ -30,7 +30,10 @@ ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
 ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.kilocode/agent
 ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.kilocode/command
 ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.kilocode/AGENTS.md
-stow agents
+
+# agents live in separate repo: https://github.com/Zihad550/.agents
+[ -d ~/.agents ] || git clone https://github.com/Zihad550/.agents.git ~/.agents
+
 mkdir -p ~/.kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
@@ -41,6 +44,7 @@ stow yazi
 stow voxtype
 stow tmux
 stow gh-dash
+stow procs
 # stow mise
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml

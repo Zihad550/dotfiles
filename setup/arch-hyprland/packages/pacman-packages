@@ -28,7 +28,6 @@ sudo pacman -S --noconfirm \
     man-pages \
     starship \
     xorg-xhost \
-    mission-center \
     xournalpp \
     gum \
     dosfstools \
@@ -54,6 +53,7 @@ sudo pacman -S --noconfirm \
     mise \
     tmux
 
+# mission-center \
 # mise
 # atac
 # termdown
@@ -64,7 +64,8 @@ sudo pacman -S --noconfirm \
     ttf-jetbrains-mono \
     ttf-hack-nerd \
     noto-fonts \
-    ttf-nerd-fonts-symbols-mono
+    ttf-nerd-fonts-symbols-mono \
+    noto-fonts-emoji
 # sudo pacman -S --noconfirm ttf-fira-code
 # sudo pacman -S --noconfirm
 
@@ -75,10 +76,10 @@ sudo pacman -S --noconfirm \
     eza \
     ripgrep \
     bat \
-    bottom \
     fd \
     dust \
     procs \
+    bottom \
     tealdeer
 
 # install languages and dev tools
@@ -106,17 +107,21 @@ sudo pacman -S --noconfirm \
 sudo pacman -S --noconfirm \
     nautilus \
     nautilus-image-converter \
-    gnome-calculator \
-    gnome-characters \
     gnome-disk-utility \
     gnome-font-viewer \
-    gnome-keyring seahorse
+    gnome-keyring seahorse \
+
+
+# gnome-calculator \
+# gnome-characters \
+# gnome-dictionary - doesn't has any bangla dictionary
 
 # sudo pacman -S --noconfirm gitg # git ui
 # sudo pacman -S --noconfirm podman
 
 # ai
 # sudo pacman -S --noconfirm ollama
+# sudo pacman -S --noconfirm lmstudio-bin
 
 # sql client
 # sudo pacman -S --noconfirm dbeaver
