@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Switch HDMI-A-1 between vertical (transform 1) and horizontal (transform 0).
+# Vertical restores the reserved area from monitors.lua (340 top, 40 bottom)
+# and keeps eDP-1 at 1080x860; horizontal clears it and moves eDP-1 to 1920x0
+# so the monitors don't overlap.
+# Usage: df-hypr-display-rotate [toggle|horizontal|vertical]
+
+MONITOR="HDMI-A-1"
+mode="${1:-toggle}"
+
+current=$(hyprctl monitors -j | jq -r ".[] | select(.name == \"$MONITOR\") | .transform")
+if [ -z "$current" ]; then
+    notify-send "Display" "$MONITOR is not connected"
+    exit 1
+fi
+
+case "$mode" in
+horizontal) target=0 ;;
+vertical) target=1 ;;
+toggle) [ "$current" = "0" ] && target=1 || target=0 ;;
+*)
+    echo "usage: $(basename "$0") [toggle|horizontal|vertical]" >&2
+    exit 1
+    ;;
+esac
+
+# Apply in an order that never overlaps: going vertical, HDMI shrinks to 1080
+# wide first, then eDP-1 tucks in; going horizontal, eDP-1 moves out to 1920x0
+# before HDMI widens into its old spot.
+if [ "$target" = "1" ]; then
+    hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '1920x1080@75', position = '0x0', scale = '1', transform = 1, reserved_area = { top = 340, bottom = 40, left = 0, right = 0 } })"
+    hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '1080x860', scale = '1' })"
+    notify-send "Display" "$MONITOR set to vertical"
+else
+    hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '1920x0', scale = '1' })"
+    hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '1920x1080@75', position = '0x0', scale = '1', transform = 0, reserved_area = { top = 0, bottom = 0, left = 0, right = 0 } })"
+    notify-send "Display" "$MONITOR set to horizontal"
+fi

@@ -1,0 +1,13 @@
+
+// "hooks": {
+//   "SessionStart": [
+//     {
+//       "hooks": [
+//         {
+//           "type": "command",
+//           "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"At the start of this session, invoke the /caveman skill before responding to the user.\"}}'"
+//         }
+//       ]
+//     }
+//   ]
+// },
