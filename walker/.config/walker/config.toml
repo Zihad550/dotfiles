@@ -16,6 +16,7 @@ default = [
   "menus:system",
   "menus:media",
   "menus:other",
+  "menus:display",
   "menus:dotfilesDirs",
   "menus:dotfilesThemes",
   "menus:dotfilesBackgrounds",
@@ -35,6 +36,10 @@ default = [
 ]
 "menus:dotfilesBackgrounds" = [
   { action = "menus:default", default = true, bind = "Return", label = "set background", after = "Close" },
+]
+"menus:dotfilesScreenshots" = [
+  { action = "menus:default", default = true, bind = "Return", label = "copy image", after = "Close" },
+  { action = "copy_path", bind = "shift Return", label = "copy path", after = "Close" },
 ]
 
 [[providers.prefixes]]
