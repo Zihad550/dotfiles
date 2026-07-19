@@ -64,8 +64,7 @@
     "orientation": "horizontal",
   },
   "clock": {
-    "format-alt": "{:L%d-%b-%Y}",
-    "format": "{:L%H:%M %A}",
+    "format": "{:L%a, %d. %b %I:%M %p}",
     "tooltip": false,
     "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
   },
