@@ -19,7 +19,6 @@ ln -snf "$DOTFILES/kilocode/.kilocode/plugin" ~/.kilocode/plugin
 ln -snf "$DOTFILES/kilocode/.kilocode/agent" ~/.kilocode/agent
 ln -snf "$DOTFILES/kilocode/.kilocode/command" ~/.kilocode/command
 ln -snf "$DOTFILES/kilocode/.kilocode/AGENTS.md" ~/.kilocode/AGENTS.md
-ln -snf "$DOTFILES/agents/.agents" ~/.agents
 mkdir -p ~/.kilocode/skills
 ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
@@ -44,3 +43,6 @@ mkdir -p ~/.claude/skills
 ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
 ln -snf ~/dotfiles/.claude/statusline-command.sh ~/.claude/statusline-command.sh
 ln -snf ~/.agents/skills/* ~/.claude/skills/
+
+mkdir -p ~/.config/procs
+ln -snf ~/dotfiles/procs/.config/procs ~/.config/procs

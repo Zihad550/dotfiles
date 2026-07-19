@@ -18,6 +18,7 @@
 ~/dotfiles/bin/df-webapp-install "Memrise" "https://community-courses.memrise.com/aprender/learn?course_id=5767825" memrise.png
 ~/dotfiles/bin/df-webapp-install "Monkey Type" https://monkeytype.com monkeytype.png
 ~/dotfiles/bin/df-webapp-install "Claude" https://claude.ai/chat claude.png
+~/dotfiles/bin/df-webapp-install "Cambridge Dictionary" https://dictionary.cambridge.org/translate/ cambridge.svg
 
 # df-webapp-install "YouTube" https://youtube.com/ YouTube.png
 # df-webapp-install "Discord" https://discord.com/channels/@me Discord.png

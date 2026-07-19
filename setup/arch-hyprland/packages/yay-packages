@@ -7,10 +7,10 @@
 # ventoy-bin - image writer
 yay -S --noconfirm \
     dragon-drop \
-    diffnav-bin \
-    google-chrome \
     helium-browser-bin
 # pnpm-shell-completion \
+# google-chrome \
+# diffnav-bin \
 
 # installed from omarchy repo
 # ufw-docker \

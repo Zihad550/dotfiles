@@ -3,7 +3,8 @@
 flatpak install -y \
     app.zen_browser.zen \
     com.mongodb.Compass \
-    io.beekeeperstudio.Studio
+    io.beekeeperstudio.Studio \
+    org.gtaf.quran
 # com.getpostman.Postman \
 
 # obsidian

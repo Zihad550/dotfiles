@@ -3,4 +3,4 @@
 # set the default protocol to ssh
 # gh config set -h github.com git_protocol ssh
 gh config set git_protocol ssh
-gh extension install dlvhdr/gh-dash
+# gh extension install dlvhdr/gh-dash
