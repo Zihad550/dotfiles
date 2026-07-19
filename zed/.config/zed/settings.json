@@ -9,7 +9,7 @@
   "git_panel": {
     "dock": "left",
   },
-  "diff_view_style": "split",
+  "diff_view_style": "unified",
   "agent_servers": {
     "claude-acp": {
       "type": "registry"
