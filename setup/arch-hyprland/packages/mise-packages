@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 
+mise use -g node@24 node go pnpm claude
+
 # mise install github:user/repo # install from github backend
 # mise install npm:package-name # install from npm backend
 
 # github:microsoft/TypeScript
 # npm:turbo
 # npm:@kilocode/cli
-mise use -g node@24 node go rust
-mise use -g deno bun uv pnpm
+# mise use -g deno bun uv  rust
 # mise use -g firebase graphite dotenvx
-mise use -g npm:vercel npm:netlify-cli
+# mise use -g npm:vercel npm:netlify-cli claude
 # mise use -g npm:skills
 # mise use -g npm:@fission-ai/openspec portless
 
