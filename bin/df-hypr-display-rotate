@@ -9,6 +9,17 @@
 MONITOR="HDMI-A-1"
 mode="${1:-toggle}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Tell df-hypr-display-layout which variant the user actually chose, so a later
+# `apply` (on boot or hotplug) restores this orientation instead of snapping back
+# to the default one. Saved layouts named "vertical"/"horizontal" mirror the two
+# branches below; if they don't exist this is a harmless no-op.
+remember_variant() {
+    [ -x "$SCRIPT_DIR/df-hypr-display-layout" ] || return 0
+    "$SCRIPT_DIR/df-hypr-display-layout" remember "$1" >/dev/null 2>&1 || true
+}
+
 current=$(hyprctl monitors -j | jq -r ".[] | select(.name == \"$MONITOR\") | .transform")
 if [ -z "$current" ]; then
     notify-send "Display" "$MONITOR is not connected"
@@ -25,15 +36,42 @@ toggle) [ "$current" = "0" ] && target=1 || target=0 ;;
     ;;
 esac
 
+# Workaround for the rotate regression in Hyprland 0.56.0 (fixed upstream in
+# 566ff8fa, 2026-07-24 — not in the v0.56.0 tag).
+#
+# CMonitorRule::compare() treats transform and reserved_area as "soft" props, so
+# a transform-only change takes applyMonitorRuleSoft() instead of a full
+# applyMonitorRule(). Commit 0aa7a843 split that soft path out and dropped
+# `m_size = (xfmd / m_scale).round()` from it, so the monitor's logical box keeps
+# whatever size it had at boot. Rotating then lays windows and layer surfaces out
+# for the *old* orientation — half the screen unusable.
+#
+# Making the two orientations differ in requested refresh rate makes compare()
+# return NO_MATCH instead of SOFT_MISMATCH, so the rule goes through the full
+# applyMonitorRule(), which does recompute m_size — and ensureMonitorStatus()
+# then re-arranges layers and re-tiles windows for the new geometry.
+#
+# 75 and 75.2 select the same physical mode: mode matching sorts by closeness and
+# only falls back to a custom modeline when the best mode is off by 1Hz or more
+# (DELTALESSTHAN(..., 1)), so 0.2Hz stays well inside tolerance. The rate differs
+# only in the rule, never on the wire.
+#
+# Once the installed Hyprland includes 566ff8fa, both branches can go back to
+# plain '1920x1080@75'.
+VERTICAL_MODE="1920x1080@75"
+HORIZONTAL_MODE="1920x1080@75.2"
+
 # Apply in an order that never overlaps: going vertical, HDMI shrinks to 1080
 # wide first, then eDP-1 tucks in; going horizontal, eDP-1 moves out to 1920x0
 # before HDMI widens into its old spot.
 if [ "$target" = "1" ]; then
-    hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '1920x1080@75', position = '0x0', scale = '1', transform = 1, reserved_area = { top = 340, bottom = 40, left = 0, right = 0 } })"
+    hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '$VERTICAL_MODE', position = '0x0', scale = '1', transform = 1, reserved_area = { top = 340, bottom = 40, left = 0, right = 0 } })"
     hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '1080x860', scale = '1' })"
+    remember_variant vertical
     notify-send "Display" "$MONITOR set to vertical"
 else
     hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '1920x0', scale = '1' })"
-    hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '1920x1080@75', position = '0x0', scale = '1', transform = 0, reserved_area = { top = 0, bottom = 0, left = 0, right = 0 } })"
+    hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '$HORIZONTAL_MODE', position = '0x0', scale = '1', transform = 0, reserved_area = { top = 0, bottom = 0, left = 0, right = 0 } })"
+    remember_variant horizontal
     notify-send "Display" "$MONITOR set to horizontal"
 fi
