@@ -20,7 +20,9 @@ PRUNE_NAMES=(
   .cache Kiro .kiro .cursor Cypress cypress discord go obs-studio mpv transmission
 )
 
-ROOTS=("$HOME/.dotfiles" "$HOME/dev-0" "$HOME/dev")
+# "dotfiles", not ".dotfiles": the repo lives at ~/dotfiles. Missing roots are
+# dropped below. Keep in sync with menus/dotfiles_dirs.lua.
+ROOTS=("$HOME/dotfiles" "$HOME/dev-0" "$HOME/dev")
 
 build_cache() {
   local prune_args=()
@@ -34,11 +36,20 @@ build_cache() {
   for r in "${ROOTS[@]}"; do
     [[ -d $r ]] && existing+=("$r")
   done
-  [[ ${#existing[@]} -eq 0 ]] && return 0
 
   mkdir -p "$CACHE_DIR"
-  find "${existing[@]}" -maxdepth 6 -type d \( "${prune_args[@]}" \) -prune \
-    -o -type d -print 2>/dev/null >"$TMP_FILE"
+  {
+    # $HOME one level deep so plain folders (Downloads, Pictures, ...) are
+    # reachable; hidden entries skipped to keep the list readable.
+    printf '%s\n' "$HOME"
+    find "$HOME" -mindepth 1 -maxdepth 1 \
+      \( "${prune_args[@]}" -o -name '.*' \) -prune -o -type d -print
+    # Then the dev roots, deep.
+    if [[ ${#existing[@]} -gt 0 ]]; then
+      find "${existing[@]}" -maxdepth 6 -type d \( "${prune_args[@]}" \) -prune \
+        -o -type d -print
+    fi
+  } 2>/dev/null | sort -u >"$TMP_FILE"
   mv "$TMP_FILE" "$CACHE_FILE"
 }
 
