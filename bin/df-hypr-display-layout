@@ -1,0 +1,478 @@
+#!/usr/bin/env bash
+
+# Save and restore Hyprland monitor layouts, keyed by which displays are connected.
+#
+#   df-hypr-display-layout apply [variant]   detect displays → apply saved layout
+#   df-hypr-display-layout save <variant>    capture the current arrangement
+#
+# Layouts live in ~/.config/hypr/display-layouts.json (a stow symlink, so saves
+# land in the dotfiles repo). Structure:
+#
+#   .layouts["<signature>"].variants["<name>"].monitors[]   one hl.monitor rule each
+#   .layouts["<signature>"].default                         variant used when none given
+#
+# The signature is the sorted names of every *connected* output — `hyprctl
+# monitors all`, not `hyprctl monitors`. That matters: df-hypr-close-display
+# disables eDP-1 without disconnecting it, and keying on enabled monitors would
+# make that look like a different display set and apply the wrong layout.
+#
+# If nothing is saved for the connected set, we fall back to `hyprctl reload`,
+# i.e. whatever hypr/.config/hypr/lua/monitors.lua says. That is a real revert,
+# not just a re-read: reload calls monitorRuleMgr()->clear() (config/lua/ConfigManager.cpp)
+# before re-running the config, so rules this script added via eval are dropped.
+# `hyprctl reload` is therefore the escape hatch if a saved layout goes bad.
+#
+# Reloading from the fallback can't loop back into the autostart hook: the
+# hyprland.start event is emitted behind a `static bool once` in render/Renderer.cpp
+# and fires exactly once per compositor lifetime, never on reload.
+#
+# The same clear-on-reload is why anything that reloads Hyprland (df-theme-set does)
+# reverts to monitors.lua — re-run `apply` afterwards to restore the saved layout.
+#
+# WHY ONE hyprctl eval FOR THE WHOLE LAYOUT
+# hl.monitor schedules its refresh via doLater (config/supplementary/propRefresher),
+# so every rule in a single eval chunk lands in one refresh. The layout is applied
+# atomically and never passes through an intermediate state where two monitors
+# overlap — the failure mode df-hypr-display-rotate and df-hypr-close-display both
+# hand-order around. Do not split the chunk into per-monitor hyprctl calls.
+#
+# HAND-EDIT FIELDS
+# `save` deliberately does NOT read two things back from the runtime:
+#   reserved_area — hyprctl reports config reserve *plus* layer-surface exclusive
+#                   zones (waybar), so saving it would compound on every save.
+#   mode          — a stored "preferred", or a hand-tuned refresh like the 75.2
+#                   nudge in df-hypr-display-rotate, is kept as long as it still
+#                   selects the monitor's current resolution (±1Hz, Hyprland's own
+#                   mode-matching tolerance). Edit these in the JSON by hand.
+# Everything else in an entry is preserved across saves too, so vrr/bitdepth/cm/
+# mirror can be added by hand and will survive.
+
+set -uo pipefail
+
+LAYOUTS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/display-layouts.json"
+STATE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/hypr/display-layout.json"
+
+QUIET=false
+
+die() {
+    echo "error: $*" >&2
+    exit 1
+}
+
+say() {
+    $QUIET && return 0
+    echo "$1"
+    command -v notify-send >/dev/null 2>&1 && notify-send "Display" "$1"
+    return 0
+}
+
+usage() {
+    cat <<'EOF'
+Usage: df-hypr-display-layout <command> [args]
+
+  apply [variant] [--dry-run] [--quiet]
+        Detect connected displays and apply the saved layout for them.
+        Variant resolution: argument → last remembered → .default → sole variant.
+        Falls back to `hyprctl reload` (i.e. monitors.lua) if nothing is saved.
+        --dry-run prints the hyprctl eval chunk instead of applying it.
+
+  save <variant> [--default]
+        Save the current monitor arrangement as <variant> for the connected set.
+        Keeps hand-edited mode/reserved_area (see comments at the top of this file).
+        --default also makes it the default variant for this display set.
+
+  remember <variant>
+        Record <variant> as the last-used one for the connected set, without
+        applying anything. Lets other scripts (df-hypr-display-rotate) tell
+        `apply` what orientation the user actually chose.
+
+  list                 Show every saved display set and its variants.
+  show [variant]       Print the hyprctl eval chunk for a variant.
+  signature            Print the signature of the currently connected displays.
+  remove <variant>     Delete a variant from the current display set.
+
+Files:
+  ~/.config/hypr/display-layouts.json          layouts (stow → dotfiles repo)
+  ~/.local/state/hypr/display-layout.json      last-used variant per display set
+EOF
+}
+
+# ---------------------------------------------------------------- hyprland i/o
+
+monitors_json() {
+    local out
+    out=$(hyprctl monitors all -j 2>/dev/null) ||
+        die "hyprctl failed — is Hyprland running?"
+    jq -e 'type == "array"' >/dev/null 2>&1 <<<"$out" ||
+        die "hyprctl monitors all -j returned something that isn't a JSON array"
+    printf '%s' "$out"
+}
+
+signature_of() {
+    jq -r '[.[] | select(.name != null and .name != "") | .name] | sort | join("+")' <<<"$1"
+}
+
+# ------------------------------------------------------------------ json files
+
+read_json() {
+    local file="$1" fallback="$2"
+    if [[ -f "$file" ]]; then
+        jq . "$file" 2>/dev/null || die "$file is not valid JSON"
+    else
+        printf '%s' "$fallback"
+    fi
+}
+
+# Write through a stow symlink rather than replacing it: with tree folding
+# ~/.config/hypr is the symlink and this is a no-op, but under --no-folding
+# the JSON file itself is the symlink and a bare mv would break it.
+write_json() {
+    local file="$1" content="$2" target dir tmp
+    target=$(readlink -f "$file" 2>/dev/null) || target="$file"
+    [[ -n "$target" ]] || target="$file"
+    dir=$(dirname "$target")
+    mkdir -p "$dir" || die "cannot create $dir"
+    tmp=$(mktemp "$dir/.$(basename "$target").XXXXXX") || die "cannot create temp file in $dir"
+    if ! jq --indent 2 . >"$tmp" <<<"$content"; then
+        rm -f "$tmp"
+        die "refusing to write invalid JSON to $target"
+    fi
+    mv -f "$tmp" "$target" || die "cannot write $target"
+}
+
+read_layouts() { read_json "$LAYOUTS_FILE" '{"version":1,"layouts":{}}'; }
+read_state() { read_json "$STATE_FILE" '{}'; }
+
+state_get() {
+    jq -r --arg sig "$1" '.[$sig] // empty' <<<"$(read_state)"
+}
+
+state_set() {
+    write_json "$STATE_FILE" \
+        "$(jq --arg sig "$1" --arg variant "$2" '.[$sig] = $variant' <<<"$(read_state)")"
+}
+
+# ------------------------------------------------------------------ jq programs
+
+# Turn a saved variant into a lua chunk of hl.monitor() calls.
+read -r -d '' JQ_CHUNK <<'EOF'
+def luaesc: gsub("\\\\"; "\\\\") | gsub("'"; "\\'");
+def luaval:
+  if type == "string" then "'" + luaesc + "'"
+  elif type == "boolean" then (if . then "true" else "false" end)
+  elif type == "number" then tostring
+  elif type == "object" then
+    "{ " + ([to_entries[] | "\(.key) = \(.value | luaval)"] | join(", ")) + " }"
+  elif type == "array" then "{ " + ([.[] | luaval] | join(", ")) + " }"
+  else "nil"
+  end;
+
+(.layouts[$sig].variants[$variant].monitors // [])
+| map(
+    . as $entry
+    | ({output: $entry.output} + ($entry | del(.output)))
+    | "hl.monitor({ " + ([to_entries[] | "\(.key) = \(.value | luaval)"] | join(", ")) + " })"
+  )
+| join("\n")
+EOF
+
+# Merge the live monitor state into a variant, preserving hand-edited fields.
+read -r -d '' JQ_SAVE <<'EOF'
+# jq 1.7 preserves number literals verbatim, so 1.00 would round-trip as "1.00".
+# The arithmetic forces a recompute and gives back the short form Hyprland's own
+# config uses ("1", "1.25").
+def trim2: (. * 100 | round) / 100;
+def trim3: (. * 1000 | round) / 1000;
+def modestr: "\(.width)x\(.height)@\(.refreshRate | trim3)";
+
+# Keep the stored mode string when it still selects the resolution the monitor is
+# actually running, within Hyprland's own 1Hz mode-matching tolerance.
+def keepmode($prev):
+  . as $mon
+  | ($prev.mode // null) as $pm
+  | if $pm == null then ($mon | modestr)
+    elif ($pm | IN("preferred", "highrr", "highres", "maxbw")) then $pm
+    elif ($pm | test("^[0-9]+x[0-9]+(@[0-9.]+)?$")) then
+      ($pm | capture("^(?<w>[0-9]+)x(?<h>[0-9]+)(@(?<r>[0-9.]+))?$")) as $p
+      | if (($p.w | tonumber) == $mon.width
+            and ($p.h | tonumber) == $mon.height
+            and ($p.r == null or ((($p.r | tonumber) - $mon.refreshRate) | fabs) < 1))
+        then $pm
+        else ($mon | modestr)
+        end
+    else ($mon | modestr)
+    end;
+
+(.layouts[$sig].variants[$variant].monitors // []) as $prevs
+| ($mons
+   | map(select(.name != null and .name != ""))
+   | map(
+       . as $mon
+       | (($prevs | map(select(.output == $mon.name)) | first) // {output: $mon.name}) as $prev
+       | if $mon.disabled then
+           # A disabled monitor reports stale geometry, so keep whatever the
+           # entry already had and only flip the flag.
+           $prev + {output: $mon.name, disabled: true}
+         else
+           $prev + {
+             output:    $mon.name,
+             mode:      ($mon | keepmode($prev)),
+             position:  "\($mon.x)x\($mon.y)",
+             scale:     ($mon.scale | trim2 | tostring),
+             transform: $mon.transform,
+             disabled:  false
+           }
+         end
+     )
+   | sort_by(.output)) as $new
+| .version = 1
+| .layouts[$sig].variants[$variant].monitors = $new
+| .layouts[$sig].default //= $variant
+| if $makeDefault then .layouts[$sig].default = $variant else . end
+EOF
+
+# ------------------------------------------------------------------- variants
+
+# Resolve which variant to use: explicit → remembered → default → sole one.
+resolve_variant() {
+    local layouts="$1" sig="$2" requested="$3" variant
+
+    if [[ -n "$requested" ]]; then
+        printf '%s' "$requested"
+        return 0
+    fi
+
+    variant=$(state_get "$sig")
+    if [[ -n "$variant" ]] && variant_exists "$layouts" "$sig" "$variant"; then
+        printf '%s' "$variant"
+        return 0
+    fi
+
+    variant=$(jq -r --arg sig "$sig" '.layouts[$sig].default // empty' <<<"$layouts")
+    if [[ -n "$variant" ]] && variant_exists "$layouts" "$sig" "$variant"; then
+        printf '%s' "$variant"
+        return 0
+    fi
+
+    jq -r --arg sig "$sig" \
+        '(.layouts[$sig].variants // {}) | keys | if length == 1 then .[0] else empty end' \
+        <<<"$layouts"
+}
+
+variant_exists() {
+    jq -e --arg sig "$2" --arg variant "$3" \
+        '.layouts[$sig].variants[$variant].monitors | type == "array"' \
+        >/dev/null 2>&1 <<<"$1"
+}
+
+build_chunk() {
+    jq -r --arg sig "$2" --arg variant "$3" "$JQ_CHUNK" <<<"$1"
+}
+
+fallback_to_config() {
+    local sig="$1" reason="$2"
+    hyprctl reload >/dev/null 2>&1 || die "hyprctl reload failed"
+    say "$reason — fell back to monitors.lua"
+    exit 0
+}
+
+# ------------------------------------------------------------------- commands
+
+cmd_apply() {
+    local requested="" dry_run=false arg
+    for arg in "$@"; do
+        case "$arg" in
+        --dry-run) dry_run=true ;;
+        --quiet) QUIET=true ;;
+        -*) die "unknown option: $arg" ;;
+        *) requested="$arg" ;;
+        esac
+    done
+
+    local mons sig layouts variant chunk
+    mons=$(monitors_json)
+    sig=$(signature_of "$mons")
+    [[ -n "$sig" ]] || die "no displays connected"
+
+    layouts=$(read_layouts)
+    variant=$(resolve_variant "$layouts" "$sig" "$requested")
+
+    if [[ -z "$variant" ]]; then
+        fallback_to_config "$sig" "no saved layout for $sig"
+    fi
+    if ! variant_exists "$layouts" "$sig" "$variant"; then
+        if [[ -n "$requested" ]]; then
+            die "no variant '$variant' saved for $sig (try: df-hypr-display-layout list)"
+        fi
+        fallback_to_config "$sig" "variant '$variant' missing for $sig"
+    fi
+
+    chunk=$(build_chunk "$layouts" "$sig" "$variant")
+    if [[ -z "$chunk" ]]; then
+        fallback_to_config "$sig" "layout '$variant' for $sig has no monitors"
+    fi
+
+    if $dry_run; then
+        printf 'signature: %s\nvariant:   %s\n\nhyprctl eval <<\n%s\n' "$sig" "$variant" "$chunk"
+        return 0
+    fi
+
+    local result
+    result=$(hyprctl eval "$chunk" 2>&1)
+    if [[ "$result" != "ok" ]]; then
+        die "hyprctl eval rejected the layout: $result"
+    fi
+
+    state_set "$sig" "$variant"
+    say "applied layout '$variant' ($sig)"
+}
+
+cmd_save() {
+    local variant="" make_default=false arg
+    for arg in "$@"; do
+        case "$arg" in
+        --default) make_default=true ;;
+        -*) die "unknown option: $arg" ;;
+        *) variant="$arg" ;;
+        esac
+    done
+    [[ -n "$variant" ]] || die "save needs a variant name, e.g. 'vertical'"
+
+    local mons sig layouts updated
+    mons=$(monitors_json)
+    sig=$(signature_of "$mons")
+    [[ -n "$sig" ]] || die "no displays connected"
+
+    layouts=$(read_layouts)
+    updated=$(jq --argjson mons "$mons" \
+        --arg sig "$sig" \
+        --arg variant "$variant" \
+        --argjson makeDefault "$make_default" \
+        "$JQ_SAVE" <<<"$layouts") || die "failed to build the saved layout"
+
+    write_json "$LAYOUTS_FILE" "$updated"
+    state_set "$sig" "$variant"
+    say "saved layout '$variant' for $sig"
+    echo "  → $LAYOUTS_FILE"
+}
+
+cmd_remember() {
+    local variant="${1:-}"
+    [[ -n "$variant" ]] || die "remember needs a variant name"
+
+    local sig
+    sig=$(signature_of "$(monitors_json)")
+    [[ -n "$sig" ]] || die "no displays connected"
+    state_set "$sig" "$variant"
+}
+
+cmd_list() {
+    local layouts sig
+    layouts=$(read_layouts)
+    sig=$(signature_of "$(monitors_json 2>/dev/null || echo '[]')" 2>/dev/null)
+
+    local active=""
+    [[ -n "$sig" ]] && active=$(resolve_variant "$layouts" "$sig" "")
+
+    jq -r --arg sig "$sig" --arg active "$active" '
+        (.layouts // {}) | to_entries
+        | if length == 0 then "no layouts saved yet" else
+            map(
+              .key as $k
+              | (if $k == $sig then "* " else "  " end) + $k
+                + (if .value.default then "  (default: \(.value.default))" else "" end)
+              , (
+                  (.value.variants // {}) | keys[]
+                  | "      " + (if ($k == $sig and . == $active) then "→ " else "  " end) + .
+                )
+            ) | flatten | join("\n")
+          end
+    ' <<<"$layouts"
+
+    if [[ -n "$sig" ]]; then
+        echo
+        echo "connected: $sig"
+    fi
+}
+
+cmd_show() {
+    local requested="${1:-}" layouts sig variant chunk
+    sig=$(signature_of "$(monitors_json)")
+    layouts=$(read_layouts)
+    variant=$(resolve_variant "$layouts" "$sig" "$requested")
+    [[ -n "$variant" ]] || die "no layout saved for $sig"
+    variant_exists "$layouts" "$sig" "$variant" || die "no variant '$variant' saved for $sig"
+    chunk=$(build_chunk "$layouts" "$sig" "$variant")
+    printf 'signature: %s\nvariant:   %s\n\n%s\n' "$sig" "$variant" "$chunk"
+}
+
+cmd_signature() {
+    signature_of "$(monitors_json)"
+}
+
+cmd_remove() {
+    local variant="${1:-}"
+    [[ -n "$variant" ]] || die "remove needs a variant name"
+
+    local sig layouts updated
+    sig=$(signature_of "$(monitors_json)")
+    layouts=$(read_layouts)
+    variant_exists "$layouts" "$sig" "$variant" || die "no variant '$variant' saved for $sig"
+
+    # Drop the whole display set once its last variant is gone, and re-point
+    # .default if it named the variant we just removed.
+    updated=$(jq --arg sig "$sig" --arg variant "$variant" '
+        del(.layouts[$sig].variants[$variant])
+        | if (.layouts[$sig].variants | length) == 0 then
+            del(.layouts[$sig])
+          elif (.layouts[$sig].default == $variant) then
+            .layouts[$sig].default = (.layouts[$sig].variants | keys | .[0])
+          else . end
+    ' <<<"$layouts") || die "failed to remove '$variant'"
+
+    write_json "$LAYOUTS_FILE" "$updated"
+    say "removed layout '$variant' from $sig"
+}
+
+# ----------------------------------------------------------------------- main
+
+command -v jq >/dev/null 2>&1 || die "jq is required"
+command -v hyprctl >/dev/null 2>&1 || die "hyprctl is required"
+
+case "${1:-}" in
+apply)
+    shift
+    cmd_apply "$@"
+    ;;
+save)
+    shift
+    cmd_save "$@"
+    ;;
+remember)
+    shift
+    cmd_remember "$@"
+    ;;
+list)
+    cmd_list
+    ;;
+show)
+    shift
+    cmd_show "$@"
+    ;;
+signature)
+    cmd_signature
+    ;;
+remove)
+    shift
+    cmd_remove "$@"
+    ;;
+-h | --help | help | "")
+    usage
+    ;;
+*)
+    echo "unknown command: $1" >&2
+    echo >&2
+    usage >&2
+    exit 1
+    ;;
+esac

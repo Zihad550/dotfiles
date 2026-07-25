@@ -55,6 +55,13 @@ df-font-set <family>               # switch monospace font across configs
 df-font-list                       # list installed mono families
 df-font-current                    # print current font
 
+df-hypr-display-layout apply [variant]
+                                   # restore the saved layout for the connected
+                                   # displays; falls back to monitors.lua
+df-hypr-display-layout save <variant> [--default]
+                                   # capture the current monitor arrangement
+df-hypr-display-layout list|show|signature|remove
+
 df-launch-tui <cmd>                # launch TUI in ghostty (guards missing bin)
 df-launch-app <cmd>                # launch GUI (guards missing bin)
 df-cmd-present <cmd>...            # exit 0 if all on PATH
