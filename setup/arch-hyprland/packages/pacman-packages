@@ -49,10 +49,10 @@ sudo pacman -S --noconfirm \
     tea \
     rsync \
     bubblewrap socat \
-    mise \
+    claude-code \
     tmux
 
-# claude-code \
+# mise \
 # mission-center \
 # mise
 # atac
