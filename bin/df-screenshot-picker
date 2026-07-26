@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
 # Open the walker/elephant menu to select a screenshot from ~/Pictures/Screenshots.
-# Return copies the image to the clipboard, shift+Return copies the file path.
+# Return copies the image to the clipboard, Tab marks entries, shift+Return copies the
+# path of every marked entry (or of the highlighted one when nothing is marked).
 
 set -e
+
+# Start each session with an empty selection.
+: >"${XDG_RUNTIME_DIR:-/tmp}/df-screenshot-marks"
 
 # Ensure elephant is running
 if ! pgrep -x elephant >/dev/null; then
