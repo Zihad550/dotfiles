@@ -4,8 +4,6 @@
 resources:
     - name: elephant
       path: resources/elephant
-    - name: Waybar
-      path: resources/Waybar
     - name: lazygit
       path: resources/lazygit
     - name: omarchy
@@ -18,4 +16,7 @@ resources:
       path: resources/devpod
     - name: dev-environment-files
       path: resources/dev-environment-files
-```
+    - name: quickshell-examples
+      path: resources/quickshell-examples
+
+
