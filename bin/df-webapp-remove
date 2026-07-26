@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# Remove a web app installed by df-webapp-install.
+#
+# Deletes the .desktop entry, and the icon only when it was downloaded by
+# df-webapp-install (~/.local/share/applications/icons/<name>.png). Icons that
+# come from the repo are never touched — that directory is a symlink to
+# setup/applications/icons.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+
+APPS_DIR="$HOME/.local/share/applications"
+ICON_DIR="$APPS_DIR/icons"
+PACKAGES_FILE="$DOTFILES_DIR/setup/arch-hyprland/packages/webapp-packages"
+
+usage() {
+   echo "Usage: df-webapp-remove [app-name] [--force] [--forget]"
+   echo "  --force   Skip the confirmation prompt."
+   echo "  --forget  Also comment out the matching line in webapp-packages,"
+   echo "            so the app is not reinstalled on the next setup run."
+   echo "  With no app-name, prompts to pick from the installed web apps."
+   exit 1
+}
+
+FORCE=0
+FORGET=0
+NAME=""
+for arg in "$@"; do
+   case "$arg" in
+      --force) FORCE=1 ;;
+      --forget) FORGET=1 ;;
+      -h|--help) usage ;;
+      *)
+         if [[ -n $NAME ]]; then
+            echo "Error: too many arguments" >&2
+            usage
+         fi
+         NAME="$arg"
+         ;;
+   esac
+done
+
+# A web app is a .desktop entry whose Exec goes through one of the launchers.
+list_webapps() {
+   for f in "$APPS_DIR"/*.desktop; do
+      [[ -f $f ]] || continue
+      if grep -qE '^Exec=.*df-launch(-special|-or-focus)?-webapp' "$f"; then
+         basename "$f" .desktop
+      fi
+   done
+}
+
+if [[ -z $NAME ]]; then
+   apps="$(list_webapps)"
+   if [[ -z $apps ]]; then
+      echo "No web apps installed in $APPS_DIR"
+      exit 0
+   fi
+   if command -v gum &>/dev/null; then
+      NAME="$(echo "$apps" | gum choose --header "Remove which web app?")"
+      [[ -z $NAME ]] && { echo "Aborted."; exit 0; }
+   else
+      echo "Installed web apps:"
+      echo "$apps" | sed 's/^/  - /'
+      echo
+      echo "Run: df-webapp-remove <name>"
+      exit 0
+   fi
+fi
+
+DESKTOP_FILE="$APPS_DIR/$NAME.desktop"
+
+if [[ ! -f $DESKTOP_FILE ]]; then
+   echo "Error: no desktop entry at $DESKTOP_FILE" >&2
+   echo "       Run df-webapp-remove with no arguments to see installed web apps." >&2
+   exit 1
+fi
+
+EXEC_LINE="$(grep -m1 '^Exec=' "$DESKTOP_FILE" | cut -d= -f2-)"
+ICON_LINE="$(grep -m1 '^Icon=' "$DESKTOP_FILE" | cut -d= -f2-)"
+
+if ! grep -qE '^Exec=.*df-launch(-special|-or-focus)?-webapp' "$DESKTOP_FILE"; then
+   echo "Warning: '$NAME' does not look like a df-webapp-install web app." >&2
+   echo "         Exec=$EXEC_LINE" >&2
+fi
+
+if (( !FORCE )); then
+   echo "Will remove: $DESKTOP_FILE"
+   echo "  Exec=$EXEC_LINE"
+   read -r -p "Remove web app '$NAME'? [y/N] " ans
+   case "$ans" in
+      y|Y|yes|YES) ;;
+      *) echo "Aborted."; exit 0 ;;
+   esac
+fi
+
+rm -f "$DESKTOP_FILE"
+echo "Removed: $DESKTOP_FILE"
+
+# Only remove downloaded icons. df-webapp-install saves those as
+# "$ICON_DIR/$NAME.png"; anything else is a repo-managed icon that other
+# entries may share.
+if [[ -L $ICON_DIR ]]; then
+   if [[ -n $ICON_LINE ]]; then
+      echo "Kept icon: $ICON_LINE (icons dir is a symlink into the dotfiles repo)"
+   fi
+elif [[ $ICON_LINE == "$ICON_DIR/$NAME.png" && -f $ICON_LINE ]]; then
+   rm -f "$ICON_LINE"
+   echo "Removed: $ICON_LINE"
+elif [[ -n $ICON_LINE ]]; then
+   echo "Kept icon: $ICON_LINE (not a downloaded icon for '$NAME')"
+fi
+
+if (( FORGET )); then
+   if [[ ! -f $PACKAGES_FILE ]]; then
+      echo "Warning: $PACKAGES_FILE not found; nothing to forget." >&2
+   else
+      # Comment out rather than delete, matching how retired entries are kept
+      # at the bottom of the file. Done in bash so app names are matched
+      # literally — they are free-form and may contain regex metacharacters.
+      tmp="$(mktemp)"
+      changed=0
+      while IFS= read -r line || [[ -n $line ]]; do
+         trimmed="${line#"${line%%[![:space:]]*}"}"
+         if [[ $trimmed != \#* && $line == *"df-webapp-install \"$NAME\""* ]]; then
+            line="# $line"
+            changed=1
+         fi
+         printf '%s\n' "$line"
+      done <"$PACKAGES_FILE" >"$tmp"
+
+      if (( changed )); then
+         cat "$tmp" >"$PACKAGES_FILE" # redirect, not mv, to keep mode + inode
+         echo "Commented out in: $PACKAGES_FILE"
+      else
+         echo "Warning: no active 'df-webapp-install \"$NAME\"' line in $PACKAGES_FILE" >&2
+         echo "         (names there must match exactly, including trailing spaces)" >&2
+      fi
+      rm -f "$tmp"
+   fi
+fi
+
+if command -v update-desktop-database &>/dev/null; then
+   update-desktop-database "$APPS_DIR" &>/dev/null || true
+fi
