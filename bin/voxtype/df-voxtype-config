@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
 
-# Used by Voxtype waybar module to open config on right click
+# Used by the Voxtype quickshell module to open config on right click
 
 exec df-launch-editor ~/.config/voxtype/config.toml

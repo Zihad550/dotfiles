@@ -2,7 +2,8 @@
 cd ~/dotfiles
 
 stow hypr
-stow waybar
+# stow waybar
+stow quickshell
 # stow rofi
 mkdir -p ~/.local/share/mako
 ln -snf ~/dotfiles/mako/.local/share/mako/core.ini ~/.local/share/mako/core.ini

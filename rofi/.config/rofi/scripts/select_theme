@@ -9,7 +9,12 @@ if [ -n "$1" ]; then
    # restart applications
    killall -SIGUSR2 ghostty
    # dotfiles_restart_app waybar
-   systemctl --user restart waybar.service
+   # waybar, replaced by quickshell
+   # systemctl --user restart waybar.service
+   # Not silenced: `qs ipc call` exits 0 even when the target is missing.
+   if command -v qs &>/dev/null; then
+      qs -c dotfiles ipc call theme reload || true
+   fi
    systemctl --user restart mako.service
    hyprctl reload >/dev/null 2>&1
 

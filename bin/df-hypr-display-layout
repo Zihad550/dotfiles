@@ -39,7 +39,8 @@
 # HAND-EDIT FIELDS
 # `save` deliberately does NOT read two things back from the runtime:
 #   reserved_area — hyprctl reports config reserve *plus* layer-surface exclusive
-#                   zones (waybar), so saving it would compound on every save.
+#                   zones (the quickshell bar), so saving it would compound on
+#                   every save.
 #   mode          — a stored "preferred", or a hand-tuned refresh like the 75.2
 #                   nudge in df-hypr-display-rotate, is kept as long as it still
 #                   selects the monitor's current resolution (±1Hz, Hyprland's own

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # hyprpicker -> to pick colors from screen using pastel pick and other tools
-# waybar -> menu bar
+# quickshell -> menu bar (replaced waybar; config in quickshell/, run as an
+#               autostart from hypr/lua/autostart.lua, not a systemd unit)
 # mako - notification
 # nwg-look - theming gtk apps
 # screensharing and file picking - xdg-desktop-portal-hyprland
@@ -13,7 +14,6 @@ sudo pacman -S --noconfirm \
     uwsm \
     brightnessctl \
     hyprpicker \
-    waybar \
     mako \
     hyprlock \
     hypridle \
@@ -25,7 +25,8 @@ sudo pacman -S --noconfirm \
     hyprland-guiutils \
     pavucontrol \
     swayosd \
-    swaybg
+    swaybg \
+    quickshell
 
 # rofi and application launcher
 
@@ -33,7 +34,9 @@ sudo pacman -S --noconfirm \
 # rofi-emoji \
 # rofi-calc \
 
-systemctl --user enable waybar.service              # menu
+# waybar, replaced by quickshell. Quickshell ships no systemd unit; it starts
+# from hypr/.config/hypr/lua/autostart.lua.
+# systemctl --user enable waybar.service              # menu
 systemctl --user enable mako.service                # notification
 systemctl --user enable hypridle.service            # lock screen
 systemctl --user enable xdg-desktop-portal-hyprland # screensharing and file picking

@@ -7,6 +7,7 @@
 -- o.exec_on_start("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
 o.exec_on_start("uwsm-app -- walker --gapplication-service")
 o.exec_on_start("uwsm-app -- swayosd-server")
+o.exec_on_start("uwsm-app -- quickshell -c dotfiles")
 o.exec_on_start("uwsm-app -- swaybg -i " .. os.getenv("HOME") .. "/.config/theme/background -m fill")
 -- o.exec_on_start("uwsm-app -- hyprlauncher -d")
 

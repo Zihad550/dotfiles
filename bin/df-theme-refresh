@@ -2,7 +2,7 @@
 
 # Regenerate output files for every theme from current templates.
 # With --apply, also re-runs df-theme-set on the active theme so visible
-# daemons (waybar, mako, etc.) reload.
+# daemons (quickshell, mako, etc.) reload.
 
 set -e
 

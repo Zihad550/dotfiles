@@ -3,5 +3,7 @@ set -e
 
 df-launch-floating-presentation "voxtype setup model"
 
-systemctl --user restart waybar.service
+# waybar, replaced by quickshell. Voxtype.qml holds a long-lived
+# `voxtype status --follow` process, so it picks the new state up on its own.
+# systemctl --user restart waybar.service
 # df-restart-waybar

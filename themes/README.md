@@ -16,9 +16,9 @@ themes/
 │   ├── kitty.conf.tpl
 │   ├── mako.ini.tpl
 │   ├── obsidian.css.tpl
+│   ├── quickshell.json.tpl
 │   ├── swayosd.css.tpl
-│   ├── walker.css.tpl
-│   └── waybar.css.tpl
+│   └── walker.css.tpl
 ├── .config/themes/         # Theme directories with colors.toml
 │   ├── rose-pine/
 │   │   ├── colors.toml    # Source of truth for theme colors

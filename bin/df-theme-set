@@ -125,8 +125,19 @@ switch_theme() {
         killall -SIGUSR2 ghostty
     fi
 
-    if pgrep -x waybar >/dev/null; then
-        systemctl --user restart waybar.service
+    # waybar, replaced by quickshell
+    # if pgrep -x waybar >/dev/null; then
+    #     systemctl --user restart waybar.service
+    # fi
+
+    # Quickshell re-reads ~/.config/theme/quickshell.json in place, so the bar
+    # restyles without restarting. Guarded like the obsidian call above, since
+    # ~/dotfiles/bin is not on PATH during first-run setup.
+    #
+    # Output is deliberately not silenced: `qs ipc call` exits 0 even when the
+    # target is missing, so its stderr is the only signal that this failed.
+    if command -v qs &>/dev/null; then
+        qs -c dotfiles ipc call theme reload || true
     fi
 
     if systemctl --user is-active --quiet mako.service 2>/dev/null; then

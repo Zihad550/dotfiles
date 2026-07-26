@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Switch monospace font across configs (ghostty, hyprlock, swayosd, waybar, zed)
+# Switch monospace font across configs (ghostty, hyprlock, swayosd, quickshell, zed)
 # and restart the visual daemons so the change is live.
 
 set -e
@@ -45,9 +45,13 @@ sed -i 's|^\([[:space:]]*\)font_family[[:space:]]*=.*|\1font_family = '"$font"'|
 sed -i "s|font-family:[[:space:]]*'[^']*';|font-family: '$font';|" \
    "$REPO/swayosd/.config/swayosd/style.css"
 
-# waybar (only the uncommented line)
-sed -i 's|^\([[:space:]]*\)font-family:[[:space:]]*"[^"]*";|\1font-family: "'"$font"'";|' \
-   "$REPO/waybar/.config/waybar/style.css"
+# waybar, replaced by quickshell
+# sed -i 's|^\([[:space:]]*\)font-family:[[:space:]]*"[^"]*";|\1font-family: "'"$font"'";|' \
+#    "$REPO/waybar/.config/waybar/style.css"
+
+# quickshell
+sed -i 's|^\([[:space:]]*\)readonly property string fontFamily:.*|\1readonly property string fontFamily: "'"$font"'"|' \
+   "$REPO/quickshell/.config/quickshell/dotfiles/Theme.qml"
 
 # zed
 if [[ -f "$REPO/zed/.config/zed/settings.json" ]]; then
@@ -56,9 +60,11 @@ if [[ -f "$REPO/zed/.config/zed/settings.json" ]]; then
 fi
 
 # Reload visual daemons
-if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
-   systemctl --user restart waybar.service
-fi
+# waybar, replaced by quickshell. Quickshell watches its own config directory
+# and hot-reloads when Theme.qml changes, so nothing to restart here.
+# if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
+#    systemctl --user restart waybar.service
+# fi
 
 if df-cmd-present ghostty && pgrep -x ghostty >/dev/null; then
    killall -SIGUSR2 ghostty
