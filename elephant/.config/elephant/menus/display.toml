@@ -19,3 +19,9 @@ text = "HDMI-A-1: Vertical"
 keywords = ["vertical", "portrait", "hdmi", "monitor"]
 icon = "video-display"
 actions = {"rotate_vertical" = "~/dotfiles/bin/df-hypr-display-rotate vertical"}
+
+[[entries]]
+text = "Layout: Restore saved"
+keywords = ["layout", "restore", "apply", "saved", "monitor", "displays"]
+icon = "video-display"
+actions = {"layout_apply" = "~/dotfiles/bin/df-hypr-display-layout apply"}
