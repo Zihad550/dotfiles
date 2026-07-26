@@ -10,6 +10,11 @@ o.exec_on_start("uwsm-app -- swayosd-server")
 o.exec_on_start("uwsm-app -- swaybg -i " .. os.getenv("HOME") .. "/.config/theme/background -m fill")
 -- o.exec_on_start("uwsm-app -- hyprlauncher -d")
 
+-- Restore the saved monitor layout for whatever displays are connected. Falls back
+-- to the rules in monitors.lua when nothing is saved for this display set, so this
+-- file stays the source of truth for unknown setups.
+o.exec_on_start(os.getenv("HOME") .. "/dotfiles/bin/df-hypr-display-layout apply --quiet")
+
 -- custom apps
 o.exec_on_start(os.getenv("HOME") .. "/dotfiles/bin/df-startup-apps")
 
