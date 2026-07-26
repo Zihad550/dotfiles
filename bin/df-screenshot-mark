@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Toggle a screenshot path in the selection list used by the dotfilesScreenshots menu.
+# The list lives in a runtime file and is cleared each time the picker is launched.
+
+set -e
+
+marks="${XDG_RUNTIME_DIR:-/tmp}/df-screenshot-marks"
+path="$1"
+[ -n "$path" ] || exit 1
+
+touch "$marks"
+
+if grep -qxF -- "$path" "$marks"; then
+  grep -vxF -- "$path" "$marks" >"$marks.tmp" || true
+  mv "$marks.tmp" "$marks"
+else
+  printf '%s\n' "$path" >>"$marks"
+fi
