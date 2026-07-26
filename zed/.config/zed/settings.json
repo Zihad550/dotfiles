@@ -2,6 +2,13 @@
   ////////////////////////
   // ai
   ///////////////////////
+  "ssh_connections": [
+    {
+      "host": "devcontainer.devpod",
+      "args": [],
+      "projects": []
+    }
+  ],
   "cli_default_open_behavior": "new_window",
   "collaboration_panel": {
     "dock": "left",
