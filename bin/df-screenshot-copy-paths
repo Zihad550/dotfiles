@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Copy screenshot paths to the clipboard, newline separated.
+# Uses the marked selection if there is one, otherwise the path passed in.
+
+set -e
+
+marks="${XDG_RUNTIME_DIR:-/tmp}/df-screenshot-marks"
+
+if [ -s "$marks" ]; then
+  wl-copy <"$marks"
+else
+  [ -n "$1" ] || exit 1
+  printf '%s\n' "$1" | wl-copy
+fi
