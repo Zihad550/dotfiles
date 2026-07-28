@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Switch monospace font across configs (ghostty, hyprlock, swayosd, quickshell, zed)
+# Switch monospace font across configs (ghostty, hyprlock, quickshell, zed)
 # and restart the visual daemons so the change is live.
 
 set -e
@@ -41,9 +41,10 @@ sed -i 's|^font-family[[:space:]]*=.*|font-family = "'"$font"'"|' \
 sed -i 's|^\([[:space:]]*\)font_family[[:space:]]*=.*|\1font_family = '"$font"'|' \
    "$REPO/hypr/.config/hypr/hyprlock.conf"
 
-# swayosd
-sed -i "s|font-family:[[:space:]]*'[^']*';|font-family: '$font';|" \
-   "$REPO/swayosd/.config/swayosd/style.css"
+# swayosd, replaced by quickshell's OSD, which reads the font from Theme.qml
+# below like the rest of the shell.
+# sed -i "s|font-family:[[:space:]]*'[^']*';|font-family: '$font';|" \
+#    "$REPO/swayosd/.config/swayosd/style.css"
 
 # waybar, replaced by quickshell
 # sed -i 's|^\([[:space:]]*\)font-family:[[:space:]]*"[^"]*";|\1font-family: "'"$font"'";|' \

@@ -28,6 +28,27 @@ Singleton {
     // Horizontal padding of the left/right module groups (.modules-left/right).
     readonly property int edgeMargin: 8
 
+    // Gear menu: total popup width, inner padding, height of one row's header.
+    readonly property int menuWidth: 240
+    readonly property int menuPadding: 10
+    readonly property int menuRowHeight: 30
+
+    // Notification popups: stack width, inner padding, and text sizes. Set
+    // larger than the bar, which is deliberately compact -- notifications are
+    // read at a glance from across the screen, not scanned.
+    readonly property int notificationWidth: 400
+    readonly property int notificationPadding: 12
+    readonly property int notificationIconSize: 32
+    readonly property int notificationFontSize: 15
+    readonly property int notificationSummaryFontSize: 17
+
+    // OSD pill: swayosd's default was a 300x100 box near the bottom of the
+    // screen; this is flatter because it holds one bar, not a grid.
+    readonly property int osdWidth: 320
+    readonly property int osdHeight: 56
+    readonly property int osdMargin: 120
+    readonly property int osdIconSize: 24
+
     // df-theme-set retargets the ~/.config/theme symlink rather than editing
     // this file, and a file watcher does not necessarily see that. The watch
     // below covers in-place edits (df-theme-generate); shell.qml exposes this

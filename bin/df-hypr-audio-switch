@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # Switch between audio outputs while preserving the mute status. By default mapped to Super + Mute.
-
-focused_monitor="$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')"
+#
+# The OSD is quickshell's now, not swayosd's: it draws on the active monitor by
+# itself, so the focused-monitor lookup swayosd-client needed is gone, and the
+# icon is named by level rather than by GTK icon name.
 
 sinks=$(pactl -f json list sinks | jq '[.[] | select((.ports | length == 0) or ([.ports[]? | .availability != "not available"] | any))]')
 sinks_count=$(echo "$sinks" | jq '. | length')
 
 if [ "$sinks_count" -eq 0 ]; then
-   swayosd-client \
-      --monitor "$focused_monitor" \
-      --custom-message "No audio devices found"
+   qs -c dotfiles ipc call osd message "No audio devices found"
    exit 1
 fi
 
@@ -46,13 +46,8 @@ else
    icon_state="high"
 fi
 
-next_sink_volume_icon="sink-volume-${icon_state}-symbolic"
-
 if [ "$next_sink_name" != "$current_sink_name" ]; then
    pactl set-default-sink "$next_sink_name"
 fi
 
-swayosd-client \
-   --monitor "$focused_monitor" \
-   --custom-message "$next_sink_description" \
-   --custom-icon "$next_sink_volume_icon"
+qs -c dotfiles ipc call osd outputSwitched "$next_sink_description" "$icon_state"

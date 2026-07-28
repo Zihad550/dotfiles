@@ -6,8 +6,13 @@
 -- o.exec_on_start("exec ssh-agent zsh")
 -- o.exec_on_start("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
 o.exec_on_start("uwsm-app -- walker --gapplication-service")
-o.exec_on_start("uwsm-app -- swayosd-server")
+-- swayosd, replaced by quickshell's OSD (quickshell/OsdService.qml, modules/Osd.qml)
+-- o.exec_on_start("uwsm-app -- swayosd-server")
 o.exec_on_start("uwsm-app -- quickshell -c dotfiles")
+-- The Launcher, as its own instance so that filtering a large provider cannot
+-- stall the bar's rendering and a fault in it cannot take the notification
+-- daemon down. See quickshell/.config/quickshell/launcher/shell.qml.
+o.exec_on_start("uwsm-app -- quickshell -c launcher")
 o.exec_on_start("uwsm-app -- swaybg -i " .. os.getenv("HOME") .. "/.config/theme/background -m fill")
 -- o.exec_on_start("uwsm-app -- hyprlauncher -d")
 

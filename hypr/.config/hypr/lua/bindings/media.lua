@@ -1,8 +1,13 @@
 local home         = os.getenv("HOME")
 local dotfiles_bin = home .. "/dotfiles/bin"
 
--- swayosd-client scoped to the focused monitor.
-local osdclient = [[swayosd-client --monitor "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')"]]
+-- Was swayosd-client, which needed `--monitor "$(hyprctl monitors -j | jq ...)"`
+-- to land on the focused screen -- two extra processes on every keypress.
+-- quickshell puts the OSD on the active monitor itself (modules/Osd.qml),
+-- applies volume through Pipewire, and only shells out for brightness and
+-- playerctl. Steps stay positive with the direction in the function name: a
+-- `-5` argument would be read as an option by the ipc CLI, not as a value.
+local osd = "qs -c dotfiles ipc call osd"
 
 o.bind("XF86AudioRaiseVolume", "Volume up",        osdclient .. " --output-volume raise",      { locked = true, repeating = true })
 o.bind("XF86AudioLowerVolume", "Volume down",      osdclient .. " --output-volume lower",      { locked = true, repeating = true })
