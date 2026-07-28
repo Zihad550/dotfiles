@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+
+# LAN_SSH_SRC to an address, a CIDR, or `none` to skip the prompt.
+
+set -uo pipefail
+
+valid_src() {
+    python3 -c "
+import ipaddress, sys
+try:
+    ipaddress.ip_network(sys.argv[1], strict=False)
+except ValueError:
+    sys.exit(1)
+" "$1" 2>/dev/null
+}
+
+# The subnet this machine is actually on, rather than assuming 192.168.0.0/24.
+detect_subnet() {
+    local iface addr
+    iface="$(ip -4 route show default | awk '{print $5; exit}')"
+    [ -n "$iface" ] || return 1
+    addr="$(ip -4 -o addr show dev "$iface" | awk '{print $4; exit}')"
+    [ -n "$addr" ] || return 1
+    python3 -c "import ipaddress,sys; print(ipaddress.ip_interface(sys.argv[1]).network)" "$addr" 2>/dev/null
+}
+
+SUBNET="$(detect_subnet)" || SUBNET=""
+[ -n "$SUBNET" ] || SUBNET="192.168.0.0/24"
+
+# If we are being run over ssh, the address we are talking to is very likely the
+# one that should be allowed -- offer it as the default.
+# :- matters: SSH_CONNECTION is unset when run from a physical console, and
+# `set -u` would otherwise kill the script in exactly the break-glass case.
+CLIENT_IP="${SSH_CONNECTION:-}"
+CLIENT_IP="${CLIENT_IP%% *}"
+CLIENT_IS_TAILNET=0
+if [ -n "$CLIENT_IP" ] && python3 -c "
+import ipaddress, sys
+sys.exit(0 if ipaddress.ip_address(sys.argv[1]) in ipaddress.ip_network('100.64.0.0/10') else 1)
+" "$CLIENT_IP" 2>/dev/null; then
+    CLIENT_IS_TAILNET=1
+fi
+
+# ─── decide the LAN source ───────────────────────────────────────────────────
+LAN_SSH_SRC="${LAN_SSH_SRC:-}"
+
+if [ -z "$LAN_SSH_SRC" ] && [ ! -t 0 ]; then
+    # Non-interactive with nothing specified. Fail towards keeping access:
+    # locking yourself out of a headless box is worse than an open LAN port.
+    LAN_SSH_SRC="$SUBNET"
+    echo "not a terminal and LAN_SSH_SRC unset -- defaulting to $SUBNET"
+fi
+
+if [ -z "$LAN_SSH_SRC" ]; then
+    echo
+    echo "How should this machine be reachable over the LAN?"
+    echo
+    echo "  Tailscale is the way you will actually use it. This rule only exists"
+    echo "  as the way back in when tailscaled is the thing that broke."
+    echo
+    echo "  1) one machine only  -- most restrictive, needs a DHCP reservation"
+    echo "  2) the whole subnet  -- $SUBNET"
+    echo "  3) no LAN access     -- tailnet only; a keyboard attached to this"
+    echo "                          machine becomes the only recovery path"
+    echo
+
+    if [ "$CLIENT_IS_TAILNET" = "1" ]; then
+        echo "  NOTE: you are connected over the tailnet ($CLIENT_IP), not the LAN,"
+        echo "        so there is no LAN address to detect. If you pick 1, enter the"
+        echo "        address your laptop has on $SUBNET -- NOT $CLIENT_IP, which"
+        echo "        would create a rule that never matches."
+        echo
+    fi
+
+    while :; do
+        read -rp "choice [1]: " choice
+        case "${choice:-1}" in
+        1)
+            default_ip=""
+            [ "$CLIENT_IS_TAILNET" = "0" ] && default_ip="$CLIENT_IP"
+            while :; do
+                if [ -n "$default_ip" ]; then
+                    read -rp "address to allow [$default_ip]: " ip
+                    ip="${ip:-$default_ip}"
+                else
+                    read -rp "address to allow: " ip
+                fi
+                if valid_src "$ip"; then
+                    LAN_SSH_SRC="$ip"
+                    break
+                fi
+                echo "  not a valid address or CIDR: $ip"
+            done
+            break
+            ;;
+        2) LAN_SSH_SRC="$SUBNET"; break ;;
+        3) LAN_SSH_SRC="none"; break ;;
+        *) echo "  pick 1, 2 or 3" ;;
+        esac
+    done
+fi
+
+if [ "$LAN_SSH_SRC" != "none" ] && ! valid_src "$LAN_SSH_SRC"; then
+    echo "not a valid address or CIDR: $LAN_SSH_SRC" >&2
+    exit 1
+fi
+
+# ─── apply ───────────────────────────────────────────────────────────────────
+set -e
+
+sudo apt install -y ufw
+
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# The whole tailnet, every port. This is what makes per-port dev server rules
+# unnecessary -- a new app on :3000 is reachable with no firewall change.
+sudo ufw allow in on tailscale0 comment 'tailnet'
+
+if [ "$LAN_SSH_SRC" = "none" ]; then
+    echo
+    echo "WARNING: no LAN ssh rule. If tailscaled fails to come up, the only way"
+    echo "         back in is a keyboard attached to this machine."
+else
+    sudo ufw allow from "$LAN_SSH_SRC" to any app OpenSSH comment 'lan break-glass'
+    case "$LAN_SSH_SRC" in
+    */*) ;;
+    *)
+        echo
+        echo "NOTE: ssh is restricted to $LAN_SSH_SRC. Give that machine a DHCP"
+        echo "      reservation -- if its address changes you lose this path."
+        ;;
+    esac
+fi
+
+# Rules are in place before the policy flips, so an active ssh session survives.
+sudo ufw --force enable
+sudo systemctl enable ufw.service
+sudo ufw reload
+
+echo
+sudo ufw status verbose

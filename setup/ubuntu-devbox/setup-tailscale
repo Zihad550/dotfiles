@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+# Install tailscale and join the tailnet, so the box is reachable over ssh from
+# anywhere without exposing anything to the public internet.
+#
+# Auth:
+#   TS_AUTHKEY=tskey-auth-...  ./setup-tailscale     # unattended
+#   ./setup-tailscale                                # prints a URL to open
+#
+# Hostname on the tailnet defaults to the machine hostname; override with
+#   TS_HOSTNAME=devbox ./setup-tailscale
+
+set -euo pipefail
+
+TS_HOSTNAME="${TS_HOSTNAME:-$(hostname -s)}"
+TS_AUTHKEY="${TS_AUTHKEY:-}"
+
+# Tailscale SSH: tailnet identity + ACLs replace ~/.ssh/authorized_keys for
+# connections arriving over the tailnet. Set TS_SSH=0 to keep plain sshd only.
+#
+# Note this makes tailscaled the ssh server for tailnet traffic. That is why the
+# ufw rules below still allow OpenSSH from the LAN: if tailscaled dies or an
+# upgrade goes wrong, that is the way back into a headless box.
+TS_SSH="${TS_SSH:-1}"
+
+if ! command -v tailscale &>/dev/null; then
+    curl -fsSL https://tailscale.com/install.sh | sh
+fi
+
+sudo systemctl enable --now tailscaled
+
+# ─── firewall ────────────────────────────────────────────────────────────────
+# Everything arriving over the tailnet lands on tailscale0 from 100.64.0.0/10.
+# setup/ubuntu-server/setup-ufw only allows OpenSSH from 192.168.0.0/24, so
+# without this rule ssh over tailscale is dropped. Order matters: open the
+# interface before `tailscale up`, not after.
+# Only the tailnet rule here, and only if ufw is already installed -- ./setup-ufw
+# owns the LAN break-glass rule and asks you about it. On a first run ufw is not
+# installed yet and this is skipped entirely.
+if command -v ufw &>/dev/null; then
+    sudo ufw allow in on tailscale0 comment 'tailnet'
+    sudo ufw reload
+fi
+
+# ─── join the tailnet ────────────────────────────────────────────────────────
+# --operator lets this user run tailscale commands without sudo, which the
+# quickshell/waybar tailscale status scripts rely on.
+up_args=(--hostname "$TS_HOSTNAME" --operator "$USER")
+[ "$TS_SSH" = "1" ] && up_args+=(--ssh)
+[ -n "$TS_AUTHKEY" ] && up_args+=(--authkey "$TS_AUTHKEY")
+
+echo "running: tailscale up ${up_args[*]}"
+if ! sudo tailscale up "${up_args[@]}"; then
+    echo
+    echo "tailscale up failed."
+    echo "  - if you are already connected over the tailnet, re-run with:"
+    echo "      sudo tailscale up ${up_args[*]} --accept-risk=lose-ssh"
+    echo "  - if --ssh was rejected, your tailnet ACL needs an ssh section"
+    exit 1
+fi
+
+echo
+tailscale status
+echo
+echo "tailnet ip: $(tailscale ip -4)"
+
+# `tailscale up --ssh` succeeds even when the tailnet ACL has no ssh section --
+# the join works, then every ssh connection is refused. Silent failure on a
+# headless box, so say it out loud rather than only on the error path.
+if [ "$TS_SSH" = "1" ]; then
+    echo
+    echo "tailscale ssh is enabled on this node. It does nothing until your"
+    echo "tailnet ACL grants it (https://login.tailscale.com/admin/acls):"
+    echo '  "ssh": [{'
+    echo '    "action": "accept",'
+    echo '    "src":    ["autogroup:member"],'
+    echo '    "dst":    ["autogroup:self"],'
+    echo "    \"users\":  [\"autogroup:nonroot\", \"$USER\"]"
+    echo '  }]'
+    echo
+    echo "test from your laptop before relying on it:  ssh $USER@$TS_HOSTNAME"
+fi
+echo
+echo "harden sshd once you have confirmed tailscale ssh works:"
+echo "  sudo -e /etc/ssh/sshd_config"
+echo "  PermitRootLogin no"
+echo "  PasswordAuthentication no"

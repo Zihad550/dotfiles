@@ -16,38 +16,12 @@ ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions
 # stow zellij
 # stow gemini
 stow lazygit
-mkdir -p ~/.config/opencode
-ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.config/opencode/agent
-ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.config/opencode/command
-ln -snf ~/dotfiles/opencode/.config/opencode/plugin ~/.config/opencode/plugin
-ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.config/opencode/AGENTS.md
-ln -snf ~/dotfiles/opencode/.config/opencode/opencode.jsonc ~/.config/opencode/opencode.jsonc
-ln -snf ~/dotfiles/opencode/.config/opencode/tui.json ~/.config/opencode/tui.json
-
-mkdir -p ~/.kilocode
-ln -snf ~/dotfiles/kilocode/.kilocode/kilo.jsonc ~/.kilocode/kilo.jsonc
-ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
-ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.kilocode/agent
-ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.kilocode/command
-ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.kilocode/AGENTS.md
-
-# agents live in separate repo: https://github.com/Zihad550/.agents
-[ -d ~/.agents ] || git clone https://github.com/Zihad550/.agents.git ~/.agents
-
-mkdir -p ~/.kilocode/skills
-ln -snf ~/.agents/skills/* ~/.kilocode/skills/
-
-# claude code reads ~/.claude/skills; mirror the shared library there too
-mkdir -p ~/.claude/skills
-find ~/.claude/skills -maxdepth 1 -xtype l -delete
-ln -snf ~/.agents/skills/* ~/.claude/skills/
-
 stow themes
 stow starship
-stow ghostty
 stow yazi
 stow voxtype
 stow tmux
+stow herdr
 stow gh-dash
 stow procs
 # stow mise
@@ -58,6 +32,5 @@ rm -rf ~/.bashrc
 stow bash
 stow branch-creator
 
-mkdir -p ~/.claude
-ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
-ln -snf ~/dotfiles/.claude/statusline-command.sh ~/.claude/statusline-command.sh
+# ai tools
+scripts/stow/stow-ai

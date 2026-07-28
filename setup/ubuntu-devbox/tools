@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# mise use -g uv
+# mise use -g bun deno node@lts pnpm
+# npm:@fission-ai/openspec@latest
+# neovim
+mise use -g node@lts go pnpm nub
+mise use -g npm:@kilocode/cli claude  opencode
+mise use -g uv
+mise use -g python@3.14
+mise use -g npm:skills
+mise install npm:fallow
+mise install just
+mise use -g usage
+
+# missing apt packages - install via mise
+mise use -g aichat
+mise use -g worktrunk
+mise use -g lazydocker

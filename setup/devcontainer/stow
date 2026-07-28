@@ -6,21 +6,6 @@ cd "$DOTFILES"
 mkdir -p ~/.config
 ln -snf "$DOTFILES/git/.config/git" ~/.config/git
 # ln -snf "$DOTFILES/lazygit/.config/lazygit" ~/.config/lazygit
-mkdir -p ~/.config/opencode
-ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.config/opencode/agent
-ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.config/opencode/command
-ln -snf "$DOTFILES/opencode/.config/opencode/plugin" ~/.config/opencode/plugin
-ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
-ln -snf "$DOTFILES/opencode/.config/opencode/opencode.jsonc" ~/.config/opencode/opencode.jsonc
-ln -snf "$DOTFILES/opencode/.config/opencode/tui.json" ~/.config/opencode/tui.json
-mkdir -p ~/.kilocode
-ln -snf "$DOTFILES/kilocode/.kilocode/kilo.jsonc" ~/.kilocode/kilo.jsonc
-ln -snf "$DOTFILES/kilocode/.kilocode/plugin" ~/.kilocode/plugin
-ln -snf "$DOTFILES/kilocode/.kilocode/agent" ~/.kilocode/agent
-ln -snf "$DOTFILES/kilocode/.kilocode/command" ~/.kilocode/command
-ln -snf "$DOTFILES/kilocode/.kilocode/AGENTS.md" ~/.kilocode/AGENTS.md
-mkdir -p ~/.kilocode/skills
-ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # stow mise
 mkdir -p ~/.config/mise
@@ -30,19 +15,13 @@ mkdir -p ~/.config/worktrunk
 ln -snf "$DOTFILES/worktrunk/.config/worktrunk/config.toml" ~/.config/worktrunk/config.toml
 ln -snf "$DOTFILES/worktrunk/.config/worktrunk/approvals.toml" ~/.config/worktrunk/approvals.toml
 
-mkdir -p ~/.claude
-ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
-
 rm -rf ~/.bashrc
 ln -snf ~/dotfiles/bash/.bashrc ~/.bashrc
 ln -snf ~/dotfiles/zsh/.config/zsh ~/.config/zsh
 ln -snf ~/dotfiles/zsh/.zshenv ~/.zshenv
 
-mkdir -p ~/.claude/skills
-
-ln -snf ~/dotfiles/.claude/settings.json ~/.claude/settings.json
-ln -snf ~/dotfiles/.claude/statusline-command.sh ~/.claude/statusline-command.sh
-ln -snf ~/.agents/skills/* ~/.claude/skills/
-
 mkdir -p ~/.config/procs
 ln -snf ~/dotfiles/procs/.config/procs ~/.config/procs
+
+# ai tools
+scripts/stow/stow-ai

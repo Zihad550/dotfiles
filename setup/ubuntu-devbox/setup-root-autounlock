@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+# Bind the encrypted root's LUKS key to the TPM so the box boots unattended.
+#
+#   ./setup-root-autounlock [luks-device]
+#
+# Without this, an encrypted root stops at the initramfs passphrase prompt on
+# every reboot. Tailscale is not up that early, so a headless box reached over
+# the tailnet is simply unreachable until someone walks over and types it.
+#
+# The tradeoff, stated plainly: the disk now unlocks itself. That protects a
+# drive pulled out of the machine, or the machine sold/RMA'd. It does not
+# protect a machine stolen intact -- it will happily boot for the thief. PCR 7
+# ties the seal to the secure boot policy, so disabling secure boot or booting
+# other media does break it.
+#
+# RUN THIS WHILE YOU STILL HAVE A KEYBOARD ON THE MACHINE, and reboot to verify
+# before you rely on it. The passphrase keyslot is never removed -- it stays as
+# the way back in when TPM state changes (firmware update, secure boot toggle,
+# board swap).
+
+set -euo pipefail
+
+echo "enrolling the root LUKS device into the TPM."
+echo "you will need physical access if this does not work; do not do this remotely."
+read -rp "continue? [y/N] " ok
+[ "$ok" = "y" ] || exit 1
+
+sudo apt install -y cryptsetup tpm2-tools
+
+[ -c /dev/tpmrm0 ] || { echo "no TPM at /dev/tpmrm0 -- nothing to enroll into" >&2; exit 1; }
+
+# ─── find the LUKS device under / ────────────────────────────────────────────
+DEV="${1:-}"
+if [ -z "$DEV" ]; then
+    ROOT_SRC="$(findmnt -no SOURCE /)"
+    DEV="$(lsblk -snpo NAME,FSTYPE "$ROOT_SRC" | awk '$2=="crypto_LUKS"{print $1; exit}')"
+fi
+
+if [ -z "$DEV" ]; then
+    echo "could not find a crypto_LUKS device under /." >&2
+    echo "root is probably not encrypted -- that is an installer-time choice," >&2
+    echo "see README.md. Pass the device explicitly to override." >&2
+    lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS >&2
+    exit 1
+fi
+
+echo "root LUKS device: $DEV"
+
+# ─── recovery key ────────────────────────────────────────────────────────────
+# Prints a one-time recovery passphrase. Write it down somewhere off this
+# machine. RECOVERY=0 to skip if you already trust your existing passphrase.
+if [ "${RECOVERY:-1}" = "1" ]; then
+    echo
+    echo "enrolling a recovery key -- WRITE THE OUTPUT DOWN, it is shown once:"
+    sudo systemd-cryptenroll --recovery-key "$DEV"
+    read -rp "saved it? [y/N] " ok
+    [ "$ok" = "y" ] || exit 1
+fi
+
+# ─── enroll ──────────────────────────────────────────────────────────────────
+# PCR 7 only. PCRs 4/8/9 cover the kernel and initramfs and change on every
+# apt upgrade, which would break unlock after each one.
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 "$DEV"
+
+# ─── crypttab ────────────────────────────────────────────────────────────────
+UUID="$(sudo cryptsetup luksUUID "$DEV")"
+sudo cp /etc/crypttab /etc/crypttab.bak
+
+sudo python3 - "$UUID" <<'EOF'
+import pathlib, sys
+uuid = sys.argv[1]
+p = pathlib.Path("/etc/crypttab")
+out, touched = [], False
+for line in p.read_text().splitlines():
+    f = line.split()
+    if line.lstrip().startswith("#") or len(f) < 2 or f[1] not in (f"UUID={uuid}", uuid):
+        out.append(line)
+        continue
+    while len(f) < 4:
+        f.append("none" if len(f) == 2 else "luks")
+    if "tpm2-device" not in f[3]:
+        f[3] += ",tpm2-device=auto"
+    out.append(" ".join(f))
+    touched = True
+p.write_text("\n".join(out) + "\n")
+print("crypttab updated" if touched else "WARNING: no crypttab entry matched " + uuid)
+EOF
+
+# ─── initramfs ───────────────────────────────────────────────────────────────
+# Root unlock happens in the initramfs, so the tpm2 token plugin has to be baked
+# into the generated image. The keyslot above is real either way -- if the plugin
+# did not make it in, boot just keeps prompting for the passphrase.
+sudo update-initramfs -u -k all
+
+if ! sudo lsinitramfs "/boot/initrd.img-$(uname -r)" 2>/dev/null | grep -qi tpm2; then
+    echo
+    echo "WARNING: no tpm2 files found in /boot/initrd.img-$(uname -r)."
+    echo "         cryptsetup-initramfs did not include the token plugin, so this"
+    echo "         box will still prompt at boot. Nothing is broken -- the"
+    echo "         passphrase keyslot is untouched -- but unattended boot will not"
+    echo "         work until that is sorted:"
+    echo "           sudo apt install --reinstall cryptsetup-initramfs"
+    echo "           sudo update-initramfs -u -k all"
+fi
+
+echo
+sudo systemd-cryptenroll "$DEV"
+echo
+echo "reboot now, with a keyboard attached, and confirm it comes up without a"
+echo "passphrase prompt. If it still prompts, nothing is broken -- type the"
+echo "passphrase as usual and investigate."
+echo
+echo "to undo:  sudo systemd-cryptenroll --wipe-slot=tpm2 $DEV"
+echo "          sudo cp /etc/crypttab.bak /etc/crypttab && sudo update-initramfs -u -k all"

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# Same links as setup/devcontainer/stow. Difference: the devcontainer gets
+# ~/.agents, ~/dev-0 and ~/dotfiles as bind mounts from the host. On bare metal
+# nothing creates them, so they are cloned/created here instead.
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+cd "$DOTFILES" || exit
+
+mkdir -p ~/dev-0
+
+stow ghostty
+stow git
+stow zsh
+stow lazygit
+stow starship
+stow yazi
+stow tmux
+stow herdr
+stow gh-dash
+stow procs
+stow worktrunk
+stow branch-creator
+
+# ai tools
+scripts/stow/stow-ai
+
+# mise
+mkdir -p ~/.config/mise
+cp "$DOTFILES/mise/.config/mise/config.toml" ~/.config/mise/config.toml
+
+rm -rf ~/.bashrc
+stow bash

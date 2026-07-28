@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# AI tool configs: opencode, kilocode, claude
+# Re-used by devcontainer, ubuntu-devbox, ubuntu-server stow scripts.
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+cd "$DOTFILES" || exit
+
+# agents live in separate repo: https://github.com/Zihad550/.agents
+[ -d ~/.agents ] || git clone https://github.com/Zihad550/.agents.git ~/.agents
+
+# opencode
+stow opencode
+
+# kilocode
+stow kilocode
+ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.kilocode/agent
+ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.kilocode/command
+ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.kilocode/AGENTS.md
+mkdir -p ~/.kilocode/skills
+ln -snf ~/.agents/skills/* ~/.kilocode/skills/
+
+# claude
+mkdir -p ~/.claude
+ln -snf "$DOTFILES/.claude/settings.json" ~/.claude/settings.json
+ln -snf "$DOTFILES/.claude/statusline-command.sh" ~/.claude/statusline-command.sh
+mkdir -p ~/.claude/skills
+find ~/.claude/skills -maxdepth 1 -xtype l -delete
+ln -snf ~/.agents/skills/* ~/.claude/skills/

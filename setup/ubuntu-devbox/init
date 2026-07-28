@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Named `init` so setup/boot.sh can dispatch to it: ./boot.sh ubuntu-devbox
+#
+# Run in this order:
+#   1. ./init              <- you are here (packages + dotfiles + tools)
+#   2. ./setup-tailscale   <- reachable over the tailnet
+#   3. ./setup-ufw         <- lock down everything else (run after tailscale, so
+#                             tailscale0 exists and shows up in `ufw status`)
+#
+# Then, independently of each other and in any order:
+#   ./encrypt-data-disk <dev>  <- LUKS on a data disk, TPM2-unlocked
+#   ./setup-root-autounlock    <- unattended boot for an encrypted root
+#
+# Those two touch different disks and neither needs the other: encrypt-data-disk
+# enrolls its own disk into the TPM, and setup-root-autounlock only ever acts on
+# the root device the installer encrypted.
+#
+# Root-disk encryption itself is NOT installable from here; it is a checkbox in
+# the Ubuntu installer. See README.md.
+
+set -e
+
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"$SETUP_DIR/packages"
+"$SETUP_DIR/setup-docker"
+"$SETUP_DIR/stow"
+
+mise trust
+"$SETUP_DIR/tools"
+
+sudo chsh -s "$(which zsh)" "$USER"
+
+echo
+echo "next:"
+echo "  $SETUP_DIR/setup-tailscale"
+echo "  $SETUP_DIR/setup-ufw"
+echo "  $SETUP_DIR/encrypt-data-disk <dev>   # optional"
+echo "  $SETUP_DIR/setup-root-autounlock     # optional, encrypted root only"
+echo
+echo "now logout and log back in"
