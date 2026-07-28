@@ -9,7 +9,11 @@ sudo ufw default allow outgoing
 
 # Allow nothing in, everything out
 sudo ufw deny SSH
-sudo ufw allow syncthing
+# The syncthing app profile only exists once syncthing is installed, and
+# arch-devbox drops it — opening a profile that isn't there just errors.
+if sudo ufw app info syncthing &>/dev/null; then
+    sudo ufw allow syncthing
+fi
 
 # Allow Docker containers to use DNS on host
 sudo ufw allow in proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment 'allow-docker-dns'
