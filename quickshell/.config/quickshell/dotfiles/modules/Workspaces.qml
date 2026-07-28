@@ -5,6 +5,10 @@ import qs
 
 // waybar: "hyprland/workspaces" with format "{name}" and on-click "activate".
 // Styling from style.css: active = opacity 1 + bold, empty = 0.5, else 0.75.
+//
+// Splits the model in two: the numbered workspaces stay one button each, the
+// special ones collapse into SpecialWorkspaces. This is still the only place
+// that knows which monitor the bar is on.
 Row {
     id: root
 
@@ -21,13 +25,16 @@ Row {
     // in case a special workspace is already open when the bar starts.
     Component.onCompleted: root.activeSpecial = root.monitor?.lastIpcObject?.specialWorkspace?.name ?? ""
 
-    function isSpecialActive(name: string): bool {
-        if (root.activeSpecial === "")
-            return false;
-        // Hyprland has reported this name both bare and "special:"-prefixed
-        // depending on version; accept either.
-        return name === root.activeSpecial || name === `special:${root.activeSpecial}`;
+    function isSpecial(workspace) {
+        return workspace.name === "special" || workspace.name.startsWith("special:");
     }
+
+    // A special workspace that is not on screen may not report a monitor, so
+    // matching one is only required when it claims a monitor at all -- being
+    // strict here would leave SpecialWorkspaces with just the open one to show.
+    readonly property var specials: Hyprland.workspaces.values.filter(ws => root.isSpecial(ws) && (!root.monitor || !ws.monitor || ws.monitor === root.monitor))
+
+    readonly property var normals: Hyprland.workspaces.values.filter(ws => !root.isSpecial(ws) && (!root.monitor || ws.monitor === root.monitor))
 
     // 1.5px margin per side in waybar -> 3px between buttons.
     spacing: 3
@@ -57,8 +64,15 @@ Row {
         }
     }
 
+    // Left of the numbered workspaces, where the specials sorted anyway (their
+    // ids are negative) -- now as one entry with the rest behind a menu.
+    SpecialWorkspaces {
+        workspaces: root.specials
+        activeSpecial: root.activeSpecial
+    }
+
     Repeater {
-        model: Hyprland.workspaces.values.filter(ws => !root.monitor || ws.monitor === root.monitor)
+        model: root.normals
 
         delegate: Item {
             id: button
@@ -66,7 +80,7 @@ Row {
             required property var modelData
 
             readonly property bool empty: button.modelData.toplevels.values.length === 0
-            readonly property bool isActive: button.modelData.active || root.isSpecialActive(button.modelData.name)
+            readonly property bool isActive: button.modelData.active
 
             implicitWidth: Math.max(name.implicitWidth, 9) + 12 // padding: 0 6px
             implicitHeight: Theme.barHeight
@@ -75,9 +89,7 @@ Row {
                 id: name
 
                 anchors.centerIn: parent
-                // "special:magic" -> "magic". The unnamed special workspace is
-                // just "special", which has no prefix to strip.
-                text: button.modelData.name.replace(/^special:/, "")
+                text: button.modelData.name
                 color: Theme.foreground
                 opacity: button.isActive ? 1.0 : (button.empty ? 0.5 : 0.75)
                 font.family: Theme.fontFamily

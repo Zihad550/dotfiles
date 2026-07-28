@@ -5,7 +5,9 @@ import qs
 
 // waybar: "network", wifi icons by signal strength, 󰀂 ethernet, 󰤮 disconnected,
 // on-click nmtui. waybar polled every 3s; NetworkManager signals drive this.
-BarItem {
+//
+// Now a row in the gear menu, so waybar's tooltip text became the row detail.
+MenuRow {
     id: root
 
     readonly property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi && device.connected) ?? null
@@ -14,7 +16,7 @@ BarItem {
 
     readonly property var wifiIcons: ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
 
-    text: {
+    icon: {
         if (wifiDevice) {
             // signalStrength is 0.0-1.0.
             const strength = wifiNetwork?.signalStrength ?? 0;
@@ -26,9 +28,11 @@ BarItem {
         return "󰤮";
     }
 
-    tooltipText: {
+    label: "Network"
+
+    detail: {
         if (wifiNetwork)
-            return `${wifiNetwork.name}\nSignal: ${Math.round(wifiNetwork.signalStrength * 100)}%`;
+            return `${wifiNetwork.name}  ${Math.round(wifiNetwork.signalStrength * 100)}%`;
         if (wifiDevice)
             return "Connected";
         if (wired)

@@ -36,10 +36,23 @@ PanelWindow {
         spacing: 0
 
         Voxtype {}
-        Volume {}
-        BluetoothItem {}
         Tailscale {}
-        NetworkItem {}
         Battery {}
+
+        // Network, bluetooth and volume moved into the menu behind this.
+        BarItem {
+            id: gear
+
+            text: "󰒓"
+            textColor: menu.shown ? Theme.accent : Theme.foreground
+            // Deliberately no tooltip: it anchors where the menu opens.
+            onClicked: menu.toggle()
+        }
+    }
+
+    SettingsMenu {
+        id: menu
+
+        target: gear
     }
 }

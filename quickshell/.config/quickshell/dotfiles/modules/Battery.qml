@@ -5,6 +5,9 @@ import qs
 
 // waybar: "battery", format "{icon} {capacity}%", on-click `elephant menu system`,
 // tooltip "{power}W↓ {capacity}%", plus notify-send events at 30/10/80/100.
+//
+// The click no longer opens the system menu -- those entries live in the gear
+// menu now (SettingsMenu.powerActions). `elephant menu system` still works.
 BarItem {
     id: root
 
@@ -38,8 +41,6 @@ BarItem {
         const watts = Math.round(battery?.changeRate ?? 0);
         return charging ? `${watts}W↑ ${percent}%` : `${watts}W↓ ${percent}%`;
     }
-
-    onClicked: Quickshell.execDetached(["elephant", "menu", "system"])
 
     // Reimplements waybar's battery "events" block.
     onPercentChanged: {
