@@ -7,4 +7,8 @@ set -e
 file="$1"
 [ -f "$file" ] || exit 1
 
+# This action closes the menu, so it ends the selection session too -- otherwise
+# marks made before a plain Return would leak into the next shift+Return.
+: >"${XDG_RUNTIME_DIR:-/tmp}/df-screenshot-marks"
+
 wl-copy --type "$(file -b --mime-type "$file")" <"$file"

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Toggle a screenshot path in the selection list used by the dotfilesScreenshots menu.
-# The list lives in a runtime file and is cleared each time the picker is launched.
+# The list lives in a runtime file, and is cleared by whichever action consumes it
+# (df-screenshot-copy-paths / df-screenshot-copy) -- see the note in copy-paths.
 
 set -e
 

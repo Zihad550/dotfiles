@@ -2,13 +2,21 @@
 
 # Copy screenshot paths to the clipboard, newline separated.
 # Uses the marked selection if there is one, otherwise the path passed in.
+#
+# Both this and df-screenshot-copy close the walker menu, so they end the
+# selection session: clear the marks here rather than at picker start. The
+# menu is normally reached through df-launch-walker or the "?" providerlist,
+# neither of which runs df-screenshot-picker, so a start-of-session reset
+# never fires and stale marks would win the next shift+Return.
 
 set -e
 
 marks="${XDG_RUNTIME_DIR:-/tmp}/df-screenshot-marks"
 
 if [ -s "$marks" ]; then
-  wl-copy <"$marks"
+  paths=$(cat "$marks")
+  : >"$marks"
+  printf '%s\n' "$paths" | wl-copy
 else
   [ -n "$1" ] || exit 1
   printf '%s\n' "$1" | wl-copy
