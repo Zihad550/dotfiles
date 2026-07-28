@@ -14,10 +14,8 @@ themes/
 │   ├── hyprland.lua.tpl
 │   ├── hyprlock.conf.tpl
 │   ├── kitty.conf.tpl
-│   ├── mako.ini.tpl
 │   ├── obsidian.css.tpl
 │   ├── quickshell.json.tpl
-│   ├── swayosd.css.tpl
 │   └── walker.css.tpl
 ├── .config/themes/         # Theme directories with colors.toml
 │   ├── rose-pine/

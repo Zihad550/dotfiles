@@ -78,8 +78,10 @@ switch_theme() {
     mkdir -p ~/.config/bottom
     ln -snf ~/.config/theme/bottom.toml ~/.config/bottom/bottom.toml
 
-    mkdir -p ~/.config/mako
-    ln -snf ~/.config/theme/mako.ini ~/.config/mako/config
+    # mako, replaced by the quickshell notification daemon, which reads its
+    # colors from quickshell.json via Theme.qml.
+    # mkdir -p ~/.config/mako
+    # ln -snf ~/.config/theme/mako.ini ~/.config/mako/config
 
     mkdir -p ~/.config/eza
     ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
@@ -134,15 +136,25 @@ switch_theme() {
     # restyles without restarting. Guarded like the obsidian call above, since
     # ~/dotfiles/bin is not on PATH during first-run setup.
     #
+    # Both long-running configs need this. The watch inside each Theme.qml sees
+    # in-place edits from df-theme-generate, but this function retargets the
+    # ~/.config/theme symlink, which a file watcher does not necessarily see --
+    # so an instance that is not poked here keeps the old palette across a
+    # switch.
+    #
     # Output is deliberately not silenced: `qs ipc call` exits 0 even when the
     # target is missing, so its stderr is the only signal that this failed.
     if command -v qs &>/dev/null; then
-        qs -c dotfiles ipc call theme reload || true
+        for config in dotfiles launcher; do
+            qs -c "$config" ipc call theme reload || true
+        done
     fi
 
-    if systemctl --user is-active --quiet mako.service 2>/dev/null; then
-        systemctl --user restart mako.service
-    fi
+    # mako, replaced by quickshell. The notification daemon picks up theme
+    # changes from the `qs ipc call theme reload` above -- no restart needed.
+    # if systemctl --user is-active --quiet mako.service 2>/dev/null; then
+    #     systemctl --user restart mako.service
+    # fi
 
     hyprctl reload >/dev/null 2>&1 || true
 

@@ -15,7 +15,8 @@ if [ -n "$1" ]; then
    if command -v qs &>/dev/null; then
       qs -c dotfiles ipc call theme reload || true
    fi
-   systemctl --user restart mako.service
+   # mako, replaced by quickshell; the daemon restyles from the ipc call above.
+   # systemctl --user restart mako.service
    hyprctl reload >/dev/null 2>&1
 
    if [ -f ~/.config/theme/eza.yml ]; then

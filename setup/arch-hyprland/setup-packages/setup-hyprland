@@ -19,7 +19,6 @@ sudo pacman -S --noconfirm \
     uwsm \
     brightnessctl \
     hyprpicker \
-    mako \
     hyprlock \
     hypridle \
     swaybg \
@@ -41,7 +40,9 @@ sudo pacman -S --noconfirm \
 # waybar, replaced by quickshell. Quickshell ships no systemd unit; it starts
 # from hypr/.config/hypr/lua/autostart.lua.
 # systemctl --user enable waybar.service              # menu
-systemctl --user enable mako.service                # notification
+# mako, replaced by quickshell's notification daemon, which starts with the
+# rest of the shell from hypr/.config/hypr/lua/autostart.lua.
+# systemctl --user enable mako.service                # notification
 systemctl --user enable hypridle.service            # lock screen
 systemctl --user enable xdg-desktop-portal-hyprland # screensharing and file picking
 systemctl --user enable hyprsunset.service          # hyprsunset for blue light filtering
