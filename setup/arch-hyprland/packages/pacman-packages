@@ -27,13 +27,11 @@ sudo pacman -S --noconfirm \
     man-db \
     man-pages \
     starship \
-    xorg-xhost \
     xournalpp \
     gum \
     dosfstools \
     rclone \
     veracrypt \
-    net-tools \
     aichat \
     git-delta \
     atuin \
@@ -52,6 +50,8 @@ sudo pacman -S --noconfirm \
     claude-code \
     tmux
 
+# net-tools \       # deprecated, ip/ss cover it
+# xorg-xhost \
 # mise \
 # mission-center \
 # mise
