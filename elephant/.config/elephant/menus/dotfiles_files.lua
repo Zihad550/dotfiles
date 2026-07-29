@@ -21,7 +21,7 @@ SearchPriority = { "keywords" }
 
 -- Keep in sync with dotfiles_dirs.lua / dotfiles_file_opener.lua.
 local SSH_HOST = "devcontainer.devpod"
-local MIRRORED = { "/dev-0", "/dotfiles", "/.agents" }
+local MIRRORED = { "/dev", "/dotfiles", "/.agents" }
 
 -- Menu-level default: mirrored paths resolve inside the devcontainer over ssh.
 -- GetEntries overrides this per entry for host-only paths.
@@ -67,7 +67,7 @@ function GetEntries(query)
     -- Plain substring, not fuzzy -- consistent with the dirs menu.
     --
     -- Matched on the folder NAME, not the whole path: a query of "backend" must
-    -- not also select dev-0/api/backend/src just because an ancestor matched.
+    -- not also select dev/api/backend/src just because an ancestor matched.
     -- Those are already listed as that folder's contents, and matching them here
     -- produced the same directory twice. A query containing "/" is by definition
     -- about the path, so it falls back to matching rel.
@@ -135,7 +135,7 @@ function GetEntries(query)
     end
 
     -- A nested folder can still be both a match and a parent's child (searching
-    -- "backend" with dev-0/backend/backend-utils). First occurrence wins, which
+    -- "backend" with dev/backend/backend-utils). First occurrence wins, which
     -- is the ranked match rather than the child copy.
     local seen = {}
 
@@ -147,7 +147,7 @@ function GetEntries(query)
             Text = isdir and (rel .. "/") or rel,
             Subtext = path,
             -- rel is what carries the query for a child file: "index.ts" does not
-            -- contain "backend", but "dev-0/api/backend/index.ts" does, and
+            -- contain "backend", but "dev/api/backend/index.ts" does, and
             -- calcScore keeps the best-scoring field.
             Keywords = { rel:match("[^/]*$"), rel },
             Value = path,

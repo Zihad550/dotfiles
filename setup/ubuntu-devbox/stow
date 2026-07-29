@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # Same links as setup/devcontainer/stow. Difference: the devcontainer gets
-# ~/.agents, ~/dev-0 and ~/dotfiles as bind mounts from the host. On bare metal
+# ~/.agents, ~/dev and ~/dotfiles as bind mounts from the host. On bare metal
 # nothing creates them, so they are cloned/created here instead.
 
 DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 cd "$DOTFILES" || exit
 
-mkdir -p ~/dev-0
+mkdir -p ~/dev
 
 stow ghostty
 stow git

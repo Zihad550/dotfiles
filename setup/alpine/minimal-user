@@ -18,7 +18,7 @@ stow bash
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 
-mkdir -p ~/dev-0
+mkdir -p ~/dev
 mkdir -p ~/.kilocode
 ln -snf ~/dotfiles/kilocode/.kilocode/kilo.jsonc ~/.kilocode/kilo.jsonc
 ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin

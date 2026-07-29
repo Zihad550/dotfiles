@@ -12,7 +12,7 @@ SubMenu = "dotfilesDirOpener"
 --     max(fuzzy - min(index*5, 50) - match_start_offset, 10)
 -- and matching the leaf means offset 0 with no field penalty. Scoring Text or
 -- Subtext instead made the offset -- i.e. how deep the path is -- the dominant
--- term, so "dev-0/backend.old" beat a directory actually named "backend" simply
+-- term, so "dev/backend.old" beat a directory actually named "backend" simply
 -- for sitting closer to the root. This also decouples ranking from Elide, which
 -- would otherwise shift scores by shortening the label.
 SearchPriority = { "keywords" }
@@ -22,7 +22,7 @@ SearchPriority = { "keywords" }
 -- is just the scheme + host + the local path. Keep in sync with
 -- dotfiles_dir_opener.lua, which does the same for the "Open With" submenu.
 local SSH_HOST = "devcontainer.devpod"
-local MIRRORED = { "/dev-0", "/dotfiles", "/.agents" }
+local MIRRORED = { "/dev", "/dotfiles", "/.agents" }
 
 -- Menu-level action: %VALUE% is replaced with entry.Value (the path) at activate
 -- time. Mirrored paths are the common case, so ssh is the default; GetEntries
@@ -53,7 +53,7 @@ local PRUNE = {
 
 -- "dotfiles", not ".dotfiles": the repo lives at ~/dotfiles, which is also what
 -- MIRRORED above says. Roots that do not exist are dropped below.
-local ROOTS = { "dotfiles", "dev-0", "dev" }
+local ROOTS = { "dotfiles", "dev" }
 
 -- Roughly how many columns of Text fit before GTK truncates. Deliberately a soft
 -- knob, not a measurement: GetEntries cannot see the window width, and walker is
@@ -67,7 +67,7 @@ local BUDGET = 60
 local ELLIPSIS = "/…/"
 
 -- Long paths get their middle dropped instead of their tail, so the leaf -- and
--- whatever the query matched -- stays visible: "dev-0/…/matching-dir".
+-- whatever the query matched -- stays visible: "dev/…/matching-dir".
 -- Cuts land on "/" boundaries only, which keeps it readable and makes it
 -- impossible to slice a UTF-8 filename mid-byte.
 local function Elide(text, q)
@@ -107,7 +107,7 @@ local function Elide(text, q)
 
     -- Still over budget, which means pulling back to a far-left match dragged in
     -- everything after it. Drop that stretch too, so the head, the matching
-    -- segment and the leaf all survive: "dev-0/…/monorepo/…/matching-dir".
+    -- segment and the leaf all survive: "dev/…/monorepo/…/matching-dir".
     local seg_end = text:find("/", start, true)
     local matched = seg_end and text:sub(start, seg_end - 1) or text:sub(start)
     local leaf = text:match("[^/]*$")

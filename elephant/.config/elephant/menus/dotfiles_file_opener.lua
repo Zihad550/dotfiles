@@ -15,7 +15,7 @@ end
 -- is just the scheme + host + the local path. Paths outside them exist on the
 -- host only and stay local. Keep in sync with dotfiles_files.lua.
 local SSH_HOST = "devcontainer.devpod"
-local MIRRORED = { "/dev-0", "/dotfiles", "/.agents" }
+local MIRRORED = { "/dev", "/dotfiles", "/.agents" }
 
 local function IsMirrored(path)
     local home = os.getenv("HOME") or ""

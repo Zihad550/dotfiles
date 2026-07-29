@@ -22,7 +22,7 @@ PRUNE_NAMES=(
 
 # "dotfiles", not ".dotfiles": the repo lives at ~/dotfiles. Missing roots are
 # dropped below. Keep in sync with menus/dotfiles_dirs.lua.
-ROOTS=("$HOME/dotfiles" "$HOME/dev-0" "$HOME/dev")
+ROOTS=("$HOME/dotfiles" "$HOME/dev" "$HOME/dev")
 
 build_cache() {
   local prune_args=()

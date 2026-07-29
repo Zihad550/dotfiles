@@ -29,6 +29,5 @@ syncthing cli config options releases-url set ""
 # syncthing cli config options uraccepted set -1
 
 # create sync directories
-mkdir -p ~/dev ~/dev-0
+mkdir -p ~/dev
 ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev/.stignore
-ln -snf ~/dotfiles/scripts/syncthing/.stignore_dev ~/dev-0/.stignore

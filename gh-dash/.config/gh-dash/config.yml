@@ -101,7 +101,7 @@ defaults:
       #     'nvim -c
       #     ":silent Octo pr edit {{.PrNumber}}}"'
 repoPaths:
-  frontend: ~/dev-0/work/mamacrm/frontend
+  frontend: ~/dev/work/mamacrm/frontend
 theme:
   ui:
     sectionsShowCount: true

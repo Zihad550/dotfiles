@@ -35,7 +35,7 @@ tar \
     --exclude=".DS_Store" \
     --exclude="Thumbs.db" \
     -cJvf "${FOLDER_NAME}.tar.xz" \
-    ~/backups ~/dev ~/dev-0 ~/Documents ~/dotfiles ~/Downloads \
+    ~/backups ~/dev ~/dev ~/Documents ~/dotfiles ~/Downloads \
     ~/Music ~/Pictures ~/Videos ~/Templates \
     ~/.obsidian-vault ~/.password-store ~/.gnupg ~/.ssh ~/bk.json
 

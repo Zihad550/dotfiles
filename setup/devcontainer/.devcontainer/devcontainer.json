@@ -16,7 +16,7 @@
   "remoteUser": "jehad",
   "mounts": [
     "source=${localEnv:HOME}/dotfiles,target=/home/jehad/dotfiles,type=bind",
-    "source=${localEnv:HOME}/dev-0,target=/home/jehad/dev-0,type=bind",
+    "source=${localEnv:HOME}/dev,target=/home/jehad/dev,type=bind",
     "source=${localEnv:HOME}/Pictures/Screenshots,target=/home/jehad/Pictures/Screenshots,type=bind",
     "source=${localEnv:HOME}/.agents,target=/home/jehad/.agents,type=bind",
   ],

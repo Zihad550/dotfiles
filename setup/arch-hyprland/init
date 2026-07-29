@@ -140,7 +140,7 @@ else
 fi
 
 CURRENT_STEP="useful directories"
-mkdir -p ~/dev ~/dev-0 ~/.obsidian-vault
+mkdir -p ~/dev ~/.obsidian-vault
 
 # gdm: install is idempotent via --needed; enable only if not enabled.
 CURRENT_STEP="gdm"
