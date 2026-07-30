@@ -14,6 +14,14 @@ except ValueError:
 " "$1" 2>/dev/null
 }
 
+# Is there a tailnet to fall back on? `no LAN access` is only survivable if there
+# is, and this script now runs *before* setup-tailscale, so usually there is not.
+# `tailscale status` exits non-zero when tailscaled is down or the node is logged
+# out, which is what we want -- installed-but-not-joined is not a way back in.
+tailnet_up() {
+    command -v tailscale &>/dev/null && tailscale status &>/dev/null
+}
+
 # The subnet this machine is actually on, rather than assuming 192.168.0.0/24.
 detect_subnet() {
     local iface addr
@@ -61,7 +69,8 @@ if [ -z "$LAN_SSH_SRC" ]; then
     echo "  1) one machine only  -- most restrictive, needs a DHCP reservation"
     echo "  2) the whole subnet  -- $SUBNET"
     echo "  3) no LAN access     -- tailnet only; a keyboard attached to this"
-    echo "                          machine becomes the only recovery path"
+    echo "                          machine becomes the only recovery path."
+    echo "                          Needs the tailnet already up."
     echo
 
     if [ "$CLIENT_IS_TAILNET" = "1" ]; then
@@ -94,7 +103,15 @@ if [ -z "$LAN_SSH_SRC" ]; then
             break
             ;;
         2) LAN_SSH_SRC="$SUBNET"; break ;;
-        3) LAN_SSH_SRC="none"; break ;;
+        3)
+            if ! tailnet_up; then
+                echo "  the tailnet is not up, so there would be no way in at all."
+                echo "  run ./setup-tailscale first, then re-run this and pick 3."
+                continue
+            fi
+            LAN_SSH_SRC="none"
+            break
+            ;;
         *) echo "  pick 1, 2 or 3" ;;
         esac
     done
@@ -102,6 +119,14 @@ fi
 
 if [ "$LAN_SSH_SRC" != "none" ] && ! valid_src "$LAN_SSH_SRC"; then
     echo "not a valid address or CIDR: $LAN_SSH_SRC" >&2
+    exit 1
+fi
+
+# Same guard as menu choice 3, for the LAN_SSH_SRC=none path. Refusing is the
+# safe direction: a box with no LAN rule and no tailnet needs a physical keyboard.
+if [ "$LAN_SSH_SRC" = "none" ] && ! tailnet_up; then
+    echo "LAN_SSH_SRC=none but the tailnet is not up -- that leaves no way in." >&2
+    echo "run ./setup-tailscale first, or pass a LAN address/CIDR." >&2
     exit 1
 fi
 

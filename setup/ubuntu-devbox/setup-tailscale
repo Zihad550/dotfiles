@@ -18,9 +18,9 @@ TS_AUTHKEY="${TS_AUTHKEY:-}"
 # Tailscale SSH: tailnet identity + ACLs replace ~/.ssh/authorized_keys for
 # connections arriving over the tailnet. Set TS_SSH=0 to keep plain sshd only.
 #
-# Note this makes tailscaled the ssh server for tailnet traffic. That is why the
-# ufw rules below still allow OpenSSH from the LAN: if tailscaled dies or an
-# upgrade goes wrong, that is the way back into a headless box.
+# Note this makes tailscaled the ssh server for tailnet traffic. That is why
+# ./setup-ufw still allows OpenSSH from the LAN: if tailscaled dies or an upgrade
+# goes wrong, that is the way back into a headless box.
 TS_SSH="${TS_SSH:-1}"
 
 if ! command -v tailscale &>/dev/null; then
@@ -29,20 +29,12 @@ fi
 
 sudo systemctl enable --now tailscaled
 
-# ─── firewall ────────────────────────────────────────────────────────────────
-# Everything arriving over the tailnet lands on tailscale0 from 100.64.0.0/10.
-# setup/ubuntu-server/setup-ufw only allows OpenSSH from 192.168.0.0/24, so
-# without this rule ssh over tailscale is dropped. Order matters: open the
-# interface before `tailscale up`, not after.
-# Only the tailnet rule here, and only if ufw is already installed -- ./setup-ufw
-# owns the LAN break-glass rule and asks you about it. On a first run ufw is not
-# installed yet and this is skipped entirely.
-if command -v ufw &>/dev/null; then
-    sudo ufw allow in on tailscale0 comment 'tailnet'
-    sudo ufw reload
-fi
-
 # ─── join the tailnet ────────────────────────────────────────────────────────
+# No ufw rule here: ./setup-ufw runs before this and already allows everything
+# arriving on tailscale0. It can do that before tailscaled exists because the
+# rule names the interface -- it simply starts matching once tailscale0 appears.
+# If you ran this first anyway, ssh over the tailnet stays dropped until you run
+# ./setup-ufw.
 # --operator lets this user run tailscale commands without sudo, which the
 # quickshell/waybar tailscale status scripts rely on.
 up_args=(--hostname "$TS_HOSTNAME" --operator "$USER")
@@ -81,7 +73,5 @@ if [ "$TS_SSH" = "1" ]; then
     echo "test from your laptop before relying on it:  ssh $USER@$TS_HOSTNAME"
 fi
 echo
-echo "harden sshd once you have confirmed tailscale ssh works:"
-echo "  sudo -e /etc/ssh/sshd_config"
-echo "  PermitRootLogin no"
-echo "  PasswordAuthentication no"
+echo "harden sshd once you have confirmed key login works:"
+echo "  ./harden-ssh      # key-only, no root, random port"

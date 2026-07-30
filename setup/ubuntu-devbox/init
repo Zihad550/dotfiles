@@ -4,9 +4,17 @@
 #
 # Run in this order:
 #   1. ./init              <- you are here (packages + dotfiles + tools)
-#   2. ./setup-tailscale   <- reachable over the tailnet
-#   3. ./setup-ufw         <- lock down everything else (run after tailscale, so
-#                             tailscale0 exists and shows up in `ufw status`)
+#   2. ./setup-ufw         <- deny inbound before anything else. Ubuntu ships ufw
+#                             installed but inactive, so until this runs sshd is
+#                             open to the whole LAN. tailscale0 does not need to
+#                             exist yet: the rule names the interface and starts
+#                             matching when it appears.
+#   3. ./setup-tailscale   <- reachable over the tailnet. Needs outbound only,
+#                             which ufw already allows.
+#   4. ./harden-ssh        <- key-only sshd on a random port. Last, and only
+#                             once a key login is confirmed: it needs setup-ufw's
+#                             break-glass rule to already exist so it can mirror
+#                             that rule onto the new port.
 #
 # Then, independently of each other and in any order:
 #   ./encrypt-data-disk <dev>  <- LUKS on a data disk, TPM2-unlocked
@@ -34,8 +42,9 @@ sudo chsh -s "$(which zsh)" "$USER"
 
 echo
 echo "next:"
-echo "  $SETUP_DIR/setup-tailscale"
 echo "  $SETUP_DIR/setup-ufw"
+echo "  $SETUP_DIR/setup-tailscale"
+echo "  $SETUP_DIR/harden-ssh                # after a key login is confirmed"
 echo "  $SETUP_DIR/encrypt-data-disk <dev>   # optional"
 echo "  $SETUP_DIR/setup-root-autounlock     # optional, encrypted root only"
 echo
