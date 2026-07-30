@@ -167,7 +167,7 @@
       "manifest": {
         "id": "git-firefly",
         "name": "Git Firefly",
-        "version": "0.1.8",
+        "version": "0.1.9",
         "schema_version": 1,
         "description": "Provides Git Syntax Highlighting",
         "repository": "https://github.com/d1y/git_firefly",
@@ -190,7 +190,7 @@
         "grammars": {
           "git_config": {
             "repository": "https://github.com/the-mikedavis/tree-sitter-git-config",
-            "rev": "0fbc9f99d5a28865f9de8427fb0672d66f9d83a5",
+            "rev": "3a61756a81a86291a0f48e3eeeaa0692b9981aa9",
             "path": null
           },
           "git_rebase": {
@@ -480,7 +480,7 @@
       "manifest": {
         "id": "lua",
         "name": "Lua",
-        "version": "0.1.9",
+        "version": "0.1.10",
         "schema_version": 1,
         "description": "Lua support.",
         "repository": "https://github.com/zed-extensions/lua",
@@ -494,8 +494,8 @@
         "themes": [],
         "icon_themes": [],
         "languages": [
-          "languages/emmyluadoc",
-          "languages/lua"
+          "languages/lua",
+          "languages/emmyluadoc"
         ],
         "grammars": {
           "emmyluadoc": {
@@ -505,7 +505,7 @@
           },
           "lua": {
             "repository": "https://github.com/tree-sitter-grammars/tree-sitter-lua",
-            "rev": "d76023017f7485eae629cb60d406c7a1ca0f40c9",
+            "rev": "10fe0054734eec83049514ea2e718b2a56acd0c9",
             "path": null
           }
         },
@@ -813,7 +813,7 @@
       "manifest": {
         "id": "xml",
         "name": "XML",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "schema_version": 1,
         "description": "XML syntax support.",
         "repository": "https://github.com/sweetppro/zed-xml",
@@ -832,7 +832,7 @@
         "grammars": {
           "xml": {
             "repository": "https://github.com/tree-sitter-grammars/tree-sitter-xml",
-            "rev": "863dbc381f44f6c136a399e684383b977bb2beaa",
+            "rev": "5000ae8f22d11fbe93939b05c1e37cf21117162d",
             "path": "xml"
           }
         },
