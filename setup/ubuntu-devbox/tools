@@ -9,8 +9,7 @@ mise use -g npm:@kilocode/cli claude  opencode
 mise use -g uv
 mise use -g python@3.14
 mise use -g npm:skills
-mise install npm:fallow
-mise install just
+mise install just stripe-cli npm:fallow
 mise use -g usage
 
 # missing apt packages - install via mise
