@@ -20,12 +20,9 @@ sudo apt install -y \
     pass \
     jq \
     less \
-    aichat \
     git-delta \
     atuin \
-    worktrunk \
     lazygit \
-    lazydocker \
     tmux
 
 # clis for interacting with git providers
