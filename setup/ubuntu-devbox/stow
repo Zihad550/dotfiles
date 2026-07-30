@@ -9,7 +9,6 @@ cd "$DOTFILES" || exit
 
 mkdir -p ~/dev
 
-stow ghostty
 stow git
 stow zsh
 stow lazygit
