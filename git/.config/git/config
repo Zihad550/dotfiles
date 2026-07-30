@@ -101,3 +101,5 @@
     smu = submodule update --init --recursive
     sms = submodule status
     sma = submodule add
+[ghq]
+	root = ~/dev/src

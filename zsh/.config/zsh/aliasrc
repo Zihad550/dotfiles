@@ -243,6 +243,7 @@ alias gco='git checkout'
 alias gl='git pull'
 alias grhh='git reset --hard'
 alias gcl="git clone"
+alias git-clone='ghq get'
 # alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
 # alias gs='git status'
 # alias gss='git status --short'

@@ -48,7 +48,8 @@ sudo pacman -S --noconfirm \
     rsync \
     bubblewrap socat \
     claude-code \
-    tmux
+    tmux \
+    ghq
 
 # net-tools \       # deprecated, ip/ss cover it
 # xorg-xhost \

@@ -17,3 +17,4 @@ mise use -g usage
 mise use -g aichat
 mise use -g worktrunk
 mise use -g lazydocker
+mise use -g ghq
