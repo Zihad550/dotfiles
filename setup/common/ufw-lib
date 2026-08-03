@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+# Sourced, not run. Shared by arch-devbox/setup-ufw-base, arch-devbox/setup-ufw-lan,
+# arch-devbox/setup-ufw, ubuntu-devbox/setup-ufw and common/harden-ssh -- the same
+# address validation, subnet detection, ufw rule-deletion walk and enable/reload
+# dance lived in all of them, and a fix to any one had to be made five times.
+#
+# Bash and `ip` only, no python: Arch's base has no python, and setup-ufw-lan
+# can be the first thing run after init. Ubuntu has bash and iproute2 too, so
+# the portable implementation is the one that survives.
+
+# An IPv4 address or CIDR, in the form ufw will accept.
+valid_src() {
+    local arg="$1" ip="${1%%/*}" prefix o
+    if [[ "$arg" == */* ]]; then
+        prefix="${arg#*/}"
+        [[ "$prefix" =~ ^[0-9]{1,2}$ ]] || return 1
+        ((10#$prefix <= 32)) || return 1
+    fi
+    [[ "$ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || return 1
+    for o in ${ip//./ }; do
+        ((10#$o <= 255)) || return 1
+    done
+    return 0
+}
+
+# 100.64.0.0/10 -- the CGNAT range tailscale hands out.
+is_tailnet_addr() {
+    [[ "$1" =~ ^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\. ]]
+}
+
+# The subnet this machine is actually on, rather than assuming 192.168.0.0/24.
+# The kernel already computed it: the scope-link route on the uplink *is* the
+# network, so there is no prefix arithmetic to do.
+detect_subnet() {
+    local iface
+    iface="$(ip -4 route show default | awk '{print $5; exit}')"
+    [ -n "$iface" ] || return 1
+    ip -4 route show dev "$iface" scope link |
+        awk '$1 ~ /\// {print $1; exit}'
+}
+
+# Is there a tailnet to fall back on? `tailscale status` exits non-zero when
+# tailscaled is down or the node is logged out, which is what we want --
+# installed-but-not-joined is not a way back in.
+tailnet_up() {
+    command -v tailscale &>/dev/null && tailscale status &>/dev/null
+}
+
+# Install ufw and assert the deny-all baseline. Asserted rather than assumed:
+# an earlier script in the sequence normally set these, but every one of these
+# scripts has to be safe to run on a box where that one did not.
+#
+# The install line is the only distro-specific part, so it is detected here
+# rather than passed in by each caller -- passing it in would put the same two
+# branches back in every script this exists to de-duplicate.
+ufw_bootstrap() {
+    if command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm --needed ufw
+    else
+        sudo apt install -y ufw
+    fi
+
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+}
+
+# Bring the rules into force, and keep them across a reboot. Called last, after
+# every allow rule is written, so the policy flip never cuts the active ssh
+# session out from under the script writing the rules.
+ufw_commit() {
+    sudo ufw --force enable
+    sudo systemctl enable ufw.service
+    sudo ufw reload
+}
+
+# Delete-by-number, highest first so the earlier numbers stay valid as we go.
+# By number rather than by rule, because the addresses in these rules came from
+# a prompt -- the caller cannot name the rule it has to remove, only match text
+# ufw prints for it.
+delete_rules_matching() {
+    local pattern="$1" nums n
+    command -v ufw &>/dev/null || return 0
+    nums="$(sudo ufw status numbered 2>/dev/null |
+        grep -E "$pattern" |
+        sed -n 's/^\[[[:space:]]*\([0-9]\{1,\}\)\].*/\1/p' |
+        sort -rn)"
+    for n in $nums; do
+        sudo ufw --force delete "$n" >/dev/null
+    done
+}
+
+# Resolves LAN_SSH_SRC to an address, a CIDR, or the string `none`, prompting
+# when it is unset and there is a terminal. Also leaves SUBNET, CLIENT_IP and
+# CLIENT_IS_TAILNET set for the caller.
+#
+# The caller supplies the wording, because the same question means something
+# different on a box whose LAN hole is permanent than on one where it is
+# scaffolding that the next script deletes:
+#
+#   LAN_MENU_QUESTION    the headline question
+#   LAN_MENU_INTRO       prose under it
+#   LAN_MENU_CHOICE3     the "3)" line(s)
+#   LAN_MENU_NO_TAILNET  what to do when 3 is picked and there is no tailnet
+resolve_lan_src() {
+    SUBNET="$(detect_subnet)" || SUBNET=""
+    [ -n "$SUBNET" ] || SUBNET="192.168.0.0/24"
+
+    # If we are being run over ssh, the address we are talking to is very likely
+    # the one that should be allowed -- offer it as the default.
+    # :- matters: SSH_CONNECTION is unset when run from a physical console, and
+    # `set -u` would otherwise kill the script in exactly the break-glass case.
+    CLIENT_IP="${SSH_CONNECTION:-}"
+    CLIENT_IP="${CLIENT_IP%% *}"
+    CLIENT_IS_TAILNET=0
+    if [ -n "$CLIENT_IP" ] && is_tailnet_addr "$CLIENT_IP"; then
+        CLIENT_IS_TAILNET=1
+    fi
+
+    LAN_SSH_SRC="${LAN_SSH_SRC:-}"
+
+    if [ -z "$LAN_SSH_SRC" ] && [ ! -t 0 ]; then
+        # Non-interactive with nothing specified. Fail towards keeping access:
+        # locking yourself out of a box you are not sitting at is worse than an
+        # open LAN port.
+        LAN_SSH_SRC="$SUBNET"
+        echo "not a terminal and LAN_SSH_SRC unset -- defaulting to $SUBNET"
+    fi
+
+    if [ -z "$LAN_SSH_SRC" ]; then
+        local choice default_ip ip
+        echo
+        echo "$LAN_MENU_QUESTION"
+        echo
+        echo "$LAN_MENU_INTRO"
+        echo
+        echo "  1) one machine only  -- most restrictive, needs a DHCP reservation"
+        echo "  2) the whole subnet  -- $SUBNET"
+        echo "$LAN_MENU_CHOICE3"
+        echo
+
+        if [ "$CLIENT_IS_TAILNET" = "1" ]; then
+            echo "  NOTE: you are connected over the tailnet ($CLIENT_IP), not the LAN,"
+            echo "        so there is no LAN address to detect. If you pick 1, enter the"
+            echo "        address your laptop has on $SUBNET -- NOT $CLIENT_IP, which"
+            echo "        would create a rule that never matches."
+            echo
+        fi
+
+        while :; do
+            read -rp "choice [1]: " choice
+            case "${choice:-1}" in
+            1)
+                default_ip=""
+                [ "$CLIENT_IS_TAILNET" = "0" ] && default_ip="$CLIENT_IP"
+                while :; do
+                    if [ -n "$default_ip" ]; then
+                        read -rp "address to allow [$default_ip]: " ip
+                        ip="${ip:-$default_ip}"
+                    else
+                        read -rp "address to allow: " ip
+                    fi
+                    if valid_src "$ip"; then
+                        LAN_SSH_SRC="$ip"
+                        break
+                    fi
+                    echo "  not a valid address or CIDR: $ip"
+                done
+                break
+                ;;
+            2)
+                LAN_SSH_SRC="$SUBNET"
+                break
+                ;;
+            3)
+                if ! tailnet_up; then
+                    echo "$LAN_MENU_NO_TAILNET"
+                    continue
+                fi
+                LAN_SSH_SRC="none"
+                break
+                ;;
+            *) echo "  pick 1, 2 or 3" ;;
+            esac
+        done
+    fi
+
+    if [ "$LAN_SSH_SRC" != "none" ] && ! valid_src "$LAN_SSH_SRC"; then
+        echo "not a valid address or CIDR: $LAN_SSH_SRC" >&2
+        exit 1
+    fi
+
+    # Same guard as menu choice 3, for the LAN_SSH_SRC=none path. Refusing is
+    # the safe direction: no LAN rule and no tailnet needs a physical keyboard.
+    if [ "$LAN_SSH_SRC" = "none" ] && ! tailnet_up; then
+        echo "LAN_SSH_SRC=none but the tailnet is not up -- that leaves no way in." >&2
+        echo "run this from a console, or pass a LAN address/CIDR." >&2
+        exit 1
+    fi
+}

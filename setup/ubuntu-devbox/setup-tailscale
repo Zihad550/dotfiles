@@ -1,77 +1,33 @@
 #!/usr/bin/env bash
 
-# Install tailscale and join the tailnet, so the box is reachable over ssh from
-# anywhere without exposing anything to the public internet.
+# Join the tailnet. See ../common/setup-tailscale for what this does and why;
+# this file only says what is true about *this* box.
 #
-# Auth:
 #   TS_AUTHKEY=tskey-auth-...  ./setup-tailscale     # unattended
 #   ./setup-tailscale                                # prints a URL to open
+#   TS_HOSTNAME=devbox         ./setup-tailscale     # override the tailnet name
 #
-# Hostname on the tailnet defaults to the machine hostname; override with
-#   TS_HOSTNAME=devbox ./setup-tailscale
+# Where this box differs from ../arch-devbox: tailscale comes from the curl
+# installer, and ./setup-ufw runs before this and owns the tailscale0 rule.
+#
+# On the sshd note in the shared script: this box keeps a permanent LAN ssh
+# hole, so the way back in when tailscaled is what broke is ssh from the LAN --
+# not the console.
 
 set -euo pipefail
-
-TS_HOSTNAME="${TS_HOSTNAME:-$(hostname -s)}"
-TS_AUTHKEY="${TS_AUTHKEY:-}"
-
-# Tailscale SSH: tailnet identity + ACLs replace ~/.ssh/authorized_keys for
-# connections arriving over the tailnet. Set TS_SSH=0 to keep plain sshd only.
-#
-# Note this makes tailscaled the ssh server for tailnet traffic. That is why
-# ./setup-ufw still allows OpenSSH from the LAN: if tailscaled dies or an upgrade
-# goes wrong, that is the way back into a headless box.
-TS_SSH="${TS_SSH:-1}"
 
 if ! command -v tailscale &>/dev/null; then
     curl -fsSL https://tailscale.com/install.sh | sh
 fi
 
-sudo systemctl enable --now tailscaled
+# ./setup-ufw runs before this one and already allows everything arriving on
+# tailscale0. It can do that before tailscaled exists because the rule names the
+# interface -- it simply starts matching once tailscale0 appears. If you ran
+# this first anyway, ssh over the tailnet stays dropped until you run setup-ufw.
+export TS_TAILNET_UFW_RULE=0
 
-# ─── join the tailnet ────────────────────────────────────────────────────────
-# No ufw rule here: ./setup-ufw runs before this and already allows everything
-# arriving on tailscale0. It can do that before tailscaled exists because the
-# rule names the interface -- it simply starts matching once tailscale0 appears.
-# If you ran this first anyway, ssh over the tailnet stays dropped until you run
-# ./setup-ufw.
-# --operator lets this user run tailscale commands without sudo, which the
-# quickshell/waybar tailscale status scripts rely on.
-up_args=(--hostname "$TS_HOSTNAME" --operator "$USER")
-[ "$TS_SSH" = "1" ] && up_args+=(--ssh)
-[ -n "$TS_AUTHKEY" ] && up_args+=(--authkey "$TS_AUTHKEY")
+export TS_NEXT="harden sshd once you have confirmed key login works:
+  ./harden-ssh      # key-only, no root, random port"
 
-echo "running: tailscale up ${up_args[*]}"
-if ! sudo tailscale up "${up_args[@]}"; then
-    echo
-    echo "tailscale up failed."
-    echo "  - if you are already connected over the tailnet, re-run with:"
-    echo "      sudo tailscale up ${up_args[*]} --accept-risk=lose-ssh"
-    echo "  - if --ssh was rejected, your tailnet ACL needs an ssh section"
-    exit 1
-fi
-
-echo
-tailscale status
-echo
-echo "tailnet ip: $(tailscale ip -4)"
-
-# `tailscale up --ssh` succeeds even when the tailnet ACL has no ssh section --
-# the join works, then every ssh connection is refused. Silent failure on a
-# headless box, so say it out loud rather than only on the error path.
-if [ "$TS_SSH" = "1" ]; then
-    echo
-    echo "tailscale ssh is enabled on this node. It does nothing until your"
-    echo "tailnet ACL grants it (https://login.tailscale.com/admin/acls):"
-    echo '  "ssh": [{'
-    echo '    "action": "accept",'
-    echo '    "src":    ["autogroup:member"],'
-    echo '    "dst":    ["autogroup:self"],'
-    echo "    \"users\":  [\"autogroup:nonroot\", \"$USER\"]"
-    echo '  }]'
-    echo
-    echo "test from your laptop before relying on it:  ssh $USER@$TS_HOSTNAME"
-fi
-echo
-echo "harden sshd once you have confirmed key login works:"
-echo "  ./harden-ssh      # key-only, no root, random port"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$HERE/../common/setup-tailscale" "$@"

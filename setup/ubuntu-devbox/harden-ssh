@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Key-only sshd, no root, a random high port, modern crypto only.
+# Run LAST -- after setup-tailscale and setup-ufw, and only once you have
+# confirmed you can log in with a key. See ../common/harden-ssh for the flags,
+# the two-phase rollout and the reasoning; this file only says what is true
+# about *this* box.
+#
+#   ./harden-ssh                 # interactive; picks a random port
+#   SSH_PORT=48222 ./harden-ssh  # pin the port
+#   SSH_PORT=keep  ./harden-ssh  # harden auth/crypto, stay on 22
+#   ./harden-ssh --finalize      # phase 2: stop listening on 22
+#   ./harden-ssh --revert        # back to the distro config
+#
+# Tailscale SSH is unaffected by any of this. tailscaled is its own ssh server
+# for tailnet traffic and never consults sshd_config, so `ssh devbox` over the
+# tailnet keeps working on port 22 whatever we do here. That is also why this
+# script is not the thing that locks you out: sshd is the *break-glass* path.
+
+set -euo pipefail
+
+# Ubuntu calls it ssh.service, and ships it socket-activated since 22.10 --
+# which is the case where `Port` in sshd_config is ignored entirely. The shared
+# script detects that and writes the ssh.socket override instead.
+export SSH_UNIT=ssh
+
+# setup-ufw wrote the LAN hole as `allow from <src> to any app OpenSSH`, pinned
+# to port 22. The new port needs its own rule mirrored from the same source, and
+# the port-22 rules have to go in phase 2.
+export HARDEN_FIREWALL=ufw-lan
+
+# The break-glass path is ssh from the LAN -- the one you need when tailscaled
+# is what broke.
+export HARDEN_NET=lan
+
+export HARDEN_SSH_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harden-ssh"
+
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")/../common" && pwd)/harden-ssh" "$@"

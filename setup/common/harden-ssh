@@ -1,0 +1,530 @@
+#!/usr/bin/env bash
+
+# Harden sshd on a devbox: key-only auth, no root login, a high port, modern
+# crypto only. Run it LAST -- after the tailnet and the firewall are up, and
+# only once you have confirmed you can log in with a key.
+#
+# Shared by setup/ubuntu-devbox and setup/arch-devbox. Do not run this file
+# directly; run the wrapper in the target's own directory, which sets the four
+# variables below and execs this:
+#
+#   ./harden-ssh                 # interactive; picks a random port
+#   SSH_PORT=48222 ./harden-ssh  # pin the port
+#   SSH_PORT=keep  ./harden-ssh  # harden auth/crypto, stay on 22
+#   ./harden-ssh --finalize      # phase 2 only: stop listening on 22
+#   ./harden-ssh --revert        # remove the hardening drop-ins, back to stock
+#
+# ─── what the wrapper configures ─────────────────────────────────────────────
+#   SSH_UNIT           systemd unit basename: `ssh` on Debian/Ubuntu, `sshd` on
+#                      Arch. Auto-detected if unset.
+#   HARDEN_FIREWALL    `ufw-lan`  the box keeps a LAN break-glass ssh hole, so
+#                                 the new port needs its own rule and the port-22
+#                                 rules have to be removed in phase 2.
+#                      `none`     the firewall opens an interface, not a port
+#                                 (`ufw allow in on tailscale0`), so a port move
+#                                 needs no rule and closing 22 leaves none behind.
+#   HARDEN_NET         `lan`      the break-glass path is ssh from the LAN.
+#                      `tailnet`  there is no LAN hole; the tailnet is the only
+#                                 network, and the last resort is the console.
+#   HARDEN_SSH_SELF    absolute path of the wrapper, for messages and the
+#                      drop-in's "managed by" line.
+#
+# ─── two phases ──────────────────────────────────────────────────────────────
+# Because a config that locks you out looks identical to one that works until
+# you try it:
+#
+#   phase 1 (this run)  sshd listens on BOTH 22 and the new port. Your current
+#                       session survives no matter what.
+#   phase 2 (--finalize) 22 is dropped. Only run it from a session you opened on
+#                       the NEW port.
+#
+# The interactive run offers to do phase 2 for you once you say a new-port login
+# worked. Non-interactive runs never do -- see HARDEN_SSH_ASSUME_YES.
+#
+# ─── why move the port ───────────────────────────────────────────────────────
+# Two different reasons, and which one applies depends on HARDEN_NET.
+#
+# On a box with a LAN hole (`lan`), it is the ordinary one: fewer unattended
+# login attempts from whatever else is on the wire.
+#
+# On a tailnet-only box (`tailnet`) it is not obscurity at all -- the firewall
+# already drops everything that does not arrive on tailscale0, so there is no
+# scanner to hide from. It is that `tailscale up --ssh` makes tailscaled
+# intercept port 22 *on the tailnet IP*, in userspace, before the packet reaches
+# the host stack. sshd on 22 is therefore unreachable from the only network the
+# box answers on, and the documented "port 22 is the fallback when Tailscale
+# SSH's ACL breaks" is false. On any other port tailscaled does not intervene,
+# the packet goes through, and sshd answers. The port move is what creates that
+# fallback.
+#
+# Tailscale SSH is unaffected by any of this either way: tailscaled is its own
+# ssh server for tailnet traffic and never consults sshd_config.
+
+set -euo pipefail
+
+SSHD_CONFIG=/etc/ssh/sshd_config
+DROPIN=/etc/ssh/sshd_config.d/00-harden.conf
+
+# Debian/Ubuntu call it ssh.service, Arch calls it sshd.service. Getting this
+# wrong is not cosmetic: restart_sshd would silently restart nothing.
+if [ -z "${SSH_UNIT:-}" ]; then
+    if systemctl list-unit-files sshd.service &>/dev/null &&
+        systemctl cat sshd.service &>/dev/null; then
+        SSH_UNIT=sshd
+    else
+        SSH_UNIT=ssh
+    fi
+fi
+
+# shellcheck source=./ufw-lib
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ufw-lib"
+
+HARDEN_FIREWALL="${HARDEN_FIREWALL:-ufw-lan}"
+HARDEN_NET="${HARDEN_NET:-lan}"
+SELF="${HARDEN_SSH_SELF:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/harden-ssh}"
+SOCKET_DROPIN="/etc/systemd/system/$SSH_UNIT.socket.d/00-harden.conf"
+
+MODE="${1:-apply}"
+
+case "$MODE" in
+apply | --finalize | --revert) ;;
+*)
+    echo "usage: $(basename "$SELF") [--finalize|--revert]" >&2
+    exit 1
+    ;;
+esac
+
+# ─── the drop-in directory has to be included ────────────────────────────────
+# Debian, Ubuntu and Fedora ship sshd_config with an Include line at the top;
+# Arch ships upstream's, which has none. Without it the whole drop-in is inert
+# -- and inert in the worst way, since `sshd -t` passes and sshd restarts
+# happily while every setting below is silently ignored.
+#
+# Line 1 specifically. sshd is first-match-wins for most keywords, so an Include
+# appended at the bottom loses to anything the main file already set.
+#
+# A no-op wherever the line is already present, which is why it is unconditional.
+ensure_include() {
+    if grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\.d/\*\.conf' "$SSHD_CONFIG"; then
+        return 0
+    fi
+    sudo cp -n "$SSHD_CONFIG" "$SSHD_CONFIG.orig"
+    sudo sed -i '1i Include /etc/ssh/sshd_config.d/*.conf' "$SSHD_CONFIG"
+    echo "added the sshd_config.d Include to $SSHD_CONFIG (original at $SSHD_CONFIG.orig)"
+}
+
+# ─── how sshd gets its port on this box ──────────────────────────────────────
+# Ubuntu 22.10+ ships ssh as socket-activated, and Arch has an sshd.socket some
+# people switch to. Under socket activation systemd owns the listening socket
+# and `Port` in sshd_config is ignored entirely: silent failure, sshd starts
+# fine and keeps listening on 22. So detect rather than assume.
+socket_activated() { systemctl is-enabled "$SSH_UNIT.socket" &>/dev/null; }
+
+restart_sshd() {
+    if socket_activated; then
+        sudo systemctl daemon-reload
+        # The socket cannot be reloaded into a new ListenStream; it has to be
+        # restarted, which also stops the socket's already-accepted sessions'
+        # parent -- but not the sessions themselves (each is its own process).
+        sudo systemctl restart "$SSH_UNIT.socket"
+        sudo systemctl restart "$SSH_UNIT.service" 2>/dev/null || true
+    else
+        sudo systemctl restart "$SSH_UNIT.service"
+    fi
+}
+
+# ─── ufw helpers (HARDEN_FIREWALL=ufw-lan only) ──────────────────────────────
+# setup-ufw wrote the LAN hole as `allow from <src> to any app OpenSSH`, i.e.
+# pinned to port 22. A new port needs its own rule from the same source, or the
+# break-glass path quietly stops existing the moment 22 goes away.
+lan_ssh_src() {
+    command -v ufw &>/dev/null || return 0
+    sudo ufw status 2>/dev/null | awk '
+        /lan break-glass/ {
+            for (i = 1; i <= NF; i++)
+                if ($i == "ALLOW") { print $(i + 1); exit }
+        }'
+}
+
+# Only ever matches rules whose destination is literally 22 or the OpenSSH app
+# profile. An interface rule (`allow in on tailscale0`) has neither, so it is
+# never a candidate -- deleting it would strand the box on the LAN rule alone.
+delete_port22_rules() {
+    delete_rules_matching '(^|[^0-9])22/tcp|OpenSSH'
+}
+
+open_port_in_ufw() {
+    [ "$HARDEN_FIREWALL" = "ufw-lan" ] || return 0
+    command -v ufw &>/dev/null || return 0
+    [ "$PORT" != "22" ] || return 0
+
+    local src
+    src="$(lan_ssh_src)"
+
+    if [ -z "$src" ]; then
+        echo
+        echo "no 'lan break-glass' rule found in ufw, so nothing to mirror onto $PORT."
+        echo "An interface rule (e.g. 'allow in on tailscale0') covers every port, so"
+        echo "ssh over that interface is fine either way. If you want a LAN hole:"
+        echo "  sudo ufw allow from <src> to any port $PORT proto tcp comment 'lan break-glass'"
+        return 0
+    fi
+
+    if [ "$src" = "Anywhere" ]; then
+        sudo ufw allow "$PORT/tcp" comment 'lan break-glass'
+    else
+        sudo ufw allow from "$src" to any port "$PORT" proto tcp comment 'lan break-glass'
+    fi
+    sudo ufw reload
+    echo "ufw: ssh on $PORT allowed from $src"
+}
+
+# ─── --revert ────────────────────────────────────────────────────────────────
+if [ "$MODE" = "--revert" ]; then
+    sudo rm -f "$DROPIN" "$SOCKET_DROPIN"
+    sudo rmdir "/etc/systemd/system/$SSH_UNIT.socket.d" 2>/dev/null || true
+    restart_sshd
+    echo "hardening drop-ins removed; sshd is back to the distro config"
+    if [ "$HARDEN_FIREWALL" = "ufw-lan" ]; then
+        echo "note: ufw rules were NOT touched -- check with: sudo ufw status"
+    fi
+    echo "note: the sshd_config.d Include line is left in place -- it is stock"
+    echo "      behaviour on most distros and other drop-ins may rely on it."
+    exit 0
+fi
+
+# ─── the port ────────────────────────────────────────────────────────────────
+current_port() {
+    [ -f "$DROPIN" ] || return 0
+    awk '$1 == "Port" && $2 != "22" { print $2; exit }' "$DROPIN"
+}
+
+port_free() {
+    ! ss -Htuln 2>/dev/null | awk '{print $5}' | grep -qE "[:.]$1\$"
+}
+
+random_port() {
+    local p
+    for _ in $(seq 1 50); do
+        # 20000-59999: above every well-known service, below the ephemeral range
+        # Linux hands out by default (32768-60999 is the sysctl range, but a
+        # listener claiming a port inside it just wins -- collisions are only a
+        # problem at bind time, and port_free covers that).
+        p=$((20000 + RANDOM % 40000))
+        if port_free "$p"; then
+            echo "$p"
+            return 0
+        fi
+    done
+    echo "could not find a free port in 20000-59999" >&2
+    return 1
+}
+
+SSH_PORT="${SSH_PORT:-}"
+KEEP_22=0
+
+if [ "$MODE" = "--finalize" ]; then
+    PORT="$(current_port)"
+    if [ -z "$PORT" ]; then
+        echo "nothing to finalize: $DROPIN does not set a non-22 port" >&2
+        exit 1
+    fi
+elif [ "$SSH_PORT" = "keep" ]; then
+    KEEP_22=1
+    PORT=22
+elif [ -n "$SSH_PORT" ]; then
+    if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || [ "$SSH_PORT" -lt 1 ] || [ "$SSH_PORT" -gt 65535 ]; then
+        echo "SSH_PORT is not a port: $SSH_PORT" >&2
+        exit 1
+    fi
+    PORT="$SSH_PORT"
+else
+    # Re-running should not hand you a third port to remember.
+    PORT="$(current_port)"
+    [ -n "$PORT" ] || PORT="$(random_port)"
+fi
+
+# hostname -s needs inetutils on Arch; hostnamectl is there wherever systemd is.
+HOST="$(hostnamectl --static 2>/dev/null || uname -n)"
+HOST="${HOST%%.*}"
+TS_IP="$(tailscale ip -4 2>/dev/null | head -1 || true)"
+
+# ─── preflight: is there a key to come back in with? ─────────────────────────
+# This is the check that matters. PasswordAuthentication no with no
+# authorized_keys means sshd accepts nobody.
+if [ "$MODE" = "apply" ]; then
+    keyfile="$HOME/.ssh/authorized_keys"
+    keys=0
+    [ -f "$keyfile" ] && keys="$(grep -cvE '^\s*(#|$)' "$keyfile" || true)"
+
+    if [ "$keys" -eq 0 ]; then
+        echo "no keys in $keyfile" >&2
+        echo >&2
+        if [ "$HARDEN_NET" = "tailnet" ]; then
+            # Tailscale SSH never reads authorized_keys, so it keeps working --
+            # which is exactly why this is easy to get wrong. Everything looks
+            # fine right up until the day sshd is the thing you need.
+            echo "Password auth is about to be disabled, and this box has no LAN hole" >&2
+            echo "(the firewall allows tailscale0 only). Without a key, sshd accepts" >&2
+            echo "nobody and the fallback for a broken Tailscale SSH ACL is gone." >&2
+            echo "From your laptop, while Tailscale SSH still works:" >&2
+            echo >&2
+            echo "  ssh-copy-id $USER@$HOST" >&2
+            echo >&2
+            echo "Override with HARDEN_SSH_NO_KEYS=1 only if you accept that a broken" >&2
+            echo "tailnet ACL means walking to the machine." >&2
+        else
+            echo "Password auth is about to be disabled. Without a key, ssh from the LAN" >&2
+            echo "stops working entirely -- and that is the path you need when tailscaled" >&2
+            echo "is what broke. From your laptop, first:" >&2
+            echo >&2
+            echo "  ssh-copy-id $USER@$HOST" >&2
+            echo >&2
+            echo "then confirm \`ssh $USER@$HOST\` does not prompt, and re-run." >&2
+            echo "Override with HARDEN_SSH_NO_KEYS=1 only if you accept console-only recovery." >&2
+        fi
+        [ "${HARDEN_SSH_NO_KEYS:-0}" = "1" ] || exit 1
+        echo >&2
+        echo "HARDEN_SSH_NO_KEYS=1 -- continuing without a key." >&2
+    else
+        echo "$keys key(s) in $keyfile"
+    fi
+
+    # On a tailnet-only box the new port is useless if the interface is not
+    # open -- and interface rules cover every port, so there is nothing to add,
+    # only to confirm.
+    if [ "$HARDEN_FIREWALL" = "none" ] && command -v ufw &>/dev/null; then
+        if sudo ufw status 2>/dev/null | grep -q 'tailscale0'; then
+            echo "ufw: tailscale0 is open (all ports) -- no rule needed for $PORT"
+        else
+            echo
+            echo "warn: no tailscale0 rule in ufw. sshd on $PORT will not be reachable"
+            echo "      from the tailnet until setup-ufw has run."
+        fi
+    fi
+fi
+
+# ─── the config ──────────────────────────────────────────────────────────────
+# Named 00- deliberately. sshd is first-match-wins for most keywords, and the
+# Include sits at the top of sshd_config, so the alphabetically-first drop-in
+# beats both the main file and anything else in sshd_config.d -- including
+# cloud-init's 50-cloud-init.conf, which is the file that quietly puts
+# `PasswordAuthentication yes` back on a cloud/autoinstall image.
+write_dropin() {
+    local listen_22="$1" # 1 during phase 1
+    local ports="Port $PORT"
+    [ "$listen_22" = "1" ] && [ "$PORT" != "22" ] && ports="$ports
+Port 22"
+
+    local moves_with="the $SSH_UNIT.socket override has to"
+    [ "$HARDEN_FIREWALL" = "ufw-lan" ] &&
+        moves_with="the ufw rules and the $SSH_UNIT.socket override have to"
+
+    sudo mkdir -p /etc/ssh/sshd_config.d
+    sudo tee "$DROPIN" >/dev/null <<EOF
+# Managed by $SELF. Re-run that, or --revert, rather
+# than editing this file -- $moves_with move with it.
+
+$ports
+
+# ── auth ─────────────────────────────────────────────────────────────────────
+PermitRootLogin no
+PasswordAuthentication no
+PermitEmptyPasswords no
+# Covers the old ChallengeResponseAuthentication, which is not set here: it is a
+# deprecated alias and OpenSSH 10 rejects unknown keywords outright, so setting
+# it would fail \`sshd -t\` on a new enough openssh.
+KbdInteractiveAuthentication no
+UsePAM yes
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+# Everything else on this box is single-user. An account added later (a service
+# user, a container escape into a real shell) does not get ssh for free.
+AllowUsers $USER
+MaxAuthTries 3
+MaxSessions 10
+LoginGraceTime 20
+# Slow the trivial connection flood down without ever refusing the first ten.
+MaxStartups 10:30:60
+
+# ── crypto ───────────────────────────────────────────────────────────────────
+# No diffie-hellman-group-exchange at all, which is also why /etc/ssh/moduli
+# needs no pruning -- there is no code path left that reads it.
+# mlkem768x25519 first: it is OpenSSH 10's default and the post-quantum one, with
+# sntrup761 behind it for 9.x clients. Drop mlkem if this ever runs on an OpenSSH
+# older than 9.9 -- an unsupported name here is a hard \`sshd -t\` failure, not a
+# silent skip.
+KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com
+HostKeyAlgorithms ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256
+PubkeyAcceptedAlgorithms ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256,sk-ssh-ed25519@openssh.com
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+
+# ── surface ──────────────────────────────────────────────────────────────────
+X11Forwarding no
+PermitTunnel no
+PermitUserRC no
+PermitUserEnvironment no
+AllowStreamLocalForwarding no
+GatewayPorts no
+# Deviation from the usual hardening list, on purpose. Zed remote opens \`ssh -N\`
+# port forwards, and forwarding a dev server to the laptop is the normal way to
+# work here. GatewayPorts no keeps those forwards bound to loopback.
+AllowTcpForwarding yes
+# Also a deviation: agent forwarding is how \`git push\` from this box uses the
+# laptop's key instead of a second key that has to be revoked separately. It
+# does mean a root-compromised devbox can use your agent while you are attached.
+AllowAgentForwarding yes
+
+# ── operations ───────────────────────────────────────────────────────────────
+# VERBOSE logs the key fingerprint that authenticated -- the difference between
+# "someone logged in as $USER" and knowing which key did.
+LogLevel VERBOSE
+# Reverse DNS on every connection is a hang waiting for a broken resolver, and
+# nothing here matches on hostnames.
+UseDNS no
+# Reap sessions a dropped VPN left behind: 15 * 4 = one minute.
+ClientAliveInterval 15
+ClientAliveCountMax 4
+TCPKeepAlive yes
+Compression no
+EOF
+    sudo chmod 644 "$DROPIN"
+}
+
+write_socket_dropin() {
+    local listen_22="$1"
+    socket_activated || return 0
+
+    sudo mkdir -p "/etc/systemd/system/$SSH_UNIT.socket.d"
+    {
+        echo "# Managed by $SELF."
+        echo "# ssh is socket-activated on this box, so systemd -- not sshd_config --"
+        echo "# decides the port. The empty ListenStream= resets the vendor unit's 22;"
+        echo "# without it, 22 stays open forever and the drop-in only *adds* a port."
+        echo "[Socket]"
+        echo "ListenStream="
+        echo "ListenStream=$PORT"
+        [ "$listen_22" = "1" ] && [ "$PORT" != "22" ] && echo "ListenStream=22"
+    } | sudo tee "$SOCKET_DROPIN" >/dev/null
+    sudo chmod 644 "$SOCKET_DROPIN"
+}
+
+# ─── phase 2 ─────────────────────────────────────────────────────────────────
+finalize() {
+    write_dropin 0
+    write_socket_dropin 0
+    sudo sshd -t
+    restart_sshd
+    # With HARDEN_FIREWALL=none there is nothing to clean up: the firewall
+    # opened an interface, not a port.
+    if [ "$HARDEN_FIREWALL" = "ufw-lan" ]; then
+        delete_port22_rules
+        command -v ufw &>/dev/null && sudo ufw reload
+    fi
+    echo
+    echo "port 22 closed -- sshd listens on $PORT only"
+    sudo ss -Htuln "sport = :$PORT" || true
+}
+
+if [ "$MODE" = "--finalize" ]; then
+    finalize
+    exit 0
+fi
+
+# ─── phase 1 ─────────────────────────────────────────────────────────────────
+ensure_include
+write_dropin 1
+write_socket_dropin 1
+
+# Validates the whole assembled config, drop-ins included. If this fails nothing
+# has been restarted yet, so the running sshd is untouched.
+sudo sshd -t
+
+# A stock install has ed25519 + RSA host keys, but an image built elsewhere may
+# not -- and HostKey above names both files, so a missing one is fatal.
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
+    sudo ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N '' -q
+    echo "generated a missing ed25519 host key"
+fi
+if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+    sudo ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N '' -q
+    echo "generated a missing rsa host key"
+elif rsa_bits="$(sudo ssh-keygen -lf /etc/ssh/ssh_host_rsa_key | awk '{print $1}')" &&
+    [ "${rsa_bits:-0}" -lt 3072 ]; then
+    echo "warn: RSA host key is $rsa_bits bits. Clients that skip ed25519 fall back"
+    echo "      to it. Replace with: sudo ssh-keygen -t rsa -b 4096 \\"
+    echo "        -f /etc/ssh/ssh_host_rsa_key -N '' (this changes the fingerprint)"
+fi
+
+open_port_in_ufw
+restart_sshd
+
+echo
+if [ "$KEEP_22" = "1" ]; then
+    echo "hardened; still on port 22 (SSH_PORT=keep)"
+    sudo ss -Htuln 'sport = :22' || true
+    if [ "$HARDEN_NET" = "tailnet" ]; then
+        echo
+        echo "note: with Tailscale SSH enabled, tailscaled owns port 22 on"
+        echo "      ${TS_IP:-the tailnet IP}, so this sshd is reachable only from the"
+        echo "      physical console. Re-run without SSH_PORT=keep to get the"
+        echo "      ACL-broke fallback back."
+    fi
+    exit 0
+fi
+
+# On a tailnet-only box the LAN address is not reachable at all, so pointing at
+# it would hand you a config that cannot connect.
+if [ "$HARDEN_NET" = "tailnet" ]; then
+    TARGET="${TS_IP:-$HOST}"
+else
+    TARGET="$HOST"
+fi
+
+echo "sshd now listens on 22 AND $PORT. Nothing is closed yet."
+sudo ss -Htuln "sport = :$PORT" || true
+echo
+echo "From your laptop, add this and open a second session:"
+echo
+echo "  # ~/.ssh/config"
+echo "  Host $HOST"
+echo "      HostName $TARGET"
+echo "      User $USER"
+echo "      Port $PORT"
+echo
+echo "  ssh -p $PORT $USER@$TARGET"
+echo
+if [ "$HARDEN_NET" = "tailnet" ]; then
+    echo "Use the tailnet address, not the LAN one -- the firewall drops everything"
+    echo "that does not arrive on tailscale0."
+    echo
+fi
+
+# Do not close 22 on a hunch. A non-interactive run has no way to know whether
+# the new port works, and guessing wrong on a headless box costs a site visit.
+if [ "${HARDEN_SSH_ASSUME_YES:-0}" = "1" ]; then
+    echo "HARDEN_SSH_ASSUME_YES=1 -- closing 22"
+    finalize
+    exit 0
+fi
+
+if [ ! -t 0 ]; then
+    echo "not a terminal -- leaving 22 open. Once the new port is confirmed:"
+    echo "  $SELF --finalize"
+    exit 0
+fi
+
+read -rp "did a login on port $PORT work? close 22 now? [y/N]: " ans
+case "${ans:-n}" in
+y | Y | yes)
+    finalize
+    ;;
+*)
+    echo
+    echo "leaving 22 open. When the new port is confirmed:"
+    echo "  $SELF --finalize"
+    ;;
+esac

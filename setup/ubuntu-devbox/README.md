@@ -55,9 +55,9 @@ be verified with an on-console reboot.
 | `setup-docker` | Docker CE + `docker` group — the devcontainer's docker-in-docker feature |
 | `tools` | global mise toolchain — copy of `devcontainer/tools` |
 | `stow` | dotfile symlinks — `devcontainer/stow` plus the bind-mounted paths it assumed |
-| `setup-tailscale` | install tailscale, join the tailnet, enable Tailscale SSH |
+| `setup-tailscale` | install tailscale, join the tailnet, enable Tailscale SSH (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-ufw` | deny all in; allow the tailnet, plus ssh from `$LAN_SSH_SRC` |
-| `harden-ssh` | key-only sshd, no root, random high port, modern crypto only |
+| `harden-ssh` | key-only sshd, no root, random high port, modern crypto only (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
 | `encrypt-data-disk` | LUKS2 on a **data** disk, auto-unlocked via TPM2 |
 | `setup-root-autounlock` | unattended boot for an already-encrypted **root** |
 
@@ -203,6 +203,15 @@ ssh jehad@devbox        # from the laptop, no key setup needed
 [`harden-ssh`](harden-ssh) writes a single drop-in,
 `/etc/ssh/sshd_config.d/00-harden.conf`, and nothing else — `--revert` deletes it
 and you are back to the distro config.
+
+The file here is a thin wrapper: the logic lives in
+[`../common/harden-ssh`](../common/harden-ssh), shared with
+[`arch-devbox`](../arch-devbox). The wrapper sets `SSH_UNIT=ssh` (Arch calls it
+`sshd`), `HARDEN_FIREWALL=ufw-lan` (mirror the break-glass rule onto the new
+port, drop the port-22 rules in phase 2 — arch-devbox opens an interface, not a
+port, so it needs neither) and `HARDEN_NET=lan` (the break-glass path is ssh
+from the LAN, not the console). Shared because the auth and crypto block is the
+part that must never drift between the two boxes.
 
 ```bash
 ./harden-ssh                 # random port in 20000-59999
