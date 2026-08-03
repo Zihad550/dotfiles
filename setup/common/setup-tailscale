@@ -44,12 +44,18 @@ TS_HOSTNAME="${TS_HOSTNAME%%.*}"
 TS_AUTHKEY="${TS_AUTHKEY:-}"
 
 # Tailscale SSH: tailnet identity + ACLs replace ~/.ssh/authorized_keys for
-# connections arriving over the tailnet. Set TS_SSH=0 to keep plain sshd only.
+# connections arriving over the tailnet.
 #
-# Note this makes tailscaled the ssh server for tailnet traffic, on port 22 of
-# the tailnet IP specifically. sshd is shadowed there, so the second way in is
-# sshd on some other port -- which is what ./harden-ssh sets up.
-TS_SSH="${TS_SSH:-1}"
+# Off by default, deliberately. These boxes reach sshd directly over the tailnet
+# (`ssh user@<tailnet-ip>`), and ufw's `allow in on tailscale0` is what makes
+# that work. Turning --ssh on changes who answers port 22 of the tailnet IP:
+# tailscaled takes it in userspace, before the host stack, and sshd is shadowed
+# there. That is a different access model with a different failure mode -- a
+# tailnet ACL with no `ssh` section locks you out -- not an addition to this one.
+#
+# TS_SSH=1 opts in. If you do, note ./harden-ssh's port move stops being
+# optional: sshd has to listen somewhere other than 22 to be reachable at all.
+TS_SSH="${TS_SSH:-0}"
 
 sudo systemctl enable --now tailscaled
 
@@ -77,7 +83,8 @@ if ! sudo tailscale up "${up_args[@]}"; then
     echo "tailscale up failed."
     echo "  - if you are already connected over the tailnet, re-run with:"
     echo "      sudo tailscale up ${up_args[*]} --accept-risk=lose-ssh"
-    echo "  - if --ssh was rejected, your tailnet ACL needs an ssh section"
+    [ "$TS_SSH" = "1" ] &&
+        echo "  - if --ssh was rejected, your tailnet ACL needs an ssh section"
     exit 1
 fi
 
@@ -101,6 +108,15 @@ if [ "$TS_SSH" = "1" ]; then
     echo '  }]'
     echo
     echo "test from your laptop before relying on it:  ssh $USER@$TS_HOSTNAME"
+else
+    # Said out loud because the two models are indistinguishable until one
+    # breaks: with --ssh off, nothing intercepts 22 and the box is only
+    # reachable if sshd is actually running.
+    echo
+    echo "tailscale ssh is OFF -- remote access is sshd over the tailnet:"
+    echo "  ssh $USER@$TS_HOSTNAME"
+    echo "That needs sshd enabled (./setup-sshd) and a key installed"
+    echo "(ssh-copy-id from your laptop). No tailnet ACL ssh section is involved."
 fi
 
 if [ -n "$TS_NEXT" ]; then

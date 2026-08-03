@@ -5,8 +5,9 @@
 #
 # This matters more than it looks: setup-ufw-lan's rule is what lets you drive
 # the rest of the setup from your laptop, and after setup-ufw sshd over the
-# tailnet is the fallback for a broken Tailscale SSH ACL. Without a listener
-# either one is a recovery path that only *reads* as one.
+# tailnet is the *only* remote way in -- Tailscale SSH is not used here, so
+# there is nothing behind it. Without a listener either one is a recovery path
+# that only *reads* as one.
 #
 # Non-interactive and idempotent, so both init and setup-ufw-lan run it — the
 # latter because a box that skipped init has no listener, and the rule it is
@@ -38,6 +39,7 @@ echo "sshd listening: $(systemctl is-active sshd.service)"
 # LAN hole, so the only thing left is the physical keyboard. harden-ssh refuses
 # to run until ~/.ssh/authorized_keys has a key.
 #
-# It also moves sshd off 22, which is not cosmetic here: `tailscale up --ssh`
-# makes tailscaled intercept port 22 on the tailnet IP, so sshd on 22 is
-# unreachable from the only network this box answers on.
+# It can also move sshd off 22. That is optional here and SSH_PORT=keep is fine:
+# the move only becomes necessary with `tailscale up --ssh`, which makes
+# tailscaled intercept port 22 on the tailnet IP and shadow sshd there. This box
+# does not use Tailscale SSH, so nothing intercepts 22.

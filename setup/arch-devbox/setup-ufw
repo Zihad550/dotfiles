@@ -133,8 +133,10 @@ sudo ufw logging low
 # unnecessary -- a new app on :3000, or a database on :5432, is reachable with
 # no firewall change. It is also why no LAN ssh rule is needed, and why
 # ./harden-ssh has no firewall work to do: sshd is reachable over the tailnet on
-# whatever port that gave it, as the fallback for when Tailscale SSH's ACL is
-# what broke. Not on 22 -- tailscaled intercepts that one on the tailnet IP.
+# whatever port it listens on, 22 included. Tailscale SSH is not used on this box
+# (RunSSH is false), so tailscaled does not intercept 22 and sshd is the remote
+# access path rather than a fallback behind it. See `### the access model` in
+# ./README.md.
 sudo ufw allow in on tailscale0 comment 'tailnet'
 
 # The point of step 2: setup-ufw-lan's temporary hole goes away. Added after
@@ -250,20 +252,19 @@ sudo sysctl --system >/dev/null
 
 ufw_commit
 
-# A tailnet that goes down now has no ssh fallback, so sshd being dead matters
-# more than it did -- sshd over tailscale0 is the second path in when Tailscale
-# SSH's ACL is what broke.
+# With the LAN hole gone, sshd over the tailnet is the only remote way in --
+# Tailscale SSH is not used here (RunSSH false), so there is nothing behind it.
+# A dead sshd means the next reboot is a keyboard-and-monitor job.
 if ! systemctl is-active sshd.service &>/dev/null; then
     echo
     echo "WARNING: sshd.service is not running, so nothing answers over the"
-    echo "         tailnet except tailscaled itself. That removes the fallback"
-    echo "         for a broken Tailscale SSH ACL. Fix with:"
+    echo "         tailnet. That is the only remote way in. Fix with:"
     echo "           $HERE/setup-sshd"
 elif [ ! -f /etc/ssh/sshd_config.d/00-harden.conf ]; then
     echo
-    echo "note: sshd is running, but only on port 22 -- where tailscaled"
-    echo "      intercepts it on the tailnet IP, so it is not actually a"
-    echo "      fallback yet. Run (after ssh-copy-id from the laptop):"
+    echo "note: sshd is reachable over the tailnet, but unhardened -- password"
+    echo "      auth and root login are still on. Run (after ssh-copy-id from"
+    echo "      the laptop):"
     echo "        $HERE/harden-ssh"
 fi
 

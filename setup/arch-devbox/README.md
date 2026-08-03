@@ -42,8 +42,9 @@ reach is the worse failure and `setup-ufw` closes the rule either way. Pass
 `harden-ssh` goes last, and refuses to run until `~/.ssh/authorized_keys` has a
 key in it — it disables password auth, and this box has no LAN hole to fall back
 to. `HARDEN_SSH_NO_KEYS=1` overrides that check; on this box it means accepting
-that a broken tailnet ACL leaves the physical keyboard as the only way in. See
-[sshd is not the fallback you think it is](#sshd-is-not-the-fallback-you-think-it-is).
+the physical keyboard as the only way in, since sshd over the tailnet is the only
+remote path — there is no Tailscale SSH behind it. See
+[the access model](#the-access-model-real-sshd-over-the-tailnet).
 
 `init` leaves the firewall at **deny-all incoming** in the meantime, so the box
 is never unprotected between steps. The one allow rule it writes is container
@@ -304,38 +305,63 @@ The second guard is the one that fires in practice, because `setup-ufw-lan`
 exists so you can get that far over the LAN: reconnect over the tailnet before
 running `setup-ufw`.
 
-`setup-ufw` warns if it finds sshd stopped, since sshd is the second path in
-when Tailscale SSH's *ACL* is what broke — but see below for why that path needs
-`harden-ssh` to exist at all.
+`setup-ufw` warns if it finds sshd stopped, because sshd **is** the remote access
+path — see below.
 
-### sshd is not the fallback you think it is
+### the access model: real sshd, over the tailnet
 
-`ufw allow in on tailscale0` opens every port, so sshd looks reachable over the
-tailnet. It isn't, on 22. `tailscale up --ssh` makes **tailscaled** intercept
-port 22 on the tailnet IP, in userspace, before the packet reaches the host
-stack. So `ssh devbox` gets tailscaled — and if the tailnet ACL is what broke,
-it gets tailscaled's refusal. sshd on 22 never hears the connection.
+**Tailscale SSH is not used on these machines.** `RunSSH` is always `false`;
+`tailscale up --ssh` is not how you get in. Remote access is the ordinary
+OpenSSH daemon, reached over the tailnet:
 
-That is what [`harden-ssh`](harden-ssh) is really for here. On any port other
-than 22 tailscaled does not intervene, the packet goes through, and sshd
-answers — so `ssh -p <port> user@<tailnet-ip>` is a genuinely independent path
-that a broken ACL cannot touch. The port move is not obscurity; ufw already
-drops everything that isn't `tailscale0`, so there is no scanner to hide from.
+```bash
+ssh user@<tailnet-ip>          # or: ssh user@<magicdns-name>
+```
 
-It also does what `setup-sshd` used to only print as advice: `PermitRootLogin
-no`, `PasswordAuthentication no`, `AllowUsers $USER`, key-only auth, and a
-modern-crypto-only kex/cipher/MAC list.
+This is worth stating explicitly because the opposite assumption changes almost
+every conclusion below it, and the two setups look identical until something
+breaks:
+
+| | Tailscale SSH on (`--ssh`) | **this setup** (`RunSSH: false`) |
+|---|---|---|
+| who answers port 22 on the tailnet IP | `tailscaled`, in userspace, before the host stack | sshd |
+| what authenticates you | tailnet identity + the tailnet ACL's `ssh` block | `~/.ssh/authorized_keys` |
+| is sshd reachable over the tailnet on 22 | no — tailscaled intercepts first | **yes** |
+| effect of a broken tailnet ACL | locked out | none; there is no ssh ACL in play |
+
+So there is no "Tailscale SSH ACL" to break here, and sshd is not a fallback
+behind it — it is the path. `ufw allow in on tailscale0` opens every port, which
+is what makes it reachable.
+
+`setup-tailscale` defaults `TS_SSH=0` accordingly. Check the assumption rather
+than trusting this table, if it matters:
+
+```bash
+tailscale debug prefs | grep RunSSH      # expect false
+```
+
+### what `harden-ssh` is for, given the above
+
+[`harden-ssh`](harden-ssh) does what `setup-sshd` only prints as advice:
+`PermitRootLogin no`, `PasswordAuthentication no`, `AllowUsers $USER`, key-only
+auth, and a modern-crypto-only kex/cipher/MAC list. That part is wanted
+regardless.
+
+Its **port move off 22 is optional here.** With `--ssh` enabled tailscaled owns
+22 on the tailnet IP and sshd must move elsewhere to be reachable at all; with
+`RunSSH: false` nothing intercepts 22 and sshd already answers there. The move is
+not obscurity either way — ufw drops everything that isn't `tailscale0`, so there
+is no scanner to hide from; it just isn't buying anything.
+
+`SSH_PORT=keep` therefore hardens auth and crypto while staying on 22, and on
+this box that is the **reasonable** choice, not the weaker one. `harden-ssh`
+detects `RunSSH` at runtime and adjusts what it tells you, treating undetectable
+as off — the direction that warns harder.
 
 Two phases, because a config that locks you out looks identical to a working one
 until you try it. Phase 1 listens on **both** 22 and the new port; phase 2
 (`--finalize`, offered interactively once you confirm a login worked) drops 22.
-`--revert` removes both drop-ins. `SSH_PORT=keep` hardens auth and crypto while
-staying on 22 — which on this box means keeping sshd unreachable, so it is the
-weaker choice here in a way it wasn't on ubuntu-devbox.
-
-Tailscale SSH is unaffected by all of it — tailscaled never reads
-`sshd_config`. Which is exactly why this is easy to get wrong: everything keeps
-working right up until the day sshd is the thing you need.
+`--revert` removes both drop-ins.
 
 ### sshd hardening is shared
 

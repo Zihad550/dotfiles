@@ -42,20 +42,31 @@
 # worked. Non-interactive runs never do -- see HARDEN_SSH_ASSUME_YES.
 #
 # ─── why move the port ───────────────────────────────────────────────────────
-# Two different reasons, and which one applies depends on HARDEN_NET.
+# The auth and crypto hardening below is always wanted. The port move is not,
+# and whether it buys anything depends on HARDEN_NET and on one tailscale pref.
 #
-# On a box with a LAN hole (`lan`), it is the ordinary one: fewer unattended
+# On a box with a LAN hole (`lan`), it is the ordinary reason: fewer unattended
 # login attempts from whatever else is on the wire.
 #
-# On a tailnet-only box (`tailnet`) it is not obscurity at all -- the firewall
-# already drops everything that does not arrive on tailscale0, so there is no
-# scanner to hide from. It is that `tailscale up --ssh` makes tailscaled
-# intercept port 22 *on the tailnet IP*, in userspace, before the packet reaches
-# the host stack. sshd on 22 is therefore unreachable from the only network the
-# box answers on, and the documented "port 22 is the fallback when Tailscale
-# SSH's ACL breaks" is false. On any other port tailscaled does not intervene,
-# the packet goes through, and sshd answers. The port move is what creates that
-# fallback.
+# On a tailnet-only box (`tailnet`) it is not obscurity -- the firewall already
+# drops everything that does not arrive on tailscale0, so there is no scanner to
+# hide from. Whether it is anything at all depends on Tailscale SSH:
+#
+#   RunSSH true   `tailscale up --ssh` makes tailscaled intercept port 22 *on
+#                 the tailnet IP*, in userspace, before the packet reaches the
+#                 host stack. sshd on 22 is unreachable from the only network
+#                 the box answers on. Moving off 22 is what makes sshd reachable
+#                 at all -- not optional.
+#
+#   RunSSH false  Nothing intercepts 22, sshd already answers there over the
+#                 tailnet, and sshd is the access path rather than a fallback
+#                 behind Tailscale SSH. The move buys nothing. SSH_PORT=keep is
+#                 the reasonable choice, and is why it exists.
+#
+# These boxes run RunSSH false -- ./setup-tailscale defaults TS_SSH=0. Check
+# rather than assume, since the two are indistinguishable until one breaks:
+#
+#   tailscale debug prefs | grep RunSSH
 #
 # Tailscale SSH is unaffected by any of this either way: tailscaled is its own
 # ssh server for tailnet traffic and never consults sshd_config.
@@ -249,6 +260,18 @@ HOST="$(hostnamectl --static 2>/dev/null || uname -n)"
 HOST="${HOST%%.*}"
 TS_IP="$(tailscale ip -4 2>/dev/null | head -1 || true)"
 
+# Is tailscaled the ssh server for tailnet traffic, or is sshd? Detected rather
+# than assumed, because it decides whether the warnings below are advice or
+# lies: with Tailscale SSH on there is a second way in while you fix a mistake,
+# and with it off there is not. ./setup-tailscale defaults it off.
+#
+# Unknown (tailscale absent, daemon down, pref renamed) is treated as off, which
+# is the direction that warns harder rather than the one that reassures.
+TS_SSH_ON=0
+case "$(tailscale debug prefs 2>/dev/null | tr -d '[:space:]')" in
+*'"RunSSH":true'*) TS_SSH_ON=1 ;;
+esac
+
 # ─── preflight: is there a key to come back in with? ─────────────────────────
 # This is the check that matters. PasswordAuthentication no with no
 # authorized_keys means sshd accepts nobody.
@@ -260,7 +283,7 @@ if [ "$MODE" = "apply" ]; then
     if [ "$keys" -eq 0 ]; then
         echo "no keys in $keyfile" >&2
         echo >&2
-        if [ "$HARDEN_NET" = "tailnet" ]; then
+        if [ "$HARDEN_NET" = "tailnet" ] && [ "$TS_SSH_ON" = "1" ]; then
             # Tailscale SSH never reads authorized_keys, so it keeps working --
             # which is exactly why this is easy to get wrong. Everything looks
             # fine right up until the day sshd is the thing you need.
@@ -273,6 +296,21 @@ if [ "$MODE" = "apply" ]; then
             echo >&2
             echo "Override with HARDEN_SSH_NO_KEYS=1 only if you accept that a broken" >&2
             echo "tailnet ACL means walking to the machine." >&2
+        elif [ "$HARDEN_NET" = "tailnet" ]; then
+            # No LAN hole and no Tailscale SSH: sshd is the only remote way in,
+            # and disabling password auth without a key removes it outright.
+            # There is nothing to fall back on while you fix it.
+            echo "STOP. Password auth is about to be disabled, this box has no LAN hole" >&2
+            echo "(the firewall allows tailscale0 only), and Tailscale SSH is OFF -- so" >&2
+            echo "sshd is the only remote way in. Without a key it accepts nobody and" >&2
+            echo "the only recovery is a keyboard attached to the machine." >&2
+            echo >&2
+            echo "From your laptop, first:" >&2
+            echo >&2
+            echo "  ssh-copy-id $USER@${TS_IP:-$HOST}" >&2
+            echo >&2
+            echo "then confirm \`ssh $USER@${TS_IP:-$HOST}\` does not prompt, and re-run." >&2
+            echo "Override with HARDEN_SSH_NO_KEYS=1 only if you accept console-only recovery." >&2
         else
             echo "Password auth is about to be disabled. Without a key, ssh from the LAN" >&2
             echo "stops working entirely -- and that is the path you need when tailscaled" >&2
@@ -466,12 +504,18 @@ echo
 if [ "$KEEP_22" = "1" ]; then
     echo "hardened; still on port 22 (SSH_PORT=keep)"
     sudo ss -Htuln 'sport = :22' || true
-    if [ "$HARDEN_NET" = "tailnet" ]; then
+    if [ "$HARDEN_NET" = "tailnet" ] && [ "$TS_SSH_ON" = "1" ]; then
         echo
-        echo "note: with Tailscale SSH enabled, tailscaled owns port 22 on"
-        echo "      ${TS_IP:-the tailnet IP}, so this sshd is reachable only from the"
+        echo "note: Tailscale SSH is enabled, so tailscaled owns port 22 on"
+        echo "      ${TS_IP:-the tailnet IP} and this sshd is reachable only from the"
         echo "      physical console. Re-run without SSH_PORT=keep to get the"
         echo "      ACL-broke fallback back."
+    elif [ "$HARDEN_NET" = "tailnet" ]; then
+        echo
+        echo "sshd stays on 22, reachable over the tailnet:"
+        echo "  ssh $USER@${TS_IP:-$HOST}"
+        echo "Tailscale SSH is off, so nothing intercepts 22 and there is no reason"
+        echo "to move it -- ufw already drops everything that is not tailscale0."
     fi
     exit 0
 fi
