@@ -71,13 +71,18 @@ run_step "mise" "$ARCH_HYPR_DIR/setup-packages/setup-mise"
 run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 
 # packages
-run_step "pacman packages" "$ARCH_HYPR_DIR/packages/pacman-packages"
+# pacman-base is the toolkit shared with arch-devbox; pacman-apps is this
+# target's own app layer. Base first — apps assumes gcc and the CLI set.
+run_step "pacman base" "$ARCH_HYPR_DIR/packages/pacman-base"
+run_step "pacman apps" "$ARCH_HYPR_DIR/packages/pacman-apps"
 run_step "yay packages" "$ARCH_HYPR_DIR/packages/yay-packages"
 run_step "flatpak packages" "$ARCH_HYPR_DIR/packages/flatpak-packages"
 run_step "mise packages" "$ARCH_HYPR_DIR/packages/mise-packages"
 
 run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
-run_step "walker" "$ARCH_HYPR_DIR/setup-packages/setup-walker"
+# After hyprland: quickshell is the shell for that desktop, and shares this list
+# with arch-devbox.
+run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
 
 run_step "docker" "$ARCH_HYPR_DIR/setup-packages/setup-docker"
 run_step "syncthing" "$ARCH_HYPR_DIR/setup-packages/setup-syncthing"

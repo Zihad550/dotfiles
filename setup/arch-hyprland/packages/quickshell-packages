@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+# Everything the quickshell config in quickshell/.config/quickshell needs at
+# runtime — the shell binary plus every external program its QML shells out to.
+#
+# Shared: arch-hyprland and arch-devbox both run this, so a dependency added to
+# a QML module gets declared once here rather than in two package lists.
+#
+# Deliberately NOT here, because they are owned by a layer underneath and would
+# be installed even with the shell removed:
+#   hyprland          # hyprctl, behind Quickshell.Hyprland (setup-hyprland)
+#   brightnessctl     # OsdService's backlight — hypridle.conf also drives it
+#                     # directly, so it stays in setup-hyprland
+#   ttf-nerd-fonts-symbols-mono  # the bar's one nerd glyph (packages/pacman-packages)
+#   tailscale         # TailscaleService — installed by ../../*/setup-tailscale
+#   pavucontrol nautilus ghostty zed  # apps the menus launch, not the shell
+#
+# quickshell comes from the omarchy repo, not official Arch: setup-omarchy-repos
+# must have run before this.
+
+# quickshell - the bar, notification daemon, OSD and launcher
+#     (dotfiles/shell.qml and launcher/shell.qml)
+# ttf-fira-code - Theme.qml's fontFamily in both shells; every label renders in
+#     the fallback font without it
+# libqalculate - qalc, behind the launcher's calculator (launcher/lib/calc.js)
+# cliphist - clipboard history, behind the launcher's clipboard provider
+#     (launcher/lib/clipboard.js). Needs `wl-paste --watch cliphist store`
+#     running to have any history to read — started from
+#     hypr/.config/hypr/lua/autostart.lua.
+# wl-clipboard - wl-copy (launcher copy actions) and the wl-paste watcher above
+# libnotify - notify-send. The shell's NotificationDaemon.qml is what displays
+#     these; the bin/df-* scripts send them too.
+# playerctl - OsdService.qml's media keys (play-pause/next/previous + status)
+sudo pacman -S --noconfirm \
+    quickshell \
+    ttf-fira-code \
+    libqalculate \
+    cliphist \
+    wl-clipboard \
+    libnotify \
+    playerctl

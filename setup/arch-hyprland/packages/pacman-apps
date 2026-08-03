@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# arch-hyprland's own pacman set: everything that is NOT in ./pacman-base.
+#
+# The shared toolkit (CLI tools, fonts, coreutils replacements, gcc) lives in
+# ./pacman-base, which init runs first. What's left here is the app layer and
+# the handful of core entries arch-devbox deliberately drops — so the diff
+# against arch-devbox/packages/pacman-apps is now the *whole* difference
+# between the two machines.
+
+#  core, desktop-only
+# xournalpp - pdf editor
+# dosfstools - fat32 support
+# yazi - terminal file browser, resvg - its svg previewer
+sudo pacman -S --noconfirm \
+    xournalpp \
+    dosfstools \
+    rclone \
+    veracrypt \
+    yazi resvg
+
+# xorg-xhost \      # needed for running timeshift
+
+# install apps
+# converseen - convert and optimize img
+# swappy slurp grim - screenshot
+# blueberry - bluetooth
+# libqalculate, cliphist and wl-clipboard are in ./quickshell-packages --
+#   they are quickshell's runtime dependencies (calculator, clipboard provider,
+#   wl-copy) and arch-devbox needs the same set.
+sudo pacman -S --noconfirm \
+    zed \
+    neovim \
+    transmission-gtk \
+    ghostty \
+    obs-studio \
+    discord \
+    obsidian \
+    mpv \
+    converseen \
+    swappy slurp grim
+# gemini
+
+# install gnome apps
+sudo pacman -S --noconfirm \
+    nautilus \
+    nautilus-image-converter \
+    gnome-disk-utility \
+    gnome-font-viewer \
+    gnome-keyring seahorse
+
+# gnome-calculator \
+# gnome-characters \
+# gnome-dictionary - doesn't has any bangla dictionary
+
+# sudo pacman -S --noconfirm gitg # git ui
+# sudo pacman -S --noconfirm podman
+
+# ai
+# sudo pacman -S --noconfirm ollama
+# sudo pacman -S --noconfirm lmstudio-bin
+
+# sql client
+# sudo pacman -S --noconfirm dbeaver
+
+# backup # not needed if you choose snapshot from the archinstall disk setup
+
+# sudo pacman -S --noconfirm timeshift xorg-xhost grub-btrfs inotify-tools
+# sudo /etc/grub.d/41_snapshots-btrfs
+# grub-mkconfig -o /boot/grub/grub.cfg
+# sudo systemctl edit --full grub-btrfsd
+# and update the option to simeshift
