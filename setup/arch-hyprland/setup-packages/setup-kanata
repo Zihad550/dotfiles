@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 yay -S --noconfirm kanata-bin
 
-sudo cp ~/dotfiles/scripts/kanata/kanata.service /etc/systemd/system/kanata.service
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+UNIT_TEMPLATE="$DOTFILES_DIR/setup/systemd/root/kanata.service.in"
 
+[[ -f "$UNIT_TEMPLATE" ]] || { echo "missing unit template: $UNIT_TEMPLATE" >&2; exit 1; }
+
+# %h is no help for the config path: in a system unit it always expands to /root.
+sed "s|@CONFIG@|$HOME/.config/kanata/config.kbd|" "$UNIT_TEMPLATE" |
+    sudo tee /etc/systemd/system/kanata.service >/dev/null
+
+sudo systemctl daemon-reload
 sudo systemctl enable kanata.service

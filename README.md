@@ -34,14 +34,13 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles ~/dotfiles
 | `hypr/` | Hyprland Lua config (entrypoint: `hypr/.config/hypr/hyprland.lua`) |
 | `themes/` | Theme palettes + templates (`df-theme-set <name>` switches) |
 | `setup/` | Per-distro install scripts; `boot.sh` dispatches |
-| `scripts/` | Misc utilities (stow, kanata, rclone, syncthing, …) |
-| `resources/` | Read-only upstream references (omarchy, walker, elephant, …) |
+| `scripts/` | Misc utilities (stow, rclone, syncthing, …) |
+| `resources/` | Read-only upstream references (omarchy, Hyprland, devpod, …) |
 
 ## common bins
 
 ```bash
 df-theme-set <name>                # switch theme; no args = show current + list
-df-theme-picker                    # walker menu (with inline previews)
 df-theme-install <git-url> [--apply] [--force]
                                    # clone external theme into ~/.config/themes/
 df-theme-remove <name> [--force]   # remove a user-installed theme (refuses built-ins)
@@ -75,7 +74,7 @@ df-system-update                   # full system update (pacman/yay/flatpak/mise
 | `~/.config/themes/<name>/` | active theme source (`colors.toml`) + generated outputs |
 | `~/.config/theme` | symlink → active `~/.config/themes/<name>/` |
 | `~/.config/backgrounds/<name>.<ext>` | per-theme background (primary + `<name>-1.<ext>` extras) |
-| `~/.config/theme-previews/<name>.<ext>` | thumbnail shown in `df-theme-picker` |
+| `~/.config/theme-previews/<name>.<ext>` | thumbnail shown in the Launcher's Themes Provider |
 
 Built-in themes live in this repo at `themes/.config/themes/<name>/` and are
 stowed into `~/.config/themes/` as symlinks. `df-theme-remove` refuses to
