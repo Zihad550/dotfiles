@@ -1,31 +1,16 @@
 #!/usr/bin/env bash
 
-# Power management for the always-on devbox.
+# Power management for the always-on devbox. See README.md "power management"
+# for why the profile is standalone rather than include=powersave, and what
+# each setting is for.
 #
-# TLP is the wrong tool here and `../arch-hyprland/setup-packages/setup-tlp` is
-# gated behind is_laptop for that reason: it is battery-oriented, and with no
-# BAT* present every one of its _ON_BAT settings is dead weight while its
-# defaults still apply the two things a devbox cannot afford — USB autosuspend
-# and `systemctl mask systemd-rfkill`. tuned is profile-based, covers the same
-# knobs, and lets a custom profile *subtract* from a stock one by inheritance,
-# which is exactly what this box needs.
-#
-# The governor is usually not the lever people expect. On intel_pstate or
-# amd-pstate-epp in active mode the only governors that exist are `powersave`
-# and `performance`, and `powersave` is already the default — so setting it
-# changes nothing. What actually varies power on those drivers is the
-# energy-performance preference, so the profile below sets both.
-#
-# Reversible:  sudo tuned-adm profile balanced
-#              sudo systemctl disable --now tuned.service
+# Runs from init's non-laptop branch only; the laptop gets
+# ../arch-hyprland/setup-packages/setup-tlp instead.
 
-set -e
+set -euo pipefail
 
 PROFILE_NAME="arch-devbox"
 
-# Both drive the same sysfs knobs and neither yields. init only ever runs one
-# (tlp under is_laptop, this one in the else branch), so tripping this means
-# TLP was installed by hand.
 if systemctl is-enabled tlp.service &>/dev/null || systemctl is-active tlp.service &>/dev/null; then
     echo "error: tlp.service is present — tuned and TLP fight over the same knobs" >&2
     echo "       pick one:  sudo systemctl disable --now tlp.service" >&2
@@ -34,19 +19,14 @@ fi
 
 sudo pacman -S --noconfirm --needed tuned
 
-# Pulled in by GNOME, and this box installs gdm. It arbitrates the same
-# governor/EPP settings, so leaving it running means the last writer wins at
-# random. Disabled rather than masked so `systemctl enable --now
-# power-profiles-daemon` puts it back.
-if systemctl is-active power-profiles-daemon.service &>/dev/null; then
-    sudo systemctl disable --now power-profiles-daemon.service
-    echo "disabled power-profiles-daemon (it fights tuned over the same knobs)"
+# `systemctl cat` as the existence test: list-unit-files exits 0 even when
+# nothing matches (systemd#15082), so it cannot be used here.
+if systemctl cat power-profiles-daemon.service &>/dev/null; then
+    sudo systemctl mask --now power-profiles-daemon.service
+    echo "masked power-profiles-daemon (it fights tuned over the same knobs)"
 fi
 
-# tuned 2.24 moved user profiles from /etc/tuned/<name>/ to
-# /etc/tuned/profiles/<name>/. Both layouts are in the wild on Arch depending on
-# when the box was installed, so pick whichever this version expects rather than
-# hardcoding one and silently writing a profile tuned never reads.
+# /etc/tuned/profiles/ since tuned 2.23.0; the fallback is for older boxes.
 if [[ -d /etc/tuned/profiles ]]; then
     PROFILE_DIR="/etc/tuned/profiles/$PROFILE_NAME"
 else
@@ -55,34 +35,24 @@ fi
 
 sudo mkdir -p "$PROFILE_DIR"
 
-# `include=powersave` inherits the stock profile, then the sections below
-# override it. Every override exists to undo something powersave does that would
-# cost reachability or disk safety on this box.
 sudo tee "$PROFILE_DIR/tuned.conf" >/dev/null <<'EOF'
 [main]
-summary=Always-on devbox: powersave CPU, nothing that touches the ssh path
-include=powersave
+summary=Always-on devbox: power savings that never touch the ssh path
 
 [cpu]
-# On active-mode pstate `powersave` is already the default and this is a no-op;
-# it matters only on acpi-cpufreq or *_pstate=passive, where the generic
-# governor set is exposed. energy_performance_preference is the knob that
-# actually moves power on the active-mode drivers.
-governor=powersave
+governor=schedutil|conservative|powersave
+energy_perf_bias=powersave|power
 energy_performance_preference=balance_power
+boost=1
 
 [usb]
-# The one setting that would cost you the box. A suspended USB NIC or wifi
-# adapter drops the link without ever touching sleep.target, so setup-no-sleep's
-# masking does nothing for it — this is the failure mode README.md describes
-# under "if it went unreachable but did not sleep".
 autosuspend=0
 
 [scsi_host]
-# powersave sets alpm=min_power, which some SATA controllers and drives handle
-# badly (link flaps, occasional I/O errors). medium_power keeps most of the
-# saving without the compatibility tail.
-alpm=medium_power
+alpm=med_power_with_dipm
+
+[audio]
+timeout=10
 EOF
 
 sudo systemctl enable --now tuned.service

@@ -463,10 +463,11 @@ all installed by `init`:
 - **TLP** owns `USB_AUTOSUSPEND` and can suspend a USB wifi adapter
   independently of `sleep.target` — masking sleep does nothing for it.
   Laptop-only. Check with `sudo tlp-stat -u`.
-- **tuned** can do the same thing on the desktop side. `setup-tuned` pins
-  `autosuspend=0` precisely to prevent it, so this only bites if the profile
-  was changed. Check with `tuned-adm active` — anything other than
-  `arch-devbox` means the stock `powersave` profile's USB autosuspend is live.
+- **tuned** on the desktop side. The stock `powersave` profile's `script.sh`
+  calls `enable_wifi_powersave` unconditionally, which is why `setup-tuned`
+  writes a standalone profile rather than inheriting it. Check with
+  `tuned-adm active` — anything other than `arch-devbox` means you are on a
+  profile whose radio behaviour has not been vetted for this box.
 
 ## power management
 
@@ -479,11 +480,39 @@ knobs and neither yields:
 | chosen by | `init`'s `is_laptop` branch | `init`'s `else` branch |
 
 TLP is battery-oriented — with no `BAT*` present every `_ON_BAT` setting is dead
-weight while its defaults still apply the two things a devbox cannot afford
-(USB autosuspend, and `systemctl mask systemd-rfkill`). tuned covers the same
-knobs and lets a custom profile *subtract* from a stock one by inheritance, so
-`setup-tuned` writes an `arch-devbox` profile that inherits `powersave` and then
-overrides the parts that would cost reachability or disk safety.
+weight while it still does `systemctl mask systemd-rfkill` on the way past.
+tuned covers the same knobs, so `setup-tuned` writes an `arch-devbox` profile
+and activates it.
+
+### why the profile does not inherit `powersave`
+
+Inheriting the stock profile is the obvious move and it is wrong here. Read
+`/usr/lib/tuned/profiles/powersave/` and it does four things this box would then
+have to undo — one of which an override cannot undo at all:
+
+| stock `powersave` | why not here |
+|---|---|
+| `script.sh` calls `enable_wifi_powersave` **unconditionally** | exactly the failure documented above — continuous uptime, dead tailnet. A child profile cannot cancel an inherited `[script]`; undoing it needs `[script] replace=1` plus a second script calling `disable_wifi_powersave` |
+| `boost=0` | turbo off. Fine on a battery, a straight tax on every compile |
+| `governor=schedutil\|conservative\|powersave` | fine, and **kept verbatim** — see below |
+| `vm.laptop_mode=5` | batches writeback for disks that spin down. This box's never do; it only widens the loss window on a power cut |
+
+So the profile is standalone. Values that were simply right — `alpm=med_power_with_dipm`,
+the governor list, `audio timeout=10` — were copied from `powersave` rather than
+reinvented; everything else is there on purpose.
+
+Two details worth knowing before editing it:
+
+- **`|` is a fallback list, not a preference.** tuned applies the first value the
+  running system actually offers. `governor=schedutil|conservative|powersave`
+  lands on `powersave` under active-mode pstate (which offers nothing else) and
+  on `schedutil` under `acpi-cpufreq` — which is why hardcoding plain
+  `powersave` is a downgrade, not a tightening: on the acpi-cpufreq path it pins
+  the minimum frequency.
+- **`[usb] autosuspend=0` disables autosuspend**, it is not a zero-second delay.
+  The plugin writes a boolean, not a timeout. It is belt-and-braces here —
+  nothing in the profile enables autosuspend, and stock `powersave` only does so
+  when `USB_AUTOSUSPEND=1`.
 
 **The governor is usually not the lever people expect.** On `intel_pstate` or
 `amd-pstate-epp` in active mode the only two governors that exist are
