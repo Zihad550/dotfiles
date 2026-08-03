@@ -7,7 +7,7 @@
 
 sudo pacman -S --noconfirm --needed iw
 
-DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 HELPER="$DOTFILES_DIR/bin/df-wifi-powersave"
 
 [[ -x "$HELPER" ]] || { echo "missing helper: $HELPER" >&2; exit 1; }

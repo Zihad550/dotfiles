@@ -30,9 +30,6 @@
 set -e
 
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Derived from SETUP_DIR rather than the arch inits' `${DOTFILES_DIR:-$HOME/dotfiles}`,
-# so the repo still works when it is not checked out at ~/dotfiles.
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$SETUP_DIR/../.." && pwd)}"
 
 "$SETUP_DIR/packages"

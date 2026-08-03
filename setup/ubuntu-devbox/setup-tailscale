@@ -29,5 +29,4 @@ export TS_TAILNET_UFW_RULE=0
 export TS_NEXT="harden sshd once you have confirmed key login works:
   ./harden-ssh      # key-only, no root, random port"
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$HERE/../common/setup-tailscale" "$@"
+exec "$(dirname "${BASH_SOURCE[0]}")/../common/setup-tailscale" "$@"

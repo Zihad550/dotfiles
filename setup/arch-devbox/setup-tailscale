@@ -28,5 +28,4 @@ export TS_NEXT="next: ./setup-ufw   (tailnet-only + VLAN isolation; deletes the 
       reconnect over the tailnet first if you got here over the LAN --
       setup-ufw refuses to cut a LAN ssh session out from under itself."
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$HERE/../common/setup-tailscale" "$@"
+exec "$(dirname "${BASH_SOURCE[0]}")/../common/setup-tailscale" "$@"

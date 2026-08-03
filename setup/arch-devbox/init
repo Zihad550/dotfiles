@@ -14,7 +14,7 @@
 
 set -eEo pipefail
 
-DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 ARCH_DEVBOX_DIR="$DOTFILES_DIR/setup/arch-devbox"
 # Shared implementation lives next door; we only override the package lists.
 ARCH_HYPR_DIR="$DOTFILES_DIR/setup/arch-hyprland"

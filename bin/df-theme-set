@@ -2,15 +2,14 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 # Ensure sibling helpers (df-theme-set-browser/-gnome/-vscode/-obsidian,
 # df-cmd-present) resolve even when df-theme-set is invoked by absolute path
-# from a launcher (walker/elephant) that doesn't put ~/dotfiles/bin on PATH.
+# from the Launcher, which doesn't put ~/dotfiles/bin on PATH.
 case ":$PATH:" in
-    *":$SCRIPT_DIR:"*) ;;
-    *) export PATH="$SCRIPT_DIR:$PATH" ;;
+    *":$DOTFILES_DIR/bin:"*) ;;
+    *) export PATH="$DOTFILES_DIR/bin:$PATH" ;;
 esac
 THEMES_DIR="$HOME/.config/themes"
 GENERATE_SCRIPT="$DOTFILES_DIR/bin/df-theme-generate"

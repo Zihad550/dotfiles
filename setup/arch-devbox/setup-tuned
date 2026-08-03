@@ -10,5 +10,4 @@ set -euo pipefail
 
 export TUNED_PROFILE_NAME=arch-devbox
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$HERE/../common/setup-tuned" "$@"
+exec "$(dirname "${BASH_SOURCE[0]}")/../common/setup-tuned" "$@"

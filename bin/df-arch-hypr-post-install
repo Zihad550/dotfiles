@@ -7,12 +7,11 @@
 
 set -u
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 ARCH_HYPR_DIR="$DOTFILES_DIR/setup/arch-hyprland"
 
 # Make mise-managed tools available even if this is run from a non-login shell.
-export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$SCRIPT_DIR:$PATH"
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$DOTFILES_DIR/bin:$PATH"
 if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate bash --shims)" 2>/dev/null || true
 fi

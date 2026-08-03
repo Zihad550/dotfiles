@@ -12,5 +12,4 @@ set -euo pipefail
 export TUNED_PROFILE_NAME=ubuntu-devbox
 export TUNED_SUMMARY="Always-on bare-metal devbox: power savings that never touch the ssh path"
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$HERE/../common/setup-tuned" "$@"
+exec "$(dirname "${BASH_SOURCE[0]}")/../common/setup-tuned" "$@"

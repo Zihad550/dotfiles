@@ -10,8 +10,7 @@ set -euo pipefail
 
 # arch-hyprland's shared hypridle.conf keeps its suspend listener, which the
 # laptop wants. Point hypridle at this box's config instead.
-DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 export NO_SLEEP_HYPRIDLE_CONF="$DOTFILES_DIR/setup/arch-devbox/hypridle.conf"
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$HERE/../common/setup-no-sleep" "$@"
+exec "$(dirname "${BASH_SOURCE[0]}")/../common/setup-no-sleep" "$@"
