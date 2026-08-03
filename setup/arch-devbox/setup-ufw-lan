@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+# Step 1 of two. Opens one ssh hole on the LAN, from one machine you name, so
+# the rest of the setup can be done from your laptop instead of a keyboard
+# attached to this box.
+#
+# Step 2 is ./setup-ufw. For where both sit in the sequence, see `## order` in
+# ./README.md -- the canonical copy, so that reordering is one edit and not five.
+#
+# The hole is temporary by design: step 2 deletes every rule commented
+# `lan break-glass`, which is the one written here. It exists to cover the
+# window between "init finished" and "the tailnet is up" -- the window where
+# ufw is deny-all (setup-ufw-base) and there is no way in at all.
+#
+# Skip it entirely if you are staying at the physical keyboard until the tailnet
+# is up. Nothing later depends on it having run.
+#
+# Runs ./setup-sshd first. Arch installs openssh without enabling it, so opening
+# port 22 on a box with no listener is the failure this is most likely to hide.
+#
+# LAN_SSH_SRC to an address, a CIDR, or `none` to skip the prompt. With no
+# terminal and no LAN_SSH_SRC it falls back to the whole detected subnet, since
+# the alternative in that case is a box nobody can reach.
+#
+# The prompt itself and the ufw helpers are shared with ../ubuntu-devbox, whose
+# setup-ufw asks the same question for a hole it then keeps -- see
+# ../common/ufw-lib.
+
+set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/ufw-lib
+. "$HERE/../common/ufw-lib"
+
+LAN_MENU_QUESTION="Which machine should be able to ssh in over the LAN?"
+LAN_MENU_INTRO="  This is scaffolding, not the end state. ./setup-ufw deletes this rule
+  once the tailnet is up; it only exists so you can run the remaining
+  steps from your laptop instead of from a keyboard attached to this
+  machine."
+LAN_MENU_CHOICE3="  3) no LAN access     -- skip; the tailnet or a physical keyboard is
+                          the only way in. Needs the tailnet already up."
+LAN_MENU_NO_TAILNET="  the tailnet is not up either, so there would be no way in at all.
+  either pick 1 or 2, or stay at the physical keyboard and run
+  ./setup-tailscale directly -- this script is optional."
+
+resolve_lan_src
+
+set -e
+
+ufw_bootstrap
+
+# The listener before the hole. Arch installs openssh without enabling
+# sshd.service, so a `ufw allow ... port 22` rule on a stock box is a recovery
+# path that only reads as one -- and you would not find out until the moment you
+# needed it. init already ran this; re-running is cheap and idempotent, and this
+# script has to be safe on a box where init did not.
+"$HERE/setup-sshd"
+
+if [ "$LAN_SSH_SRC" = "none" ]; then
+    echo
+    echo "no LAN ssh rule written. Reachable over the tailnet only."
+else
+    # Re-running with a different source must not leave the old rule behind.
+    delete_rules_matching 'lan break-glass'
+
+    # Ubuntu writes this as `app OpenSSH`; Arch's openssh ships no ufw app
+    # profile, so the port is named directly. Same rule, and the comment is what
+    # setup-ufw and ../common/harden-ssh actually match on.
+    sudo ufw allow from "$LAN_SSH_SRC" to any port 22 proto tcp comment 'lan break-glass'
+
+    case "$LAN_SSH_SRC" in
+    */*) ;;
+    *)
+        echo
+        echo "NOTE: ssh is restricted to $LAN_SSH_SRC. Give that machine a DHCP"
+        echo "      reservation -- if its address changes you lose this path."
+        ;;
+    esac
+fi
+
+ufw_commit
+
+# setup-sshd deliberately does not die when the start fails (init runs it under
+# `set -e` and a dead sshd should not abandon the whole install), so its failure
+# arrives here as a warning rather than a non-zero exit. Re-check it: this is
+# the one script where a listener-less rule is the entire point being missed.
+if ! systemctl is-active sshd.service &>/dev/null; then
+    echo
+    echo "WARNING: the rule is in place but sshd.service did not come up, so"
+    echo "         nothing answers on 22 and this hole is not a way in. Look at:"
+    echo "           systemctl status sshd.service"
+    echo "           journalctl -u sshd.service -b --no-pager"
+fi
+
+echo
+sudo ufw status verbose
+
+if [ "$LAN_SSH_SRC" != "none" ]; then
+    # The address this box answers on for off-link traffic -- i.e. the one the
+    # allowed machine should ssh to. Read off `src` by name, since the field
+    # position differs between the via and on-link forms of the route.
+    MY_IP="$(ip -4 route get 1.1.1.1 2>/dev/null |
+        awk '{for (i = 1; i < NF; i++) if ($i == "src") {print $(i+1); exit}}')"
+    echo
+    echo "Next, from $LAN_SSH_SRC:  ssh $USER@${MY_IP:-<this box>}"
+    echo "then run ./setup-tailscale, and ./setup-ufw to close this hole again."
+fi

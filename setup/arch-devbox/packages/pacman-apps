@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# arch-devbox's own pacman set: everything that is NOT in
+# ../../arch-hyprland/packages/pacman-base, which init runs first.
+#
+# This file is the entire package-level difference between arch-devbox and
+# arch-hyprland — diff it against ../../arch-hyprland/packages/pacman-apps to
+# see the whole cull. The shared CLI toolkit, fonts, coreutils replacements and
+# gcc are not repeated here on purpose; edit pacman-base to change those on both
+# machines at once.
+#
+# Culled entries are kept as commented lines with a one-word reason — uncomment
+# to get them back.
+
+# core entries arch-hyprland has and this box drops — none are development:
+# xournalpp \       # pdf editor
+# dosfstools \      # fat32
+# rclone \          # cloud sync
+# veracrypt \       # disk encryption
+# yazi \            # tui file browser — nautilus covers it (frees SUPER+F)
+# resvg \           # only here to render svg previews inside yazi
+# xorg-xhost \      # timeshift only
+
+# apps — one browser, two editors, and the bits the desktop needs
+# chromium - the only browser; df-theme-set-browser already themes it
+# swappy slurp grim - screenshot (used by the hypr keybindings)
+#
+# libqalculate, cliphist and wl-clipboard are NOT dropped -- they moved to
+# ../../arch-hyprland/packages/quickshell-packages, shared by both targets.
+sudo pacman -S --noconfirm \
+    chromium \
+    zed \
+    neovim \
+    ghostty \
+    swappy slurp grim
+
+# dropped — not dev
+# discord \             # chat
+# obs-studio \          # screen recording
+# transmission-gtk \    # torrents
+# obsidian \            # notes (df-theme-set's obsidian hook is guarded)
+# mpv \                 # video
+# converseen \          # image conversion
+
+# install gnome apps
+# gnome-keyring seahorse are NOT optional: setup-hyprland enables
+# gcr-ssh-agent.service, which is how ssh keys get unlocked on this desktop.
+sudo pacman -S --noconfirm \
+    nautilus \
+    gnome-disk-utility \
+    gnome-keyring seahorse
+
+# dropped — not dev
+# nautilus-image-converter \
+# gnome-font-viewer \

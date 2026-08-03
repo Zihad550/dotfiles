@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+# Non-interactive post-install tasks only. This runs via run_step (stdin
+# /dev/null, stdout -> log), so it must NOT prompt. The reboot confirmation and
+# the user-facing reminders live at the end of init, after ui_done frees the
+# terminal.
+
+tldr --update
+
+# arch-hyprland points this at zen; chromium is the only browser here. Warn
+# rather than fail: a wrong .desktop name would otherwise just silently leave
+# the default browser unset.
+xdg-settings set default-web-browser chromium.desktop ||
+    echo "warn: could not set chromium as default browser — check 'pacman -Ql chromium | grep applications'"
+
+# Test if AppArmor is correctly enabled.
+echo "Is app armor enabled: $(aa-enabled 2>/dev/null || echo 'unknown')"

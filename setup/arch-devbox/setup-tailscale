@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# Join the tailnet. See ../common/setup-tailscale for what this does and why;
+# this file only says what is true about *this* box.
+#
+#   TS_AUTHKEY=tskey-auth-...  ./setup-tailscale     # unattended
+#   ./setup-tailscale                                # prints a URL to open
+#   TS_HOSTNAME=devbox         ./setup-tailscale     # override the tailnet name
+#
+# Where this box differs from ../ubuntu-devbox: tailscale comes from `extra`
+# rather than the curl installer, and this script -- not setup-ufw -- opens the
+# tailscale0 rule, because here setup-ufw runs after it.
+#
+# On the sshd note in the shared script: this box opens no permanent LAN hole,
+# so sshd on a non-22 port plus a keyboard attached to the machine is the whole
+# fallback set. ./setup-ufw-lan's hole is scaffolding that ./setup-ufw deletes.
+
+set -euo pipefail
+
+sudo pacman -S --noconfirm --needed tailscale
+
+# setup-ufw-base (run by init) already denied everything inbound, and setup-ufw
+# does not run until after this. So the tailnet rule has to be written here, or
+# ssh over tailscale is dropped the moment the node joins.
+export TS_TAILNET_UFW_RULE=1
+
+export TS_NEXT="next: ./setup-ufw   (tailnet-only + VLAN isolation; deletes the LAN hole)
+      reconnect over the tailnet first if you got here over the LAN --
+      setup-ufw refuses to cut a LAN ssh session out from under itself."
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$HERE/../common/setup-tailscale" "$@"

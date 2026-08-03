@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# Non-interactive firewall baseline, run from init.
+#
+# Deny everything in, allow everything out, and hand Docker over to ufw-docker.
+# The only allow rule is container DNS on the docker bridge, which no network
+# outside this box can reach. Everything a remote machine could use comes from
+# setup-ufw-lan (a temporary LAN ssh hole) and setup-ufw (the tailnet), both of
+# which have to be run by hand afterwards: one is interactive, the other needs
+# tailscale0 to already exist.
+#
+# There is no lockout risk in enabling this during init: you are at the physical
+# keyboard, and nothing is being allowed in that was open a moment ago.
+#
+# Replaces ../arch-hyprland/setup-packages/setup-ufw, which opens the syncthing
+# profile and does `ufw deny SSH` — the opposite of what this box wants.
+
+set -e
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/ufw-lib
+. "$HERE/../common/ufw-lib"
+
+ufw_bootstrap
+
+# Container DNS, for the case where a container's resolv.conf names the bridge
+# address rather than Docker's embedded 127.0.0.11 forwarder. Scoped to docker0
+# by interface, not just by source address: `from 172.16.0.0/12` alone would
+# also match a VLAN peer that happens to hold an address in that range, which
+# is the one thing this box's firewall exists to stop. docker0 need not exist
+# yet -- ufw takes the name either way.
+sudo ufw allow in on docker0 proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment 'docker dns'
+
+ufw_commit
+
+# Docker publishes ports by writing its own iptables DNAT rules, which bypass
+# ufw's INPUT chain entirely — a container run with `-p 5432:5432` is reachable
+# on every interface no matter what ufw says. ufw-docker fixes that.
+#
+# After ufw_commit, because ufw-docker edits after.rules and wants an enabled
+# firewall to write into; hence the second reload, which is what picks the edit
+# up.
+sudo ufw-docker install
+sudo ufw reload
+
+sudo ufw status verbose

@@ -8,19 +8,17 @@
 
 # not working cpu type othe than host
 mise use -g uv
-mise use -g bun deno node@lts pnpm
-mise use -g lazygit
+mise use -g node@24 node go pnpm claude
+# mise use -g bun deno node@lts pnpm
 # mise use -g mcporter # use mcp server using cli
 
-mise use -g opencode
-mise use -g npm:@kilocode/cli
+mise use -g opencode npm:@kilocode/cli gemini
 # mise use -g npm:cline
-mise use -g gemini
 # mise use -g npm:btca # better context engine by bendevis
 mise use -g aichat # use any model in terminal, also used in automations
-mise use -g npm:@fission-ai/openspec@latest
+# mise use -g npm:@fission-ai/openspec@latest
 # Set up btca for this project: scan package.json for major dependencies (frameworks, libraries, tools), suggest adding each as a btca resource with sensible defaults, then create a btca.config.jsonc file in the project root and update AGENTS.md with usage instructions. Ask me to confirm each resource before adding.
-mise use -g npm:@qwen-code/qwen-code
+# mise use -g npm:@qwen-code/qwen-code
 
 # gemini extensions install https://github.com/obra/superpowers
 # qwen extensions install https://github.com/obra/superpowers

@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+
+# Keep the box awake and reachable. A devbox that suspends is a devbox you
+# cannot ssh into, and every path back in (tailnet, LAN break-glass) dies with
+# it — so this is closer to a correctness fix than a power preference.
+#
+# Four separate things can suspend this machine:
+#
+#   1. hypridle          — hypr/.config/hypr/hypridle.conf has a listener at
+#                          timeout = 1860 that runs `systemctl suspend`.
+#   2. logind lid switch — HandleLidSwitch=suspend is the default. This is the
+#                          likely cause of "it slept when I detached the
+#                          monitor": with an external display attached the
+#                          machine counts as *docked* and follows
+#                          HandleLidSwitchDocked (ignore); unplug it and a
+#                          closed lid falls back to HandleLidSwitch (suspend).
+#   3. logind IdleAction — defaults to ignore on Arch, but set it explicitly.
+#   4. gdm's greeter     — GNOME's power plugin suspends on idle at the login
+#                          screen, which is where this box sits most of the time.
+#
+# All four funnel through sleep.target, so masking it neutralises every one
+# without depending on any tool's config format. The rest of this script is
+# about making the intent explicit and keeping the journal quiet.
+#
+# Reversible:  sudo systemctl unmask sleep.target suspend.target \
+#                  hibernate.target hybrid-sleep.target
+#
+# On a laptop this means the battery runs flat instead of suspending. That is
+# the intended trade for a machine you reach over the tailnet.
+
+set -e
+
+# Takes effect immediately — no reboot needed.
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+# Not gated on is_laptop: the lid settings are harmless on a desktop, and this
+# way the file is identical on every machine.
+sudo mkdir -p /etc/systemd/logind.conf.d
+sudo tee /etc/systemd/logind.conf.d/10-devbox-no-sleep.conf >/dev/null <<'EOF'
+[Login]
+# Never suspend on idle.
+IdleAction=ignore
+
+# Never suspend on a closed lid, docked or not, on AC or battery. Detaching an
+# external monitor flips a laptop from "docked" to "not docked", which is what
+# makes an undocked closed lid suspend when a docked one did not.
+HandleLidSwitch=ignore
+HandleLidSwitchDocked=ignore
+HandleLidSwitchExternalPower=ignore
+EOF
+
+# Deliberately NOT restarting systemd-logind: it can disrupt an active graphical
+# session, and the masking above already provides the actual protection. These
+# settings apply on the next boot — init offers a reboot when it finishes.
+echo "logind drop-in written; lid settings apply after the next reboot"
+
+# The greeter runs its own GNOME session with its own power settings. Masked
+# sleep.target already blocks it, so this only stops it from trying (and
+# logging a failure) every 20 minutes. Non-fatal: gdm may not be installed yet
+# when this runs standalone, and the schema is not present on every setup.
+# Often fails outright: gdm's shell is nologin and its home is /var/lib/gdm, so
+# `sudo -u gdm` frequently cannot spawn a session at all. Both settings are
+# wrapped together so a partial failure still reports.
+if id gdm &>/dev/null && command -v gsettings &>/dev/null; then
+    if ! (
+        sudo -u gdm dbus-run-session -- gsettings set \
+            org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' &&
+            sudo -u gdm dbus-run-session -- gsettings set \
+                org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+    ) 2>/dev/null; then
+        echo "note: could not set gdm greeter power policy — harmless, sleep.target is masked"
+    fi
+fi
+
+# The masking above already makes the shared config's suspend listener inert, so
+# this is about not firing a doomed `systemctl suspend` every idle cycle — and
+# about dropping the brightness listeners, which error on hardware with no
+# keyboard backlight.
+#
+# A systemd user drop-in rather than a file swap: ~/.config/hypr is a single
+# folded stow symlink into the repo, so replacing one file inside it would
+# either write into the repo or break the next `stow hypr` run. Nothing stows
+# ~/.config/systemd, so that path is free.
+#
+# `-c/--config` is documented in hypridle's README and present in its arg
+# parsing (src/main.cpp) — verified upstream, not assumed.
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+DEVBOX_HYPRIDLE_CONF="$DOTFILES_DIR/setup/arch-devbox/hypridle.conf"
+
+if command -v hypridle &>/dev/null && [[ -f "$DEVBOX_HYPRIDLE_CONF" ]]; then
+    override_dir="$HOME/.config/systemd/user/hypridle.service.d"
+    mkdir -p "$override_dir"
+
+    # The bare `ExecStart=` is required: without it systemd *appends* a second
+    # command instead of replacing the unit's own.
+    cat >"$override_dir/override.conf" <<EOF
+[Service]
+ExecStart=
+ExecStart=$(command -v hypridle) -c $DEVBOX_HYPRIDLE_CONF
+EOF
+
+    # Non-fatal: there may be no user systemd instance yet when this runs from a
+    # TTY during a fresh install. The drop-in is on disk either way and takes
+    # effect at next login.
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user try-restart hypridle.service 2>/dev/null || true
+
+    echo "hypridle -> $DEVBOX_HYPRIDLE_CONF (no suspend listener)"
+else
+    echo "note: hypridle not installed — skipping its config override"
+fi
+
+echo
+echo "sleep target states:"
+for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
+    printf '  %-20s %s\n' "$unit" "$(systemctl is-enabled "$unit" 2>&1 | head -1)"
+done
+
+echo
+echo "verify with:  systemctl suspend   # must fail with 'Unit suspend.target is masked'"

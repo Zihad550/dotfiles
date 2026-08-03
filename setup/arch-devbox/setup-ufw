@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+
+# Tailnet-only firewall. This box lives on its own VLAN and has no business
+# talking to anything else on the wire: the tailnet is the only way in, and the
+# only LAN peer it may talk to is the gateway that carries it to the internet.
+#
+# Step 2 of two. ./setup-ufw-lan opened a temporary ssh hole from one LAN
+# machine so the setup could be driven from your laptop; this closes it and
+# leaves the tailnet as the only way in. It asks nothing, so it is
+# non-interactive.
+#
+# Arch port of ../ubuntu-devbox/setup-ufw, diverged. There the LAN hole is the
+# permanent break-glass path, so that script both prompts for it and keeps it.
+# Here the prompt lives in ./setup-ufw-lan and the hole is scaffolding.
+#
+# ─── why the extra rules ─────────────────────────────────────────────────────
+# This machine runs AI harnesses against web projects. Assume, as the design
+# point, that something with a shell here is eventually driven by text it read
+# off the internet -- a poisoned README, an npm postinstall, a page the agent
+# was told to scrape. Ingress rules do nothing about that; the interesting
+# question is what such a process can reach. So on top of deny-all-inbound:
+#
+#   * egress to RFC1918 is dropped on the physical interface (host AND
+#     containers), leaving the gateway as the single permitted LAN peer. The
+#     VLAN is the boundary; this makes the box enforce it rather than trust it.
+#   * link-local 169.254.0.0/16 goes too -- that is where cloud/hypervisor
+#     metadata services live, a favourite SSRF target.
+#   * the box stops answering pings on the VLAN, so it is not even enumerable
+#     from there.
+#
+# Deliberately NOT done: default-deny egress with an allowlist. A web dev box
+# pulls from npm, PyPI, ghcr, Docker Hub, GitHub and a handful of model APIs,
+# all behind CDNs with rotating address space. An IP allowlist for that is
+# fiction, and one that gets `ufw allow out to any` appended at the first broken
+# build is worse than not having it. Egress control that actually holds needs a
+# filtering proxy, not ufw.
+#
+# ─── order ───────────────────────────────────────────────────────────────────
+# Run AFTER ./setup-tailscale, so tailscale0 exists and tailscaled is up. For
+# the full sequence see `## order` in ./README.md -- the canonical copy, so that
+# reordering is one edit and not five.
+#
+# What this one inherits: setup-ufw-base (run by init) set the deny-all baseline
+# and installed ufw-docker; ./setup-ufw-lan may have opened a LAN ssh hole in
+# between. This adds the tailnet hole and the hardening on top, and removes the
+# LAN one.
+#
+# There is a real lockout risk in this step that step 1 does not have: after it
+# runs, the tailnet is the only remote path in. The script refuses to proceed
+# unless tailscale is actually up, and refuses to cut a LAN ssh session out from
+# under itself -- which is the likely case, since step 1 exists so you can get
+# this far over the LAN. Override either with FORCE=1 if you are at the physical
+# keyboard and mean it.
+
+set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/ufw-lib
+. "$HERE/../common/ufw-lib"
+
+# ─── what we are on ──────────────────────────────────────────────────────────
+# The physical uplink. Every deny below is scoped to this interface by name
+# rather than by subnet, which is what keeps them from catching traffic they
+# should not: docker bridges and tailscale0 carry RFC1918 too, and blanket
+# subnet denies would break containers and any tailnet subnet route.
+LAN_IFACE="$(ip -4 route show default | awk '{print $5; exit}')"
+GATEWAY="$(ip -4 route show default | awk '{print $3; exit}')"
+
+if [ -z "$LAN_IFACE" ]; then
+    echo "no default route -- cannot tell which interface faces the VLAN." >&2
+    echo "Bring networking up first; the egress rules need an interface name." >&2
+    exit 1
+fi
+
+# ─── lockout guards ──────────────────────────────────────────────────────────
+FORCE="${FORCE:-0}"
+
+fatal() {
+    echo >&2
+    echo "$1" >&2
+    echo >&2
+    echo "Re-run with FORCE=1 if you are at the physical keyboard and mean it." >&2
+    exit 1
+}
+
+if [ "$FORCE" != "1" ]; then
+    # A tailnet-only firewall in front of a tailnet that is not up is just a
+    # closed door.
+    if ! ip link show tailscale0 &>/dev/null; then
+        fatal "tailscale0 does not exist -- run ./setup-tailscale first.
+Applying these rules now would leave no remote way in at all."
+    fi
+    if ! tailscale status &>/dev/null; then
+        fatal "tailscaled is not up (tailscale status failed).
+Applying these rules now would leave no remote way in at all."
+    fi
+
+    # SSH_CONNECTION is "<client ip> <client port> <server ip> <server port>".
+    # The server-side address is the exact test we want: if this session landed
+    # on the tailnet IP it arrives over tailscale0 and survives; if it landed on
+    # the LAN address, the rules below cut the branch we are sitting on.
+    # :- matters -- SSH_CONNECTION is unset at a physical console, and `set -u`
+    # would otherwise kill the script in the one case that is entirely safe.
+    conn="${SSH_CONNECTION:-}"
+    if [ -n "$conn" ]; then
+        server_ip="$(echo "$conn" | awk '{print $3}')"
+        ts_ip="$(tailscale ip -4 2>/dev/null | head -1)"
+        if [ -n "$ts_ip" ] && [ "$server_ip" != "$ts_ip" ]; then
+            fatal "this ssh session arrived on $server_ip, not the tailnet IP ($ts_ip).
+That is setup-ufw-lan's hole, and this script deletes it -- you would be
+dropped mid-run. Reconnect over the tailnet first:  ssh $USER@$ts_ip"
+        fi
+    fi
+fi
+
+set -e
+
+ufw_bootstrap
+
+# ufw's own default, asserted rather than assumed: nothing gets routed through
+# this box unless a `ufw route` rule says so. Docker keeps working because
+# ufw-docker (installed by setup-ufw-base) hands container traffic to ufw's
+# forward chain instead of letting Docker's DNAT rules bypass it.
+sudo ufw default deny routed
+
+# Blocked packets land in the journal at this level, which is the point: the
+# denied-egress lines below are the signal that something on this box went
+# looking for the VLAN.  journalctl -kg '\[UFW BLOCK\]'
+sudo ufw logging low
+
+# ─── ingress: the tailnet, and nothing else ──────────────────────────────────
+# The whole tailnet, every port. This is what makes per-port dev server rules
+# unnecessary -- a new app on :3000, or a database on :5432, is reachable with
+# no firewall change. It is also why no LAN ssh rule is needed, and why
+# ./harden-ssh has no firewall work to do: sshd is reachable over the tailnet on
+# whatever port that gave it, as the fallback for when Tailscale SSH's ACL is
+# what broke. Not on 22 -- tailscaled intercepts that one on the tailnet IP.
+sudo ufw allow in on tailscale0 comment 'tailnet'
+
+# The point of step 2: setup-ufw-lan's temporary hole goes away. Added after
+# the tailscale0 rule above, so there is never a moment with neither.
+delete_rules_matching 'lan break-glass'
+
+# ─── egress: the gateway, and nothing else on the wire ───────────────────────
+# Order matters -- ufw evaluates top-down, first match wins, so every allow
+# below has to be added before the denies that would otherwise swallow it.
+
+if [ -n "$GATEWAY" ]; then
+    # The one LAN peer that stays reachable. Scoped to the single host, not the
+    # subnet: it is the router, so DNS/NTP/DHCP served by it keep working while
+    # every other address on the VLAN stays dark. Traffic to the internet is
+    # unaffected either way -- those packets carry a public destination and only
+    # pass through the gateway at layer 2.
+    sudo ufw allow out on "$LAN_IFACE" to "$GATEWAY" comment 'vlan gateway'
+    sudo ufw route allow out on "$LAN_IFACE" to "$GATEWAY" comment 'vlan gateway (containers)'
+else
+    echo "warn: no default gateway found -- skipping the gateway allow rule."
+    echo "      If the resolver lives on the LAN, DNS will break."
+fi
+
+# dhcpcd and systemd-networkd both talk DHCP over raw packet sockets, which
+# never reach the filter table -- this rule is for anything that does not.
+sudo ufw allow out on "$LAN_IFACE" to 255.255.255.255 port 67 proto udp comment 'dhcp'
+
+# The isolation itself. `out on $LAN_IFACE` is the whole trick: identical
+# destinations reached over tailscale0 (a tailnet subnet route) or docker0 (a
+# container network) do not match these rules and keep working.
+#
+# Each range is applied twice. `ufw ... out` is the OUTPUT chain -- processes on
+# the host. `ufw route ... out` is the FORWARD chain, which is where container
+# traffic goes; an agent that escapes into `docker run` would otherwise walk
+# straight past the host rules.
+for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4; do
+    sudo ufw deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation'
+    sudo ufw route deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation (containers)'
+done
+sudo ufw deny out on "$LAN_IFACE" log to 255.255.255.255 comment 'vlan isolation'
+
+# IPv6 unique-local. Link-local (fe80::/10) and multicast (ff00::/8) are left
+# alone on purpose -- NDP runs over both, and dropping them does not harden the
+# box, it just removes IPv6.
+sudo ufw deny out on "$LAN_IFACE" log to fc00::/7 comment 'vlan isolation (v6 ula)'
+sudo ufw route deny out on "$LAN_IFACE" log to fc00::/7 comment 'vlan isolation (v6 ula, containers)'
+
+# ─── stop answering pings on the VLAN ────────────────────────────────────────
+# ufw's before.rules accepts ICMP echo-request on every interface, ahead of any
+# rule `ufw allow`/`ufw deny` can write -- so this has to be edited in place.
+# Kept interface-scoped rather than done with net.ipv4.icmp_echo_ignore_all,
+# because `ping <tailnet ip>` is a diagnostic worth keeping.
+BEFORE_RULES=/etc/ufw/before.rules
+if ! grep -q 'arch-devbox: icmp' "$BEFORE_RULES"; then
+    if grep -qE '^-A ufw-before-input -p icmp --icmp-type echo-request -j ACCEPT$' "$BEFORE_RULES"; then
+        sudo cp -n "$BEFORE_RULES" "$BEFORE_RULES.orig"
+        sudo sed -i \
+            's|^-A ufw-before-input -p icmp --icmp-type echo-request -j ACCEPT$|# arch-devbox: icmp -- answer pings from the tailnet, stay silent on the VLAN.\n-A ufw-before-input -i tailscale0 -p icmp --icmp-type echo-request -j ACCEPT\n-A ufw-before-input -p icmp --icmp-type echo-request -j DROP|' \
+            "$BEFORE_RULES"
+        echo "before.rules: echo-request now tailscale0-only (original at $BEFORE_RULES.orig)"
+    else
+        echo "warn: could not find the echo-request line in $BEFORE_RULES."
+        echo "      The box still answers pings on the VLAN. Edit it by hand."
+    fi
+fi
+
+# ─── kernel network hardening ────────────────────────────────────────────────
+# ufw can apply its own sysctls from /etc/ufw/sysctl.conf on every start, which
+# would silently override anything set here. Point IPT_SYSCTL at nothing so
+# /etc/sysctl.d wins, which is where a reader would look for these anyway.
+if ! grep -q 'arch-devbox: emptied' /etc/default/ufw; then
+    sudo sed -i 's|^IPT_SYSCTL=.*|# arch-devbox: emptied so /etc/sysctl.d/99-arch-devbox-net.conf is authoritative\nIPT_SYSCTL=|' /etc/default/ufw
+fi
+
+sudo tee /etc/sysctl.d/99-arch-devbox-net.conf >/dev/null <<'EOF'
+# Written by setup/arch-devbox/setup-ufw.
+
+# Reverse-path filtering in loose mode (2), not strict (1). Strict drops packets
+# whose reply route does not leave by the interface they arrived on, which is
+# exactly what tailscale subnet routes and exit nodes look like.
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
+
+# ICMP redirects are a gateway telling the box to reroute traffic. On a VLAN
+# whose other occupants are not trusted, that is an invitation.
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Source routing lets the sender pick the return path. Nothing legitimate here
+# uses it.
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+
+# Spoofed source addresses get logged rather than silently dropped -- the same
+# reasoning as `ufw logging low` above.
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+net.ipv4.tcp_syncookies = 1
+
+# net.ipv4.ip_forward is deliberately absent: Docker needs it on, and sets it.
+EOF
+sudo sysctl --system >/dev/null
+
+ufw_commit
+
+# A tailnet that goes down now has no ssh fallback, so sshd being dead matters
+# more than it did -- sshd over tailscale0 is the second path in when Tailscale
+# SSH's ACL is what broke.
+if ! systemctl is-active sshd.service &>/dev/null; then
+    echo
+    echo "WARNING: sshd.service is not running, so nothing answers over the"
+    echo "         tailnet except tailscaled itself. That removes the fallback"
+    echo "         for a broken Tailscale SSH ACL. Fix with:"
+    echo "           $HERE/setup-sshd"
+elif [ ! -f /etc/ssh/sshd_config.d/00-harden.conf ]; then
+    echo
+    echo "note: sshd is running, but only on port 22 -- where tailscaled"
+    echo "      intercepts it on the tailnet IP, so it is not actually a"
+    echo "      fallback yet. Run (after ssh-copy-id from the laptop):"
+    echo "        $HERE/harden-ssh"
+fi
+
+echo
+sudo ufw status verbose
+echo
+echo "Tailnet-only. Reachable at $(tailscale ip -4 2>/dev/null | head -1 || echo '<tailnet down>')."
+echo "On $LAN_IFACE the box talks to ${GATEWAY:-<no gateway>} and nothing else,"
+echo "and does not answer pings. Denied egress shows up in:"
+echo "  journalctl -kg '\[UFW BLOCK\]' -f"
+echo
+echo "The only remaining way in if the tailnet dies is a keyboard attached to"
+echo "this machine. That is the trade you asked for."

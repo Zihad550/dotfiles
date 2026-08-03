@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# Key-only sshd, no root, off port 22, modern crypto only.
+# Run LAST -- after setup-tailscale and setup-ufw, and after ssh-copy-id from
+# the laptop. See ../common/harden-ssh for the flags, the two-phase rollout and
+# the reasoning; this file only says what is true about *this* box.
+#
+#   ./harden-ssh                 # interactive; picks a random port
+#   SSH_PORT=48222 ./harden-ssh  # pin the port
+#   ./harden-ssh --finalize      # phase 2: stop listening on 22
+#   ./harden-ssh --revert        # back to the distro config
+#
+# The port move is not obscurity here. setup-ufw drops everything that does not
+# arrive on tailscale0, so there is no scanner to hide from -- but `tailscale up
+# --ssh` makes tailscaled intercept port 22 on the tailnet IP, which means sshd
+# on 22 is unreachable from the only network this box answers on. Moving it is
+# what makes sshd usable as the fallback for a broken Tailscale SSH ACL.
+
+set -euo pipefail
+
+# sshd.service, not ssh.service.
+export SSH_UNIT=sshd
+
+# setup-ufw opens `in on tailscale0` -- an interface, every port -- and deletes
+# the temporary hole setup-ufw-lan opened. So a new port needs no rule, and
+# closing 22 leaves none behind.
+#
+# This is why the order matters: run this *before* setup-ufw and the port move
+# steps out from under setup-ufw-lan's port-22 rule, which nothing here mirrors
+# onto the new port. The shared script warns when it finds no tailscale0 rule.
+export HARDEN_FIREWALL=none
+
+# No LAN break-glass. The tailnet is the only network; last resort is a keyboard
+# attached to this machine.
+export HARDEN_NET=tailnet
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export HARDEN_SSH_SELF="$HERE/harden-ssh"
+
+exec "$HERE/../common/harden-ssh" "$@"

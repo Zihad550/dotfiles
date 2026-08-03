@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-mise use -g node@24 node go pnpm claude
+# arch-hyprland only. arch-devbox runs ../ai-tools instead, which installs the
+# same global toolchain plus the AI CLIs — that box is the one running the
+# harnesses, so the CLIs are part of its baseline.
+
+# mise use -g node@24 node go pnpm claude
 
 # mise install github:user/repo # install from github backend
 # mise install npm:package-name # install from npm backend
@@ -13,6 +17,9 @@ mise use -g node@24 node go pnpm claude
 # mise use -g npm:vercel npm:netlify-cli claude
 # mise use -g npm:skills
 # mise use -g npm:@fission-ai/openspec portless
+#
+# The wider AI-CLI set (opencode, kilo, gemini, qwen, openspec, …) lives in
+# ../ai-tools. Neither init runs it — run it by hand if you want them.
 
 # Shell completions for these tools are generated post-reboot, when mise has
 # activated and the tools are on PATH. Run: ~/dotfiles/bin/df-gen-completions

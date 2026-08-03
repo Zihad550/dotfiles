@@ -13,7 +13,8 @@ list_targets() {
    for d in "$SCRIPT_DIR"/*/; do
       name="$(basename "$d")"
       case "$name" in
-         systemd|applications) ;;
+         # Not install targets: shared assets and code used by the real ones.
+         systemd|applications|common) ;;
          *) echo "  - $name" ;;
       esac
    done
