@@ -50,9 +50,10 @@ be verified with an on-console reboot.
 
 | script | what it does |
 |---|---|
-| `init` | entrypoint; runs `packages`, `setup-docker`, `stow`, `tools`, sets zsh |
+| `init` | entrypoint; runs `packages`, `setup-docker`, `stow`, `../common/setup-no-sleep`, `setup-tuned`, `tools`, sets zsh |
 | `packages` | apt + mise/neovim PPAs — same list as the devcontainer |
 | `setup-docker` | Docker CE + `docker` group — the devcontainer's docker-in-docker feature |
+| `setup-tuned` | power management — a `ubuntu-devbox` tuned profile (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `tools` | global mise toolchain — copy of `devcontainer/tools` |
 | `stow` | dotfile symlinks — `devcontainer/stow` plus the bind-mounted paths it assumed |
 | `setup-tailscale` | install tailscale, join the tailnet, enable Tailscale SSH (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
@@ -100,6 +101,43 @@ invalidate the seal, and that keyslot is the way back in.
 The alternative, `dropbear-initramfs`, puts an ssh server in the initramfs so you
 can unlock remotely. It only works from the LAN — not over Tailscale — so for a
 box reached from outside it does not solve the actual problem.
+
+## power management
+
+Bare metal, so this box owns real cpufreq, real SATA link power and real USB —
+which is what makes any of it worth doing. `init` runs two steps:
+
+- [`../common/setup-no-sleep`](../common/setup-no-sleep) — masks the sleep
+  targets. Most of what it defends against is already inert here (no hypridle,
+  no gdm greeter, and Ubuntu Server leaves logind's `IdleAction` at `ignore`),
+  which leaves **the lid switch**: `HandleLidSwitch=suspend` is still systemd's
+  default, so on a bare-metal laptop closing the lid takes the box off the
+  tailnet with no console left to notice on. That case is the whole reason it
+  runs. Called directly rather than through a wrapper — this box sets none of
+  its variables.
+- `setup-tuned` → [`../common/setup-tuned`](../common/setup-tuned) — writes and
+  activates a `ubuntu-devbox` tuned profile.
+
+The profile itself, and why it is standalone rather than `include=powersave`,
+is documented once in
+[`../arch-devbox/README.md`](../arch-devbox/README.md#why-the-profile-does-not-inherit-powersave)
+— both boxes generate the same body. Three things differ on Ubuntu:
+
+- **tuned is in `universe`**, not `main`. The shared script enables the
+  component if the package has no install candidate.
+- **Ubuntu's `tlp` declares no `Conflicts` against tuned** (Arch's does), so
+  nothing stops both being installed. The shared script refuses to run when it
+  finds `tlp.service`. Run by hand that is a hard error; `init` passes
+  `TUNED_ON_TLP=skip` so it warns and continues instead, because aborting there
+  would kill the run before `tools` and `chsh`. `init` also skips the step
+  entirely on a laptop, which is where tlp belongs.
+- **`power-profiles-daemon` is a desktop package**, normally absent on Server,
+  so the shared script's mask usually finds nothing.
+
+**Do not reuse `setup-tuned` on [`../ubuntu-server`](../ubuntu-server).** That
+target is a Proxmox guest: a guest owns no cpufreq, no SATA link power and no
+USB, so every section of the profile is a no-op. `virtual-guest` — optionally
+merged as `tuned-adm profile virtual-guest powersave` — is what it wants.
 
 ## tailscale ssh
 

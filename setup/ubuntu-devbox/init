@@ -31,9 +31,27 @@ set -e
 
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Derived from SETUP_DIR rather than the arch inits' `${DOTFILES_DIR:-$HOME/dotfiles}`,
+# so the repo still works when it is not checked out at ~/dotfiles.
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$SETUP_DIR/../.." && pwd)}"
+
 "$SETUP_DIR/packages"
 "$SETUP_DIR/setup-docker"
 "$SETUP_DIR/stow"
+
+# No wrapper for setup-no-sleep: this box sets none of its variables, so the
+# shared script is called directly. setup-tuned does have one.
+#
+# Order: reachability first, power savings second.
+"$DOTFILES_DIR/setup/common/setup-no-sleep"
+
+# shellcheck source=../common/hw-detect
+source "$DOTFILES_DIR/setup/common/hw-detect"
+if is_laptop; then
+    echo "note: laptop detected — skipping setup-tuned; use tlp instead"
+else
+    TUNED_ON_TLP=skip "$SETUP_DIR/setup-tuned"
+fi
 
 mise trust
 "$SETUP_DIR/tools"

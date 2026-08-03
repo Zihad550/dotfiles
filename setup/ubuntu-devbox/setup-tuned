@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Power management for this box. See ../common/setup-tuned for the profile and
+# README.md "power management" for the reasoning and the Ubuntu specifics.
+#
+# Bare metal, so the whole profile applies. Do not reuse this on
+# ../ubuntu-server: that target is a Proxmox guest, where every section is a
+# no-op and `virtual-guest` is the right profile.
+
+set -euo pipefail
+
+export TUNED_PROFILE_NAME=ubuntu-devbox
+export TUNED_SUMMARY="Always-on bare-metal devbox: power savings that never touch the ssh path"
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$HERE/../common/setup-tuned" "$@"
