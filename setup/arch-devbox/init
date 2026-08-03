@@ -34,8 +34,8 @@ export ARCH_SETUP_INIT="$ARCH_DEVBOX_DIR/init"
 source "$ARCH_HYPR_DIR/utils/logging"
 # shellcheck source=../arch-hyprland/utils/state
 source "$ARCH_HYPR_DIR/utils/state"
-# shellcheck source=../arch-hyprland/utils/hw-detect
-source "$ARCH_HYPR_DIR/utils/hw-detect"
+# shellcheck source=../common/hw-detect
+source "$DOTFILES_DIR/setup/common/hw-detect"
 
 CURRENT_STEP="init"
 

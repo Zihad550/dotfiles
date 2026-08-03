@@ -13,8 +13,8 @@ export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 source "$ARCH_HYPR_DIR/utils/logging"
 # shellcheck source=utils/state
 source "$ARCH_HYPR_DIR/utils/state"
-# shellcheck source=utils/hw-detect
-source "$ARCH_HYPR_DIR/utils/hw-detect"
+# shellcheck source=../common/hw-detect
+source "$DOTFILES_DIR/setup/common/hw-detect"
 
 CURRENT_STEP="init"
 

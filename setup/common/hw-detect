@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# Hardware detection, shared by every target.
+#
+# Sourced, not executed:  source "$DOTFILES_DIR/setup/common/hw-detect"
+#
+# has_nvidia/has_intel_cpu/has_amd_cpu currently have no call sites; they moved
+# here unchanged from arch-hyprland/utils/hw-detect rather than being dropped as
+# part of a move.
+
 is_laptop() {
     if compgen -G "/sys/class/power_supply/BAT*" >/dev/null; then
         return 0

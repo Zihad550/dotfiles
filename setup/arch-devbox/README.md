@@ -74,6 +74,11 @@ Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
 `packages/pacman-base`, `packages/quickshell-packages`, `ai-tools`
 and all of `setup-packages/`.
 
+Hardware detection is the exception: it used to be `../arch-hyprland/utils/hw-detect`
+and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
+three installers. It is not arch-specific, and `../ubuntu-devbox` needs
+`is_laptop` too.
+
 Four small changes were made there so both installers can share them:
 
 - `preflight` and `utils/logging` take the installer's name from
