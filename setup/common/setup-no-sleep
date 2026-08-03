@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+# Keep the box awake and reachable. Shared implementation; per-box wrappers set
+# the variables below and exec this.
+# See ../arch-devbox/README.md "staying awake" for the four things that can
+# suspend a machine and why masking the sleep targets covers all of them.
+#
+#   NO_SLEEP_HYPRIDLE_CONF=<path>   optional; Hyprland boxes only
+
+set -euo pipefail
+
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+sudo mkdir -p /etc/systemd/logind.conf.d
+sudo tee /etc/systemd/logind.conf.d/10-devbox-no-sleep.conf >/dev/null <<'EOF'
+[Login]
+IdleAction=ignore
+HandleLidSwitch=ignore
+HandleLidSwitchDocked=ignore
+HandleLidSwitchExternalPower=ignore
+EOF
+
+# Not restarting systemd-logind: it can disrupt an active graphical session, and
+# the masking above is what actually protects us.
+echo "logind drop-in written; lid settings apply after the next reboot"
+
+# gdm's greeter runs its own GNOME session with its own power settings. Masked
+# sleep.target already blocks it; this only stops it retrying every 20 minutes.
+if id gdm &>/dev/null && command -v gsettings &>/dev/null; then
+    if ! (
+        sudo -u gdm dbus-run-session -- gsettings set \
+            org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' &&
+            sudo -u gdm dbus-run-session -- gsettings set \
+                org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+    ) 2>/dev/null; then
+        echo "note: could not set gdm greeter power policy — harmless, sleep.target is masked"
+    fi
+fi
+
+DEVBOX_HYPRIDLE_CONF="${NO_SLEEP_HYPRIDLE_CONF:-}"
+
+if [[ -z "$DEVBOX_HYPRIDLE_CONF" ]]; then
+    : # no hypridle on this box
+elif command -v hypridle &>/dev/null && [[ -f "$DEVBOX_HYPRIDLE_CONF" ]]; then
+    override_dir="$HOME/.config/systemd/user/hypridle.service.d"
+    mkdir -p "$override_dir"
+
+    # The bare `ExecStart=` is required: without it systemd appends a second
+    # command instead of replacing the unit's own.
+    cat >"$override_dir/override.conf" <<EOF
+[Service]
+ExecStart=
+ExecStart=$(command -v hypridle) -c $DEVBOX_HYPRIDLE_CONF
+EOF
+
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user try-restart hypridle.service 2>/dev/null || true
+
+    echo "hypridle -> $DEVBOX_HYPRIDLE_CONF (no suspend listener)"
+else
+    echo "note: hypridle not installed — skipping its config override"
+fi
+
+echo
+echo "sleep target states:"
+for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
+    printf '  %-20s %s\n' "$unit" "$(systemctl is-enabled "$unit" 2>&1 | head -1)"
+done
+
+echo
+echo "verify with:  systemctl suspend   # must fail with 'Unit suspend.target is masked'"

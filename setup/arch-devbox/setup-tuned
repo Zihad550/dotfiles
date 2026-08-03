@@ -1,68 +1,14 @@
 #!/usr/bin/env bash
 
-# Power management for the always-on devbox. See README.md "power management"
-# for why the profile is standalone rather than include=powersave, and what
-# each setting is for.
+# Power management for this box. See ../common/setup-tuned for the profile and
+# README.md "power management" for the reasoning.
 #
 # Runs from init's non-laptop branch only; the laptop gets
 # ../arch-hyprland/setup-packages/setup-tlp instead.
 
 set -euo pipefail
 
-PROFILE_NAME="arch-devbox"
+export TUNED_PROFILE_NAME=arch-devbox
 
-if systemctl is-enabled tlp.service &>/dev/null || systemctl is-active tlp.service &>/dev/null; then
-    echo "error: tlp.service is present — tuned and TLP fight over the same knobs" >&2
-    echo "       pick one:  sudo systemctl disable --now tlp.service" >&2
-    exit 1
-fi
-
-sudo pacman -S --noconfirm --needed tuned
-
-# `systemctl cat` as the existence test: list-unit-files exits 0 even when
-# nothing matches (systemd#15082), so it cannot be used here.
-if systemctl cat power-profiles-daemon.service &>/dev/null; then
-    sudo systemctl mask --now power-profiles-daemon.service
-    echo "masked power-profiles-daemon (it fights tuned over the same knobs)"
-fi
-
-# /etc/tuned/profiles/ since tuned 2.23.0; the fallback is for older boxes.
-if [[ -d /etc/tuned/profiles ]]; then
-    PROFILE_DIR="/etc/tuned/profiles/$PROFILE_NAME"
-else
-    PROFILE_DIR="/etc/tuned/$PROFILE_NAME"
-fi
-
-sudo mkdir -p "$PROFILE_DIR"
-
-sudo tee "$PROFILE_DIR/tuned.conf" >/dev/null <<'EOF'
-[main]
-summary=Always-on devbox: power savings that never touch the ssh path
-
-[cpu]
-governor=schedutil|conservative|powersave
-energy_perf_bias=powersave|power
-energy_performance_preference=balance_power
-boost=1
-
-[usb]
-autosuspend=0
-
-[scsi_host]
-alpm=med_power_with_dipm
-
-[audio]
-timeout=10
-EOF
-
-sudo systemctl enable --now tuned.service
-sudo tuned-adm profile "$PROFILE_NAME"
-
-echo
-echo "active profile: $(tuned-adm active 2>&1 | sed 's/^.*: //')"
-echo "scaling driver: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver 2>/dev/null || echo 'n/a')"
-echo "governor:       $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo 'n/a')"
-echo "EPP:            $(cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null || echo 'n/a')"
-
-echo
-echo "verify with:  sudo tuned-adm verify   # reports any setting tuned could not apply"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$HERE/../common/setup-tuned" "$@"

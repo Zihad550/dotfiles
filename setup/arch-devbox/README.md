@@ -61,9 +61,9 @@ so a fix there lands on both targets.
 | `post-install` | same as arch-hyprland's, but sets chromium as default browser |
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
-| `setup-no-sleep` | masks the sleep targets so the box stays reachable |
+| `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
 | `hypridle.conf` | devbox idle rules — lock and DPMS-off, no suspend |
-| `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch |
+| `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `setup-ufw-base` | non-interactive deny-all baseline + `ufw-docker`, run by `init` |
 | `setup-ufw-lan` | step 1: a temporary ssh hole from one LAN machine, so the rest can be driven remotely |
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |

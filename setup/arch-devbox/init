@@ -195,7 +195,7 @@ if is_laptop; then
     run_step "wifi powersave (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-wifi-powersave"
 else
     ui_skip "not a laptop — skipping tlp/auto-cpufreq/bluetooth/wifi-powersave"
-    run_step "tuned (desktop)" "$ARCH_DEVBOX_DIR/setup-tuned"
+    run_step "tuned (desktop)" env TUNED_ON_TLP=skip "$ARCH_DEVBOX_DIR/setup-tuned"
 fi
 
 # arch-hyprland also makes ~/.obsidian-vault; obsidian is culled here.
