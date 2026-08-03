@@ -162,7 +162,7 @@ fi
 
 # dhcpcd and systemd-networkd both talk DHCP over raw packet sockets, which
 # never reach the filter table -- this rule is for anything that does not.
-sudo ufw allow out on "$LAN_IFACE" to 255.255.255.255 port 67 proto udp comment 'dhcp'
+sudo ufw allow out on "$LAN_IFACE" proto udp to 255.255.255.255 port 67 comment 'dhcp'
 
 # The isolation itself. `out on $LAN_IFACE` is the whole trick: identical
 # destinations reached over tailscale0 (a tailnet subnet route) or docker0 (a
@@ -172,6 +172,11 @@ sudo ufw allow out on "$LAN_IFACE" to 255.255.255.255 port 67 proto udp comment 
 # the host. `ufw route ... out` is the FORWARD chain, which is where container
 # traffic goes; an agent that escapes into `docker run` would otherwise walk
 # straight past the host rules.
+#
+# The route half looks redundant with ufw-docker and is not -- DOCKER-USER does
+# not deny container->LAN. Chain ordering and the observed rules are in
+# ./README.md under `#### why the ufw route rules aren't redundant with
+# ufw-docker`; do not delete these two lines without reading it.
 for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4; do
     sudo ufw deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation'
     sudo ufw route deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation (containers)'
@@ -204,11 +209,30 @@ if ! grep -q 'arch-devbox: icmp' "$BEFORE_RULES"; then
 fi
 
 # ─── kernel network hardening ────────────────────────────────────────────────
-# ufw can apply its own sysctls from /etc/ufw/sysctl.conf on every start, which
-# would silently override anything set here. Point IPT_SYSCTL at nothing so
-# /etc/sysctl.d wins, which is where a reader would look for these anyway.
-if ! grep -q 'arch-devbox: emptied' /etc/default/ufw; then
-    sudo sed -i 's|^IPT_SYSCTL=.*|# arch-devbox: emptied so /etc/sysctl.d/99-arch-devbox-net.conf is authoritative\nIPT_SYSCTL=|' /etc/default/ufw
+# ufw reads /etc/ufw/sysctl.conf when it starts, and ufw-framework(8) is explicit
+# that this file "overrides values in the system sysctl.conf" -- so left alone it
+# would silently undo anything set below. Commenting IPT_SYSCTL out is the
+# documented way to switch that off; ufw's init skips the load when it is unset,
+# and /etc/sysctl.d becomes authoritative, which is where a reader would look for
+# these anyway.
+#
+# The marker is matched on the `arch-devbox:` prefix alone, not on the rest of
+# the sentence: an earlier version of this script wrote a different one, and
+# matching the full text would fire the sed a second time on a box it had
+# already edited.
+if ! grep -q 'arch-devbox:' /etc/default/ufw; then
+    if grep -qE '^IPT_SYSCTL=' /etc/default/ufw; then
+        sudo sed -i 's|^IPT_SYSCTL=|# arch-devbox: sysctl -- disabled so /etc/sysctl.d/99-arch-devbox-net.conf wins\n#IPT_SYSCTL=|' /etc/default/ufw
+    elif grep -qE '^[[:space:]]*#[[:space:]]*IPT_SYSCTL=' /etc/default/ufw; then
+        echo "IPT_SYSCTL already commented out -- nothing to do."
+    else
+        # Same reasoning as the before.rules branch above: a sed that matches
+        # nothing is indistinguishable from a sed that worked, and the failure
+        # is silent -- ufw keeps overriding the sysctls written below.
+        echo "warn: no IPT_SYSCTL line in /etc/default/ufw."
+        echo "      If ufw still loads /etc/ufw/sysctl.conf it will override"
+        echo "      /etc/sysctl.d/99-arch-devbox-net.conf on every start. Check by hand."
+    fi
 fi
 
 sudo tee /etc/sysctl.d/99-arch-devbox-net.conf >/dev/null <<'EOF'
@@ -267,6 +291,47 @@ elif [ ! -f /etc/ssh/sshd_config.d/00-harden.conf ]; then
     echo "      the laptop):"
     echo "        $HERE/harden-ssh"
 fi
+
+# The one way to defeat everything above, checked rather than just documented:
+# forwarding tailnet traffic onward puts tailscaled's ts-forward chain (FORWARD
+# position 1, above both DOCKER-USER and ufw) in charge, and it accepts anything
+# arriving on tailscale0 unconditionally. See `#### the one rule ufw cannot
+# enforce` in ./README.md. No ufw rule can prevent it, so all this can do is
+# notice.
+#
+# Three prefs turn forwarding on, and --advertise-exit-node is not a fourth: it
+# is 0.0.0.0/0 and ::/0 inside AdvertiseRoutes. An app connector is easy to miss
+# because it advertises its routes dynamically, as it resolves the domains it
+# fronts -- AdvertiseRoutes can still read null at the moment we look.
+#
+# Flattened first, so the tests survive the pretty-printed JSON. Note unset
+# prints `null`, not `[]`, so the empty-list arm is for tailscaled versions that
+# print one rather than for the ordinary case.
+warn_forwarding() {
+    echo
+    echo "WARNING: $1"
+    echo "         This node forwards tailnet traffic, and forwarded packets are"
+    echo "         accepted by tailscaled before any rule written above is"
+    echo "         consulted -- the VLAN isolation does not apply to them."
+    echo "         Undo with:"
+    echo "           sudo tailscale up --advertise-routes= --advertise-exit-node=false"
+    echo "           sudo tailscale up --app-connector=false"
+}
+
+prefs="$(tailscale debug prefs 2>/dev/null | tr -d '[:space:]')"
+case "$prefs" in
+*'"AdvertiseRoutes":[]'* | *'"AdvertiseRoutes":null'*) ;;
+*'"AdvertiseRoutes":['*)
+    warn_forwarding "this node advertises subnet routes:"
+    tailscale debug prefs 2>/dev/null |
+        sed -n '/"AdvertiseRoutes"/,/]/p' | sed 's/^/           /'
+    ;;
+esac
+case "$prefs" in
+*'"AppConnector":{"Advertise":true'*)
+    warn_forwarding "this node is an app connector (AppConnector.Advertise=true)."
+    ;;
+esac
 
 echo
 sudo ufw status verbose

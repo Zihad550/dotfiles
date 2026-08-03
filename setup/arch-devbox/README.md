@@ -275,7 +275,7 @@ internet. Inbound rules do nothing about that; what matters is reach.
 | DHCP to `255.255.255.255:67`, allowed out | added before the broadcast deny above it. `dhcpcd` and `systemd-networkd` use raw packet sockets that never reach the filter table; this is for anything that doesn't |
 | `default deny routed` | ufw's own default, asserted rather than assumed. Not what enforces the isolation — the `ufw route deny` rules above match regardless of policy. It covers the forwarding paths with no rule at all (a tailnet subnet route, a second bridge), which `ufw default allow routed` on a box once used as a router would otherwise leave open |
 | ICMP echo-request | answered on `tailscale0`, dropped on the VLAN |
-| `IPT_SYSCTL=` emptied in `/etc/default/ufw` | ufw otherwise re-applies `/etc/ufw/sysctl.conf` on every start, silently overriding the file below |
+| `IPT_SYSCTL` commented out in `/etc/default/ufw` | ufw otherwise re-applies `/etc/ufw/sysctl.conf` on every start, and `ufw-framework(8)` is explicit that it "overrides values in the system sysctl.conf" — it would silently undo the file below |
 | `/etc/sysctl.d/99-arch-devbox-net.conf` | no redirects, no source routing, loose `rp_filter`, `log_martians` |
 
 Scoping the denies to the uplink interface rather than to the subnets is what
@@ -286,6 +286,105 @@ reason — strict mode breaks exit nodes and subnet routes.
 
 Denied egress is logged; `journalctl -kg '\[UFW BLOCK\]' -f` is the thing to
 watch if a build starts failing.
+
+#### the one rule ufw cannot enforce: never advertise routes
+
+Do not run `tailscale up --advertise-routes` or `--advertise-exit-node` on this
+box. Verified against the live tables:
+
+```
+# iptables -S FORWARD
+-A FORWARD -j ts-forward        <- position 1, above everything
+-A FORWARD -j DOCKER-USER
+...
+-A FORWARD -j ufw-before-forward
+
+# iptables -S ts-forward
+-A ts-forward -i tailscale0 -j MARK --set-xmark 0x40000/0xff0000
+-A ts-forward -m mark --mark 0x40000/0xff0000 -j ACCEPT
+```
+
+`tailscaled` puts its own chain ahead of both Docker and ufw, and unconditionally
+accepts anything forwarded in from `tailscale0`. So the moment this box forwards
+tailnet traffic onward, none of the `ufw route` rules are consulted for it and
+the box becomes a bridge from the tailnet straight into the VLAN. It doesn't
+forward today — `setup-tailscale` advertises nothing, so every tailnet packet
+terminates here and `INPUT` governs it. That is a property to preserve, and no
+firewall rule can preserve it for you.
+
+Three prefs switch forwarding on, and `setup-ufw` checks all three at the end of
+its run and warns, since it cannot prevent them:
+
+| pref | set by |
+|---|---|
+| `AdvertiseRoutes` non-empty | `--advertise-routes` |
+| `AdvertiseRoutes` contains `0.0.0.0/0`, `::/0` | `--advertise-exit-node` — not a separate pref |
+| `AppConnector.Advertise: true` | `--app-connector` |
+
+The app connector is the one to watch: it advertises its routes *dynamically* as
+it resolves the domains it fronts, so `AdvertiseRoutes` can still read `null` at
+the moment you look. Checking only that field would miss it.
+
+Note `tailscale debug prefs` is a debug subcommand with no stability guarantee,
+and the check matches its JSON by string rather than parsing it. If a field is
+renamed the check degrades to silence, not a false alarm — so it is a safety net,
+not a control.
+
+This is also most of the answer to "can't Tailscale bypass ufw?" — for `FORWARD`,
+yes, exactly as above. For `INPUT` the evidence is indirect and worth stating as
+such: `allow in on tailscale0` is demonstrably load-bearing (the box is
+unreachable under `default deny incoming` without it), which means decrypted
+packets from the `tailscale0` TUN do traverse ufw's chains. But `tailscaled` also
+installs a `ts-input` chain, and **that chain has not been inspected here** — the
+tables above cover `FORWARD` only. If you want it settled rather than inferred:
+
+```bash
+sudo iptables -S INPUT | head; sudo iptables -S ts-input
+```
+
+#### why the `ufw route` rules aren't redundant with ufw-docker
+
+`ufw-docker install` writes a `DOCKER-USER` chain that looks like it already
+covers this. It doesn't — the source-based `RETURN` rules sit *above* the
+destination-based denies:
+
+```
+-A DOCKER-USER -j ufw-user-forward          <- first, which is what saves us
+...
+-A DOCKER-USER -s 172.16.0.0/12 -j RETURN   <- a container matches here
+-A DOCKER-USER -d 192.168.0.0/16 -m conntrack --ctstate NEW -j ufw-docker-logging-deny
+```
+
+A container's own source address short-circuits to `RETURN` long before the
+`-d <rfc1918>` denies, which exist for the reverse direction (outside → container).
+`RETURN` leaves the chain rather than accepting, so the precise claim is that
+container→LAN is **not denied** by ufw-docker, not that ufw-docker permits it.
+Either way nothing stops it, and what closes it is `-j ufw-user-forward` being
+DOCKER-USER's first rule.
+
+##### the residual gap: forwarded ICMP
+
+`before.rules` carries the blanket echo-request accept **twice** — once in
+`ufw-before-input` (line 37) and once in `ufw-before-forward` (line 43).
+`setup-ufw` patches only the first. So forwarded pings are governed by chain
+order, not by a rule of ours:
+
+- **Docker traffic is covered**, because `DOCKER-USER` is at `FORWARD` position 2
+  and `ufw-before-forward` at position 5 — the isolation rules are reached first.
+- **That ordering is runtime state, not a guarantee.** Docker re-inserts
+  `DOCKER-USER` at the head of `FORWARD` when the daemon starts, ufw inserts its
+  chains on reload. The observed order has Docker above ufw, and Docker only ever
+  re-inserts *higher*, so it is stable in practice — but nothing asserts it.
+- **Non-Docker forwarding paths are not covered at all.** Anything forwarded that
+  doesn't traverse `DOCKER-USER` hits the blanket accept at position 5 before
+  `ufw-user-forward` is consulted, and can ping the VLAN.
+
+Closing it properly means interface- and destination-scoped DROP rules written
+into `before.rules` with `$LAN_IFACE` interpolated — five rules, in a static file,
+to cover a path this box doesn't currently have. Left open deliberately. Only
+ICMP echo is affected; `ufw-before-forward` pre-accepts nothing else, so TCP and
+UDP from any forwarding path still land on the `ufw route deny` rules. Verify
+with `docker run --rm alpine ping -c1 -W2 <a VLAN host>` — it should fail.
 
 **Not done: default-deny egress with an allowlist.** npm, PyPI, ghcr, Docker Hub,
 GitHub and the model APIs all sit behind CDNs with rotating address space. An IP
