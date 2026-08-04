@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# quickshell, with -n/--no-duplicate injected into config launches.
+#
+# Two instances of one config answer the same keybind out of phase and split
+# the theme-reload IPC, and `qs log`/`qs ipc call` then fail outright with
+# "More than one instance starts with...". bin/ is first on PATH
+# (zsh/.zshenv:86, which bash/.bashrc sources), so this shadows the system
+# binary for interactive use; the repo's scripted starts spell the flag out on
+# `quickshell` themselves. See .scratch/launcher/issues/21.
+#
+# The flag is appended rather than prepended so the resulting command line
+# still matches the `(quickshell|qs) -c CONFIG` pattern df-qs-restart and
+# df-qs-test pgrep for.
+
+set -e
+
+if ! command -v quickshell &>/dev/null; then
+   echo "Error: quickshell not found" >&2
+   exit 1
+fi
+
+CONFIG_SELECTED=0
+prev=""
+for arg in "$@"; do
+   case "$arg" in
+      log | list | kill | msg | ipc)
+         # Quickshell 0.3.0's full subcommand set. Each addresses an instance
+         # that is already running, so -n is meaningless for them. A config
+         # name is passed as the value of -c and may itself be one of these
+         # words, so only a bare positional counts.
+         if [ "$prev" != "-c" ] && [ "$prev" != "--config" ]; then
+            exec quickshell "$@"
+         fi
+         ;;
+      -n | --no-duplicate)
+         exec quickshell "$@"
+         ;;
+      -c | --config | --config=*)
+         CONFIG_SELECTED=1
+         ;;
+   esac
+   prev="$arg"
+done
+
+# Without a config there is nothing to be a duplicate of -- `qs -p file.qml`,
+# `qs --help`, `qs -V` all pass through unchanged.
+if (( ! CONFIG_SELECTED )); then
+   exec quickshell "$@"
+fi
+
+exec quickshell "$@" -n
