@@ -6,11 +6,10 @@
 # neovim
 mise use -g node@lts go pnpm nub
 mise use -g npm:@kilocode/cli claude  opencode
-mise use -g uv
-mise use -g python@3.14
+mise use -g uv python@3.14
 mise use -g npm:skills
-mise install just stripe-cli npm:fallow
 mise use -g usage
+mise install just stripe-cli npm:fallow node@24 biome redis
 
 # missing apt packages - install via mise
 mise use -g aichat
