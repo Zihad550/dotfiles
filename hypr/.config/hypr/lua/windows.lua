@@ -8,9 +8,6 @@ hl.window_rule({
 -- Just a dash of opacity by default
 -- hl.window_rule({ match = { class = ".*" }, opacity = "0.97 0.9" })
 
--- Application-specific animation (from conf/walker.conf)
--- hl.layer_rule({ match = { namespace = "walker" }, no_anim = true })
-
 -- XWayland drag artifact fix.
 hl.window_rule({
     name  = "fix-xwayland-drags",
