@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+
+# LUKS2-encrypt a data disk and mount it at boot.
+#
+#   ./encrypt-data-disk /dev/sdb1 [mountpoint] [name]
+#
+# defaults: mountpoint=/data  name=data
+#
+# THIS DESTROYS EVERYTHING ON THE GIVEN DEVICE. There is no default device on
+# purpose -- you have to name it, then retype it to confirm.
+#
+# This is for a *data* disk. The root filesystem cannot be encrypted after the
+# fact; that is a checkbox in the Ubuntu installer ("Encrypt the LVM group with
+# LUKS"). See README.md. If root is already encrypted and you want the box to
+# boot unattended, use ./setup-root-autounlock.
+#
+# Unlock method (UNLOCK=tpm2|keyfile|none, default tpm2):
+#   tpm2     sealed to the TPM, unlocks with no interaction at boot
+#   keyfile  key stored at /etc/luks-keys/<name>.key -- only meaningful if root
+#            is itself encrypted, otherwise the key sits next to the lock
+#   none     passphrase prompt at boot; the box will not finish booting headless
+
+set -euo pipefail
+
+DEV="${1:-}"
+MOUNTPOINT="${2:-/data}"
+NAME="${3:-data}"
+UNLOCK="${UNLOCK:-tpm2}"
+
+if [ -z "$DEV" ]; then
+    echo "usage: $0 <device> [mountpoint] [name]" >&2
+    echo >&2
+    lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS >&2
+    exit 1
+fi
+
+[ -b "$DEV" ] || { echo "not a block device: $DEV" >&2; exit 1; }
+
+case "$MOUNTPOINT" in
+/ | /boot | /boot/efi | /home | /usr | /var | /etc)
+    echo "refusing to take over $MOUNTPOINT" >&2
+    exit 1
+    ;;
+esac
+
+# ─── validate the unlock method BEFORE anything destructive ──────────────────
+# Everything below the confirmation prompt erases the disk, so a typo in UNLOCK
+# or a missing TPM has to fail here, not after luksFormat has already run.
+case "$UNLOCK" in
+tpm2)
+    [ -c /dev/tpmrm0 ] || { echo "UNLOCK=tpm2 but no TPM at /dev/tpmrm0" >&2; exit 1; }
+    ;;
+keyfile | none) ;;
+*)
+    echo "unknown UNLOCK: $UNLOCK (expected tpm2, keyfile or none)" >&2
+    exit 1
+    ;;
+esac
+
+# ─── refuse to eat something in use ──────────────────────────────────────────
+ROOT_SRC="$(findmnt -no SOURCE / || true)"
+if [ "$DEV" = "$ROOT_SRC" ]; then
+    echo "$DEV is the root filesystem. Root encryption is an installer-time" >&2
+    echo "choice, not something this script can retrofit. See README.md." >&2
+    exit 1
+fi
+
+if lsblk -no MOUNTPOINTS "$DEV" | grep -q .; then
+    echo "$DEV (or a child of it) is mounted:" >&2
+    lsblk "$DEV" >&2
+    echo "unmount it first." >&2
+    exit 1
+fi
+
+# ─── confirm ─────────────────────────────────────────────────────────────────
+echo
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS "$DEV"
+echo
+echo "About to ERASE $DEV and reformat it as LUKS2 + ext4,"
+echo "mounted at $MOUNTPOINT as /dev/mapper/$NAME, unlock method: $UNLOCK"
+echo
+read -rp "Retype the device path to confirm: " confirm
+[ "$confirm" = "$DEV" ] || { echo "mismatch, aborting" >&2; exit 1; }
+
+sudo apt install -y cryptsetup
+
+# ─── format ──────────────────────────────────────────────────────────────────
+# Prompts for the passphrase. Keep it somewhere safe: it stays enrolled as a
+# keyslot even when TPM2 unlock is set up, and it is the only way back in if
+# the TPM state changes (firmware update, secure boot toggle, board swap).
+sudo cryptsetup luksFormat --type luks2 "$DEV"
+sudo cryptsetup open "$DEV" "$NAME"
+sudo mkfs.ext4 -L "$NAME" "/dev/mapper/$NAME"
+
+UUID="$(sudo cryptsetup luksUUID "$DEV")"
+
+# ─── unlock method ───────────────────────────────────────────────────────────
+CRYPTTAB_KEY="none"
+CRYPTTAB_OPTS="luks,discard,nofail"
+
+case "$UNLOCK" in
+tpm2)
+    sudo apt install -y tpm2-tools
+    # PCR 7 = secure boot policy. Deliberately not PCRs 4/8/9, which change on
+    # every kernel and initramfs update and would break unlock after each one.
+    sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 "$DEV"
+    CRYPTTAB_OPTS="$CRYPTTAB_OPTS,tpm2-device=auto"
+    ;;
+keyfile)
+    if ! lsblk -no TYPE "$ROOT_SRC" 2>/dev/null | grep -q crypt; then
+        echo
+        echo "WARNING: root does not look encrypted, so a keyfile on root only"
+        echo "         protects you if someone takes $DEV and leaves the rest."
+        read -rp "continue? [y/N] " ok
+        [ "$ok" = "y" ] || exit 1
+    fi
+    sudo install -d -m 700 /etc/luks-keys
+    sudo dd if=/dev/urandom of="/etc/luks-keys/$NAME.key" bs=512 count=8 status=none
+    sudo chmod 400 "/etc/luks-keys/$NAME.key"
+    sudo cryptsetup luksAddKey "$DEV" "/etc/luks-keys/$NAME.key"
+    CRYPTTAB_KEY="/etc/luks-keys/$NAME.key"
+    ;;
+none)
+    echo
+    echo "NOTE: $NAME will prompt for a passphrase at boot. On a headless box"
+    echo "      nothing is there to answer it; nofail lets boot continue with"
+    echo "      $MOUNTPOINT unmounted. Unlock later with:"
+    echo "        sudo cryptsetup open $DEV $NAME && sudo mount $MOUNTPOINT"
+    ;;
+esac
+
+# ─── crypttab + fstab ────────────────────────────────────────────────────────
+sudo sed -i "\|^$NAME[[:space:]]|d" /etc/crypttab 2>/dev/null || true
+echo "$NAME UUID=$UUID $CRYPTTAB_KEY $CRYPTTAB_OPTS" | sudo tee -a /etc/crypttab >/dev/null
+
+sudo mkdir -p "$MOUNTPOINT"
+sudo sed -i "\|[[:space:]]$MOUNTPOINT[[:space:]]|d" /etc/fstab
+# nofail so a disk that fails to unlock never blocks boot on a machine you can
+# only reach over the network
+echo "/dev/mapper/$NAME $MOUNTPOINT ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab >/dev/null
+
+sudo systemctl daemon-reload
+sudo mount "$MOUNTPOINT"
+sudo chown "$USER:$USER" "$MOUNTPOINT"
+
+echo
+echo "mounted:"
+findmnt "$MOUNTPOINT"
+echo
+echo "reboot and confirm it comes back on its own before putting work on it."
