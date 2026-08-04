@@ -1,9 +1,0 @@
-name = "multi media"
-name_pretty = "Multi Media"
-icon = "system"
-
-[[entries]]
-text = "Multi media"
-keywords = ["multi media" , "media", "sound", "speaker"]
-actions = {"pavucontrol" = ""}
-icon = "🎧"

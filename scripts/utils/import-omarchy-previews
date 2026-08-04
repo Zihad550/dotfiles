@@ -5,7 +5,7 @@
 #   2. ~/.config/themes/<theme>/preview.{png,jpg,jpeg,webp} (user-installed)
 # Previews are stored as WebP (q88) to match the rest of the preview/background
 # set; an already-webp source is copied as-is to avoid a re-encode.
-# Consumed by the walker theme picker.
+# Consumed by the Launcher's Themes Provider (lib/themes.js).
 
 set -euo pipefail
 

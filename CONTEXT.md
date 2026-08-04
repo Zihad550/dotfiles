@@ -1,8 +1,19 @@
 # Launcher
 
 The keyboard-driven launcher: the thing that appears on `SUPER+SPACE` and lets a
-query select and act on something. Currently walker (frontend) plus elephant
-(providers and matching); being replaced by a Quickshell QML implementation.
+query select and act on something. A Quickshell QML config of its own
+(`quickshell/.config/quickshell/launcher/`); it replaced walker (frontend) plus
+elephant (providers and matching), which were deleted outright in ticket 19 —
+the keybind, the configs, the helper scripts and the packages are gone, and the
+Launcher is now the only launcher.
+
+## Deliberate drops
+
+The symbol picker was the one Provider deliberately not ported from the old
+launcher: walker's symbol/unicode/emoji pickers have no counterpart in the
+Launcher, by design, not oversight. Named in the spec's Out of Scope
+(`docs/launcher-spec.md`). The dmenu Surface was likewise eliminated, not
+reimplemented — future ad-hoc scripts have no generic list-picker to call.
 
 ## Language
 

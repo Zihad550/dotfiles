@@ -158,12 +158,10 @@ starts shelling out to something new.
 
 ### the omarchy repo is required
 
-`worktrunk`, `opencode`, `claude-code`, `tea`, `ufw-docker`, `omarchy-walker` and
-`quickshell` are installed with plain `pacman -S` but are not in the official
-Arch repos — they come from the omarchy repo. Dropping `setup-omarchy-repos` as
-"not minimal" breaks half of `pacman-base` plus the Hyprland steps.
-(`omarchy-walker` is walker itself, removed from this dotfiles with ticket 19;
-its repo dependency can go once the machine's packages are pruned.)
+`worktrunk`, `opencode`, `claude-code`, `tea`, `ufw-docker` and `quickshell`
+are installed with plain `pacman -S` but are not in the official Arch repos —
+they come from the omarchy repo. Dropping `setup-omarchy-repos` as "not
+minimal" breaks half of `pacman-base` plus the Hyprland steps.
 
 ### flatpak is off by default
 
