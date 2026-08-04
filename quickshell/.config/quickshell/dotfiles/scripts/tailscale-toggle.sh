@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Brings tailscale up or down for the gear menu's toggle, driven by
+# Brings tailscale up or down for Quick Settings' toggle, driven by
 # TailscaleService.toggle(). The status stream (tailscale-status.sh) picks the
 # new state up on its own, so nothing is printed for the bar to read.
 #

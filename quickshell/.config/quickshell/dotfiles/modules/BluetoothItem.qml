@@ -7,7 +7,7 @@ import qs
 // (waybar used the same glyph for connected and disconnected),
 // tooltip "Devices connected: {num_connections}", on-click bluetui.
 //
-// Now a row in the gear menu, so waybar's tooltip text became the row detail.
+// Now a row in Quick Settings, so waybar's tooltip text became the row detail.
 MenuRow {
     id: root
 

@@ -6,7 +6,7 @@ import qs
 // waybar: "pulseaudio", format "{icon}   {volume}%", scroll-step 5,
 // on-click pavucontrol, tooltip "Playing at {volume}%".
 //
-// Now two lines in the gear menu: a MenuRow header that keeps waybar's
+// Now two lines in Quick Settings: a MenuRow header that keeps waybar's
 // click-to-pavucontrol, and a drag slider under it. The slider replaces
 // scrolling over the bar module; the wheel still works, but only over it.
 Column {

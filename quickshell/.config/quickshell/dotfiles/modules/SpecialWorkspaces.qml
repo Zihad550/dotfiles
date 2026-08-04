@@ -119,7 +119,7 @@ Item {
         }
     }
 
-    // Same shape as SettingsMenu, left-aligned under the entry instead of
+    // Same shape as QuickSettings, left-aligned under the entry instead of
     // right-aligned under the gear.
     PopupWindow {
         id: menu

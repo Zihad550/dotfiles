@@ -6,7 +6,7 @@ import qs
 // waybar: "network", wifi icons by signal strength, 󰀂 ethernet, 󰤮 disconnected,
 // on-click nmtui. waybar polled every 3s; NetworkManager signals drive this.
 //
-// Now a row in the gear menu, so waybar's tooltip text became the row detail.
+// Now a row in Quick Settings, so waybar's tooltip text became the row detail.
 MenuRow {
     id: root
 

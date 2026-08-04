@@ -3,9 +3,10 @@ import Quickshell
 import Quickshell.Hyprland
 import qs
 
-// Popup hung under the gear in the bar, holding the modules that are actions
-// rather than at-a-glance status: network, bluetooth, the tailscale switch,
-// volume, and the power entries that used to open from a click on the battery.
+// Quick Settings: the panel hung under the gear in the bar, holding the
+// modules that are controls rather than at-a-glance status -- network,
+// bluetooth, the tailscale switch, volume, and the power entries that used to
+// open from a click on the battery.
 //
 // Closes on a click outside (HyprlandFocusGrab), on a second click of the
 // gear, or when a row launches something (MenuRow.closeRequested).
@@ -15,7 +16,7 @@ PopupWindow {
     property Item target
     property bool shown: false
 
-    // Set when the focus grab closes the menu. Hyprland may still deliver that
+    // Set when the focus grab closes the panel. Hyprland may still deliver that
     // click to the gear underneath, which would immediately reopen what the
     // user just dismissed; toggle() ignores an open that lands right after.
     property double lastCleared: 0
@@ -36,8 +37,9 @@ PopupWindow {
         }
     }
 
-    // Mirrors elephant/.config/elephant/menus/system.toml, which is still
-    // reachable through walker -- this is a second entry point, not a move.
+    // Mirrors what elephant/.config/elephant/menus/system.toml (deleted with
+    // ticket 19) held -- the old launcher's system menu -- which was a second
+    // entry point alongside this one. Kept as the bar's own Quick Settings.
     readonly property var powerActions: [
         {
             icon: "",
@@ -68,7 +70,7 @@ PopupWindow {
 
     anchor.item: target
     // Right-aligned rather than centred on the gear (what Tooltip does): the
-    // gear is the last item in the bar, so a centred menu would hang off the
+    // gear is the last item in the bar, so a centred panel would hang off the
     // right edge of the screen.
     anchor.rect.x: target ? target.width - root.width : 0
     anchor.rect.y: target ? target.height : 0

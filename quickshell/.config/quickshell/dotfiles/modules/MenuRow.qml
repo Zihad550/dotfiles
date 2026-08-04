@@ -2,8 +2,8 @@ import QtQuick
 import Quickshell
 import qs
 
-// Shared chrome for the gear menu's rows: leading glyph, label, trailing detail
-// text, hover highlight and click handling. The menu's counterpart to BarItem.
+// Shared chrome for Quick Settings' rows: leading glyph, label, trailing detail
+// text, hover highlight and click handling. The panel's counterpart to BarItem.
 // Rows that need more than one line (Volume) stack this in a Column of their
 // own rather than nesting content inside it.
 Item {
@@ -20,12 +20,12 @@ Item {
     property bool toggleOn: false
 
     signal clicked
-    // Emitted alongside `clicked` so the menu can close itself. A second
+    // Emitted alongside `clicked` so the panel can close itself. A second
     // `onClicked` at the use site would shadow the one the module file declares
     // for its own action, hence the separate signal.
     signal closeRequested
 
-    // SettingsMenu sets the real width; this is just the fallback.
+    // QuickSettings sets the real width; this is just the fallback.
     implicitWidth: Theme.menuWidth - 2 * Theme.menuPadding
     implicitHeight: Theme.menuRowHeight
 

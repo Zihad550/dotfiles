@@ -39,19 +39,19 @@ PanelWindow {
         Tailscale {}
         Battery {}
 
-        // Network, bluetooth and volume moved into the menu behind this.
+        // Network, bluetooth and volume moved into Quick Settings behind this.
         BarItem {
             id: gear
 
             text: "󰒓"
-            textColor: menu.shown ? Theme.accent : Theme.foreground
-            // Deliberately no tooltip: it anchors where the menu opens.
-            onClicked: menu.toggle()
+            textColor: quickSettings.shown ? Theme.accent : Theme.foreground
+            // Deliberately no tooltip: it anchors where the panel opens.
+            onClicked: quickSettings.toggle()
         }
     }
 
-    SettingsMenu {
-        id: menu
+    QuickSettings {
+        id: quickSettings
 
         target: gear
     }

@@ -6,8 +6,9 @@ import qs
 // waybar: "battery", format "{icon} {capacity}%", on-click `elephant menu system`,
 // tooltip "{power}W↓ {capacity}%", plus notify-send events at 30/10/80/100.
 //
-// The click no longer opens the system menu -- those entries live in the gear
-// menu now (SettingsMenu.powerActions). `elephant menu system` still works.
+// The click no longer opens the system menu -- those entries live in Quick
+// Settings now (QuickSettings.powerActions); `elephant menu system` died with
+// elephant itself (ticket 19).
 BarItem {
     id: root
 

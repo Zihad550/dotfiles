@@ -5,7 +5,7 @@ import qs
 // `tailscale up`/`down` as a switch. The bar keeps its own Tailscale icon --
 // this is the control, that is the glance.
 //
-// SettingsMenu deliberately does not wire this row's closeRequested: the point
+// QuickSettings deliberately does not wire this row's closeRequested: the point
 // of flipping a switch is watching it settle, and the state only lands once
 // the status stream reports the daemon actually switched.
 MenuRow {
