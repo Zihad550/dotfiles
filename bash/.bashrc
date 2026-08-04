@@ -134,12 +134,16 @@ PROMPT_COMMAND="_chpwd; _emit_osc7_cwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 if command -v fzf >/dev/null 2>&1; then eval "$(fzf --bash)"; fi
 if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd bash)"; fi
 if command -v mise >/dev/null 2>&1; then eval "$(mise activate bash)"; fi
-if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out bash); fi
+# older procs (e.g. Ubuntu's apt build) has no --gen-completion-out; skip it there
+if command -v procs >/dev/null 2>&1; then
+    _procs_comp=$(procs --gen-completion-out bash 2>/dev/null) && [ -n "$_procs_comp" ] && eval "$_procs_comp"
+    unset _procs_comp
+fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init bash)"; fi
 if command -v tv >/dev/null 2>&1; then eval "$(tv init bash)"; fi
 
 # Added by LM Studio CLI (lms)
-export PATH="$PATH:/home/jehad/.lmstudio/bin"
+export PATH="$PATH:$HOME/.lmstudio/bin"
 # End of LM Studio CLI section
 
 # Generated for envman. Do not edit.
