@@ -2,6 +2,7 @@
 
 # cmd remaps
 # alias ls=eza
+alias backup-dev='rsync -rPavh --exclude-from=dev/.rsyncignore --delete-after dev backup:'
 alias rm='trash-put'
 alias v='nvim'
 alias vi='nvim'
@@ -323,7 +324,9 @@ devup() {
 }
 
 scd() {
-    local remote_dir="${PWD/$USER/jehad}"
+    # Same-named account on the remote unless SCD_REMOTE_USER says otherwise.
+    local remote_user="${SCD_REMOTE_USER:-$USER}"
+    local remote_dir="${PWD/#$HOME//home/$remote_user}"
     ssh -t "$@" "cd '$remote_dir' 2>/dev/null; exec \$SHELL"
 }
 
