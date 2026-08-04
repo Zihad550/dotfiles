@@ -22,7 +22,7 @@
       "Read(**/.secrets*)",
       "Read(**/.credentials*)"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "auto"
   },
   "statusLine": {
     "type": "command",
