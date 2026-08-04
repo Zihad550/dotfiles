@@ -137,7 +137,11 @@ if command -v fzf >/dev/null 2>&1; then source <(fzf --zsh); fi
 if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd zsh)"; fi
 if command -v starship >/dev/null 2>&1; then eval "$(starship init zsh)"; fi
 if command -v mise >/dev/null 2>&1; then eval "$(mise activate zsh)"; fi
-if command -v procs >/dev/null 2>&1; then source <(procs --gen-completion-out zsh); fi
+# older procs (e.g. Ubuntu's apt build) has no --gen-completion-out; skip it there
+if command -v procs >/dev/null 2>&1; then
+    _procs_comp=$(procs --gen-completion-out zsh 2>/dev/null) && [[ -n $_procs_comp ]] && eval "$_procs_comp"
+    unset _procs_comp
+fi
 if command -v kubectl >/dev/null 2>&1; then source <(kubectl completion zsh); fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
