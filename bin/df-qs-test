@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Run a scratch quickshell config (quickshell/.config/quickshell/test/shell.qml)
+# as its own instance, for trying QML out without touching the bar.
+#
+# Unlike df-qs-restart this stays in the foreground and does not go through
+# uwsm-app: a scratch config wants its errors on the terminal and Ctrl-C to end
+# it, not a detached instance in the session scope. QML errors print here rather
+# than needing `qs log`.
+
+set -e
+
+CONFIG="test"
+
+for arg in "$@"; do
+   case "$arg" in
+      -h|--help)
+         echo "Usage: df-qs-test [config]"
+         echo "  Run a scratch quickshell config in the foreground (default: $CONFIG)."
+         echo "  Ctrl-C to stop. Edits hot-reload without a restart."
+         exit 0
+         ;;
+      -*)
+         echo "Unknown arg: $arg" >&2
+         exit 1
+         ;;
+      *) CONFIG="$arg" ;;
+   esac
+done
+
+# Both of these are long-running instances that autostart.lua owns. Running one
+# here would kill the live one and replace it with a foreground copy that dies
+# with this terminal.
+case "$CONFIG" in
+   dotfiles | launcher)
+      echo "Refusing to run the $CONFIG config as a scratch instance; use df-qs-restart $CONFIG." >&2
+      exit 1
+      ;;
+esac
+
+# quickshell, not the bin/qs shim: the shim appends -n, which would make a
+# rerun refuse rather than replace the scratch instance the kill below clears.
+if ! command -v quickshell &>/dev/null; then
+   echo "Error: quickshell not found" >&2
+   exit 1
+fi
+
+# Leaves nothing behind from an earlier run; not an error when none is running.
+quickshell -c "$CONFIG" kill >/dev/null 2>&1 || true
+
+# Same pattern df-qs-restart matches on, word-end anchored so that "test" does
+# not also match an unrelated "test-probe" instance.
+for _ in {1..30}; do
+   pgrep -f "(quickshell|qs) -c $CONFIG( |\$)" >/dev/null || break
+   sleep 0.1
+done
+
+echo "Running quickshell -c $CONFIG (Ctrl-C to stop)"
+exec quickshell -c "$CONFIG"
