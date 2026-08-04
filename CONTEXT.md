@@ -49,6 +49,20 @@ _Avoid_: sigil, trigger, mode char
 The text typed into the launcher, after any prefix is stripped.
 _Avoid_: search, input, filter, term
 
+**Prompt**:
+A provider asking for one line of text by taking over the query line, prefilled
+and answered in place — renaming a workspace. Not a surface: same window, same
+query line, no separate entry point.
+_Avoid_: dialog, input box, edit mode, text prompt
+
+**Chooser**:
+The nested, unranked list a secondary Action opens — the directories
+Provider's sub-menu, shown in place of the entries that opened it until the
+back action closes it. Its corpus carries no entry keys. Not a Prompt: it asks
+nothing and is never answered in place on a query line. Not a Surface: it has
+no entry point of its own.
+_Avoid_: submenu, sub-menu, page, popup, sub-list
+
 **Marking**:
 Selecting several entries within one provider to act on together, independently
 of which one is highlighted. Lasts only as long as the launcher is open.
@@ -63,6 +77,13 @@ _Avoid_: id, uid, hash, fingerprint
 How often and how recently an entry has been chosen, accumulated against its
 entry key. The only ranking signal comparable between providers.
 _Avoid_: history, usage score, ranking, popularity
+
+**Ordered Provider**:
+A provider whose entries are offered in an order it fixes itself, rather than
+one the shared ranking decides — files, which lists each matched folder
+immediately followed by that folder's contents. Only ever reached through a
+prefix, since an unranked list cannot be interleaved with a ranked one.
+_Avoid_: unranked, sorted, grouped, static
 
 **Core Action**:
 One of the four actions every provider fills — primary, secondary, mark, back —
