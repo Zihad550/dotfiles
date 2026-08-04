@@ -3,7 +3,7 @@
 sudo apt update -y
 sudo apt upgrade -y
 
-sudo apt install -y zsh eza fzf ripgrep trash-cli bat bubblewrap socat git-delta software-properties-common starship lazygit
+sudo apt install -y zsh eza fzf ripgrep trash-cli bat bubblewrap socat git-delta software-properties-common starship lazygit stow
 
 # rename batcat to bat
 mkdir -p ~/.local/bin && ln -s /usr/bin/batcat ~/.local/bin/bat

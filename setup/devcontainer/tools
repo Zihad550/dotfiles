@@ -9,5 +9,5 @@ mise use -g python@3.14
 # neovim
 mise use -g npm:fallow
 mise use -g npm:skills
-mise install just stripe-cli
+mise install just stripe-cli redis
 mise use -g usage
