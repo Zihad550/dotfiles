@@ -5,3 +5,7 @@
 # openspec
 # .kilocode
 .gitlocal
+
+**/.claude/settings.local.json
+
+**/.claude/.cc-writes/
