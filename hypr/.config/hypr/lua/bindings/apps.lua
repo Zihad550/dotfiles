@@ -43,8 +43,16 @@ o.bind("SUPER + SHIFT + D", "Docker", dotfiles_bin .. "/df-launch-tui lazydocker
 --     dotfiles_bin .. [[/df-launch-special-app "^lazydocker$" "ghostty -e lazydocker" "lazydocker"]])
 
 -- Special TUI sessions
+-- SUPER+U: the directories Launcher's Tmux session for ~/dotfiles, run by the
+-- session script it names (bin/df-tmux-session, tickets 02-03): window one an
+-- ssh shell into the devcontainer at the same path, window two local. Wrapped
+-- in df-launch-special-app for the focus-don't-duplicate behavior: the window
+-- match key is the title "tmux" -- the same key the previous binding used --
+-- kept stable with --title, and the session script runs only when a new
+-- window is actually launched; a running one is focused on special workspace
+-- "tmux" instead.
 o.bind("SUPER + U", "Tmux",
-    dotfiles_bin .. [[/df-launch-special-app "tmux" "ghostty -e tmux new -As tmux" "tmux"]])
+    dotfiles_bin .. [[/df-launch-special-app "tmux" "ghostty --title=tmux -e ]] .. dotfiles_bin .. [[/df-tmux-session tmux ']] .. home .. [[/dotfiles'" "tmux"]])
 -- o.bind("SUPER + i", "Zellij",
 --     dotfiles_bin .. [[/df-launch-special-app 'work-zellij' 'ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit' 'work-zellij']])
 -- o.bind("SUPER + i", "Tmux work session",
