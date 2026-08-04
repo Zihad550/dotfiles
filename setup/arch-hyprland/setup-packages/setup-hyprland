@@ -2,15 +2,10 @@
 
 # hyprpicker -> to pick colors from screen using pastel pick and other tools
 # quickshell and its runtime dependencies live in ../packages/quickshell-packages,
-#               shared with arch-devbox. It is the menu bar (replaced waybar;
-#               config in quickshell/, run as an autostart from
-#               hypr/lua/autostart.lua, not a systemd unit).
-# mako, replaced by quickshell (notification daemon in
-#       quickshell/.config/quickshell/dotfiles/modules/NotificationDaemon.qml)
-# swayosd, replaced by quickshell (OSD in
-#       quickshell/.config/quickshell/dotfiles/OsdService.qml, driven over IPC
-#       from hypr/lua/bindings/media.lua). brightnessctl above stays: the OSD
-#       still uses it for the backlight.
+#               shared with arch-devbox. It is the bar, notification daemon and
+#               OSD (config in quickshell/, run as an autostart from
+#               hypr/lua/autostart.lua, not a systemd unit). brightnessctl
+#               above stays: the OSD still uses it for the backlight.
 # nwg-look - theming gtk apps
 # screensharing and file picking - xdg-desktop-portal-hyprland
 # polkit for app authentication
@@ -38,12 +33,6 @@ sudo pacman -S --noconfirm \
 # rofi-emoji \
 # rofi-calc \
 
-# waybar, replaced by quickshell. Quickshell ships no systemd unit; it starts
-# from hypr/.config/hypr/lua/autostart.lua.
-# systemctl --user enable waybar.service              # menu
-# mako, replaced by quickshell's notification daemon, which starts with the
-# rest of the shell from hypr/.config/hypr/lua/autostart.lua.
-# systemctl --user enable mako.service                # notification
 systemctl --user enable hypridle.service            # lock screen
 systemctl --user enable xdg-desktop-portal-hyprland # screensharing and file picking
 systemctl --user enable hyprsunset.service          # hyprsunset for blue light filtering

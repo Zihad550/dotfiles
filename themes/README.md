@@ -8,15 +8,18 @@ This directory contains the theme definitions and templates for the dotfiles.
 themes/
 ├── templates/              # Template files for theme configs
 │   ├── alacritty.toml.tpl
+│   ├── bottom.toml.tpl
 │   ├── btop.theme.tpl
 │   ├── eza.yml.tpl
 │   ├── ghostty.conf.tpl
 │   ├── hyprland.lua.tpl
 │   ├── hyprlock.conf.tpl
+│   ├── keyboard.rgb.tpl
 │   ├── kitty.conf.tpl
+│   ├── lazygit.yml.tpl
 │   ├── obsidian.css.tpl
 │   ├── quickshell.json.tpl
-│   └── walker.css.tpl
+│   └── tmux.conf.tpl
 ├── .config/themes/         # Theme directories with colors.toml
 │   ├── rose-pine/
 │   │   ├── colors.toml    # Source of truth for theme colors

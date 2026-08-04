@@ -41,15 +41,6 @@ sed -i 's|^font-family[[:space:]]*=.*|font-family = "'"$font"'"|' \
 sed -i 's|^\([[:space:]]*\)font_family[[:space:]]*=.*|\1font_family = '"$font"'|' \
    "$REPO/hypr/.config/hypr/hyprlock.conf"
 
-# swayosd, replaced by quickshell's OSD, which reads the font from Theme.qml
-# below like the rest of the shell.
-# sed -i "s|font-family:[[:space:]]*'[^']*';|font-family: '$font';|" \
-#    "$REPO/swayosd/.config/swayosd/style.css"
-
-# waybar, replaced by quickshell
-# sed -i 's|^\([[:space:]]*\)font-family:[[:space:]]*"[^"]*";|\1font-family: "'"$font"'";|' \
-#    "$REPO/waybar/.config/waybar/style.css"
-
 # quickshell
 sed -i 's|^\([[:space:]]*\)readonly property string fontFamily:.*|\1readonly property string fontFamily: "'"$font"'"|' \
    "$REPO/quickshell/.config/quickshell/dotfiles/Theme.qml"
@@ -60,13 +51,8 @@ if [[ -f "$REPO/zed/.config/zed/settings.json" ]]; then
       "$REPO/zed/.config/zed/settings.json"
 fi
 
-# Reload visual daemons
-# waybar, replaced by quickshell. Quickshell watches its own config directory
-# and hot-reloads when Theme.qml changes, so nothing to restart here.
-# if systemctl --user is-active --quiet waybar.service 2>/dev/null; then
-#    systemctl --user restart waybar.service
-# fi
-
+# Reload visual daemons. Quickshell watches its own config directory and
+# hot-reloads when Theme.qml changes, so only ghostty needs poking.
 if df-cmd-present ghostty && pgrep -x ghostty >/dev/null; then
    killall -SIGUSR2 ghostty
 fi

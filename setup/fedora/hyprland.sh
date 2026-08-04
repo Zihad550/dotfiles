@@ -1,4 +1,3 @@
-# waybar, replaced by quickshell
 sudo dnf install quickshell hyprlock hypridle hyprpaper
 
 systemctl --user enable --now hypridle.service
