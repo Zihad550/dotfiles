@@ -1,0 +1,152 @@
+# herdr config — ported from tmux/.tmux.conf + tmux/.config/tmux/tmux.reset.conf
+#
+# Concept mapping (tmux -> herdr):
+#   session -> workspace     window -> tab     pane -> pane
+#   herdr adds "agents" (recognised processes inside panes) with no tmux analog.
+#
+# Reload after editing:  herdr server reload-config   (or prefix+shift+r)
+# Show live bindings:    prefix+?
+# Dump every default:    herdr --default-config
+#
+# ---------------------------------------------------------------------------
+# VERIFY BEFORE TRUSTING
+# The docs only demonstrate prefix+<key>, prefix+shift+<key> and prefix+alt+<key>.
+# This file also uses prefix+ctrl+<key> (so tmux's ^C/^D/^W muscle memory ports
+# over) on: new_tab, detach, close_workspace, settings, resize_mode, last_pane,
+# previous_workspace, next_workspace, swap_pane_left/up/right/down.
+# Also unattested: prefix = "ctrl+space", and theme.name = "terminal".
+# Check with:  herdr --default-config  then  herdr server reload-config  and
+# prefix+? — the live binding list shows whether a key string was accepted or
+# silently dropped. If ctrl+ combos are rejected, swap them to alt+ (documented).
+#
+# Not ported — no herdr equivalent found:
+#   ^C new-window-ssh-aware.sh (ssh command reuse), send-prefix, : command-prompt,
+#   ^X lock-server, * synchronize-panes, P pane-border-status, K send-keys clear,
+#   " choose-window, ^L refresh-client, copy-mode-vi `v` begin-selection.
+#   Plugins: thumbs, fzf-url, tmux-fzf, yank. floax -> [[keys.command]] popup below;
+#   sessionx -> native goto / workspace_picker.
+# ---------------------------------------------------------------------------
+
+[terminal]
+# tmux split bindings all used -c "#{pane_current_path}"; herdr does it globally.
+new_cwd = "follow"
+
+[keys]
+# --- prefix -------------------------------------------------------------
+# tmux: set -g prefix C-Space
+prefix = "ctrl+space"
+# NOTE: docs only show "ctrl+b" / "f12" / "esc" as prefix examples. If herdr
+# rejects ctrl+space, fall back to one of these:
+# prefix = "ctrl+b"
+# prefix = "ctrl+f"          # your old commented-out `set -g prefix ^F`
+
+# --- tabs (tmux windows) ------------------------------------------------
+new_tab       = "prefix+ctrl+c"              # tmux: bind ^C new-window
+close_tab     = "prefix+shift+x"             # tmux: default & kill-window
+rename_tab    = "prefix+r"                   # tmux: bind r rename-window
+next_tab      = ["prefix+shift+l", "prefix+n"]   # tmux: bind L next-window
+previous_tab  = "prefix+shift+h"             # tmux: bind H previous-window
+switch_tab    = "prefix+1..9"                # tmux: default prefix+<n> select-window
+
+# --- panes --------------------------------------------------------------
+focus_pane_left  = "prefix+h"                # tmux: bind h select-pane -L
+focus_pane_down  = "prefix+j"                # tmux: bind j select-pane -D
+focus_pane_up    = "prefix+k"                # tmux: bind k select-pane -U
+focus_pane_right = "prefix+l"                # tmux: bind l select-pane -R
+close_pane       = "prefix+c"                # tmux: bind c kill-pane
+rename_pane      = "prefix+shift+p"
+zoom             = "prefix+z"                # tmux: bind z resize-pane -Z
+last_pane        = "prefix+ctrl+a"           # closest to tmux's ^A (last-window; see caveats)
+
+# tmux: bind v split-window -h  (side by side)
+split_vertical   = "prefix+v"
+# tmux: bind s split-window -v  (stacked) — `bind |` also did this
+split_horizontal = ["prefix+s", "prefix+minus"]
+
+# tmux: bind x swap-pane -D. herdr's other swap directions have no tmux
+# counterpart, so they sit on prefix+ctrl+<hjkl> (herdr's shift+hjkl defaults
+# are taken above by tab navigation).
+swap_pane_down  = ["prefix+x", "prefix+ctrl+j"]
+swap_pane_left  = "prefix+ctrl+h"
+swap_pane_up    = "prefix+ctrl+k"
+swap_pane_right = "prefix+ctrl+l"
+
+cycle_pane_next     = "prefix+tab"
+cycle_pane_previous = "prefix+shift+tab"
+
+# tmux resized directionally (bind , . - =); herdr only has a resize *mode*,
+# so enter it and use hjkl/arrows inside.
+resize_mode = "prefix+ctrl+r"
+
+# --- navigate mode (no tmux equivalent; herdr's sticky nav layer) --------
+navigate_pane_left  = "h"
+navigate_pane_down  = "j"
+navigate_pane_up    = "k"
+navigate_pane_right = "l"
+
+# --- workspaces (tmux sessions) -----------------------------------------
+new_workspace      = "prefix+shift+n"
+rename_workspace   = "prefix+shift+w"
+close_workspace    = ["prefix+ctrl+w", "prefix+shift+d"]   # tmux: bind ^W kill-session
+previous_workspace = "prefix+ctrl+p"
+next_workspace     = "prefix+ctrl+n"
+switch_workspace   = "prefix+shift+1..9"
+workspace_picker   = "prefix+w"              # tmux: bind w list-windows (closest picker)
+goto               = ["prefix+g", "prefix+shift+s"]   # tmux: bind S choose-session
+
+# --- worktrees (no tmux equivalent) -------------------------------------
+new_worktree = "prefix+shift+g"
+
+# --- agents (no tmux equivalent) ----------------------------------------
+focus_agent   = "prefix+alt+1..9"
+next_agent    = "prefix+alt+n"
+previous_agent = "prefix+alt+p"
+
+# --- misc ---------------------------------------------------------------
+copy_mode     = "prefix+["                   # same key as tmux
+detach        = ["prefix+ctrl+d", "prefix+d"]  # tmux: bind ^D detach (+ tmux default d)
+reload_config = "prefix+shift+r"             # tmux: bind R source-file ~/.tmux.conf
+help          = "prefix+?"                   # tmux: default prefix+? list-keys
+settings      = "prefix+ctrl+s"              # moved: prefix+s is now split-stacked
+toggle_sidebar = "prefix+b"
+edit_scrollback = "prefix+e"
+open_notification_target = "prefix+o"
+
+# --- popups (replacing tmux plugins) ------------------------------------
+# tmux-floax: @floax-bind 'p', 80% x 80%
+[[keys.command]]
+key = "prefix+p"
+type = "popup"
+command = "exec \"${SHELL:-sh}\""
+description = "floating scratch terminal"
+width = "80%"
+height = "80%"
+
+# Optional extra popup, in the spirit of floax:
+# [[keys.command]]
+# key = "prefix+ctrl+g"
+# type = "popup"
+# command = "lazygit"
+# description = "lazygit"
+# width = "80%"
+# height = "80%"
+
+[theme]
+# Follows the host terminal's ANSI palette, so `df-theme-set` keeps working
+# without regenerating a herdr theme file.
+name = "terminal"
+# Alternatives that ship built in: catppuccin, catppuccin-latte, tokyo-night,
+# tokyo-night-day, gruvbox, gruvbox-light — e.g.
+# name = "catppuccin"
+# auto_switch = true
+# light_name = "catppuccin-latte"
+# dark_name = "catppuccin"
+
+[ui]
+# tmux: set -g mouse on / set -g set-clipboard on
+mouse_capture = true
+copy_on_select = true
+
+[advanced]
+# tmux: set -g history-limit 1000000 (lines). herdr caps by bytes; ~50 MB/pane.
+scrollback_limit_bytes = 50000000
