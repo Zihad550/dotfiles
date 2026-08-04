@@ -251,7 +251,7 @@ theme "kanagawa"
 // The folder in which Zellij will look for themes
 // (Requires restart)
 //
-theme_dir "/home/jehad/.config/zellij/themes"
+// theme_dir "/tmp"
 
 // Toggle enabling the mouse mode.
 // On certain configurations, or terminals this could
