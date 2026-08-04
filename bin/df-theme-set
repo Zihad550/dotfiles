@@ -77,11 +77,6 @@ switch_theme() {
     mkdir -p ~/.config/bottom
     ln -snf ~/.config/theme/bottom.toml ~/.config/bottom/bottom.toml
 
-    # mako, replaced by the quickshell notification daemon, which reads its
-    # colors from quickshell.json via Theme.qml.
-    # mkdir -p ~/.config/mako
-    # ln -snf ~/.config/theme/mako.ini ~/.config/mako/config
-
     mkdir -p ~/.config/eza
     ln -snf ~/.config/theme/eza.yml ~/.config/eza/theme.yml
 
@@ -126,11 +121,6 @@ switch_theme() {
         killall -SIGUSR2 ghostty
     fi
 
-    # waybar, replaced by quickshell
-    # if pgrep -x waybar >/dev/null; then
-    #     systemctl --user restart waybar.service
-    # fi
-
     # Quickshell re-reads ~/.config/theme/quickshell.json in place, so the bar
     # restyles without restarting. Guarded like the obsidian call above, since
     # ~/dotfiles/bin is not on PATH during first-run setup.
@@ -148,12 +138,6 @@ switch_theme() {
             qs -c "$config" ipc call theme reload || true
         done
     fi
-
-    # mako, replaced by quickshell. The notification daemon picks up theme
-    # changes from the `qs ipc call theme reload` above -- no restart needed.
-    # if systemctl --user is-active --quiet mako.service 2>/dev/null; then
-    #     systemctl --user restart mako.service
-    # fi
 
     hyprctl reload >/dev/null 2>&1 || true
 

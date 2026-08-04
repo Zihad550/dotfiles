@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# Restart a long-running quickshell config: the bar ("dotfiles", the default)
+# or the Launcher ("launcher").
+#
+# QML edits hot-reload on their own, so this is for the cases that do not: a
+# reload that errored and left the previous config running, a quickshell
+# upgrade, or newly stowed files. Launches the way
+# hypr/.config/hypr/lua/autostart.lua does, so the instance lands in the session
+# scope rather than in this shell's.
+#
+# Takes one config at a time on purpose. The two run as separate instances so
+# that a fault in the Launcher cannot take the bar's notification daemon down
+# with it; restarting both together would give that up at exactly the moment it
+# matters.
+
+set -e
+
+CONFIG="dotfiles"
+SHOW_LOG=0
+
+for arg in "$@"; do
+   case "$arg" in
+      -l|--log) SHOW_LOG=1 ;;
+      -h|--help)
+         echo "Usage: df-qs-restart [config] [--log]"
+         echo "  Restart a quickshell config (default: dotfiles, the bar)."
+         echo "  config  dotfiles | launcher"
+         echo "  --log   print the new instance's log afterwards"
+         exit 0
+         ;;
+      -*)
+         echo "Unknown arg: $arg" >&2
+         exit 1
+         ;;
+      *) CONFIG="$arg" ;;
+   esac
+done
+
+# A scratch config is not something to detach into the session scope -- it
+# wants its errors on the terminal, which is what df-qs-test is for.
+if [ ! -d "$HOME/.config/quickshell/$CONFIG" ]; then
+   echo "Error: no quickshell config at ~/.config/quickshell/$CONFIG" >&2
+   echo "       (stowed? run scripts/stow/stow-hyprland)" >&2
+   exit 1
+fi
+
+# quickshell throughout, never the bin/qs shim: this script spells out -n where
+# it wants it, and going through the shim would inject it into the kill and log
+# calls too.
+if ! command -v quickshell &>/dev/null; then
+   echo "Error: quickshell not found" >&2
+   exit 1
+fi
+
+# Either name, since autostart.lua uses `quickshell` and a shell may use `qs`.
+# Anchored on a word end so that restarting "launcher" does not match an
+# unrelated "launcher-probe" instance.
+RUNNING="(quickshell|qs) -c $CONFIG( |\$)"
+
+# Kill in a loop, because `qs kill` kills exactly one instance. New starts are
+# single-instance (ticket 21), but a session that accumulated several before
+# that guard existed is still possible, and one kill would leave one behind --
+# the wait below would then never clear and this would start a third on top.
+#
+# Not an error when nothing is running -- this doubles as a plain start.
+KILLED=0
+for _ in {1..20}; do
+   BEFORE=$(pgrep -cf "$RUNNING" || true)
+   (( BEFORE > 0 )) || break
+
+   quickshell -c "$CONFIG" kill >/dev/null 2>&1 || break
+   KILLED=$((KILLED + 1))
+
+   # kill returns before the instance is gone, so wait for the *count* to drop
+   # before killing again -- otherwise the next pass targets a pid that is
+   # already on its way out. Waiting for zero instead would burn the full three
+   # seconds on every instance but the last, since the others are still there.
+   for _ in {1..30}; do
+      (( $(pgrep -cf "$RUNNING" || true) < BEFORE )) && break
+      sleep 0.1
+   done
+done
+
+# Say so rather than starting on top: starting anyway would hide the surviving
+# instance behind a Launcher that needs two presses to close.
+if pgrep -f "$RUNNING" >/dev/null; then
+   echo "Error: $(pgrep -cf "$RUNNING") instance(s) of '$CONFIG' would not exit" >&2
+   echo "       still running: $(pgrep -f "$RUNNING" | tr '\n' ' ')" >&2
+   echo "       kill them by pid, then run this again" >&2
+   exit 1
+fi
+
+# More than one killed means the session had been running several, which
+# nothing else would have told you.
+if (( KILLED > 1 )); then
+   echo "Killed $KILLED instances of '$CONFIG' -- there should only ever be one"
+fi
+
+echo "Starting quickshell -c $CONFIG"
+if command -v uwsm-app &>/dev/null; then
+   # -n as a backstop: the count check above should have cleared the field, but
+   # refusing to start over a straggler beats becoming a second instance.
+   uwsm-app -- quickshell -c "$CONFIG" -n -d
+else
+   quickshell -c "$CONFIG" -n -d
+fi
+
+# The -n refusal exits 0, so a refused start is indistinguishable from a good
+# one by exit code alone -- and quickshell's own check can see an instance
+# pgrep does not, e.g. one still dying after a kill, whose lock outlives it.
+# The count passes through a transient 2 while the daemonize parent exits.
+COUNT=0
+for _ in {1..20}; do
+   COUNT=$(pgrep -cf "$RUNNING" || true)
+   (( COUNT == 1 )) && break
+   sleep 0.25
+done
+
+if (( COUNT != 1 )); then
+   echo "Error: expected 1 instance of '$CONFIG' after starting, found ${COUNT:-0}" >&2
+   echo "       if one is still finishing its exit from a kill, wait a moment and" >&2
+   echo "       run this again" >&2
+   exit 1
+fi
+
+if (( SHOW_LOG )); then
+   # QML errors keep the old config alive rather than crashing the bar, so a
+   # bar that looks unchanged after this is usually an error in here.
+   sleep 1
+   quickshell -c "$CONFIG" log
+fi
