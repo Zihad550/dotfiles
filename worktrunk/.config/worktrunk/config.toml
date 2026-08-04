@@ -15,7 +15,8 @@ tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | saniti
 stage = "none"
 
 [commit.generation]
-command = "aichat -m gemini:gemini-3-flash-preview"
+# command = "aichat -m gemini:gemini-3-flash-preview"
+command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
 # command = "aichat -m gemini:gemini-3-flash-preview"
 # command = "opencode run -m google/gemini-3-flash-preview"
 
