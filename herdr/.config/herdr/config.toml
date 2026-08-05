@@ -142,11 +142,17 @@ name = "terminal"
 # light_name = "catppuccin-latte"
 # dark_name = "catppuccin"
 
+auto_switch = false
 [ui]
 # tmux: set -g mouse on / set -g set-clipboard on
 mouse_capture = true
 copy_on_select = true
 
+agent_panel_sort = "spaces"
+show_agent_labels_on_pane_borders = true
 [advanced]
 # tmux: set -g history-limit 1000000 (lines). herdr caps by bytes; ~50 MB/pane.
 scrollback_limit_bytes = 50000000
+
+[ui.toast]
+delivery = "system"
