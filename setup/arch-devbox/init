@@ -155,7 +155,7 @@ else
 fi
 
 run_step "kanata" "$ARCH_HYPR_DIR/setup-packages/setup-kanata"
-run_step "herdr" "$DOTFILES_DIR/setup/common/setup-packages/setup-herdr"
+run_step "herdr" "$DOTFILES_DIR/setup/common/setup-herdr"
 
 # setup-github-cli intentionally not run — needs `gh auth login` first.
 # Run manually after login: ~/dotfiles/bin/df-arch-hypr-post-install
