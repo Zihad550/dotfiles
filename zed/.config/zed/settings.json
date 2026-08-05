@@ -16,7 +16,7 @@
   "git_panel": {
     "dock": "left",
   },
-  "diff_view_style": "unified",
+  "diff_view_style": "split",
   "agent_servers": {
     "claude-acp": {
       "type": "registry"
