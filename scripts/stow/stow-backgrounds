@@ -7,7 +7,7 @@ BACKGROUNDS_DIR="$HOME/backgrounds"
 # Clone the backgrounds repo on first run; it holds the `backgrounds` and
 # `theme-previews` stow packages we link below.
 if [[ ! -d "$BACKGROUNDS_DIR/.git" ]]; then
-    git clone "$BACKGROUNDS_REPO" "$BACKGROUNDS_DIR"
+    git clone --depth 1 "$BACKGROUNDS_REPO" "$BACKGROUNDS_DIR"
 fi
 
 cd "$BACKGROUNDS_DIR"

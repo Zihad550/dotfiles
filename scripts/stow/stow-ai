@@ -7,7 +7,7 @@ DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 cd "$DOTFILES" || exit
 
 # agents live in separate repo: https://github.com/Zihad550/.agents
-[ -d ~/.agents ] || git clone https://github.com/Zihad550/.agents.git ~/.agents
+[ -d ~/.agents ] || git clone --depth 1 https://github.com/Zihad550/.agents.git ~/.agents
 
 # opencode
 stow opencode
