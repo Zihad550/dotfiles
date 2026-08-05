@@ -10,7 +10,19 @@ WINDOW_PATTERN="$1"
 app="$2"
 workspace="$3"
 
-WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '.[]|select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))|.address' | head -n1)
+# An exact class match wins outright -- a caller that launches its window
+# with --class=$WINDOW_PATTERN gets a collision-proof identity that survives
+# title changes (e.g. a tmux client's title tracking whatever it's attached
+# to). Only when nothing has that exact class do we fall back to the old
+# fuzzy word-boundary match against class or title, for callers that never
+# pinned a class (e.g. Electron apps whose WM_CLASS is already stable).
+WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg p "$WINDOW_PATTERN" '
+   [.[] | select(.class == $p)] as $exact
+   | if ($exact | length) > 0
+     then $exact[0].address
+     else ([.[] | select((.class|test("\\b" + $p + "\\b";"i")) or (.title|test("\\b" + $p + "\\b";"i")))] | .[0].address // empty)
+     end
+')
 
 CURRENT_WS=$(hyprctl activewindow -j | jq -r '.workspace.name')
 
