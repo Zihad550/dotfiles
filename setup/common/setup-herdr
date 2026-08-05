@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+
+mise use -g herdr
+
+######## install integrations
+herdr integration install pi
+herdr integration install omp
+herdr integration install claude
+herdr integration install codex
+herdr integration install opencode
+herdr integration install kilo
+herdr integration install cursor
+# herdr integration install copilot
+# herdr integration install devin
+# herdr integration install droid
+# herdr integration install kimi
+# herdr integration install hermes
+# herdr integration install qodercli
+# herdr integration install mastracode
+# herdr integration install antigravity-cli
+# herdr integration install grok
+
+##### install skill
+skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor pi kilo
