@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 
-mise use -g herdr
+# mise use -g herdr
+mise use -g github:herdrdev/herdr
 
 ######## install integrations
 herdr integration install pi
