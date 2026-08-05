@@ -5,6 +5,11 @@
 # See ../arch-devbox/README.md "staying awake" for the four things that can
 # suspend a machine and why masking the sleep targets covers all of them.
 #
+# Want only the hypridle idle behavior, with manual suspend (a keybind,
+# `systemctl suspend`) left working? Sleep targets stay masked here — that's
+# what makes this script unsuitable for that. Use ./setup-hypridle-no-suspend
+# directly instead.
+#
 #   NO_SLEEP_HYPRIDLE_CONF=<path>   optional; Hyprland boxes only
 
 set -euo pipefail
@@ -37,28 +42,8 @@ if id gdm &>/dev/null && command -v gsettings &>/dev/null; then
     fi
 fi
 
-DEVBOX_HYPRIDLE_CONF="${NO_SLEEP_HYPRIDLE_CONF:-}"
-
-if [[ -z "$DEVBOX_HYPRIDLE_CONF" ]]; then
-    : # no hypridle on this box
-elif command -v hypridle &>/dev/null && [[ -f "$DEVBOX_HYPRIDLE_CONF" ]]; then
-    override_dir="$HOME/.config/systemd/user/hypridle.service.d"
-    mkdir -p "$override_dir"
-
-    # The bare `ExecStart=` is required: without it systemd appends a second
-    # command instead of replacing the unit's own.
-    cat >"$override_dir/override.conf" <<EOF
-[Service]
-ExecStart=
-ExecStart=$(command -v hypridle) -c $DEVBOX_HYPRIDLE_CONF
-EOF
-
-    systemctl --user daemon-reload 2>/dev/null || true
-    systemctl --user try-restart hypridle.service 2>/dev/null || true
-
-    echo "hypridle -> $DEVBOX_HYPRIDLE_CONF (no suspend listener)"
-else
-    echo "note: hypridle not installed — skipping its config override"
+if [[ -n "${NO_SLEEP_HYPRIDLE_CONF:-}" ]]; then
+    "$(dirname "${BASH_SOURCE[0]}")/setup-hypridle-no-suspend" "$NO_SLEEP_HYPRIDLE_CONF"
 fi
 
 echo

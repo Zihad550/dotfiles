@@ -63,8 +63,10 @@ so a fix there lands on both targets.
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
 | `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
+| `setup-hypridle-no-suspend` | idle behavior only, sleep targets left unmasked — manual suspend still works (wrapper over [`../common/setup-hypridle-no-suspend`](../common/setup-hypridle-no-suspend)) |
 | `hypridle.conf` | devbox idle rules — lock and DPMS-off, no suspend |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
+| `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)) |
 | `setup-ufw-base` | non-interactive deny-all baseline + `ufw-docker`, run by `init` |
 | `setup-ufw-lan` | step 1: a temporary ssh hole from one LAN machine, so the rest can be driven remotely |
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
@@ -269,7 +271,7 @@ internet. Inbound rules do nothing about that; what matters is reach.
 | egress to `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `255.255.255.255`, multicast | dropped **on the physical interface only** |
 | same, as `ufw route` rules | so a container can't walk past the host rules |
 | egress to `fc00::/7` (v6 unique-local), both forms | the v6 half of the same boundary. `fe80::/10` and `ff00::/8` are left alone — NDP runs over both, and dropping them removes IPv6 rather than hardening it |
-| the default gateway | the one LAN peer left reachable, so DNS/NTP/internet work |
+| the default gateway | the one LAN peer left reachable, so DNS/NTP/internet work — only if the resolver runs on the gateway itself; a resolver elsewhere on the LAN (a pi-hole on its own box) is blocked same as anything else, see `./setup-dns` |
 | DHCP to `255.255.255.255:67`, allowed out | added before the broadcast deny above it. `dhcpcd` and `systemd-networkd` use raw packet sockets that never reach the filter table; this is for anything that doesn't |
 | `default deny routed` | ufw's own default, asserted rather than assumed. Not what enforces the isolation — the `ufw route deny` rules above match regardless of policy. It covers the forwarding paths with no rule at all (a tailnet subnet route, a second bridge), which `ufw default allow routed` on a box once used as a router would otherwise leave open |
 | ICMP echo-request | answered on `tailscale0`, dropped on the VLAN |
@@ -492,8 +494,10 @@ SSH` and opens the syncthing profile — the opposite of what this box wants.
 
 A box that suspends is a box you cannot ssh into — and it takes every path back
 in with it — and since `setup-ufw` leaves no LAN hole, the tailnet is the whole
-set. A suspended box needs a physical keyboard. `setup-no-sleep` runs during
-`init` and handles it.
+set. A suspended box needs a physical keyboard. `setup-no-sleep` handles it,
+but is commented out in `init` — see
+[idle behavior without masking sleep](#idle-behavior-without-masking-sleep)
+for why `init` runs the lighter `setup-hypridle-no-suspend` instead.
 
 Four separate things can suspend this machine:
 
@@ -565,6 +569,25 @@ along with it.
 Reverse it with `sudo systemctl unmask sleep.target suspend.target
 hibernate.target hybrid-sleep.target`. On a laptop this does mean the battery
 runs flat instead of suspending.
+
+### idle behavior without masking sleep
+
+`setup-no-sleep` isn't run by `init` — it's opt-in, because on a machine you
+sit at (the desktop, not the headless case) masking `sleep.target` also kills
+*manual* suspend: a keybind or `systemctl suspend` resolves to the same masked
+target as the idle timer, so there's no way to distinguish "the timer fired"
+from "I asked for this." Skip it and hypridle falls back to the shared
+`hypr/.config/hypr/hypridle.conf`, suspend listener included — the box goes to
+sleep on its own after ~31 minutes idle.
+
+To get the no-suspend idle behavior (lock, DPMS-off) while leaving manual
+suspend alone, run `setup-hypridle-no-suspend` instead — it's just the
+drop-in from the previous section, without the masking, logind drop-in, or
+gdm gsettings:
+
+```bash
+setup/arch-devbox/setup-hypridle-no-suspend
+```
 
 ### if it went unreachable but did not sleep
 

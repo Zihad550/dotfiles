@@ -179,10 +179,11 @@ run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
 run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
 run_step "fast shutdown" "$ARCH_HYPR_DIR/setup-packages/setup-fast-shutdown"
 
-# A devbox that suspends is a devbox you cannot ssh into. Masks the sleep
-# targets, so hypridle's suspend listener, the lid switch and gdm's greeter all
-# fail harmlessly. See the script header for the full list of culprits.
-run_step "no sleep" "$ARCH_DEVBOX_DIR/setup-no-sleep"
+# Idle behavior only: points hypridle at the no-suspend config so idle timeout
+# no longer suspends the box, without masking sleep.target — manual suspend
+# stays intact. See README.md "staying awake" > "idle behavior without
+# masking sleep".
+run_step "hypridle no suspend" "$ARCH_DEVBOX_DIR/setup-hypridle-no-suspend"
 
 # Power management, one branch each. TLP and tuned drive the same sysfs knobs
 # and neither yields, so the if/else is what keeps them mutually exclusive —

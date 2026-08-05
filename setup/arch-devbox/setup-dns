@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Point this box at a DNS resolver ./setup-ufw's VLAN isolation can actually
+# reach. See ../common/setup-dns for the mechanism; this file only says what
+# is true about *this* box.
+#
+# ./setup-ufw denies egress on the LAN interface to everything except the
+# gateway's single IP (see its "egress: the gateway, and nothing else on the
+# wire" section). A resolver that lives elsewhere on the LAN — a pi-hole on
+# its own box, rather than on the router itself — gets silently dropped by
+# that rule, and DNS breaks. This points resolution at a public resolver
+# instead: 1.1.1.1/1.0.0.1 are neither RFC1918 nor link-local nor multicast,
+# so none of setup-ufw's deny rules ever match them.
+#
+#   ./setup-dns                                         # Cloudflare (default)
+#   DNS_SERVERS="9.9.9.9 149.112.112.112" ./setup-dns   # Quad9, or any other pair
+#
+# Losing pi-hole's filtering is the trade, and it's scoped to this one box —
+# everything else on the LAN still resolves through it, just not this
+# devbox's own queries. Not run by init or listed in README.md's `## order` —
+# opt-in, same as ./setup-no-sleep, and only needed if your LAN resolver isn't
+# the gateway itself.
+
+set -euo pipefail
+
+export DNS_SERVERS="${DNS_SERVERS:-1.1.1.3 1.0.0.3}"
+export DNS_REASON="setup-ufw blocks a LAN-only resolver (e.g. pi-hole); this is a public one its egress rules don't touch."
+
+exec "$(dirname "${BASH_SOURCE[0]}")/../common/setup-dns" "$@"

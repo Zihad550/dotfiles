@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+# Point systemd-resolved at explicit upstream DNS servers via a drop-in.
+# Shared implementation; per-box wrappers set the variables below and exec
+# this.
+#
+#   DNS_SERVERS=<space-separated>   required, e.g. "1.1.1.1 1.0.0.1"
+#   DNS_DOMAINS=<value>             optional; default "~." (route every lookup
+#                                    through DNS_SERVERS). See the comment
+#                                    below before changing it.
+#   DNS_DROPIN_NAME=<name>          optional; default "10-dns-override".
+#                                    Becomes /etc/systemd/resolved.conf.d/<name>.conf
+#   DNS_REASON=<text>               optional; goes in the file's header comment
+#
+# Why a drop-in and not editing resolved.conf directly: same reasoning as the
+# sysctl.d and logind.conf.d files elsewhere in this repo — one file per
+# concern, safe to remove without hand-editing a shared config, and immune to
+# a package update overwriting it.
+
+set -euo pipefail
+
+DNS_SERVERS="${DNS_SERVERS:?set DNS_SERVERS (see the per-box wrapper)}"
+DOMAINS="${DNS_DOMAINS:-~.}"
+DROPIN_NAME="${DNS_DROPIN_NAME:-10-dns-override}"
+REASON="${DNS_REASON:-}"
+
+if ! systemctl cat systemd-resolved.service &>/dev/null; then
+    echo "error: systemd-resolved not found — this script only knows how to" >&2
+    echo "       drive that resolver. Set DNS by hand for whatever this box uses." >&2
+    exit 1
+fi
+
+DROPIN_DIR=/etc/systemd/resolved.conf.d
+sudo mkdir -p "$DROPIN_DIR"
+
+{
+    echo "# Written by setup/common/setup-dns."
+    [[ -n "$REASON" ]] && echo "# $REASON"
+    echo "[Resolve]"
+    echo "DNS=$DNS_SERVERS"
+    # Without this, a per-link resolver handed out by DHCP can stay authoritative
+    # for lookups even with DNS= set above — resolved's split-DNS routing is
+    # additive, not a replacement. "~." makes DNS_SERVERS the resolver for every
+    # domain, which is the point when the DHCP-provided one is what we're routing
+    # around in the first place.
+    echo "Domains=$DOMAINS"
+} | sudo tee "$DROPIN_DIR/$DROPIN_NAME.conf" >/dev/null
+
+sudo systemctl restart systemd-resolved
+
+# The drop-in above is dead weight unless /etc/resolv.conf actually points at
+# resolved's stub — if something else owns that file (NetworkManager writing it
+# directly, resolvconf, ...) DNS_SERVERS is configured but not necessarily used.
+resolv_target="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
+if [[ "$resolv_target" != /run/systemd/resolve/stub-resolv.conf ]]; then
+    echo
+    echo "warn: /etc/resolv.conf does not point at systemd-resolved's stub"
+    echo "      resolver (found: ${resolv_target:-<none>}). DNS_SERVERS is"
+    echo "      configured but may not be what actually answers lookups."
+    echo "      Fix with:  sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf"
+fi
+
+echo
+echo "DNS servers: $DNS_SERVERS"
+echo
+echo "verify with:  resolvectl status"

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# Point hypridle at a config with no suspend listener, via a systemd user
+# drop-in — the idle-behavior half of ./setup-no-sleep, split out so a box can
+# take it without masking sleep.target. Use this alone when you want manual
+# suspend (a keybind, `systemctl suspend`) to keep working while idle timeouts
+# no longer trigger it; use setup-no-sleep when you also want the box to stay
+# reachable (masked targets, ignored lid, gdm greeter).
+#
+# Usage: setup-hypridle-no-suspend <path-to-hypridle.conf>
+
+set -euo pipefail
+
+DEVBOX_HYPRIDLE_CONF="${1:?usage: setup-hypridle-no-suspend <path-to-hypridle.conf>}"
+
+if ! command -v hypridle &>/dev/null; then
+    echo "note: hypridle not installed — nothing to do"
+    exit 0
+fi
+
+if [[ ! -f "$DEVBOX_HYPRIDLE_CONF" ]]; then
+    echo "error: $DEVBOX_HYPRIDLE_CONF not found" >&2
+    exit 1
+fi
+
+override_dir="$HOME/.config/systemd/user/hypridle.service.d"
+mkdir -p "$override_dir"
+
+# The bare `ExecStart=` is required: without it systemd appends a second
+# command instead of replacing the unit's own.
+cat >"$override_dir/override.conf" <<EOF
+[Service]
+ExecStart=
+ExecStart=$(command -v hypridle) -c $DEVBOX_HYPRIDLE_CONF
+EOF
+
+systemctl --user daemon-reload 2>/dev/null || true
+systemctl --user try-restart hypridle.service 2>/dev/null || true
+
+echo "hypridle -> $DEVBOX_HYPRIDLE_CONF (no suspend listener)"

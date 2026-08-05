@@ -35,6 +35,12 @@
 # build is worse than not having it. Egress control that actually holds needs a
 # filtering proxy, not ufw.
 #
+# One consequence worth flagging here rather than leaving it buried in the
+# rules below: a DNS resolver that lives on the LAN but isn't the gateway
+# itself (a pi-hole on its own box, say) loses reachability the same way any
+# other LAN peer does. ./setup-dns points this box at a public resolver
+# instead -- one whose address these egress rules never match.
+#
 # ─── order ───────────────────────────────────────────────────────────────────
 # Run AFTER ./setup-tailscale, so tailscale0 exists and tailscaled is up. For
 # the full sequence see `## order` in ./README.md -- the canonical copy, so that
@@ -153,6 +159,10 @@ if [ -n "$GATEWAY" ]; then
     # every other address on the VLAN stays dark. Traffic to the internet is
     # unaffected either way -- those packets carry a public destination and only
     # pass through the gateway at layer 2.
+    #
+    # This only covers a resolver running ON the gateway. One on its own LAN box
+    # (a pi-hole, say) is a different address and gets caught by the isolation
+    # denies below same as anything else -- see ./setup-dns.
     sudo ufw allow out on "$LAN_IFACE" to "$GATEWAY" comment 'vlan gateway'
     sudo ufw route allow out on "$LAN_IFACE" to "$GATEWAY" comment 'vlan gateway (containers)'
 else

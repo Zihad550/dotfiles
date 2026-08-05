@@ -17,7 +17,8 @@ sudo pacman -S --noconfirm \
     dosfstools \
     rclone \
     veracrypt \
-    yazi resvg
+    yazi resvg \
+    pass
 
 # xorg-xhost \      # needed for running timeshift
 

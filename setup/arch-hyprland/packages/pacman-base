@@ -29,7 +29,6 @@ sudo pacman -S --noconfirm \
     git \
     less \
     jq \
-    pass \
     fzf \
     man-db \
     man-pages \
