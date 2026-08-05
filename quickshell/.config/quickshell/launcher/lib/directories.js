@@ -238,6 +238,20 @@ function chooserApps(path, mirrored, home) {
     }
 
     return [
+      {
+          // A tmux session in a ghostty window, run by the session script
+          // (ticket 03, bin/df-tmux-session) with the directory's session
+          // name and path. See tmuxLaunchArgv for why the path goes through
+          // raw, and the header on this function for why this is local and
+          // `scoped: false`. `target` is the session name rather than the
+          // path the other five rows show: it is what the row attaches you
+          // to and what appears in `tmux ls` -- the host verification's own
+          // pass criterion.
+          name: "Tmux", icon: "utilities-terminal",
+          target: sessionNameOf(path, home),
+          scoped: false,
+          argv: tmuxLaunchArgv(path, home)
+      },
         {
             name: "Zed", icon: "zed", target: target,
             argv: pick(["zeditor", path], ["zeditor", target])
@@ -263,20 +277,6 @@ function chooserApps(path, mirrored, home) {
                 // with a space in it would otherwise break silently.
                 ["ghostty", "-e", "ssh", "-t", SSH_HOST, "cd " + shellEscape(path) + " && exec nvim"]
             )
-        },
-        {
-            // A tmux session in a ghostty window, run by the session script
-            // (ticket 03, bin/df-tmux-session) with the directory's session
-            // name and path. See tmuxLaunchArgv for why the path goes through
-            // raw, and the header on this function for why this is local and
-            // `scoped: false`. `target` is the session name rather than the
-            // path the other five rows show: it is what the row attaches you
-            // to and what appears in `tmux ls` -- the host verification's own
-            // pass criterion.
-            name: "Tmux", icon: "utilities-terminal",
-            target: sessionNameOf(path, home),
-            scoped: false,
-            argv: tmuxLaunchArgv(path, home)
         },
         {
             // No remote command at all -- Files is always local, even for a
