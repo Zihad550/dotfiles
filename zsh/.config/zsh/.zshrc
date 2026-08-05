@@ -192,7 +192,6 @@ alias zln='zmv -L' # Link with patterns
 # Access with ~name syntax, e.g., cd ~yt or ls ~yt
 hash -d dot=~/dotfiles
 hash -d dl=~/Downloads
-hash -d wo=~/dev/work/mamacrm
 
 ##################
 # keybindings

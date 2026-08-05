@@ -53,7 +53,6 @@ Menu {
         },
         {
             name: "work - zellij session",
-            keywords: ["work", "mamacrm", "zellij"],
             command: ["~/dotfiles/bin/df-launch-special-app", "work-zellij", "ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit", "work-zellij"],
             scoped: false
         },
