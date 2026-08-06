@@ -4,6 +4,8 @@
 # mise use -g herdr
 mise use -g github:herdrdev/herdr
 
+eval "$(mise activate bash)"
+
 ######## install integrations
 herdr integration install pi
 herdr integration install omp
