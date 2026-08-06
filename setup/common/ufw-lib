@@ -81,10 +81,14 @@ ufw_commit() {
 delete_rules_matching() {
     local pattern="$1" nums n
     command -v ufw &>/dev/null || return 0
+    # `|| true`: grep exits 1 when nothing matches yet (e.g. first run, no
+    # break-glass rule to delete), and with pipefail that would otherwise
+    # trip `set -e` in the caller and kill the whole script right here --
+    # silently, since no command has actually failed in any way that matters.
     nums="$(sudo ufw status numbered 2>/dev/null |
         grep -E "$pattern" |
         sed -n 's/^\[[[:space:]]*\([0-9]\{1,\}\)\].*/\1/p' |
-        sort -rn)"
+        sort -rn)" || true
     for n in $nums; do
         sudo ufw --force delete "$n" >/dev/null
     done
