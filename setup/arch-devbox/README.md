@@ -74,7 +74,7 @@ so a fix there lands on both targets.
 
 Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
 `gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos`, `packages/go-packages`,
-`packages/pacman-base`, `packages/quickshell-packages`, `ai-tools`
+`packages/pacman-base`, `packages/quickshell-packages`
 and all of `setup-packages/`.
 
 Hardware detection is the exception: it used to be `../arch-hyprland/utils/hw-detect`
@@ -88,7 +88,7 @@ Four small changes were made there so both installers can share them:
   `$ARCH_SETUP_NAME`, and the error screen's *Retry* re-execs `$ARCH_SETUP_INIT`
   instead of a hardcoded arch-hyprland path.
 - `setup-mise` guards its `kilo completion` call. `kilo` is installed by
-  `ai-tools`, which `init` never runs, so on a fresh box that line installed an
+, which `init` never runs, so on a fresh box that line installed an
   **empty** `_kilo` completion file system-wide (the redirect created the file
   before the missing command failed, and the following `mv` then succeeded).
 - `setup-ufw` guards `ufw allow syncthing` behind `ufw app info syncthing`. That
@@ -105,10 +105,6 @@ difference:
   is a third hand-maintained copy of the same toolkit and has already drifted:
   commit `f362aa2` dropped `aichat`, `worktrunk` and `lazydocker` there only, and
   it lists `git-delta` twice.
-- **`packages/mise-packages`** → deleted. Both files ran the same single command
-  (`mise use -g node@24 node go pnpm claude`); only the comments differed. This
-  box now runs [`../arch-hyprland/ai-tools`](../arch-hyprland/ai-tools) in its
-  place, which is a superset — same toolchain line, plus `uv` and the AI CLIs.
 - **`packages/yay-packages`** → deleted. Its body was `exit 0`. `yay` itself is
   still installed by `setup-packages/setup-yay`.
 - **`packages/flatpak-packages`** → deleted. Every install line was commented out
@@ -181,22 +177,10 @@ Memrise, …) is not referenced here. Note it isn't referenced by arch-hyprland'
 `init` either — it has always been a run-it-yourself script. Chromium installs
 PWAs on demand, so there's nothing to replace.
 
-### AI CLIs
 
-`init` runs [`../arch-hyprland/ai-tools`](../arch-hyprland/ai-tools) where
-arch-hyprland runs `packages/mise-packages`. This box is the one that actually
-runs the harnesses, so the CLIs are baseline rather than an afterthought.
 
-That covers the global toolchain too — `ai-tools` opens with the same
-`mise use -g node@24 node go pnpm claude` line, plus `uv`, so nothing is lost by
-skipping `mise-packages`. On top it installs `opencode`, `npm:@kilocode/cli`,
-`gemini` and `aichat`. Anything still commented out in `ai-tools` (qwen,
-openspec, cline, …) stays a run-it-yourself edit.
 
-**`opencode` and `aichat` end up installed twice** — from the omarchy repo via
-`packages/pacman-base`, and again as mise shims via `ai-tools`. The mise shim
-wins on `PATH`, so that is the version you get. Harmless but wasteful; drop
-either side if it bothers you.
+
 
 Several CLIs need an interactive login on first run (`claude`, `opencode`,
 `gemini`, `kilo`) — `init` prints a reminder at the end.

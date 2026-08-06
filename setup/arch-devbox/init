@@ -103,15 +103,8 @@ run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 # tool added there lands on both machines.
 run_step "pacman base" "$ARCH_HYPR_DIR/packages/pacman-base"
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
-# yay packages dropped — nothing from the AUR survives the cull, and yay itself
-# is still installed above for when you need it by hand.
+run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
 
-# ai-tools rather than packages/mise-packages: this box is what actually runs
-# the AI harnesses, so the CLIs are part of its baseline, not an afterthought.
-# ai-tools is a superset — it installs the same global toolchain
-# (`mise use -g node@24 node go pnpm claude`) plus uv and the CLIs, so nothing
-# is lost by not running mise-packages here.
-run_step "ai tools" "$ARCH_HYPR_DIR/ai-tools"
 
 run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
 # Shared with arch-hyprland, not overridden: the shell is identical on both

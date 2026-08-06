@@ -4,4 +4,4 @@
 # ~/dotfiles/setup/ubuntu-server/setup-syncthing
 ~/dotfiles/setup/ubuntu-server/setup-nfs
 ~/dotfiles/setup/ubuntu-server/setup-ufw
-~/dotfiles/setup/ubuntu-server/ai-tools
+~/dotfiles/setup/common/packages/mise-dev-packages

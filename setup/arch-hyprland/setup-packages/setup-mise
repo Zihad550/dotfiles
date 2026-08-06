@@ -8,11 +8,6 @@ mise completion zsh >_mise
 sudo mkdir -p /usr/share/zsh/site-functions
 sudo mv _mise /usr/share/zsh/site-functions/
 
-# kilo (@kilocode/cli) is installed by `ai-tools`, which init never runs, so on a
-# fresh box it isn't on PATH. Unguarded this didn't fail the step — the redirect
-# created _kilo before the missing command failed, and the mv then succeeded —
-# it installed an *empty* completion file system-wide, which is worse because it
-# is silent. df-gen-completions picks kilo up later if it does get installed.
 if command -v kilo &>/dev/null; then
     kilo completion >_kilo
     sudo mv _kilo /usr/share/zsh/site-functions/
