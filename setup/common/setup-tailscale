@@ -73,7 +73,7 @@ fi
 # bar's Tailscale toggle (quickshell/.../scripts/tailscale-toggle.sh) depends on
 # it: there is no terminal behind that menu row to type a sudo password into, so
 # without --operator every toggle falls through to a pkexec prompt.
-up_args=(--hostname "$TS_HOSTNAME" --operator "$USER")
+up_args=(--hostname "$TS_HOSTNAME")
 [ "$TS_SSH" = "1" ] && up_args+=(--ssh)
 [ -n "$TS_AUTHKEY" ] && up_args+=(--authkey "$TS_AUTHKEY")
 
