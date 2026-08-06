@@ -88,7 +88,8 @@
     ; add the changes you just made to the last commit, since this small changes don't need a full commit, commit -> do more work -> amment/finished,
     ; NEVER AMEND PUSHED COMMITS!
     ; It modifies the commit history
-    amend = commit -a --amend --no-edit
+    # amend = commit -a --amend --no-edit
+    amend = commit --amend --no-edit
     ; add everything to staging
     aa = add -A
     ; removes all untracked files and directories
