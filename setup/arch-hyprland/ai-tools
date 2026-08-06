@@ -7,7 +7,7 @@
 # sudo apt update && sudo apt install crush
 
 # not working cpu type othe than host
-mise use -g uv
+mise use -g uv skills
 mise use -g node@24 node go pnpm claude
 # mise use -g bun deno node@lts pnpm
 # mise use -g mcporter # use mcp server using cli
