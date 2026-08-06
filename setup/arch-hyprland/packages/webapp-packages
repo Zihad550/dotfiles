@@ -20,6 +20,7 @@
 # ~/dotfiles/bin/df-webapp-install "Cambridge Dictionary" https://dictionary.cambridge.org/translate/ cambridge.svg
 ~/dotfiles/bin/df-webapp-install "Deepl " https://www.deepl.com/en/translator deepl.svg
 ~/dotfiles/bin/df-webapp-install "Pi-hole " https://pihole.home/admin pi-hole.svg
+~/dotfiles/bin/df-webapp-install "Tplink router" http://router.home tplink.png
 
 # df-webapp-install "YouTube" https://youtube.com/ YouTube.png
 # df-webapp-install "Discord" https://discord.com/channels/@me Discord.png
