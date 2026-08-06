@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# base-devel is required for makepkg to build AUR packages (debugedit,
+# fakeroot, make, gcc, etc.). Install before yay so AUR builds work.
+sudo pacman -S --noconfirm --needed base-devel
+
 if command -v yay &>/dev/null; then
     echo "yay already installed ($(command -v yay)); skipping."
     exit 0
