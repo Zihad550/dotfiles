@@ -71,6 +71,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # subnet denies would break containers and any tailnet subnet route.
 LAN_IFACE="$(ip -4 route show default | awk '{print $5; exit}')"
 GATEWAY="$(ip -4 route show default | awk '{print $3; exit}')"
+# This box's own subnet on that interface, e.g. 192.168.0.0/24 -- used to scope
+# the tailscale direct-LAN-peering hole below to addresses a peer could
+# plausibly be on, rather than to the whole RFC1918 space.
+LAN_SUBNET="$(ip -4 -o addr show "$LAN_IFACE" 2>/dev/null | awk '{print $4; exit}')"
 
 if [ -z "$LAN_IFACE" ]; then
     echo "no default route -- cannot tell which interface faces the VLAN." >&2
@@ -173,6 +177,24 @@ fi
 # dhcpcd and systemd-networkd both talk DHCP over raw packet sockets, which
 # never reach the filter table -- this rule is for anything that does not.
 sudo ufw allow out on "$LAN_IFACE" proto udp to 255.255.255.255 port 67 comment 'dhcp'
+
+# Tailscale peers that happen to share this LAN otherwise lose their direct
+# path once the isolation rules below land: magicsock probes a peer's LAN
+# address on tailscaled's own UDP port, and getting no answer falls back to
+# relaying the whole connection through a DERP server -- same tailnet link,
+# much higher latency. Scoped to this box's own subnet, not all of RFC1918:
+# a real LAN peer is always in it, and a compromised process gets a much
+# smaller "which hosts on my segment run tailscaled" probe instead of one
+# spanning the whole private address space. Still only outbound-initiated --
+# the default-deny-incoming policy is untouched, so this does not make the
+# box answerable to unsolicited LAN traffic, only to replies on flows it
+# started. Default tailscaled port; adjust if --port was set.
+if [ -n "$LAN_SUBNET" ]; then
+    sudo ufw allow out on "$LAN_IFACE" proto udp to "$LAN_SUBNET" port 41641 comment 'tailscale direct LAN peering'
+else
+    echo "warn: could not determine $LAN_IFACE's subnet -- skipping the tailscale"
+    echo "      direct-LAN-peering allow. Same-LAN peers will relay via DERP."
+fi
 
 # The isolation itself. `out on $LAN_IFACE` is the whole trick: identical
 # destinations reached over tailscale0 (a tailnet subnet route) or docker0 (a
