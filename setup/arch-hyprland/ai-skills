@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
- skills add mattpocock/skills
+ # skills add mattpocock/skills
 
 # npx skills add -g --all
 # npx skills add https://github.com/github/awesome-copilot --skill ai-prompt-engineering-safety-review -g --all
