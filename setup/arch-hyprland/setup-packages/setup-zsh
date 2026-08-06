@@ -6,5 +6,8 @@ sudo pacman -S --noconfirm zsh
 # zsh plugins
 # sudo pacman -Syu zsh-syntax-highlighting --noconfirm
 
-# setup zsh as user shell
-sudo usermod -s $(which zsh) $USER
+# setup zsh as user shell. command -v, not which: Arch's base install does
+# not ship `which` (it's a separate optional package), and a missing `which`
+# here silently empties $(which zsh), which usermod then rejects with the
+# confusing "invalid shell '$USER'" — it swallows $USER as -s's argument.
+sudo usermod -s "$(command -v zsh)" "$USER"
