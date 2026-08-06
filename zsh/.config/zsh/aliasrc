@@ -44,8 +44,8 @@ alias \
     f="yazi" \
     g="git" \
     t='tmux' \
-    m='mise' \
-    grep="rg"
+    m='mise'
+    # grep="rg"
 # rm="rm -Iv" \
 # k="killall" \
 
