@@ -6,7 +6,6 @@
 # The one thing README.md does not cover is why the step *list* below is not
 # shared with ../arch-hyprland/init the way everything else is. It is a copy,
 # and adding a step there does not add it here. Kept a copy on purpose — the two
-# sequences differ in enough places (no flatpak/syncthing/yay-packages, ai-tools
 # instead of mise-packages, plus sshd/ufw-base/no-sleep/tuned that only exist
 # here) that sharing one would mean inventing a step-manifest format to express
 # the differences, which is more machinery than two 40-line lists are worth. If
@@ -103,6 +102,8 @@ run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 # tool added there lands on both machines.
 run_step "pacman base" "$ARCH_HYPR_DIR/packages/pacman-base"
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
+run_step "yay packages" "$ARCH_HYPR_DIR/packages/yay-packages"
+run_step "flatpak packages" "$ARCH_HYPR_DIR/packages/flatpak-packages"
 run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
 
 
