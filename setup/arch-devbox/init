@@ -102,6 +102,10 @@ run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 # tool added there lands on both machines.
 run_step "pacman base" "$ARCH_HYPR_DIR/packages/pacman-base"
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
+# Before yay-packages, not after: makepkg fetches an AUR package's validpgpkeys
+# with `gpg --recv-keys`, and dirmngr's own resolver cannot follow this box's
+# DNS path. See setup/common/setup-dirmngr.
+run_step "dirmngr resolver" "$DOTFILES_DIR/setup/common/setup-dirmngr"
 run_step "yay packages" "$ARCH_HYPR_DIR/packages/yay-packages"
 run_step "flatpak packages" "$ARCH_HYPR_DIR/packages/flatpak-packages"
 run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"

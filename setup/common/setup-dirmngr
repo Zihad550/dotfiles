@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+# Point gpg's dirmngr at the system resolver, so key imports survive this box's
+# DNS path.
+#
+# dirmngr does not use glibc's resolver. It links its own (libdns) and reads
+# /etc/resolv.conf itself, which means it sees the *file* but not the policy
+# behind it — systemd-resolved's split-horizon routing, MagicDNS's per-domain
+# rules, a pi-hole upstream. On a box where /etc/resolv.conf is resolved's stub
+# (127.0.0.53) that private resolver is talking to a forwarder whose answers
+# depend on routing it does not implement, and lookups fail in the vaguest way
+# gpg has:
+#
+#   gpg: keyserver receive failed: Server indicated a failure
+#
+# `standard-resolver` turns libdns off and hands resolution back to
+# getaddrinfo(3) — the same path curl, pacman and everything else on the box
+# already uses successfully. That is the whole fix.
+#
+# The keyserver line below fixes nothing on Arch today: its gnupg already
+# defaults to hkps://keyserver.ubuntu.com, so the line asserts the default
+# rather than changing it. Kept because upstream GnuPG's own default is
+# hkps://keys.openpgp.org, which serves keys whose owner has not verified their
+# email *without user IDs* — gpg then rejects them ("no user ID", 0 imported)
+# and makepkg fails its validpgpkeys check exactly as if the fetch had failed.
+# One line to not inherit that if the packaging ever stops diverging.
+#
+#   gpgconf --list-options dirmngr | grep '^keyserver'   # field 10 = the default
+#
+# What needs this here: makepkg verifies AUR source signatures against the
+# PKGBUILD's `validpgpkeys`, and fetches any key it does not have with
+# `gpg --recv-keys`. So a broken dirmngr does not look like a DNS problem — it
+# looks like `yay -S helium-browser-bin` failing at the verify step, during the
+# "yay packages" run_step, on a box where every other network operation works.
+# That is why this runs in init rather than being opt-in like ./setup-dns.
+#
+# It also touches /etc/pacman.d/gnupg, which is a *separate* keyring with a
+# separate dirmngr.conf — `pacman-key --refresh-keys` hits the identical bug.
+# Nothing in this repo fetches pacman keys over the network (omarchy ships
+# omarchy-keyring, and pacman-key --populate reads local files), so that half is
+# purely so the manual command works when you reach for it.
+#
+# Related but not the same thing: ../arch-devbox/setup-dns changes *which*
+# resolver answers. This changes *who asks*. Either can be the reason gpg fails
+# and neither substitutes for the other.
+#
+#   ./setup-dirmngr                                          # default keyserver
+#   DIRMNGR_KEYSERVER=hkps://keys.openpgp.org ./setup-dirmngr
+
+set -euo pipefail
+
+KEYSERVER="${DIRMNGR_KEYSERVER:-hkps://keyserver.ubuntu.com}"
+
+# Adds a line unless its keyword is already configured. Leaving an existing
+# setting alone rather than overwriting it is the point: a hand-picked keyserver
+# survives a re-run, and the script stays idempotent under init's retry.
+ensure_option() {
+    local conf="$1" keyword="$2" line="$3" sudo_cmd="${4:-}"
+
+    if $sudo_cmd grep -qE "^[[:space:]]*${keyword}([[:space:]]|\$)" "$conf" 2>/dev/null; then
+        echo "  $keyword: already set in $conf, left alone"
+        return
+    fi
+
+    echo "$line" | $sudo_cmd tee -a "$conf" >/dev/null
+    echo "  $keyword: added to $conf"
+}
+
+# --- the user keyring: what makepkg/yay actually use -------------------------
+
+USER_GNUPGHOME="${GNUPGHOME:-$HOME/.gnupg}"
+USER_CONF="$USER_GNUPGHOME/dirmngr.conf"
+
+# gpg refuses to use a home directory group- or world-readable, and creates it
+# with 700 itself; match that when we are the ones creating it.
+mkdir -p "$USER_GNUPGHOME"
+chmod 700 "$USER_GNUPGHOME"
+touch "$USER_CONF"
+chmod 600 "$USER_CONF"
+
+echo "user keyring ($USER_GNUPGHOME):"
+ensure_option "$USER_CONF" "standard-resolver" "standard-resolver"
+ensure_option "$USER_CONF" "keyserver" "keyserver $KEYSERVER"
+
+# --- pacman's keyring: a different gnupg home entirely -----------------------
+
+PACMAN_GNUPGHOME=/etc/pacman.d/gnupg
+if [[ -d "$PACMAN_GNUPGHOME" ]]; then
+    PACMAN_CONF="$PACMAN_GNUPGHOME/dirmngr.conf"
+    sudo touch "$PACMAN_CONF"
+    echo "pacman keyring ($PACMAN_GNUPGHOME):"
+    # No keyserver line here — pacman picks its own, and overriding what
+    # pacman-key was initialised with is not this script's business.
+    ensure_option "$PACMAN_CONF" "standard-resolver" "standard-resolver" sudo
+    # Each gnupg home runs its own dirmngr, so each needs its own kill.
+    sudo gpgconf --homedir "$PACMAN_GNUPGHOME" --kill dirmngr 2>/dev/null || true
+else
+    echo "pacman keyring: $PACMAN_GNUPGHOME not present, skipped"
+fi
+
+# A running dirmngr reads its config once, at startup, and gpg will happily
+# reuse the daemon that is already up. Without this the change lands on disk and
+# does nothing until the next reboot.
+gpgconf --kill dirmngr 2>/dev/null || true
+
+echo
+echo "keyserver: $KEYSERVER"
+echo
+echo "verify with:  gpg --keyserver $KEYSERVER --recv-keys BE677C1989D35EAB2C5F26C9351601AD01D6378E"

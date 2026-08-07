@@ -15,6 +15,10 @@
 #   ./setup-dns                                         # Cloudflare (default)
 #   DNS_SERVERS="9.9.9.9 149.112.112.112" ./setup-dns   # Quad9, or any other pair
 #
+# This is not the fix for `gpg --recv-keys` failing while everything else
+# resolves — dirmngr uses its own resolver and ignores whatever this sets. See
+# ../common/setup-dirmngr, which init runs.
+#
 # Losing pi-hole's filtering is the trade, and it's scoped to this one box —
 # everything else on the LAN still resolves through it, just not this
 # devbox's own queries. Not run by init or listed in README.md's `## order` —
