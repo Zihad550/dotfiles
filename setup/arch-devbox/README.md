@@ -66,7 +66,7 @@ so a fix there lands on both targets.
 | `setup-hypridle-no-suspend` | idle behavior only, sleep targets left unmasked — manual suspend still works (wrapper over [`../common/setup-hypridle-no-suspend`](../common/setup-hypridle-no-suspend)) |
 | `hypridle.conf` | devbox idle rules — lock and DPMS-off, no suspend |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
-| `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)) |
+| `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
 | `setup-ufw-base` | non-interactive deny-all baseline + `ufw-docker`, run by `init` |
 | `setup-ufw-lan` | step 1: a temporary ssh hole from one LAN machine, so the rest can be driven remotely |
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
@@ -184,6 +184,120 @@ PWAs on demand, so there's nothing to replace.
 
 Several CLIs need an interactive login on first run (`claude`, `opencode`,
 `gemini`, `kilo`) — `init` prints a reminder at the end.
+
+## dns
+
+Two independent things can be wrong with name resolution on this box, and they
+have different fixes:
+
+| symptom | cause | fix |
+|---|---|---|
+| nothing resolves at all once `setup-ufw` has run | the LAN resolver isn't the gateway, and VLAN isolation drops it | [`setup-dns`](setup-dns) — opt-in, points this box at a public resolver |
+| everything resolves, but `gpg --recv-keys` fails | dirmngr resolves with its own bundled resolver, and its TLS stalls on hkps | [`../common/setup-dirmngr`](../common/setup-dirmngr) — run by `init` |
+
+### gpg key imports: two faults behind one message
+
+Both were live on this box, stacked — fixing the first only changed the error
+message. Neither has anything to do with the DNS servers `setup-dns` selects.
+
+dirmngr links **libdns** rather than using glibc, and reads `/etc/resolv.conf`
+directly. On this box that file is systemd-resolved's stub (`127.0.0.53`), which
+is a forwarder in front of policy dirmngr does not implement — resolved's
+split-DNS routing, MagicDNS, a pi-hole upstream. Lookups fail, and gpg reports
+it as:
+
+```
+gpg: keyserver receive failed: Server indicated a failure
+```
+
+which names neither DNS nor dirmngr. The tell is that **curl to the same
+keyserver works** — everything except gpg uses the system resolver.
+
+`setup-dirmngr` writes `standard-resolver` into `dirmngr.conf`, which turns
+libdns off and hands resolution back to `getaddrinfo(3)`. It does this for two
+separate keyrings, because they are separate gnupg homes with separate configs:
+`~/.gnupg` (what makepkg and yay use) and `/etc/pacman.d/gnupg` (what
+`pacman-key --refresh-keys` uses). Then it kills any running dirmngr — the
+daemon reads its config once, at startup.
+
+Arch already agrees, which is worth knowing before doubting the fix:
+`pacman-key --init` writes `standard-resolver` into the pacman keyring's
+`dirmngr.conf` itself. Only `~/.gnupg` was missing it, and `~/.gnupg` is the one
+makepkg uses.
+
+#### fault two: dirmngr's TLS, which is why the keyserver is plaintext
+
+With the resolver fixed the error only changes:
+
+```
+gpg: keyserver receive failed: Try again later
+```
+
+after a flat 20s stall, with nothing between the request and the failure even at
+`debug-level guru`:
+
+```
+08:58:44 dirmngr[8048.6] DBG: chan_6 <- KS_GET -- 0xBE677C19…
+08:59:04 dirmngr[8048.6] command 'KS_GET' failed: Try again later
+```
+
+Four measurements on this box, same daemon, same hosts, same minute:
+
+| | result |
+|---|---|
+| `hkp://keyserver.ubuntu.com:80` | imports in under a second |
+| `hkps://keyserver.ubuntu.com` | 20s stall, `EAGAIN` |
+| the same hkps URL via `curl -4` | full key body in 0.76s |
+| `hkps://keys.openpgp.org` | stalls identically — not one server's fault |
+
+TCP, DNS, routing, MTU and egress are therefore all fine. What fails is TLS
+*inside dirmngr*, which uses its own stack rather than the OpenSSL curl links.
+**Cause not identified.** Ruled out along the way: DNS (`resolvectl` answers),
+IPv6 (`disable-ipv6` changed nothing), path MTU (a full-body `curl` GET
+succeeds), and the keyserver itself.
+
+So `setup-dirmngr` defaults to **plaintext `hkp://keyserver.ubuntu.com:80`**.
+That is a trade worth stating rather than burying:
+
+- **No key-integrity guarantee is lost.** `gpg --recv-keys <fingerprint>` and
+  makepkg's `validpgpkeys` both match on the full fingerprint, and producing a
+  key that collides with a given fingerprint is precisely what OpenPGP
+  fingerprints exist to prevent. Plaintext HKP moves no secret and grants no
+  trust that TLS was supplying.
+- **What it does cost** is confidentiality of which keys this box fetches, and
+  it lets anyone on the path deny the fetch. Neither blocks a build.
+
+`DIRMNGR_KEYSERVER=hkps://keyserver.ubuntu.com setup/common/setup-dirmngr`
+switches it back once the TLS fault is understood. Note the script leaves an
+existing `keyserver` line alone, so flipping it on a box that already ran means
+editing `~/.gnupg/dirmngr.conf` by hand.
+
+It runs in `init` **immediately before `yay packages`**, which is the step that
+needs it: makepkg verifies AUR source signatures against the PKGBUILD's
+`validpgpkeys` and fetches missing keys with `gpg --recv-keys`, so
+`helium-browser-bin` fails at the verify step on a box where every other network
+operation is fine. Existing settings are left alone, so a hand-picked keyserver
+survives a re-run.
+
+**`../arch-hyprland/init` deliberately does not run it**, even though it runs the
+same `packages/yay-packages` with the same `helium-browser-bin`. That box is not
+isolated — no VLAN boundary, no public-resolver override, so its lookups take the
+plain path dirmngr can follow. The script is in `../common/` rather than this
+directory because that is where shared implementations live, not because both
+inits call it; adding the `run_step` there is one line if it ever does bite.
+
+If it still fails after that, the problem is below gpg — check egress, not
+dirmngr:
+
+```bash
+curl -sI 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xBE677C1989D35EAB2C5F26C9351601AD01D6378E'
+resolvectl status
+```
+
+To see the real error instead of the vague one, add `verbose`, `debug-level
+basic` and `log-file /tmp/dirmngr.log` to `~/.gnupg/dirmngr.conf`, `gpgconf
+--kill dirmngr`, retry, and read the log — it names resolution failure, TLS
+handshake or an HTTP status. Strip those three lines back out afterwards.
 
 ## firewall
 

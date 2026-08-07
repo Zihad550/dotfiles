@@ -17,13 +17,47 @@
 # getaddrinfo(3) — the same path curl, pacman and everything else on the box
 # already uses successfully. That is the whole fix.
 #
-# The keyserver line below fixes nothing on Arch today: its gnupg already
-# defaults to hkps://keyserver.ubuntu.com, so the line asserts the default
-# rather than changing it. Kept because upstream GnuPG's own default is
-# hkps://keys.openpgp.org, which serves keys whose owner has not verified their
-# email *without user IDs* — gpg then rejects them ("no user ID", 0 imported)
-# and makepkg fails its validpgpkeys check exactly as if the fetch had failed.
-# One line to not inherit that if the packaging ever stops diverging.
+# That is necessary but not sufficient. With the resolver fixed the error only
+# changes:
+#
+#   gpg: keyserver receive failed: Try again later
+#
+# after a flat 20s stall. That is fault two: dirmngr's TLS. Measured on this box,
+# same daemon, same hosts, same minute:
+#
+#   hkp://keyserver.ubuntu.com:80    imports in under a second
+#   hkps://keyserver.ubuntu.com      stalls 20s, EAGAIN
+#   hkps:// via curl                 full key body in 0.76s
+#   hkps://keys.openpgp.org          stalls the same way — not one server's fault
+#
+# So TCP, DNS, routing, MTU and egress are all fine; what fails is TLS inside
+# dirmngr, which uses its own stack rather than the OpenSSL curl links. Cause not
+# identified. Not IPv6 either — `disable-ipv6` was tried here and changed nothing.
+#
+# Hence the default keyserver below is **plaintext hkp on port 80**, which is a
+# deliberate trade and not a lazy one:
+#
+#   - It costs no key-integrity guarantee. `gpg --recv-keys <fingerprint>` and
+#     makepkg's `validpgpkeys` both match on the full fingerprint, so a MITM
+#     cannot substitute a key: forging one that collides with a given
+#     fingerprint is the thing OpenPGP fingerprints exist to prevent. Plaintext
+#     HKP moves no secret and grants no trust that TLS was providing.
+#   - What it does cost is confidentiality of *which* keys this box fetches, to
+#     anyone on the path, and it lets that party deny the fetch. Both are already
+#     true of every unencrypted lookup this box makes, and neither blocks a
+#     build.
+#
+# Override with DIRMNGR_KEYSERVER if you would rather have hkps and handle the
+# stall, or once the TLS fault is understood:
+#
+#   DIRMNGR_KEYSERVER=hkps://keyserver.ubuntu.com ./setup-dirmngr
+#
+# Note this is a real change rather than an assertion of the default: Arch's
+# gnupg already defaults to hkps://keyserver.ubuntu.com — the *broken* one here.
+# (Upstream GnuPG defaults to hkps://keys.openpgp.org, which is worse for this
+# job for an unrelated reason: it serves keys whose owner never verified their
+# email without user IDs, and gpg rejects those outright, "no user ID",
+# 0 imported.)
 #
 #   gpgconf --list-options dirmngr | grep '^keyserver'   # field 10 = the default
 #
@@ -49,7 +83,7 @@
 
 set -euo pipefail
 
-KEYSERVER="${DIRMNGR_KEYSERVER:-hkps://keyserver.ubuntu.com}"
+KEYSERVER="${DIRMNGR_KEYSERVER:-hkp://keyserver.ubuntu.com:80}"
 
 # Adds a line unless its keyword is already configured. Leaving an existing
 # setting alone rather than overwriting it is the point: a hand-picked keyserver
