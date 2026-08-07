@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Switch HDMI-A-1 between vertical (transform 1) and horizontal (transform 0).
-# Vertical restores the reserved area from monitors.lua (340 top, 40 bottom)
-# and keeps eDP-1 at 1080x860; horizontal clears it and moves eDP-1 to 1920x0
-# so the monitors don't overlap.
+# eDP-1 sits physically below HDMI-A-1, so it stacks under it either way; only
+# the y offset changes with HDMI's height (1920 rotated, 1080 flat). Vertical
+# also restores the reserved area from monitors.lua (340 top, 40 bottom).
 # Usage: df-hypr-display-rotate [toggle|horizontal|vertical]
 
 MONITOR="HDMI-A-1"
@@ -61,17 +61,18 @@ esac
 VERTICAL_MODE="1920x1080@75"
 HORIZONTAL_MODE="1920x1080@75.2"
 
-# Apply in an order that never overlaps: going vertical, HDMI shrinks to 1080
-# wide first, then eDP-1 tucks in; going horizontal, eDP-1 moves out to 1920x0
-# before HDMI widens into its old spot.
+# Apply in an order that never overlaps. Since eDP-1 stacks below, whichever
+# monitor ends up higher on the y axis has to move first: going vertical, eDP-1
+# drops to 1920 while HDMI is still only 1080 tall; going horizontal, HDMI
+# shrinks back to 1080 tall before eDP-1 comes up to meet it.
 if [ "$target" = "1" ]; then
+    hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '0x1920', scale = '1' })"
     hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '$VERTICAL_MODE', position = '0x0', scale = '1', transform = 1, reserved_area = { top = 340, bottom = 40, left = 0, right = 0 } })"
-    hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '1080x860', scale = '1' })"
     remember_variant vertical
     notify-send "Display" "$MONITOR set to vertical"
 else
-    hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '1920x0', scale = '1' })"
     hyprctl eval "hl.monitor({ output = '$MONITOR', mode = '$HORIZONTAL_MODE', position = '0x0', scale = '1', transform = 0, reserved_area = { top = 0, bottom = 0, left = 0, right = 0 } })"
+    hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '0x1080', scale = '1' })"
     remember_variant horizontal
     notify-send "Display" "$MONITOR set to horizontal"
 fi

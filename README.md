@@ -92,7 +92,7 @@ hyprctl dispatch focuscurrentorlast
 hyprctl dispatch fullscreen 0
 hyprctl dispatch movewindow u
 hyprctl dispatch movetoworkspace special:zellij,title:zellij
-hyprctl keyword monitor "eDP-1,preferred,1080x860,1"
+hyprctl keyword monitor "eDP-1,preferred,0x1920,1"
 ```
 
 ### remove unused

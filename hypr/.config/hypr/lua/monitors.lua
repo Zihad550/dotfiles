@@ -33,7 +33,7 @@ hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = "1"
 
 
 ----------------------------------
--- hdmi-a-1 (primary, vertical) & eDP-1 (secondary, horizontal)  [ACTIVE]
+-- hdmi-a-1 (primary, vertical, top) & eDP-1 (secondary, horizontal, below)  [ACTIVE]
 ----------------------------------
 hl.monitor({
     output        = "HDMI-A-1",
@@ -45,7 +45,8 @@ hl.monitor({
     reserved_area = { top = 340, bottom = 40, left = 0, right = 0 },
 })
 -- hl.monitor({ output = "HDMI-A-1", reserved_area = { top = 200, bottom = 80, left = 0, right = 0 } })  -- alt: addreserved 200 80 0 0
-hl.monitor({ output = "eDP-1", mode = "preferred", position = "1080x860", scale = "1" })
+-- HDMI-A-1 is rotated, so it spans 1080x1920 from 0x0; eDP-1 starts where it ends.
+hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1920", scale = "1" })
 
 -- show workspace 3-10 on monitor hdmi-a-1 (primary)
 hl.workspace_rule({ workspace = "3", monitor = "HDMI-A-1", default = true })
@@ -90,7 +91,7 @@ hl.workspace_rule({ workspace = "2", monitor = "eDP-1" })
 
 -- LAPTOP LID STUFF
 -- o.bind("switch:off:Lid Switch", nil,
---     [[hyprctl keyword monitor "eDP-1,preferred,1080x860,1"]], { locked = true })
+--     [[hyprctl keyword monitor "eDP-1,preferred,0x1920,1"]], { locked = true })
 -- o.bind("switch:on:Lid Switch",  nil, [[hyprctl keyword monitor "eDP-1, disable"]], { locked = true })
 -- o.bind("switch:on:Lid Switch",  nil, os.getenv("HOME") .. "/dotfiles/bin/df-hypr-lid-close",  { locked = true })
 -- o.bind("switch:off:Lid Switch", nil, os.getenv("HOME") .. "/dotfiles/bin/df-hypr-lid-close",  { locked = true })
