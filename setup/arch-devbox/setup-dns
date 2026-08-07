@@ -19,6 +19,14 @@
 # resolves — dirmngr uses its own resolver and ignores whatever this sets. See
 # ../common/setup-dirmngr, which init runs.
 #
+# Run this AFTER ./setup-tailscale, not before. The shared script restarts
+# systemd-resolved, which discards the tailscale0 DNS registration and takes
+# MagicDNS with it; it re-registers afterwards, but only for a tailnet that is
+# already up. It also refuses to run at all on a box where resolved answers
+# glibc lookups while something else owns /etc/resolv.conf — the state that
+# leaves tailnet *names* dead while tailnet IPs keep working. Both are
+# explained where they are enforced, in ../common/setup-dns.
+#
 # Losing pi-hole's filtering is the trade, and it's scoped to this one box —
 # everything else on the LAN still resolves through it, just not this
 # devbox's own queries. Not run by init or listed in README.md's `## order` —
