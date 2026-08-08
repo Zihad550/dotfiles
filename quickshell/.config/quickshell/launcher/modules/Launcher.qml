@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Quickshell.Hyprland
 import qs
 import "../lib/matching.js" as Matching
 import "../lib/highlight.js" as Highlight
@@ -592,6 +593,17 @@ PanelWindow {
     onVisibleChanged: {
         if (!root.visible)
             root.reset();
+    }
+
+    // SPIKE (ticket 25) -- does forceActiveFocus() get the keyboard back from
+    // the compositor after a workspace switch, or is it purely Qt-internal
+    // scene focus? Remove once answered either way.
+    Connections {
+        target: Hyprland
+        function onFocusedWorkspaceChanged() {
+            if (root.visible)
+                query.forceActiveFocus();
+        }
     }
 
     // Two Providers claiming the same prefix, or a "?"-list row that's
