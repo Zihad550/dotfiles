@@ -60,6 +60,60 @@ ShellRoot {
         onPressed: launcher.openOn("$")
     }
 
+    // The workspace-rename keybind. Same registration shape again -- a third
+    // named shortcut rather than an argument -- but it opens the Launcher into
+    // a mode rather than onto a Provider, so it calls its own function instead
+    // of openOn(): the workspaces Provider has no prefix, and the thing wanted
+    // is the rename prompt for the focused workspace, not a searchable list of
+    // all of them. Dispatched from
+    // hypr/.config/hypr/lua/bindings/utilities.lua as SUPER+SHIFT+R, which is
+    // the keybind the deleted walker rename menu used to answer.
+    GlobalShortcut {
+        appid: "launcher"
+        name: "rename-workspace"
+
+        onPressed: launcher.renameFocusedWorkspace()
+    }
+
+    // The four session-ending keybinds, which now ask before they act.
+    //
+    // Registered one per action rather than one shortcut taking the action as
+    // an argument, because a GlobalShortcut carries no argument -- the name
+    // *is* the message -- and because that is already the shape of the two
+    // above. The name after "confirm-" is the key lib/power.js declares; the
+    // two disagreeing is a keybind that logs a warning and does nothing, which
+    // is why confirmPower names the valid keys in that warning.
+    //
+    // Bound in hypr/.config/hypr/lua/bindings/system.lua, replacing the binds
+    // that ran these commands outright.
+    GlobalShortcut {
+        appid: "launcher"
+        name: "confirm-shutdown"
+
+        onPressed: launcher.confirmPower("shutdown")
+    }
+
+    GlobalShortcut {
+        appid: "launcher"
+        name: "confirm-restart"
+
+        onPressed: launcher.confirmPower("restart")
+    }
+
+    GlobalShortcut {
+        appid: "launcher"
+        name: "confirm-logout"
+
+        onPressed: launcher.confirmPower("logout")
+    }
+
+    GlobalShortcut {
+        appid: "launcher"
+        name: "confirm-lock"
+
+        onPressed: launcher.confirmPower("lock")
+    }
+
     // `toggle` moved to the GlobalShortcut above with ticket 10 -- this is no
     // longer the keybind's path, and nothing else in the repo calls it, so it
     // is not carried forward as a second trigger.

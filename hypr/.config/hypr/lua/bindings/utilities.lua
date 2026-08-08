@@ -8,6 +8,14 @@ o.bind("SUPER + SHIFT + COMMA","Dismiss all notifications", "qs -c dotfiles ipc 
 o.bind("SUPER + CTRL + COMMA", "Toggle silencing notifications",
     "qs -c dotfiles ipc call notifications toggleDnd")
 
+-- Workspaces
+-- Dispatches straight into the running Launcher process, which opens as a
+-- rename prompt for the focused workspace -- see the "rename-workspace"
+-- GlobalShortcut in quickshell/.config/quickshell/launcher/shell.qml. Replaces
+-- the walker rename menu (deleted with ticket 19) on the combo it used to own;
+-- no fork and no exec, because the Launcher is already running.
+o.bind("SUPER + SHIFT + R", "Rename workspace", hl.dsp.global("launcher:rename-workspace"))
+
 -- Dictation
 -- "Dictation start" used to claim SUPER + CTRL + V, which collided with the
 -- clipboard manager keybind (bindings/clipboard.lua) on the same combo --

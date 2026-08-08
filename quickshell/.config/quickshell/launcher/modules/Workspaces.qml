@@ -170,6 +170,64 @@ NestableProvider {
         root.prompting = true;
     }
 
+    // The dedicated rename keybind's entry point -- SUPER+SHIFT+R, through
+    // shell.qml's "rename-workspace" GlobalShortcut and Launcher.renameFocused.
+    // Skips the browse-then-Ctrl+R path and prompts for the workspace already
+    // focused, which is the only one a keybind pressed from inside a workspace
+    // can mean.
+    //
+    // The entry comes out of `catalog`, not from a fresh entryFor(): the
+    // catalog's Entries are what every other rename prompts over, and building
+    // a second one here would be a second definition of "the Entry for a
+    // workspace" that could drift from Ws.entryFor's.
+    //
+    // Returns whether the prompt opened, so the Launcher can decide whether to
+    // stay open on the workspace list or leave the user where they were --
+    // a keybind that opened an ordinary Launcher on failure would be a
+    // confusing answer to "rename this workspace".
+    // Which workspace the keybind means. `Hyprland.focusedWorkspace` is the
+    // precise answer -- on two monitors several workspaces carry `active` at
+    // once, one per monitor, and only this one names the focused monitor's.
+    // The `active` scan behind it is a fallback rather than the primary,
+    // because it cannot tell those apart; it exists because nothing else in
+    // this repo reads focusedWorkspace, so a property that turns out not to
+    // resolve on this Quickshell would otherwise make the keybind do nothing
+    // at all rather than something almost always right. The `active` flag
+    // itself is already relied on, by Ws.subtextFor.
+    function focusedWorkspace() {
+        const focused = Hyprland.focusedWorkspace;
+        if (focused)
+            return focused;
+
+        console.warn("launcher: Hyprland.focusedWorkspace is unavailable -- falling back to the active flag");
+        return root.workspaceList.filter(workspace => workspace.active)[0] || null;
+    }
+
+    function renameFocused(): bool {
+        const focused = root.focusedWorkspace();
+        if (!focused) {
+            console.warn("launcher: cannot rename -- no focused workspace");
+            return false;
+        }
+
+        // Specials are not rows here (see the header), so there is no Entry to
+        // prompt over even though the compositor happily reports one focused.
+        if (Ws.isSpecial(focused.name)) {
+            console.warn("launcher: cannot rename special workspace", focused.name);
+            return false;
+        }
+
+        const entry = root.catalog.entries.filter(candidate =>
+            candidate.target && candidate.target.id === focused.id)[0] || null;
+        if (!entry) {
+            console.warn("launcher: cannot rename -- workspace", focused.id, "is not in the catalog");
+            return false;
+        }
+
+        root.beginRename(entry);
+        return true;
+    }
+
     // Return while prompting. `text` is the Query field's current content --
     // the new name, or "" meaning "back to the plain id", which is exactly
     // what the script's empty branch did (rename_ws id id, silently).

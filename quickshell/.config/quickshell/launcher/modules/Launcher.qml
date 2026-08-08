@@ -8,6 +8,7 @@ import "../lib/highlight.js" as Highlight
 import "../lib/actions.js" as Actions
 import "../lib/routing.js" as Routing
 import "../lib/providerlist.js" as ProvList
+import "../lib/power.js" as Power
 
 // The Launcher window: a full-screen overlay with the Launcher card centred
 // horizontally in it -- the Query line, the ranked Entries, and the keyboard
@@ -289,6 +290,14 @@ PanelWindow {
             root.savedPromptQuery = root.queryText;
             root.setQuery(root.promptingProvider.promptValue);
         } else if (root.visible) {
+            // A session opened *as* the prompt has nothing to go back to --
+            // see renameFocusedWorkspace. Dismissing fires reset(), which
+            // clears both the Query and the flag, so the restore below would
+            // be undone anyway; returning here just says so outright.
+            if (root.promptOnly) {
+                root.dismiss();
+                return;
+            }
             root.setQuery(root.savedPromptQuery);
             root.highlightFirst();
         }
@@ -584,9 +593,21 @@ PanelWindow {
         { chord: "Escape", label: "cancel" }
     ] : []
 
-    readonly property var highlightActions: root.prompting
-        ? root.promptActions
-        : (root.highlightedEntry ? Actions.available(root.highlightedEntry.provider) : [])
+    // The same two keys for a confirmation, named after what they do to *this*
+    // action -- "Return: shut down", not "Return: confirm". The footer is the
+    // only thing on screen that says what Return is about to do, so it says the
+    // irreversible part rather than a word that would read identically above
+    // every one of the four.
+    readonly property var confirmActions: root.pendingAction ? [
+        { chord: "Return", label: root.pendingAction.label.toLowerCase() },
+        { chord: "Escape", label: "cancel" }
+    ] : []
+
+    readonly property var highlightActions: root.confirming
+        ? root.confirmActions
+        : (root.prompting
+            ? root.promptActions
+            : (root.highlightedEntry ? Actions.available(root.highlightedEntry.provider) : []))
 
     // root.highlightedEntry, not rankedEntries[highlightIndex]: the footer
     // reads that property too, and the delegate paints from the index it came
@@ -753,6 +774,122 @@ PanelWindow {
     // Not only through the field: assigning text that is already there fires
     // no onTextChanged, so this is what guarantees the two agree rather than
     // leaving it to a signal that may not come.
+    // SUPER+SHIFT+R's entry point -- the Launcher opened *as* a rename prompt
+    // for the focused workspace, rather than opened to be searched. Registered
+    // in shell.qml as the "rename-workspace" GlobalShortcut and bound in
+    // hypr/.config/hypr/lua/bindings/utilities.lua.
+    //
+    // Nothing new is rendered for this: while `prompting` is set the list and
+    // the empty state are already suppressed and the Query line is already the
+    // prompt (see `promptingProvider`), so the popup this keybind wants is the
+    // Launcher window in a state it can already reach -- no second window, no
+    // second process.
+    //
+    // The dismiss-if-nested guard is openOn()'s, for openOn()'s reason: a
+    // nested Provider outranks routing and would still own the pool underneath
+    // the prompt.
+    //
+    // Opened before the prompt is asked for, not after, so the Provider is
+    // `active` (bound to `visible`) the whole time it holds prompt state --
+    // prompting set on an inactive Provider would depend on the order two
+    // handlers happen to run in. The cost is that a workspace that cannot be
+    // renamed maps the window before this closes it again; that is a special
+    // workspace only, and closing is the honest outcome -- an ordinary
+    // Launcher left open is not what SUPER+SHIFT+R asked for.
+    function renameFocusedWorkspace(): void {
+        if (root.nestedProvider !== null)
+            root.dismiss();
+        root.open();
+
+        if (!workspaces.renameFocused()) {
+            root.dismiss();
+            return;
+        }
+
+        // Return and Escape both end this session rather than dropping back to
+        // the workspace list: the list was never asked for. Cleared by reset().
+        root.promptOnly = true;
+    }
+
+    // Whether this session exists only for the prompt -- set by
+    // renameFocusedWorkspace above, read by onPromptingChanged.
+    property bool promptOnly: false
+
+    // --- Confirming a session-ending keybind ---
+    //
+    // The power keybinds -- shutdown, restart, logout, lock -- used to run
+    // their command straight from Hyprland. They dispatch here instead, and
+    // this asks first. See lib/power.js for the four declarations and for why
+    // the commands are the keybinds' own rather than SystemMenu.qml's.
+    //
+    // **A mode of this window, not a Provider.** The rename prompt is a
+    // Provider's (`promptingProvider` scans the ranked pool for one claiming
+    // it), which is right for renaming: it acts on an Entry the pool produced.
+    // A confirmation has no Entry and nothing to search -- putting it in the
+    // pool would mean a Provider with a catalog nobody can reach, ranked on
+    // every keystroke, purely to hold two lines of state. So it sits here,
+    // parallel to `prompting`, and the view and key handler treat the two the
+    // same way.
+    //
+    // No new window and no new process, which is the whole point: the card is
+    // already built, and while this is set the list, the preview and the empty
+    // state are all suppressed, so what is on screen is the question and the
+    // footer's two keys.
+    property var pendingAction: null
+
+    readonly property bool confirming: root.pendingAction !== null
+
+    // The keybinds' entry point -- shell.qml's four GlobalShortcuts, one per
+    // key in lib/power.js. Opens the Launcher already asking.
+    //
+    // The dismiss-if-nested guard is openOn()'s, for openOn()'s reason.
+    //
+    // A second press of the same keybind while it is already asking is a
+    // no-op rather than a re-ask: the question is already on screen, and
+    // rebuilding the state under it would only risk clearing a confirmation
+    // the user is halfway through answering.
+    function confirmPower(key: string): void {
+        const action = Power.actionFor(key);
+        if (action === null) {
+            console.warn("launcher: no power action named", key, "-- expected one of", Power.keys().join(", "));
+            return;
+        }
+
+        if (root.confirming)
+            return;
+
+        if (root.nestedProvider !== null)
+            root.dismiss();
+        root.open();
+
+        // Cleared explicitly: open() does not reset (dismissal does), so a
+        // keybind pressed over an already-open Launcher would otherwise leave
+        // a half-typed Query sitting on the line where the question goes --
+        // the placeholder only shows over an empty field. Nothing to restore
+        // afterwards, because both answers end the session.
+        root.setQuery("");
+        root.pendingAction = action;
+    }
+
+    // Return while confirming. Dismisses first, for runAction()'s own reason --
+    // this surface holds the keyboard until it unmaps, and hyprlock in
+    // particular must not come up behind a layer surface that still has it.
+    function applyConfirm(): void {
+        const action = root.pendingAction;
+        if (action === null)
+            return;
+
+        root.dismiss();
+        Quickshell.execDetached(action.argv);
+    }
+
+    // Escape while confirming, and the answer to every other way out: the
+    // whole session existed to ask, so cancelling ends it rather than leaving
+    // an ordinary Launcher open. Nothing runs.
+    function cancelConfirm(): void {
+        root.dismiss();
+    }
+
     function setQuery(text: string): void {
         query.text = text;
         root.queryText = text;
@@ -769,6 +906,8 @@ PanelWindow {
     function reset(): void {
         root.setQuery("");
         root.highlightFirst();
+        root.promptOnly = false;
+        root.pendingAction = null;
     }
 
     onVisibleChanged: {
@@ -1080,6 +1219,15 @@ PanelWindow {
                     selectionColor: Theme.highlight
                     selectedTextColor: Theme.foreground
 
+                    // A confirmation has nothing to type into: the line is the
+                    // question (see the placeholder below), and the only two
+                    // keys that mean anything are Return and Escape. Keeping
+                    // the field focused but read-only is what holds those two
+                    // on this Item -- moving focus away instead would leave the
+                    // key handler below unreached.
+                    readOnly: root.confirming
+                    cursorVisible: !root.confirming
+
                     // The field is the Query's input; root.queryText is what
                     // ranks. Assigned first, so the Entries below are already
                     // the ones for this keystroke when the highlight moves.
@@ -1147,6 +1295,23 @@ PanelWindow {
                         // TextInput that lost focus mid-prompt would leave
                         // the prompt untypeable), while plain letters still
                         // reach the field through chordOf's "" above.
+                        // A confirmation answers to the same two keys and
+                        // swallows everything else, for the same reason the
+                        // prompt does -- but it is checked first and it is
+                        // stricter: while this is up, no chord may reach an
+                        // Action. There is no list under it, so there is no
+                        // Entry a chord could act on, and a key that fell
+                        // through to one would be acting on a session the user
+                        // opened to answer a question.
+                        if (root.confirming) {
+                            if (chord === "Return")
+                                root.applyConfirm();
+                            else if (chord === "Escape")
+                                root.cancelConfirm();
+                            event.accepted = true;
+                            return;
+                        }
+
                         if (root.prompting) {
                             const provider = root.promptingProvider;
                             if (provider !== null && chord === "Return")
@@ -1173,10 +1338,17 @@ PanelWindow {
                         // prompt's own -- the old script's "Rename workspace
                         // 3 (3-(dev))" text, shown when the prefill is empty.
                         visible: query.text === ""
-                        text: root.prompting
-                            ? (root.promptingProvider ? root.promptingProvider.promptPlaceholder : "…")
-                            : "Type a name…"
-                        color: Theme.muted
+                        text: root.confirming
+                            ? root.pendingAction.question
+                            : (root.prompting
+                                ? (root.promptingProvider ? root.promptingProvider.promptPlaceholder : "…")
+                                : "Type a name…")
+
+                        // A question is the card's own text, not a hint about
+                        // what to type into a field that cannot be typed into
+                        // (see `readOnly` above). Muted placeholder grey would
+                        // read as the latter.
+                        color: root.confirming ? Theme.foreground : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.queryFontSize
                         textFormat: Text.PlainText
@@ -1198,7 +1370,7 @@ PanelWindow {
                     // would be a binding on a property the view's own height
                     // feeds back into.
                     height: Math.min(root.rankedEntries.length * Theme.entryHeight, root.listMaxHeight)
-                    visible: !root.previewMode && root.rankedEntries.length > 0 && !root.prompting
+                    visible: !root.previewMode && root.rankedEntries.length > 0 && !root.prompting && !root.confirming
 
                     // Growing from one Entry tall to its real height is the
                     // last step of an open, and it happens after open() has
@@ -1366,7 +1538,7 @@ PanelWindow {
                     // so the empty space lands below the names rather than
                     // stretching them.
                     height: root.listMaxHeight
-                    visible: root.previewMode && root.rankedEntries.length > 0 && !root.prompting
+                    visible: root.previewMode && root.rankedEntries.length > 0 && !root.prompting && !root.confirming
 
                     ListView {
                         id: previewList
@@ -1568,7 +1740,7 @@ PanelWindow {
 
                     // Suppressed while a prompt owns the line: an empty prompt
                     // ("back to the plain id") is not "No matches".
-                    visible: root.rankedEntries.length === 0 && !root.prompting
+                    visible: root.rankedEntries.length === 0 && !root.prompting && !root.confirming
                     text: root.pending.length === 0 ? "No matches" : `Waiting for ${root.pending.join(" and ")}…`
                     color: Theme.muted
                     font.family: Theme.fontFamily
