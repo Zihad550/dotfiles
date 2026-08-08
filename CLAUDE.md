@@ -1,6 +1,5 @@
 # Guidelines
 
-- You are working inside a container environment. So you will not have access to the host system. So don't try to verify the work. Just ask the user what they need to test manually.
 - Write code comments only for what the code can't say for itself: a non-obvious
   "why", an invariant, or a gotcha a future reader would trip over. Never
   restate what the code already shows.
