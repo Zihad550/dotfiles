@@ -191,14 +191,21 @@ function parseChildren(text) {
     return out;
 }
 
-function sshUrlFor(path) {
-    return "ssh://" + SSH_HOST + path;
+// `host` is the resolved custom host, or falsy to mean "use the default" --
+// the fallback the devcontainer-host state file's contract promises (blank
+// or missing = default). SSH_HOST is that shared default; bin/df-tmux-session
+// (ticket 02) and the Quick Settings row (ticket 03) must honor the same rule.
+function sshUrlFor(path, host) {
+    return "ssh://" + (host || SSH_HOST) + path;
 }
 
-// zed, over ssh for a mirrored path, local otherwise. `mirrored` is taken
-// rather than recomputed: entriesFor already paid for isMirrored() once.
-function defaultOpenArgv(path, mirrored, launchPrefix) {
-    var target = mirrored ? sshUrlFor(path) : path;
+// `routed` is the caller's already-resolved decision -- isMirrored(path,
+// home) AND the routing toggle -- not isMirrored's raw answer. The toggle
+// overrides isMirrored rather than layering on top of it, so this function
+// never sees "mirrored but routing is off": the caller has already collapsed
+// that to false before calling.
+function defaultOpenArgv(path, routed, launchPrefix, host) {
+    var target = routed ? sshUrlFor(path, host) : path;
     return (launchPrefix || []).concat(["zeditor", target]);
 }
 
@@ -211,12 +218,13 @@ function defaultOpenArgv(path, mirrored, launchPrefix) {
 // - The last entry is "Reveal in Files": `nautilus --select` reveals the
 //   file in its folder rather than opening it, and has no remote command at
 //   all, so a mirrored path still reveals locally.
-function chooserApps(path, mirrored) {
-    var target = mirrored ? sshUrlFor(path) : path;
+function chooserApps(path, routed, host) {
+    var target = routed ? sshUrlFor(path, host) : path;
     var dir = parentOf(path);
+    var sshHost = host || SSH_HOST;
 
     function pick(local, remote) {
-        return mirrored && remote ? remote : local;
+        return routed && remote ? remote : local;
     }
 
     return [
@@ -226,11 +234,11 @@ function chooserApps(path, mirrored) {
         },
         {
             name: "VSCode", icon: "vscode", target: target,
-            argv: pick(["code", path], ["code", "--remote", "ssh-remote+" + SSH_HOST, path])
+            argv: pick(["code", path], ["code", "--remote", "ssh-remote+" + sshHost, path])
         },
         {
             name: "Cursor", icon: "cursor", target: target,
-            argv: pick(["cursor", path], ["cursor", "--remote", "ssh-remote+" + SSH_HOST, path])
+            argv: pick(["cursor", path], ["cursor", "--remote", "ssh-remote+" + sshHost, path])
         },
         {
             name: "Neovim", icon: "nvim", target: target,
@@ -240,7 +248,7 @@ function chooserApps(path, mirrored) {
                 // locally -- it's handed whole to `ssh`, parsed by a shell on
                 // the *other* end, so a path with a space would otherwise
                 // break silently. Both the cd directory and the file are escaped.
-                ["ghostty", "-e", "ssh", "-t", SSH_HOST,
+                ["ghostty", "-e", "ssh", "-t", sshHost,
                     "cd " + shellEscape(dir) + " && exec nvim " + shellEscape(path)]
             )
         },
@@ -255,9 +263,9 @@ function chooserApps(path, mirrored) {
 
 // No `key`: these don't recur the way a path does -- the path itself already
 // recorded a choice on the secondary Action that opened this.
-function chooserEntriesFor(path, mirrored, launchPrefix, provider) {
+function chooserEntriesFor(path, routed, launchPrefix, provider, host) {
     var prefix = launchPrefix || [];
-    return chooserApps(path, mirrored).map(function (app) {
+    return chooserApps(path, routed, host).map(function (app) {
         return {
             name: app.name,
             subtext: app.target,

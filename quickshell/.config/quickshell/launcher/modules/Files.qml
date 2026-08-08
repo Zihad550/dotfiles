@@ -57,6 +57,27 @@ QtObject {
 
     readonly property var launchPrefix: ["uwsm-app", "--"]
 
+    // The devcontainer routing toggle (docs/adr/0002): presence of the state
+    // file is the signal, not its content -- absent means off, the default.
+    // Read independently of Directories.qml's own copy -- see the header on
+    // why this module duplicates rather than imports.
+    readonly property string routingTogglePath: root.home + "/.local/state/dotfiles/toggles/devcontainer-routing"
+    property bool routingEnabled: false
+
+    // Single trimmed line; blank or missing falls back to Files.SSH_HOST --
+    // Files.defaultOpenArgv/chooserApps already know that fallback, so "" is
+    // handed down unresolved.
+    readonly property string hostFilePath: root.home + "/.local/state/dotfiles/devcontainer-host"
+    property string devcontainerHost: ""
+
+    // Collapses isMirrored's structural answer with the toggle -- the
+    // override, not layered on top, this ticket exists for. Every call site
+    // below routes through this rather than reading `routingEnabled` itself,
+    // so there is exactly one place that combines them.
+    function routedFor(mirrored): bool {
+        return mirrored && root.routingEnabled;
+    }
+
     // Directories.qml's cache, not this Provider's own.
     readonly property string cachePath: Dirs.cachePath(root.home)
 
@@ -98,7 +119,8 @@ QtObject {
     //    (the only branch that's `ordered`).
     readonly property var catalog: {
         if (root.openFor !== null) {
-            const chooser = Files.chooserEntriesFor(root.openFor.path, root.openFor.mirrored, root.launchPrefix, root);
+            const routed = root.routedFor(root.openFor.mirrored);
+            const chooser = Files.chooserEntriesFor(root.openFor.path, routed, root.launchPrefix, root, root.devcontainerHost);
             return {
                 entries: chooser,
                 corpus: Matching.prepare(chooser.map(entry => entry.name), null)
@@ -145,7 +167,8 @@ QtObject {
         })
 
     function openDefault(entry): void {
-        Quickshell.execDetached(Files.defaultOpenArgv(entry.target.path, entry.target.mirrored, root.launchPrefix));
+        const routed = root.routedFor(entry.target.mirrored);
+        Quickshell.execDetached(Files.defaultOpenArgv(entry.target.path, routed, root.launchPrefix, root.devcontainerHost));
     }
 
     function enterChooser(entry): void {
@@ -232,5 +255,32 @@ QtObject {
         watchChanges: true
         onFileChanged: cacheView.reload()
         onLoaded: root.cacheText = cacheView.text()
+    }
+
+    // Existence-only: routing is off, the default, until this file appears.
+    // printErrors: false because absence is the common case (default off),
+    // not a fault worth logging.
+    readonly property FileView routingToggleFile: FileView {
+        id: routingToggleView
+
+        path: root.routingTogglePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: routingToggleView.reload()
+        onLoaded: root.routingEnabled = true
+        onLoadFailed: root.routingEnabled = false
+    }
+
+    // Single trimmed line; missing, unreadable, or blank all resolve to ""
+    // here, and Files.sshUrlFor/chooserApps fall back to SSH_HOST for that.
+    readonly property FileView hostFile: FileView {
+        id: hostView
+
+        path: root.hostFilePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: hostView.reload()
+        onLoaded: root.devcontainerHost = hostView.text().trim()
+        onLoadFailed: root.devcontainerHost = ""
     }
 }

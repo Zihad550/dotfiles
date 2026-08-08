@@ -27,27 +27,42 @@ contents to `parseCache`.
 
 **Blocked by:** None — can start immediately
 
-- [ ] `node --test` covers: routing disabled → local argv for a mirrored
+**Status:** done — all seven checkboxes closed, the three runtime ones
+verified on the host across two rounds. See **Comments**.
+
+- [x] `node --test` covers: routing disabled → local argv for a mirrored
       path, identical to what an unmirrored path already returns
-- [ ] `node --test` covers: routing enabled, no custom host → output
+- [x] `node --test` covers: routing enabled, no custom host → output
       byte-identical to today's hardcoded-host behavior
-- [ ] `node --test` covers: routing enabled, custom host set → every ssh
+- [x] `node --test` covers: routing enabled, custom host set → every ssh
       target (`ssh://`, `--remote ssh-remote+<host>`, the Neovim `ssh -t
       <host>` argv) uses the custom host, not the default
-- [ ] `node --test` covers: `isMirrored`'s output is unaffected by routing
+- [x] `node --test` covers: `isMirrored`'s output is unaffected by routing
       state — still a function of path and `$HOME` alone
-- [ ] Opening a mirrored directory from the Launcher with the enabled flag
+- [x] Opening a mirrored directory from the Launcher with the enabled flag
       absent opens every app locally
-- [ ] Opening the same directory with the flag present and no custom host
+- [x] Opening the same directory with the flag present and no custom host
       opens over SSH into `devcontainer.devpod`, unchanged from before this
       ticket
-- [ ] Opening the same directory with a custom host file set opens over SSH
+- [x] Opening the same directory with a custom host file set opens over SSH
       into that host instead
 
 ## Manual verification
 
 The last three checkboxes need a real Quickshell session; the `node --test`
 ones can be closed from the container.
+
+Implementation note: `routingEnabled`/`devcontainerHost` are read via
+`FileView` with `watchChanges: true`, the same idiom `cacheFile` already uses
+for the directory cache. Two things about that idiom are unverified from the
+container specifically for a file that starts out **missing** (the common
+case here, since routing defaults off): whether `watchChanges` notices the
+file being *created* (step 2 below exercises this), and whether it notices
+the file being *deleted* out from under it (step 1, run after step 2, exercises
+this). If a step's *Pass* doesn't hold, restart Quickshell
+(`df-qs-restart launcher` or equivalent) and repeat just that step before
+concluding the routing logic itself is wrong -- that isolates "FileView
+didn't notice the change" from "the resolved decision was computed wrong."
 
 1. **Routing off.**
    ```
@@ -68,3 +83,12 @@ ones can be closed from the container.
    ```
    Open `~/dotfiles` from the Launcher again. *Pass:* Zed opens
    `ssh://my-other-box/home/<user>/dotfiles`.
+
+## Comments
+
+Step 2 initially failed: Quickshell was already running when the toggle file
+was created, and `FileView.watchChanges` did not notice the file appear —
+confirms the risk flagged in the implementation note above. Restarting
+(`df-qs-restart launcher`) forced a fresh read; step 2 passed on retry. Step 3
+then passed as well. Step 1 (routing off) also passed. All three runtime
+checkboxes closed.
