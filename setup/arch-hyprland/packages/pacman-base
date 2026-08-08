@@ -51,7 +51,8 @@ sudo pacman -S --noconfirm \
     bubblewrap socat \
     claude-code \
     tmux \
-    ghq
+    ghq \
+    mkcert
 
 # net-tools \       # deprecated, ip/ss cover it
 # mise \            # installed by setup-packages/setup-mise
