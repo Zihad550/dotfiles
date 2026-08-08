@@ -379,3 +379,55 @@ test("chooserEntriesFor defaults to no prefix when none is given", () => {
     const entries = F.chooserEntriesFor(`${HOME}/Downloads/file.pdf`, false, null, null);
     assert.deepStrictEqual(entries[0].target.argv, ["zeditor", `${HOME}/Downloads/file.pdf`]);
 });
+
+// The devcontainer routing toggle (docs/adr/0002, ticket 01): `routed` is the
+// caller's already-resolved decision (isMirrored && the toggle), not
+// isMirrored's raw answer, and `host` is the resolved custom host or falsy
+// for "use SSH_HOST".
+
+test("routing disabled sends a mirrored file local, overriding entriesFor's own mirrored:true", () => {
+    const children = {
+        [`${HOME}/dotfiles`]: [{ kind: "f", path: `${HOME}/dotfiles/README.md` }]
+    };
+    const file = F.entriesFor(PATHS, HOME, "dotfiles", children, null)[1];
+    assert.strictEqual(file.target.mirrored, true, "entriesFor's own isMirrored answer is untouched by routing state");
+
+    const prefix = ["uwsm-app", "--"];
+    assert.deepStrictEqual(F.defaultOpenArgv(file.target.path, false, prefix),
+        ["uwsm-app", "--", "zeditor", file.target.path],
+        "routed=false wins over the Entry's own mirrored:true -- the toggle overrides, it doesn't layer");
+
+    for (const app of F.chooserApps(file.target.path, false))
+        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} must stay local when routing is off`);
+});
+
+test("routing enabled with no custom host matches today's hardcoded SSH_HOST behavior byte-for-byte", () => {
+    const path = `${HOME}/dotfiles/README.md`;
+    const prefix = ["uwsm-app", "--"];
+
+    assert.deepStrictEqual(F.defaultOpenArgv(path, true, prefix),
+        ["uwsm-app", "--", "zeditor", `ssh://${F.SSH_HOST}${path}`]);
+    assert.deepStrictEqual(F.defaultOpenArgv(path, true, prefix, ""), F.defaultOpenArgv(path, true, prefix),
+        "a blank host string falls back the same as an omitted one");
+
+    const byName = Object.fromEntries(F.chooserApps(path, true).map(a => [a.name, a]));
+    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${F.SSH_HOST}`, path]);
+});
+
+test("routing enabled with a custom host reaches every ssh surface", () => {
+    const path = `${HOME}/dotfiles/README.md`;
+    const host = "my-other-box";
+    const byName = Object.fromEntries(F.chooserApps(path, true, host).map(a => [a.name, a]));
+
+    assert.deepStrictEqual(F.defaultOpenArgv(path, true, [], host), ["zeditor", `ssh://${host}${path}`]);
+    assert.deepStrictEqual(byName.Zed.argv, ["zeditor", `ssh://${host}${path}`]);
+    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${host}`, path]);
+    assert.deepStrictEqual(byName.Cursor.argv, ["cursor", "--remote", `ssh-remote+${host}`, path]);
+    assert.strictEqual(byName.Neovim.argv[4], host, "the ssh -t target is the custom host, not the default");
+});
+
+test("chooserEntriesFor threads the resolved host through to the mapped Entries", () => {
+    const entries = F.chooserEntriesFor(`${HOME}/dotfiles/README.md`, true, ["uwsm-app", "--"], null, "my-other-box");
+    const zed = entries.find(e => e.name === "Zed");
+    assert.ok(zed.target.argv.join(" ").includes("ssh://my-other-box"));
+});

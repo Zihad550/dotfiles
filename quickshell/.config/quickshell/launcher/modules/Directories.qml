@@ -42,6 +42,25 @@ QtObject {
 
     readonly property var launchPrefix: ["uwsm-app", "--"]
 
+    // The devcontainer routing toggle (docs/adr/0002): presence of the state
+    // file is the signal, not its content -- absent means off, the default.
+    readonly property string routingTogglePath: root.home + "/.local/state/dotfiles/toggles/devcontainer-routing"
+    property bool routingEnabled: false
+
+    // Single trimmed line; blank or missing falls back to Dirs.SSH_HOST --
+    // Dirs.defaultOpenArgv/chooserApps already know that fallback, so "" is
+    // handed down unresolved.
+    readonly property string hostFilePath: root.home + "/.local/state/dotfiles/devcontainer-host"
+    property string devcontainerHost: ""
+
+    // Collapses isMirrored's structural answer with the toggle -- the
+    // override, not layered on top, this ticket exists for. Every call site
+    // below routes through this rather than reading `routingEnabled` itself,
+    // so there is exactly one place that combines them.
+    function routedFor(mirrored): bool {
+        return mirrored && root.routingEnabled;
+    }
+
     readonly property string cachePath: Dirs.cachePath(root.home)
 
     // Never "not ready": an empty cache before the first background scan
@@ -64,7 +83,8 @@ QtObject {
     // itself already recorded Frecency, on the secondary Action that opened it.
     readonly property var catalog: {
         if (root.openFor !== null) {
-            const entries = Dirs.chooserEntriesFor(root.openFor.path, root.openFor.mirrored, root.home, root.launchPrefix, root);
+            const routed = root.routedFor(root.openFor.mirrored);
+            const entries = Dirs.chooserEntriesFor(root.openFor.path, routed, root.home, root.launchPrefix, root, root.devcontainerHost);
             return {
                 entries: entries,
                 corpus: Matching.prepare(entries.map(entry => entry.name), null)
@@ -113,7 +133,8 @@ QtObject {
         })
 
     function openDefault(entry): void {
-        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, entry.target.mirrored, root.launchPrefix));
+        const routed = root.routedFor(entry.target.mirrored);
+        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, routed, root.launchPrefix, root.devcontainerHost));
     }
 
     function enterChooser(entry): void {
@@ -154,5 +175,34 @@ QtObject {
         // directory despite refresh() having run, this is the API to
         // re-check -- reading ~/.cache/df-dir-picker/folders.list by hand
         // tells the two failures apart.
+    }
+
+    // Existence-only: routing is off, the default, until this file appears.
+    // printErrors: false because absence is the common case (default off),
+    // not a fault worth logging. Same "watching a path that may not exist
+    // yet" uncertainty as cacheFile above -- see the ticket's Manual
+    // verification for how to tell a stuck toggle from a wrong decision.
+    readonly property FileView routingToggleFile: FileView {
+        id: routingToggleView
+
+        path: root.routingTogglePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: routingToggleView.reload()
+        onLoaded: root.routingEnabled = true
+        onLoadFailed: root.routingEnabled = false
+    }
+
+    // Single trimmed line; missing, unreadable, or blank all resolve to ""
+    // here, and Dirs.sshUrlFor/chooserApps fall back to SSH_HOST for that.
+    readonly property FileView hostFile: FileView {
+        id: hostView
+
+        path: root.hostFilePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: hostView.reload()
+        onLoaded: root.devcontainerHost = hostView.text().trim()
+        onLoadFailed: root.devcontainerHost = ""
     }
 }

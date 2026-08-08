@@ -304,3 +304,57 @@ test("refreshCommand is a plain sh -c argv, safe for Quickshell.execDetached", (
     assert.strictEqual(command.length, 3);
     assert.strictEqual(typeof command[2], "string");
 });
+
+// The devcontainer routing toggle (docs/adr/0002, ticket 01): `routed` is the
+// caller's already-resolved decision (isMirrored && the toggle), not
+// isMirrored's raw answer, and `host` is the resolved custom host or falsy
+// for "use SSH_HOST".
+
+test("routing disabled sends a mirrored directory local, overriding isMirrored's own true answer", () => {
+    const path = `${HOME}/dotfiles`;
+    const prefix = ["uwsm-app", "--"];
+    assert.ok(D.isMirrored(path, HOME), "isMirrored itself still says mirrored -- untouched by routing state");
+
+    assert.deepStrictEqual(D.defaultOpenArgv(path, false, prefix), ["uwsm-app", "--", "zeditor", path],
+        "routed=false wins over isMirrored's own true answer -- the toggle overrides, it doesn't layer");
+
+    for (const app of D.chooserApps(path, false, HOME))
+        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} must stay local when routing is off`);
+});
+
+test("routing enabled with no custom host matches today's hardcoded SSH_HOST behavior byte-for-byte", () => {
+    const path = `${HOME}/dotfiles`;
+    const prefix = ["uwsm-app", "--"];
+
+    assert.deepStrictEqual(D.defaultOpenArgv(path, true, prefix),
+        ["uwsm-app", "--", "zeditor", `ssh://${D.SSH_HOST}${path}`]);
+    assert.deepStrictEqual(D.defaultOpenArgv(path, true, prefix, ""), D.defaultOpenArgv(path, true, prefix),
+        "a blank host string falls back the same as an omitted one");
+
+    const byName = Object.fromEntries(D.chooserApps(path, true, HOME).map(a => [a.name, a]));
+    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${D.SSH_HOST}`, path]);
+});
+
+test("routing enabled with a custom host reaches every ssh surface but not Tmux", () => {
+    const path = `${HOME}/dotfiles`;
+    const host = "my-other-box";
+    const byName = Object.fromEntries(D.chooserApps(path, true, HOME, host).map(a => [a.name, a]));
+
+    assert.strictEqual(D.sshUrlFor(path, host), `ssh://${host}${path}`);
+    assert.deepStrictEqual(D.defaultOpenArgv(path, true, [], host), ["zeditor", `ssh://${host}${path}`]);
+    assert.deepStrictEqual(byName.Zed.argv, ["zeditor", `ssh://${host}${path}`]);
+    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${host}`, path]);
+    assert.deepStrictEqual(byName.Cursor.argv, ["cursor", "--remote", `ssh-remote+${host}`, path]);
+    assert.strictEqual(byName.Neovim.argv[4], host, "the ssh -t target is the custom host, not the default");
+
+    // Tmux re-resolves routing itself (ticket 02) rather than trusting this
+    // argv -- neither host name should appear in it.
+    assert.ok(!byName.Tmux.argv.some(arg => arg.includes(host)));
+    assert.ok(!byName.Tmux.argv.some(arg => arg.includes(D.SSH_HOST)));
+});
+
+test("chooserEntriesFor threads the resolved host through to the mapped Entries", () => {
+    const entries = D.chooserEntriesFor(`${HOME}/dotfiles`, true, HOME, ["uwsm-app", "--"], null, "my-other-box");
+    const zed = entries.find(e => e.name === "Zed");
+    assert.ok(zed.target.argv.join(" ").includes("ssh://my-other-box"));
+});

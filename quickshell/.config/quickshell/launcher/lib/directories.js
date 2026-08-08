@@ -125,14 +125,21 @@ function sessionNameOf(path, home) {
     return rel.split("/").join("-").split(".").join("_").split(":").join("_");
 }
 
-function sshUrlFor(path) {
-    return "ssh://" + SSH_HOST + path;
+// `host` is the resolved custom host, or falsy to mean "use the default" --
+// the fallback the devcontainer-host state file's contract promises (blank
+// or missing = default). SSH_HOST is that shared default; bin/df-tmux-session
+// (ticket 02) and the Quick Settings row (ticket 03) must honor the same rule.
+function sshUrlFor(path, host) {
+    return "ssh://" + (host || SSH_HOST) + path;
 }
 
-// zed, over ssh for a mirrored directory, local otherwise. `mirrored` is
-// taken rather than recomputed: entryFor already paid for isMirrored() once.
-function defaultOpenArgv(path, mirrored, launchPrefix) {
-    var target = mirrored ? sshUrlFor(path) : path;
+// `routed` is the caller's already-resolved decision -- isMirrored(path,
+// home) AND the routing toggle -- not isMirrored's raw answer. The toggle
+// overrides isMirrored rather than layering on top of it, so this function
+// never sees "mirrored but routing is off": the caller has already collapsed
+// that to false before calling.
+function defaultOpenArgv(path, routed, launchPrefix, host) {
+    var target = routed ? sshUrlFor(path, host) : path;
     return (launchPrefix || []).concat(["zeditor", target]);
 }
 
@@ -159,40 +166,34 @@ function tmuxLaunchArgv(path, home) {
 // Tmux opens the window on the session script rather than on the directory
 // itself, so it needs `home` too (the script path and session name both
 // derive from it), and runs locally even for a mirrored directory (the
-// script owns the remote window) -- same argv either way.
+// script owns the remote window) -- same argv either way, unaffected by
+// `routed`/`host` (it re-resolves both itself, per ticket 02).
 //
 // Tmux is `scoped: false`, unlike Files: an unscoped Tmux window is the
 // launcher's child and dies with it, which is fine here because the ghostty
 // window is only a client -- tmux detaches the client and the session lives
 // on. That's not true for an editor, which is why Files keeps the launch
 // prefix (so `df-qs-restart launcher` doesn't take its window down).
-function chooserApps(path, mirrored, home) {
-    var target = mirrored ? sshUrlFor(path) : path;
+function chooserApps(path, routed, home, host) {
+    var target = routed ? sshUrlFor(path, host) : path;
+    var sshHost = host || SSH_HOST;
 
     function pick(local, remote) {
-        return mirrored && remote ? remote : local;
+        return routed && remote ? remote : local;
     }
 
     return [
-      {
-          // `target` is the session name, not the path the other rows show
-          // -- it's what the row attaches you to and what appears in `tmux ls`.
-          name: "Tmux", icon: "utilities-terminal",
-          target: sessionNameOf(path, home),
-          scoped: false,
-          argv: tmuxLaunchArgv(path, home)
-      },
         {
             name: "Zed", icon: "zed", target: target,
             argv: pick(["zeditor", path], ["zeditor", target])
         },
         {
             name: "VSCode", icon: "vscode", target: target,
-            argv: pick(["code", path], ["code", "--remote", "ssh-remote+" + SSH_HOST, path])
+            argv: pick(["code", path], ["code", "--remote", "ssh-remote+" + sshHost, path])
         },
         {
             name: "Cursor", icon: "cursor", target: target,
-            argv: pick(["cursor", path], ["cursor", "--remote", "ssh-remote+" + SSH_HOST, path])
+            argv: pick(["cursor", path], ["cursor", "--remote", "ssh-remote+" + sshHost, path])
         },
         {
             name: "Neovim", icon: "nvim", target: target,
@@ -202,8 +203,16 @@ function chooserApps(path, mirrored, home) {
                 // locally -- it's handed whole to `ssh`, parsed by a shell on
                 // the *other* end, so a path with a space would otherwise
                 // break silently.
-                ["ghostty", "-e", "ssh", "-t", SSH_HOST, "cd " + shellEscape(path) + " && exec nvim"]
+                ["ghostty", "-e", "ssh", "-t", sshHost, "cd " + shellEscape(path) + " && exec nvim"]
             )
+        },
+        {
+            // `target` is the session name, not the path the other rows show
+            // -- it's what the row attaches you to and what appears in `tmux ls`.
+            name: "Tmux", icon: "utilities-terminal",
+            target: sessionNameOf(path, home),
+            scoped: false,
+            argv: tmuxLaunchArgv(path, home)
         },
         {
             // No remote command at all -- Files is always local.
@@ -216,9 +225,9 @@ function chooserApps(path, mirrored, home) {
 
 // No `key`: these don't recur the way a directory does -- the directory
 // itself already recorded a choice on the secondary Action that opened this.
-function chooserEntriesFor(path, mirrored, home, launchPrefix, provider) {
+function chooserEntriesFor(path, routed, home, launchPrefix, provider, host) {
     var prefix = launchPrefix || [];
-    return chooserApps(path, mirrored, home).map(function (app) {
+    return chooserApps(path, routed, home, host).map(function (app) {
         return {
             name: app.name,
             subtext: app.target,
