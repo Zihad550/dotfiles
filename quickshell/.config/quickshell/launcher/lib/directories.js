@@ -183,14 +183,6 @@ function chooserApps(path, routed, home, host) {
     }
 
     return [
-      {
-          // `target` is the session name, not the path the other rows show
-          // -- it's what the row attaches you to and what appears in `tmux ls`.
-          name: "Tmux", icon: "utilities-terminal",
-          target: sessionNameOf(path, home),
-          scoped: false,
-          argv: tmuxLaunchArgv(path, home)
-      },
         {
             name: "Zed", icon: "zed", target: target,
             argv: pick(["zeditor", path], ["zeditor", target])
@@ -213,6 +205,14 @@ function chooserApps(path, routed, home, host) {
                 // break silently.
                 ["ghostty", "-e", "ssh", "-t", sshHost, "cd " + shellEscape(path) + " && exec nvim"]
             )
+        },
+        {
+            // `target` is the session name, not the path the other rows show
+            // -- it's what the row attaches you to and what appears in `tmux ls`.
+            name: "Tmux", icon: "utilities-terminal",
+            target: sessionNameOf(path, home),
+            scoped: false,
+            argv: tmuxLaunchArgv(path, home)
         },
         {
             // No remote command at all -- Files is always local.

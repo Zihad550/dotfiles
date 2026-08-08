@@ -107,3 +107,11 @@ ticket 01 started this branch. Confirmed via `git show 853af1b:...
 directories.js` — unrelated to devcontainer routing, left unfixed as out of
 scope for this ticket. Flagging here so it isn't mistaken for a regression
 this feature introduced.
+
+**Follow-up:** fixed at the user's request. The `Tmux` block in
+`chooserApps` was indented 6 spaces against every sibling's 8 — a
+hand-inserted entry at the front of the array, not designed there — moved
+to sit between Neovim and Files, matching `files.js`'s own
+editors-then-catchall-last order and the two tests. Suite now 400/400. This
+is a user-visible change: the directory chooser's default (first, likely
+Enter-selected) row goes back to Zed instead of Tmux.
