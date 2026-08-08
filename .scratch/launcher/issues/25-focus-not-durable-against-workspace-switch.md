@@ -1,23 +1,26 @@
 # 25 — Launcher's keyboard focus isn't durable against a workspace switch
 
-**What to build:** Not yet known — this ticket is the spike. Reported by the
-user: open the Launcher (SUPER+SPACE), switch workspace while it's still
-visible, and Escape no longer dismisses it — the keypress instead reaches and
-acts on the window behind it.
+**What to build:** Reported by the user: open the Launcher (SUPER+SPACE),
+switch workspace while it's still visible, and Escape no longer dismisses it
+— the keypress instead reaches and acts on the window behind it.
 
-**Status:** needs-info — blocked on the user running the manual verification
-below; a `wtype`/`ydotool`-free devcontainer/agent cannot type a key into a
-live Wayland session.
+**Status:** done — verified on the host.
 
-- [ ] Confirmed: does `forceActiveFocus()` on an already-mapped, still-visible
-      Launcher reclaim the keyboard from the compositor after a workspace
-      switch, or is it purely Qt-internal scene focus that changes nothing at
-      the Wayland level?
-- [ ] Confirmed: does the same loss happen on `SUPER+h`/`SUPER+l` (move focus
-      by direction, `hl.dsp.focus({direction=...})`), or only on an actual
-      workspace change? Decides whether the problem statement is "workspace
-      switching" or "any compositor focus change while the Launcher is open."
-- [ ] A fix is designed and shipped, once the two answers above are in.
+- [x] Confirmed: `forceActiveFocus()` on an already-mapped, still-visible
+      Launcher does **not** reclaim the keyboard — purely Qt-internal scene
+      focus, a no-op once the compositor has moved on. Ruled out by the
+      user's own test: the typed letter still landed on the app behind it.
+- [x] Confirmed: the same loss happens on `SUPER+h`/`SUPER+l` (move focus by
+      direction), not just an actual workspace change — "changes focus for
+      the windows below the launcher" too. The problem is "any compositor
+      focus change while the Launcher is open," not workspace-switching
+      specifically.
+- [x] Fixed: `HyprlandFocusGrab` (Hyprland's own grab protocol, the same
+      mechanism `QuickSettings.qml`/`SpecialWorkspaces.qml` already use for
+      click-outside) holds the keyboard through a workspace switch. Verified
+      by the user: the letter now lands in the query line. `Escape` and
+      click-outside dismissal both still work — no regression from ticket 03's
+      original checklist.
 
 ## What's confirmed already
 
@@ -105,56 +108,64 @@ is exactly "whatever's active now," not a remembered address. Story 8's
 wording is loose rather than wrong; not worth editing until this ticket lands
 a fix that makes the mid-session case reachable at all.
 
-## The spike in place, ready to test
+## What shipped
 
-`Launcher.qml` currently has (on branch `launcher-focus-workspace-switch`):
+Two candidates were tried in sequence on the host, both behind hot-reload so
+each was reversible in one edit:
+
+**Candidate 1 (dead): watch `Hyprland.focusedWorkspaceChanged`, call
+`query.forceActiveFocus()`.** Loaded clean, changed nothing — confirmed a
+no-op by the user's test. Removed.
+
+**Candidate 2 (shipped): `HyprlandFocusGrab`.**
 
 ```qml
 import Quickshell.Hyprland
 // ...
-Connections {
-    target: Hyprland
-    function onFocusedWorkspaceChanged() {
-        if (root.visible)
-            query.forceActiveFocus();
-    }
+HyprlandFocusGrab {
+    windows: [root]
+    active: root.visible
+
+    onCleared: root.dismiss()
 }
 ```
 
-Hot-reloads clean (`qs -c launcher log` shows `Configuration Loaded` with no
-error after this edit). This is a spike, not a proposed fix — it answers the
-one open question above and nothing else. Remove it once answered, win or
-lose.
+Loaded clean against a `PanelWindow`/layer-shell surface — the two existing
+uses in this repo (`QuickSettings.qml`, `SpecialWorkspaces.qml`) are both
+`PopupWindow`s, so it was an open question whether the protocol accepted a
+layer surface at all. It does. `onCleared: root.dismiss()` matches those two
+files' own convention (click-outside detection *is* a grab-cleared event for
+them) and keeps `visible` truthful if anything other than a workspace switch
+ever ends the grab, rather than reintroducing this same bug under a different
+trigger.
 
-## Manual verification
+**Not touched:** `WlrKeyboardFocus.OnDemand` stays as-is (`Launcher.qml:51`).
+The grab is the thing holding the keyboard now; OnDemand vs Exclusive was
+never the actual lever.
 
-Needs a live Wayland session with a keyboard — cannot be run from an agent or
-the devcontainer (`docs/agents/issue-tracker.md`'s host-verification rule).
+## Resolved, no longer moot
 
-**1. The discriminator.**
+**Where should focus land on dismiss, once mid-session focus has moved?**
+Whatever's currently active — no special handling needed, since dismissing
+the grab hands the keyboard back to whatever the compositor currently has
+focused, not a remembered address. User Story 8's "the window I came from"
+(`docs/launcher-spec.md:53`) is loose rather than wrong; not worth editing,
+same conclusion as before, now confirmed rather than theoretical.
 
-- Press **SUPER+SPACE** to open the Launcher.
-- Press **SUPER+1** (or any workspace-switch keybind) to switch workspace
-  while it's still open.
-- Type a single letter.
+## Manual verification (run, results below)
 
-**Expected if the spike works:** the letter appears in the Launcher's query
-line. **Expected if it doesn't:** the letter does nothing visible in the
-Launcher, or lands in/affects whatever's now behind it — same failure as
-before, meaning `forceActiveFocus()` did not get the keyboard back.
+**1. The discriminator, candidate 1.** Open the Launcher, switch workspace,
+type a letter. **Result:** landed on the app behind it — candidate 1 dead.
 
-Say which one happened, and paste `qs -c launcher log` from around that time
-if anything unexpected shows.
+**2. Same test, direction-focus keybind (`SUPER+h`/`SUPER+l`).** **Result:**
+"yes it changes focus for the windows below the launcher" — confirmed the
+problem is any compositor focus change, not workspace-switching specifically.
 
-**2. Same test, direction-focus keybind.** Repeat step 1 but use
-**SUPER+h** / **SUPER+l** (move focus, not workspace) in place of the
-workspace switch.
+**3. The discriminator, candidate 2.** Same steps against the
+`HyprlandFocusGrab` version. **Result:** letter landed in the Launcher's query
+line — fixed.
 
-**Expected:** tells us whether this is "workspace switching" specifically or
-"any compositor focus change while the Launcher is open" — the fix (once we
-have one) targets a different signal depending on the answer.
-
-**3. Clean up regardless of outcome.** `qs -c launcher ipc call launcher
-dismiss` to close it if step 1 or 2 left it open.
+**4. Regression check against ticket 03's original checklist.** Escape
+dismisses, click-outside dismisses. **Result:** "Both still work fine."
 
 ## Comments

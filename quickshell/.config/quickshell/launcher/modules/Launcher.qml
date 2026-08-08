@@ -595,15 +595,20 @@ PanelWindow {
             root.reset();
     }
 
-    // SPIKE (ticket 25) -- does forceActiveFocus() get the keyboard back from
-    // the compositor after a workspace switch, or is it purely Qt-internal
-    // scene focus? Remove once answered either way.
-    Connections {
-        target: Hyprland
-        function onFocusedWorkspaceChanged() {
-            if (root.visible)
-                query.forceActiveFocus();
-        }
+    // Ticket 25: WlrKeyboardFocus.OnDemand alone doesn't survive a compositor
+    // focus change (workspace switch, SUPER+h/l) while the Launcher stays
+    // open -- confirmed on the host, keystrokes reached the window behind it.
+    // Hyprland's own grab protocol holds the keyboard through that; same
+    // mechanism QuickSettings.qml/SpecialWorkspaces.qml already use for
+    // click-outside. dismiss() on `cleared` keeps `visible` truthful if
+    // anything (a click outside, another grab taking over) ever ends the
+    // grab -- otherwise the Launcher would sit open and unfocused, the exact
+    // bug this ticket exists to fix, just via a different trigger.
+    HyprlandFocusGrab {
+        windows: [root]
+        active: root.visible
+
+        onCleared: root.dismiss()
     }
 
     // Two Providers claiming the same prefix, or a "?"-list row that's
