@@ -9,20 +9,19 @@ survives outside the two state-derived defaults this feature introduced.
 
 **Blocked by:** 01, 02, 03
 
-**Status:** needs-info — the one static-analysis checkbox is closed; the four
-runtime checkboxes need the user, and one of them needs a devpod workspace
-this session doesn't have. See **Comments**.
+**Status:** done — all five checkboxes closed, the four runtime ones
+verified on the host by the user. See **Comments**.
 
 - [x] Repo grep confirms `devcontainer.devpod` no longer appears as an
       independent hardcoded literal outside the state-file default fallback
       in the Launcher's directories/files module and `bin/df-tmux-session`
-- [ ] With the Quick Settings row off, opening a mirrored directory from the
+- [x] With the Quick Settings row off, opening a mirrored directory from the
       Launcher and pressing `SUPER+U` for the same path both stay local
-- [ ] Flipping the row on (no custom host) restores both to today's
+- [x] Flipping the row on (no custom host) restores both to today's
       `devcontainer.devpod` behavior, unchanged
-- [ ] Setting a custom host and leaving the row on routes both the Launcher
+- [x] Setting a custom host and leaving the row on routes both the Launcher
       and tmux to that host
-- [ ] Zed's manual "Connect via SSH → devcontainer.devpod" profile still
+- [x] Zed's manual "Connect via SSH → devcontainer.devpod" profile still
       connects regardless of the row's state, confirming it was correctly
       left untouched by this feature
 
@@ -115,3 +114,11 @@ to sit between Neovim and Files, matching `files.js`'s own
 editors-then-catchall-last order and the two tests. Suite now 400/400. This
 is a user-visible change: the directory chooser's default (first, likely
 Enter-selected) row goes back to Zed instead of Tmux.
+
+**Checkboxes 2–5, closed.** User ran all four manual-verification steps on
+the host against a real devpod workspace and confirmed each passed as
+written: row off left both the Launcher and `SUPER+U` local; row on with no
+custom host routed both to `devcontainer.devpod`; a custom host routed both
+to it; Zed's own "Connect via SSH" picker reached `devcontainer.devpod`
+regardless of the row's state. All five checkboxes closed — feature
+complete, no further work on this ticket.
