@@ -4,85 +4,47 @@ import Quickshell.Io
 import "../lib/calc.js" as Calc
 
 // The calculator Provider: an arithmetic expression typed into the Query gets
-// its answer in the list, and Return puts that answer on the clipboard.
+// its answer in the list, Return copies it. Arithmetic runs through qalc
+// (libqalculate); the rules for which Queries are worth a process and what its
+// output means live in lib/calc.js.
 //
-// The arithmetic is qalc's -- libqalculate, the same binary elephant shelled
-// out to. See the header of lib/calc.js for why that dependency is kept rather
-// than replaced with an expression evaluator written here, and for every rule
-// this file defers to: which Queries are worth a process, what its output
-// means, and which answer belongs to which Query.
-//
-// The Provider interface it fills -- label, ready, actions, and the shape of an
-// Entry -- is documented at the top of Applications.qml, with **one deliberate
-// difference**: this Provider has no `catalog`. It is not ranked. Its Entry is
-// appended to the pool by Launcher.qml rather than scored against the Query,
-// because there is nothing to match it *against* -- the Entry is generated from
-// the Query, so a corpus holding it would hold a copy of the needle and score
-// above everything else on the screen. See the note on `localEntries` in
-// Launcher.qml.
-//
-// It is also the first Provider whose Entries depend on the Query, which is why
-// `queryText` is a required property: the Launcher hands it down, and this
-// Provider's `entries` is a binding over it.
+// Deliberately no `catalog` (see docs/launcher-spec.md, "the one variant that
+// isn't ranked"): the Entry is generated from the Query itself, so scoring it
+// against the Query would always rank it first. Launcher.qml appends it to the
+// pool by hand instead.
 QtObject {
     id: root
 
     readonly property string label: "calculator"
     readonly property string description: "Evaluate an expression"
 
-    // Nothing to load. An empty Provider here means the Query is not one to
-    // calculate, which is an answer rather than a fault.
+    // Nothing to load: an empty Provider means the Query isn't one to
+    // calculate, which is an answer, not a fault.
     readonly property bool ready: true
 
-    // Walker's own prefix for this provider (walker/.config/walker/config.toml
-    // -- deleted with ticket 19)
-    // -- ticket 11 is what makes it reachable here. Read by lib/routing.js
-    // through Launcher.qml; nothing in this file consults it.
     readonly property string prefix: "="
 
-    // The Query, handed down by the window. Required rather than defaulted,
-    // because a Provider silently bound to "" would simply never produce a row
-    // and there would be nothing to see.
+    // Required, not defaulted to "": a Provider silently bound to "" would
+    // just never produce a row, with nothing to explain why.
     required property string queryText
 
-    // The answer in hand: { query, text }, tagged with the Query it was
-    // computed for. The tag is not bookkeeping -- entriesFor refuses an answer
-    // whose Query is no longer the Query, which is what makes a result arriving
-    // late impossible to show against the wrong expression. null before the
-    // first calculation of the session.
+    // { query, text }, tagged with the Query it was computed for -- entriesFor
+    // refuses an answer whose Query has moved on, so a late-arriving result
+    // can't show against the wrong expression.
     property var answer: null
 
-    // None or one. Every rule about which is in lib/calc.js, where it is under
-    // test; what is here is the process that cannot be.
     readonly property var entries: Calc.entriesFor(root.queryText, root.answer, root)
 
-    // Whether an answer to the Query being typed right now is still coming.
-    //
-    // Read by the web search, and it closes a real hole rather than being
-    // informational. Between the keystroke that finishes "1234*7" and qalc
-    // answering, this Provider has no Entry -- so without this the Launcher
-    // would have no local answer, the web search would offer to Google the
-    // expression, and being the only row it would be the highlighted one.
-    // Return during that window would open a browser instead of copying 8638.
-    // A window measured in milliseconds is still one the hand can land in.
-    //
-    // Tied to the process actually running, not to "no answer yet", so a qalc
-    // that cannot start does not suppress the web search forever -- that would
-    // trade a brief wrong answer for a permanent missing one.
-    //
-    // `running` does go false for the length of one statement in onExited below,
-    // between the run that finished and the run that replaces it. That is not a
-    // hole: it happens inside one synchronous handler, and a key press cannot be
-    // delivered until the event loop is reached again -- so the flicker exists
-    // for nothing that can act on it, and the highlight is re-asserted through
-    // Qt.callLater afterwards, on the settled state.
+    // Closes a real gap, not just informational: between the keystroke that
+    // finishes an expression and qalc answering, this Provider has no Entry,
+    // so the web search would be the lone (highlighted) row and Return would
+    // open a browser instead of copying the result. Tied to the process
+    // actually running rather than "no answer yet", so a qalc that fails to
+    // start doesn't suppress the web search permanently.
     readonly property bool calculating: Calc.wanted(root.queryText) && qalc.running
 
-    // Primary only. There is one thing to do with a result. Elephant offered a
-    // second Action -- save to a calculation history -- and it is deliberately
-    // not ported: it was only reachable through the `=` prefix, which ticket 11
-    // wires up for routing but not for this, since nothing in the spec's user
-    // stories asks for it.
+    // Primary only -- elephant's "save to history" Action is deliberately not
+    // ported, nothing asks for it.
     readonly property var actions: ({
         primary: {
             label: "copy result",
@@ -93,9 +55,8 @@ QtObject {
     function copy(entry): void {
         const result = entry.target.result;
 
-        // Cannot happen for an Entry that exists -- entriesFor produces none
-        // without a result -- but a silent no-op is exactly what this Provider
-        // must not do, and the two are separate functions.
+        // Can't happen for an Entry that exists (entriesFor produces none
+        // without a result), but a silent no-op is worse than a loud warning.
         if (!result) {
             console.warn("launcher: calculator Entry with no result to copy");
             return;
@@ -104,19 +65,14 @@ QtObject {
         Quickshell.execDetached(Calc.copyArgv(result));
     }
 
-    // Every keystroke asks; wanted() is what makes most of them cost nothing.
+    // Every keystroke asks; wanted() makes most of them free.
     onQueryTextChanged: root.evaluate()
 
-    // Start a calculation for the current Query, if there is one to start.
-    //
-    // **At most one process in flight.** A Query typed at speed would otherwise
-    // leave several qalcs racing, and nothing orders their answers -- "12*" can
-    // land after "12*3". Waiting instead of killing-and-restarting is what makes
-    // that ordering a property of the code rather than a hope: the run that
-    // finishes calls back in here for whatever the Query has become since. The
-    // tag check in entriesFor still stands behind it, because a rule this file
-    // enforces and a rule the pure module enforces are worth having both of when
-    // the failure is a wrong answer shown confidently.
+    // At most one qalc in flight: several running at once would race and
+    // could land out of order ("12*" answering after "12*3"). Rather than
+    // kill-and-restart, this waits and lets the run that finishes re-trigger
+    // evaluate() for whatever the Query has become -- entriesFor's tag check
+    // is the backstop if that ordering ever slips.
     function evaluate(): void {
         if (!Calc.wanted(root.queryText) || qalc.running)
             return;
@@ -133,16 +89,13 @@ QtObject {
         };
     }
 
-    // Assigned to a property rather than nested, because QtObject has no
-    // default property to nest into -- the same shape every other Provider here
-    // would need if it had a child.
+    // QtObject has no default property to nest a child into, hence the
+    // explicit property.
     readonly property Process runner: Process {
         id: qalc
 
-        // The Query this run was started for, carried on the process so the
-        // answer can be tagged with it. Not read off root.queryText when the
-        // answer arrives: by then it may be a different Query, which is the
-        // whole thing being guarded against.
+        // Carried on the process, not read off root.queryText when the answer
+        // arrives -- by then the Query may have moved on.
         property string launchedFor: ""
 
         stdout: StdioCollector {
@@ -151,24 +104,14 @@ QtObject {
             onStreamFinished: root.settle(qalc.launchedFor, output.text)
         }
 
-        // Collected and dropped. qalc writes a diagnostic for every expression
-        // it cannot evaluate, and this Provider runs on a Query that is
-        // half-typed most of the time, so forwarding them would put a line in
-        // the log per keystroke. What matters -- "there is no result" -- is
-        // already in resultOf's answer.
+        // Collected and dropped: qalc writes a diagnostic for every expression
+        // it can't evaluate, which would be a log line per keystroke on a
+        // half-typed Query. resultOf's answer already covers "no result".
         stderr: StdioCollector {}
 
-        // Settled again here, on purpose, and it is not a duplicate of the
-        // collector's handler. Which of the two fires first is not something
-        // this file gets to assume -- a process that exits before its stream is
-        // drained settles "" here and the real answer a moment later, and one
-        // whose stream closes first settles the same text twice. Both orders end
-        // on the same answer, and neither ends on silence, which is the outcome
-        // that would look exactly like a calculator that does not work.
-        //
-        // Then: the Query has almost certainly moved on while this ran.
-        // evaluate() starts the next run for whatever it is now, and does
-        // nothing when the answer in hand is already the right one.
+        // Not a duplicate of the collector's handler: stream-close and process-
+        // exit order isn't guaranteed, so this settles again to cover whichever
+        // fires last -- both orders land on the same answer, neither on silence.
         onExited: {
             root.settle(qalc.launchedFor, output.text);
             root.evaluate();

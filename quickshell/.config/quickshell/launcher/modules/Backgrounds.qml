@@ -6,41 +6,25 @@ import "../lib/catalog.js" as Catalog
 import "../lib/matching.js" as Matching
 
 // The backgrounds Provider: every image under ~/.config/backgrounds, reached
-// by being entered from the provider list behind "?" -- ticket 15's "set a
-// background from the Launcher" (spec story 39), placed by ticket 18.
-//
-// The Provider interface it fills -- label, ready, catalog, actions, refresh
-// -- is documented at the top of Applications.qml. Structurally identical to
-// Themes.qml, one property lighter: no active-theme-style marker (see the
-// header on lib/backgrounds.js). Out of `pool`, no `prefix`, `layout:
-// "preview"`, entered rather than routed to -- all four for the reasons set
-// out at length on Themes.qml; this Provider is the other half of the same
-// decision, and previews matter more here than anywhere, since one background
-// is told from another by looking at it and by nothing else.
-//
-// **df-theme-bg-picker is gone.** It was the standalone walker-driven picker,
-// a separate Surface with its own entry point through walker/elephant, not
-// this Launcher; it and the elephant menu behind it are deleted with ticket
-// 19. This Provider is that picker's replacement -- the one way to set a
-// background by choosing it.
+// by being entered from the "?" provider list. Provider interface: see
+// docs/launcher-spec.md. Structurally identical to Themes.qml, one property
+// lighter (no active-marker, see lib/backgrounds.js's header). Out of
+// `pool`, no `prefix`, `layout: "preview"`, entered rather than routed to --
+// previews matter more here than anywhere, since one background is told
+// from another by looking at it and nothing else.
 NestableProvider {
     id: root
 
     readonly property string label: "backgrounds"
-
-    // Both shown by the provider list behind "?" -- see the notes on the
-    // matching properties in Themes.qml.
     readonly property string description: "Set the desktop background"
     readonly property string layout: "preview"
 
-    // Never "not ready" -- an empty ~/.config/backgrounds is legitimate, not
-    // a fault to report. Same reasoning as Themes.qml's own `ready`.
+    // Never "not ready": an empty ~/.config/backgrounds is legitimate.
     readonly property bool ready: true
 
     readonly property string home: Quickshell.env("HOME")
 
-    // Fed by the Process below. A plain string rather than the parsed list,
-    // so re-parsing only happens in the one binding that needs it.
+    // A plain string, not the parsed list, so re-parsing happens only where needed.
     property string listingText: ""
     readonly property var paths: Bgs.parseListing(root.listingText)
 
@@ -53,9 +37,7 @@ NestableProvider {
         console.log("launcher: backgrounds Provider sees", root.paths.length, "background(s)");
     }
 
-    // Read once, so the corpus rank() scores is always the entry list it was
-    // prepared from. `owners`, because textsFor gives a background two
-    // corpus texts (its raw stem and its formatted display name).
+    // `owners`: textsFor gives a background two corpus texts (raw stem, formatted name).
     readonly property var catalog: {
         const built = Catalog.ownedCatalog(root.paths,
             path => Bgs.entryFor(path, root),
@@ -66,8 +48,6 @@ NestableProvider {
         };
     }
 
-    // Setting a background is the primary; `back` leaves the sub-view. Both
-    // unconditional, for the reason spelled out on Themes.qml's own actions.
     readonly property var actions: ({
         primary: {
             label: "set",
@@ -84,9 +64,7 @@ NestableProvider {
         Quickshell.execDetached(Bgs.applyArgv(root.home, entry.target.path));
     }
 
-    // Optional on the Provider interface: ask the source for what it may not
-    // have yet. Called at startup and again on every open, the same as
-    // Themes.qml's own refresh.
+    // Called at startup and on every open.
     property bool refreshPending: false
 
     function refresh(): void {
@@ -100,9 +78,7 @@ NestableProvider {
 
     Component.onCompleted: root.refresh()
 
-    // Assigned to a property rather than nested bare, the same reason
-    // Themes.qml's own Process is: QtObject has no default property to nest
-    // a child into.
+    // QtObject has no default property to nest a child into.
     readonly property Process finder: Process {
         id: finder
 
@@ -111,15 +87,11 @@ NestableProvider {
             onStreamFinished: root.listingText = output.text
         }
 
-        // Collected and dropped, the same as Themes.qml's own `finder`: an
-        // empty list already says plainly that nothing was found.
+        // Collected and dropped: an empty list already says plainly that
+        // nothing was found.
         stderr: StdioCollector {}
 
-        // Settled again here, on purpose, and not a duplicate of the
-        // collector's own handler -- the same reasoning as Themes.qml's own
-        // `onExited`. Drains `refreshPending`: a refresh() that arrived
-        // while this run was already in flight gets the fresh run it asked
-        // for, once this one is out of the way.
+        // Not a duplicate of onStreamFinished. Drains `refreshPending`.
         onExited: {
             root.listingText = output.text;
             if (root.refreshPending) {

@@ -1,17 +1,13 @@
-// The display menu: monitor orientation and the saved layout.
+// The display menu: monitor orientation and the saved layout. Data only --
+// see lib/menus.js for what a declaration may contain, and Menu.qml for the
+// Provider that runs them.
 //
-// Data only -- see lib/menus.js for what a declaration may contain, and
-// Menu.qml for the Provider that runs them. Ported from
-// elephant/.config/elephant/menus/display.toml (deleted with ticket 19).
+// Every command starts with `~`, which argvOf in lib/menus.js expands
+// explicitly (nothing else here runs these through a shell).
 //
-// Every command here starts with `~`, which elephant expanded by running it
-// through a shell. Nothing expands it now, so the path would simply not be
-// found -- argvOf in lib/menus.js handles the leading `~` explicitly, and the
-// per-entry audit in tests/launcher/menus.test.js pins the expanded path.
-//
-// All four are `scoped: false`: each one calls hyprctl and exits, so a systemd
-// scope around it would be a fork, an exec and a D-Bus round trip for a process
-// that is already gone.
+// All four are `scoped: false`: each calls hyprctl and exits, so a systemd
+// scope around it would be a fork, exec and D-Bus round trip for a process
+// that's already gone.
 Menu {
     label: "display"
     description: "Brightness, night light, monitors"

@@ -1,65 +1,38 @@
 // The directories Provider's pure half: cache parsing, the Entry shape, and
 // the commands a directory can be opened with.
 //
-// Ported from menus/dotfiles_dirs.lua and menus/dotfiles_dir_opener.lua --
-// elephant's own directories Provider (deleted with ticket 19) -- rather than
-// invented. One thing did not carry over, deliberately: no Elide. The lua version shortens a long
-// path by hand because GTK gives it no other way to keep both ends of a path
-// visible. The QML delegate already elides with `Text.ElideRight`
-// (Launcher.qml), so the full relative path is handed over and the view's
-// own eliding does the rest -- one thing fewer this module has to get right
-// and keep in sync with a font.
+// No path eliding here: the QML delegate already elides with
+// `Text.ElideRight` (Launcher.qml), so the full relative path is handed over
+// and the view does the rest.
 //
-// **Two corpus texts per Entry, matching the lua's own `{ leaf, relative path
-// }` -- this was not the first draft.** The first draft scored one text (the
-// full relative path alone), on the theory that score()'s boundary bonus
-// already rewards a match starting right after a "/" the way scoring the leaf
-// separately would. It does not: `dev/backend.old` and
-// `dev/monorepo/services/api/backend` both match "backend" as one contiguous
-// run right after a "/", so both get the *same* quality, and the tie goes to
-// the shorter haystack -- `backend.old` wins, which is exactly the
-// misranking dotfiles_dirs.lua's own comment names as the reason it scores
-// the leaf separately ("'dev/backend.old' beat a directory actually named
-// 'backend' simply for sitting closer to the root"). Scoring the leaf
-// separately is what separates them: `backend` is the shorter haystack, so it
-// takes the length tie-break. An exact leaf match additionally earns
-// EXACT_WEIGHT, because the leaf is the Entry's first text and therefore its
-// name (matching.js, ticket 20) -- but that is a widening of the same gap, not
-// what opens it. Pinned by a test that passes with EXACT_WEIGHT at 0.
+// Two corpus texts per Entry -- leaf and full relative path -- not one.
+// Scoring only the full path made `dev/backend.old` and
+// `dev/monorepo/services/api/backend` score identically for "backend" (both
+// match as one contiguous run right after a "/"), so the tie went to the
+// shorter haystack and `backend.old` won over an actual directory named
+// `backend`. Scoring the leaf separately breaks that tie correctly: `backend`
+// is the shorter haystack on its own. The cost is roughly double the
+// per-keystroke scan for one text each.
 //
-// The cost is real -- roughly twice the per-keystroke scan the spec's own
-// benchmark measured for one text each -- but it is the cost elephant's own
-// provider already paid, not a new one this port introduces.
-//
-// Deliberately free of QML types so the same file loads under a plain
-// JavaScript runtime, which is where its tests run
-// (tests/launcher/directories.test.js) -- the same arrangement as matching.js,
-// and for the same reason.
+// Free of QML types so it loads under a plain JS runtime too (tests/launcher/directories.test.js).
 
 var CACHE_DIR_NAME = "df-dir-picker";
 var CACHE_FILE_NAME = "folders.list";
 
 // How long a cache is trusted before refresh() rebuilds it in the background.
-// Elephant's own default (menus/dotfiles_dirs.lua, deleted with ticket 19).
 var STALE_SECONDS = 300;
 
-// Directories pruned out of the scan -- elephant's own list
-// (menus/dotfiles_dirs.lua PRUNE, deleted with ticket 19), kept in sync with
-// the old bin/df-dir-picker's build_cache() (deleted with ticket 19).
 var PRUNE_NAMES = [
     ".local", "node_modules", ".git", ".obsidian-vault", ".var", "Cache",
     "cache", ".npm", ".nuget", ".cache", "Kiro", ".kiro", ".cursor",
     "Cypress", "cypress", "discord", "go", "obs-studio", "mpv", "transmission"
 ];
 
-// Scanned deep, in addition to $HOME one level deep. "dotfiles", not
-// ".dotfiles": the repo lives at ~/dotfiles.
+// Scanned deep, in addition to $HOME one level deep.
 var ROOTS = ["dotfiles", "dev"];
 
-// The devpod devcontainer bind-mounts these at the same absolute path (see
-// setup/devcontainer/.devcontainer/devcontainer.json), so a remote location is
-// just the scheme, the host, and the same local path. Kept in sync with the
-// two lua files above, which each say the same about the other.
+// The devpod devcontainer bind-mounts these at the same absolute path, so a
+// remote location is just the scheme, host, and same local path.
 var SSH_HOST = "devcontainer.devpod";
 var MIRRORED = ["/dev", "/dotfiles", "/.agents"];
 
@@ -71,9 +44,8 @@ function shellEscape(value) {
     return "'" + String(value).replace(/'/g, "'\\''") + "'";
 }
 
-// One path per line, blank lines dropped. Whatever wrote the file is trusted
-// -- this Provider only ever reads its own cache, never a directory listing
-// handed to it directly.
+// One path per line, blank lines dropped. Whatever wrote the file is
+// trusted -- this Provider only ever reads its own cache.
 function parseCache(text) {
     if (typeof text !== "string" || text === "")
         return [];
@@ -82,9 +54,7 @@ function parseCache(text) {
     });
 }
 
-// The fuzzy-matched text: "~" for $HOME itself, the path relative to it
-// otherwise. A path outside $HOME (there should be none in the cache) is left
-// whole rather than mangled.
+// "~" for $HOME itself, path relative to it otherwise.
 function relOf(path, home) {
     if (path === home)
         return "~";
@@ -104,16 +74,11 @@ function isMirrored(path, home) {
     return false;
 }
 
-// One directory, as the shape Directories.qml's catalog wants. `key` is the
-// absolute path -- stable across restarts, which is the condition the spec
-// puts on supplying an Entry Key at all, and what checkbox 7 asks Frecency to
-// accumulate against.
-//
-// `name` is the *display* text -- always the full relative path, never just
-// the leaf, because a leaf alone is ambiguous the moment two projects share a
-// directory name. It is independent of what corpus text actually matched:
-// textsFor below may find this Entry by its leaf alone, but what is shown is
-// always the whole path, exactly as elephant's own `Text = rel` was.
+// `key` is the absolute path -- stable across restarts, so Frecency
+// accumulates against it. `name` (the display text) is always the full
+// relative path, never just the leaf: a bare leaf is ambiguous the moment
+// two projects share a directory name, regardless of which corpus text
+// (textsFor below) actually matched.
 function entryFor(path, home, provider) {
     return {
         name: relOf(path, home),
@@ -128,41 +93,31 @@ function entryFor(path, home, provider) {
     };
 }
 
-// The leaf of a relative path -- "backend" from "dev/monorepo/backend", the
-// whole thing when there is no "/" to split on ("~", or a top-level
-// directory).
 function leafOf(rel) {
     var at = rel.lastIndexOf("/");
     return at < 0 ? rel : rel.slice(at + 1);
 }
 
-// The corpus texts one Entry is found by: its leaf first -- so prepare() reads
-// the leaf as the Entry's name, and an exact leaf match earns EXACT_WEIGHT --
-// then its full relative path, so a Query naming a parent segment ("monorepo") or
-// spanning two of them as one scattered subsequence ("monorepobackend") still
-// matches, which the leaf alone cannot answer. Deduplicated the same way
-// textsFor in lib/windows.js is: a top-level directory's leaf and relative
-// path are the same string, and nothing is gained scoring it twice.
+// Leaf first (so prepare() reads it as the Entry's name and an exact leaf
+// match earns EXACT_WEIGHT), then the full relative path so a Query naming a
+// parent segment still matches. Deduplicated when a top-level directory's
+// leaf and relative path are the same string.
 function textsFor(rel) {
     var leaf = leafOf(rel);
     return leaf !== rel ? [leaf, rel] : [rel];
 }
 
 // The tmux session name a directory's Entry runs its session under: the
-// relative path slugged, "/" replaced with "-" -- "dev/monorepo/backend"
-// is session "dev-monorepo-backend" -- and "home" for $HOME itself. A
-// hyphen the path already contains survives, which makes the slug not
-// injective: ~/dev/foo and ~/dev-foo both name session "dev-foo", and the
-// first session wins. That is the ticket's rule as written, not a case
-// this module defends against.
+// relative path slugged, "/" -> "-", "home" for $HOME itself. A hyphen the
+// path already contains survives, so the slug isn't injective (~/dev/foo and
+// ~/dev-foo both name session "dev-foo", first one wins) -- accepted, not
+// defended against.
 //
-// "." and ":" are also replaced, with "_" -- they are the target separators
-// in tmux's own grammar: a name containing one parses as window.pane, so
-// `new-window -t` fails with "can't specify pane here". Found by the host
-// verification on ticket 04: ~/.agents, a mirrored root, named its session
-// ".agents", and that single leading dot tripped it. "_" rather than "-" so
-// a dot-led relative path does not open its session name with a dash. See
-// the Tmux entry in chooserApps for what this names.
+// "." and ":" -> "_": those are target separators in tmux's own grammar (a
+// name containing one parses as window.pane, so `new-window -t` fails).
+// Found via ~/.agents (a mirrored root) naming its session ".agents", where
+// the leading dot tripped it. "_" rather than "-" so a dot-led path doesn't
+// open its session name with a dash.
 function sessionNameOf(path, home) {
     var rel = relOf(path, home);
     if (rel === "~")
@@ -170,37 +125,25 @@ function sessionNameOf(path, home) {
     return rel.split("/").join("-").split(".").join("_").split(":").join("_");
 }
 
-// The ssh:// URL a mirrored directory is reachable at from the devcontainer.
 function sshUrlFor(path) {
     return "ssh://" + SSH_HOST + path;
 }
 
-// The primary Action's command: zed, over ssh for a directory the
-// devcontainer mirrors, local otherwise -- elephant's own default
-// (menus/dotfiles_dirs.lua's top-level `Actions["menus:default"]`, overridden
-// per entry for a host-only path -- deleted with ticket 19).
-//
-// `mirrored` is taken rather than recomputed from `path` -- entryFor already
-// paid for isMirrored() once, when the Entry was built, and it is carried on
-// `entry.target` for exactly this call.
+// zed, over ssh for a mirrored directory, local otherwise. `mirrored` is
+// taken rather than recomputed: entryFor already paid for isMirrored() once.
 function defaultOpenArgv(path, mirrored, launchPrefix) {
     var target = mirrored ? sshUrlFor(path) : path;
     return (launchPrefix || []).concat(["zeditor", target]);
 }
 
-// The argv the Tmux chooser Entry runs: a ghostty window on the session
-// script -- created by ticket 03 under bin/, this is the contract string
-// naming it -- with the directory's session name and its path as separate
-// arguments.
+// A ghostty window on the session script (bin/df-tmux-session), with the
+// directory's session name and its path as separate arguments.
 //
-// The path is passed raw, not through shellEscape. Ghostty 1.2+ execs its
-// `-e` arguments verbatim (initial-command is `direct:`, no shell
-// round-trip -- ghostty commit 722d41a35), so single-quote doubling would
-// reach the session script as literal text, quotes and backslashes
-// included. Escaping a path only matters where a shell re-parses it, which
-// is inside the session script, where it embeds the path into tmux command
-// strings; the script owns that escape, the same way lib/files.js carries
-// its own copy of shellEscape.
+// The path is passed raw, not through shellEscape: ghostty 1.2+ execs its
+// `-e` arguments verbatim (no shell round-trip), so single-quote doubling
+// would reach the session script as literal text. Escaping only matters
+// where a shell re-parses the argument, which is inside the session script
+// itself -- it owns that escape.
 function tmuxLaunchArgv(path, home) {
     return [
         "ghostty", "-e",
@@ -210,26 +153,19 @@ function tmuxLaunchArgv(path, home) {
     ];
 }
 
-// The secondary Action's chooser -- ported from
-// menus/dotfiles_dir_opener.lua's APPS table. Files carries no remote command
-// at all, so a mirrored directory still opens it locally: that table's own
-// `remote = mirrored and app.remote ~= nil` is false whenever `app.remote` is
-// absent, and Files is the one entry that leaves it out.
+// The secondary Action's chooser. Files carries no remote command at all, so
+// a mirrored directory still opens it locally.
 //
-// Tmux is newer than the port, added by the directories-tmux-entry feature.
-// It opens the window on the session script (tmuxLaunchArgv) rather than on
-// the directory itself, which is why it takes `home` too -- the script path
-// and the session name are both derived from it. It runs the session script
-// locally even for a mirrored directory (the script owns the remote window),
-// so like Files it is the same argv either way.
+// Tmux opens the window on the session script rather than on the directory
+// itself, so it needs `home` too (the script path and session name both
+// derive from it), and runs locally even for a mirrored directory (the
+// script owns the remote window) -- same argv either way.
 //
-// Unlike Files it is `scoped: false`: the ticket specifies a plain local
-// exec with no launch-prefix machinery. The accepted cost is what scope
-// buys -- Files keeps the prefix so a `df-qs-restart launcher` does not take
-// the nautilus window it opened down; an unscoped Tmux window is the
-// launcher's child and dies with it. That is survivable for Tmux in a way it
-// is not for an editor: the ghostty window is only a client, tmux detaches
-// the client when the terminal goes and the session lives on.
+// Tmux is `scoped: false`, unlike Files: an unscoped Tmux window is the
+// launcher's child and dies with it, which is fine here because the ghostty
+// window is only a client -- tmux detaches the client and the session lives
+// on. That's not true for an editor, which is why Files keeps the launch
+// prefix (so `df-qs-restart launcher` doesn't take its window down).
 function chooserApps(path, mirrored, home) {
     var target = mirrored ? sshUrlFor(path) : path;
 
@@ -239,14 +175,8 @@ function chooserApps(path, mirrored, home) {
 
     return [
       {
-          // A tmux session in a ghostty window, run by the session script
-          // (ticket 03, bin/df-tmux-session) with the directory's session
-          // name and path. See tmuxLaunchArgv for why the path goes through
-          // raw, and the header on this function for why this is local and
-          // `scoped: false`. `target` is the session name rather than the
-          // path the other five rows show: it is what the row attaches you
-          // to and what appears in `tmux ls` -- the host verification's own
-          // pass criterion.
+          // `target` is the session name, not the path the other rows show
+          // -- it's what the row attaches you to and what appears in `tmux ls`.
           name: "Tmux", icon: "utilities-terminal",
           target: sessionNameOf(path, home),
           scoped: false,
@@ -268,19 +198,15 @@ function chooserApps(path, mirrored, home) {
             name: "Neovim", icon: "nvim", target: target,
             argv: pick(
                 ["ghostty", "--working-directory=" + path, "-e", "nvim"],
-                // Escaped, unlike the other four: this argument is not run
-                // locally -- it is handed whole to `ssh`, which forwards it to
-                // be parsed by a shell on the *other* end. Every other command
-                // here passes `path` as its own argv element, safe from a
-                // local shell that never sees it; this one builds a shell
-                // command line as a string, so it is the one place a path
-                // with a space in it would otherwise break silently.
+                // Escaped, unlike the other four: this argument isn't run
+                // locally -- it's handed whole to `ssh`, parsed by a shell on
+                // the *other* end, so a path with a space would otherwise
+                // break silently.
                 ["ghostty", "-e", "ssh", "-t", SSH_HOST, "cd " + shellEscape(path) + " && exec nvim"]
             )
         },
         {
-            // No remote command at all -- Files is always local, even for a
-            // mirrored directory. See the header on this function.
+            // No remote command at all -- Files is always local.
             name: "Files", icon: "folder",
             target: path,
             argv: ["nautilus", path]
@@ -288,15 +214,8 @@ function chooserApps(path, mirrored, home) {
     ];
 }
 
-// The chooser's Entries, in the shape Directories.qml's catalog wants when a
-// Chooser is open. No `key`: these do not recur the way a directory does, so
-// there is nothing for Frecency to accumulate against -- the directory itself
-// already recorded a choice on the secondary Action that opened this.
-//
-// `home` is new with the Tmux entry: chooserApps needs it to name the session
-// and the script. The one app that declares `scoped: false` (Tmux) gets its
-// argv whole rather than under the launch prefix -- see that function's
-// header.
+// No `key`: these don't recur the way a directory does -- the directory
+// itself already recorded a choice on the secondary Action that opened this.
 function chooserEntriesFor(path, mirrored, home, launchPrefix, provider) {
     var prefix = launchPrefix || [];
     return chooserApps(path, mirrored, home).map(function (app) {
@@ -310,19 +229,15 @@ function chooserEntriesFor(path, mirrored, home, launchPrefix, provider) {
     });
 }
 
-// The scan, as a shell script: $HOME one level deep (so plain folders --
-// Downloads, Pictures -- are reachable, hidden entries skipped), then the dev
-// roots six deep, pruned and deduplicated. Ported from
-// menus/dotfiles_dirs.lua's BuildCacheCmd (deleted with ticket 19), which was
-// itself bin/df-dir-picker's build_cache() (deleted with ticket 19). The
-// cache path and format are inherited unchanged, so an existing
-// ~/.cache/df-dir-picker/folders.list still reads.
+// $HOME one level deep (so plain folders like Downloads are reachable,
+// hidden entries skipped), then the dev roots six deep, pruned and
+// deduplicated. The cache path and format are inherited unchanged, so an
+// existing ~/.cache/df-dir-picker/folders.list still reads.
 //
-// A root that does not exist is left to `find` itself to fail quietly on
-// (the trailing `2>/dev/null`) rather than checked for first, which is the one
-// place this diverges from both -- neither pure JavaScript nor this Provider
-// has a synchronous way to ask, and a missing root contributing nothing is the
-// same outcome either way.
+// A root that doesn't exist is left to `find` to fail quietly on
+// (`2>/dev/null`) rather than checked for first -- neither this module nor
+// the Provider has a synchronous way to ask, and a missing root contributing
+// nothing is the same outcome either way.
 function buildCacheScript(home) {
     var dir = home + "/.cache/" + CACHE_DIR_NAME;
     var cache = cachePath(home);
@@ -349,11 +264,10 @@ function buildCacheScript(home) {
         + " && mv " + shellEscape(tmp) + " " + shellEscape(cache);
 }
 
-// Guarded so refresh() can be called on every Launcher open for free: skipped
-// outright while a build is already running (the tmp file is its own lock,
-// the same guard menus/dotfiles_dirs.lua uses) or while the cache is younger
-// than STALE_SECONDS. Missing entirely counts as stale, which is what gets a
-// cache built at all on a machine that has never opened this Launcher.
+// Guarded so refresh() can be called on every Launcher open for free:
+// skipped while a build is already running (the tmp file is its own lock) or
+// while the cache is younger than STALE_SECONDS. Missing entirely counts as
+// stale, which is what builds a cache at all on a fresh machine.
 function refreshScript(home) {
     var cache = cachePath(home);
     var tmp = cache + ".tmp";
@@ -364,7 +278,6 @@ function refreshScript(home) {
         + buildCacheScript(home) + "; fi";
 }
 
-// The argv refresh() hands to Quickshell.execDetached.
 function refreshCommand(home) {
     return ["sh", "-c", refreshScript(home)];
 }

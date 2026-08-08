@@ -178,6 +178,92 @@ components.
 duration, because the primary keybind switches before parity and a Launcher that
 fails to open otherwise leaves no way to start anything.
 
+## Interface: Provider
+
+A Provider is a QtObject exposing:
+
+- **label** — what to call it when the window has to name it.
+- **ready** — false while emptiness is a fault rather than an answer.
+- **catalog** — `{ entries, corpus }`: Entries in a display shape the window
+  can render without knowing which Provider they came from, and the corpus
+  `rank()` scores. One property rather than separate `entries`/`corpus` so a
+  consumer reads a consistent pair in a single access — the indices `rank()`
+  returns are only meaningful against the entry list the corpus was prepared
+  from.
+- **actions** — which Core Action slots (`primary`, `secondary`, `mark`,
+  `back`) this Provider fills, e.g.
+  `actions: ({ primary: { label: "launch", invoke: entry => …, after: "close" } })`.
+  A Provider never names its own key — Return/Shift+Return/Tab/Escape mean the
+  same thing everywhere, which is the point. `label` is the footer hint,
+  `after` is what the Launcher does next (close/refresh/stay). A Provider
+  needing an Action outside this vocabulary adds it to `extras` (the one place
+  a Provider does name a key, e.g. `{ chord: "Ctrl+W", ... }`); a chord
+  claiming a core key or one no keypress can produce is dropped with a
+  warning.
+- **refresh** — optional: re-ask the source for what it may not have yet,
+  called on every open. Only needed when the underlying data can go stale
+  between opens (windows), not when it's populated once (applications).
+- **prefix** — optional (ticket 11): the leading character that routes a
+  Query to this Provider alone (`=` calculator, `@` web search). A Provider
+  that never sets it is simply never prefix-matched.
+- **nested** — optional (ticket 12): true while the Provider is showing a
+  sub-view of its own (Directories.qml's chooser). Gives the Provider the
+  whole pool to itself, like a routed prefix, and clears the Query crossing
+  either edge.
+- **enter() / leave()** — optional (ticket 18): what the "?" provider list
+  calls for a Provider with no `prefix`. `enter()` sets `nested`; `leave()`
+  clears it. A listable Provider with neither `prefix` nor `enter()` is a
+  programming error, surfaced by the "?" list calling the missing function.
+  Requires `active` alongside it (a visibility watch that drops entered state
+  when the Launcher closes).
+- **layout** — optional (ticket 13): names a layout other than the default
+  one-row-per-Entry list. `"preview"` is the one value defined — a narrow
+  list beside a large image of the highlighted Entry. Only rendered when this
+  Provider owns the whole active pool (routed or nested); left unset, the
+  Provider renders as a normal row.
+- **description** — optional (ticket 18): a sentence shown in the "?"
+  provider list. Degrades to `""` when absent.
+- **listable** — optional (ticket 18): false opts a Provider out of the "?"
+  list without making it unreachable. Absent means listed.
+- **prompting** — optional (ticket 16): true while the Provider is asking for
+  a line of text of its own (Workspaces.qml's rename), taking over the Query
+  field. Not a Surface — same window, same query line. Five slots come with
+  it once a Provider ever sets `prompting`:
+  - `promptValue` — Query prefill, read synchronously when `prompting` goes
+    true.
+  - `promptVerb` — footer's Return hint (defaults to "confirm").
+  - `promptPlaceholder` — placeholder text naming what's being prompted for.
+  - `applyPrompt(text)` — Return: act on the field's content, lower
+    `prompting`.
+  - `cancelPrompt()` — Escape/dismissal: lower the flag, change nothing. Must
+    also fire on `active` going false, so a reopened Launcher is never
+    mid-prompt.
+- **ordered** — optional (ticket 17): a catalog may be
+  `{ entries, ordered: true }` instead of `{ entries, corpus }`, skipping
+  `rank()` entirely because the Entries are already in required display order
+  (Files.qml's folder-then-contents grouping). An Ordered Provider must own
+  the whole active pool whenever shown (via a prefix), since a zero-scored
+  ordered list would otherwise interleave with a scored Provider's ranking as
+  if tied. Nothing bounds its length, so a Provider producing many Entries
+  must cap them itself.
+
+**The one variant (ticket 09): a Provider that isn't ranked.** Calculator and
+web search have `entries` — a plain list — in place of `catalog`, and take the
+Query as `queryText` rather than being matched against it, because both
+*generate* their Entry from the Query: a corpus holding a copy of the needle
+would score highest for everything typed. `Launcher.qml` places their Entries
+around the merged pool by hand (`localEntries`). A Provider with `catalog` is
+scored; one with `entries` is placed; nothing has both, except the `ordered`
+catalog shape above, which is a real catalog that declines scoring because its
+order is its own structure.
+
+An **Entry** is `{ name, subtext, icon, key, provider, target }`: the two
+display lines, an icon-theme name, the Entry Key Frecency accumulates against,
+the Provider that can act on it, and `target` (the Provider's own object,
+untouched outside it). `key` is optional — a Provider supplies one only when
+its Entries have identity that survives a restart (a window address does not;
+a desktop entry id does).
+
 ## Testing Decisions
 
 **There is no existing test infrastructure in this repository** — no test files,

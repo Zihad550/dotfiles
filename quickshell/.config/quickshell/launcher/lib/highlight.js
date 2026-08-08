@@ -1,39 +1,28 @@
 // Where the highlight goes when the Entries change under it.
 //
-// Pure and separate for the same reason matching.js is: this is a rule about
-// intent, not about drawing, and getting it wrong does not look like a bug. It
-// looks like the Launcher preferring something -- which is exactly how it hid.
-// The first open after a restart listed no windows for three host rounds, and
-// the cause was this rule applied where it did not belong: the highlight
-// defaulted to the first application, six windows then arrived above it, the
-// highlight followed that application by identity from index 0 to index 6, and
-// the view followed the highlight. Nothing was missing and nothing was stale.
+// Pure and separate because this is a rule about intent, not drawing, and
+// getting it wrong doesn't look like a bug -- it looks like a preference,
+// which is exactly how a real defect hid: the highlight defaulted to the
+// first application, six windows then arrived above it, and following the
+// highlighted Entry by identity dragged the highlight (and view) down with them.
 //
 // Loads under both QML and node -- see the note at the top of matching.js.
 
-// The best match, or nothing when there is nothing to highlight.
 function first(entries) {
     return entries.length > 0 ? 0 : -1;
 }
 
 // Where the highlight belongs in `entries`, given where it was.
-//
 // `state` is { pinned, index, entry }:
-//   pinned  whether the *user* put the highlight there -- an arrow key. False
-//           while it merely defaults to the best match, which is the state an
-//           untouched Launcher is in and the one this exists to get right.
+//   pinned  whether the *user* put it there (an arrow key), vs. defaulting
 //   index   where it was
 //   entry   which Entry it was on, for finding it again by identity
 //
-// Unpinned, the answer is always the best match: there is no intent to
-// preserve, and preserving one anyway is how the highlight -- and the view
-// behind it -- ends up in the middle of a list nobody has touched.
-//
-// Pinned, identity wins: an Entry still in the list keeps the highlight even if
-// it moved, which is what stops a background window retitling from yanking the
-// selection mid-arrow. When it has gone, holding the position is the honest
-// fallback -- the list is in the same order, one line of it changed -- clamped
-// so a list that shrank cannot leave Enter acting on nothing.
+// Unpinned, always the best match -- there's no intent to preserve.
+// Pinned, identity wins (an Entry that moved keeps the highlight, so a
+// background retitle can't yank the selection mid-arrow); if it's gone,
+// holding the position is the fallback, clamped so a shrunk list can't leave
+// Enter acting on nothing.
 function next(entries, state) {
     if (entries.length === 0)
         return -1;

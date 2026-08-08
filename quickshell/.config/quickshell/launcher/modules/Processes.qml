@@ -5,50 +5,32 @@ import "../lib/matching.js" as Matching
 import "../lib/catalog.js" as Catalog
 import "../lib/processes.js" as Proc
 
-// The processes Provider: every running process, kill -9 on Return -- ticket
-// 16's bin/walker/manage-processes (deleted) as a Provider. Selecting a row
-// is still exactly what selecting a row in the script did.
+// The processes Provider: every running process, kill -9 on Return.
+// Structurally this is Clipboard.qml with a ps listing in place of
+// `cliphist list`. Provider interface: see docs/launcher-spec.md.
 //
-// The Provider interface it fills -- label, ready, catalog, actions, refresh
-// -- is documented at the top of Applications.qml. Structurally this is
-// Clipboard.qml with a ps listing in place of `cliphist list`: a Process
-// feeding a listing string, a pure module turning that into Entries, one
-// Action.
+// Kill is the primary Action, labelled "kill" so the footer says plainly
+// that Return destroys the process -- the vocabulary's guarantee (the keys
+// do what the footer says) is what makes a destructive Action acceptable in
+// the pool at all.
 //
-// **Kill is the primary Action, and the label is "kill", on purpose.** The
-// script's only action on a selection was `kill -9`, so that is what Return
-// means here -- but in the merged pool "firefox" now names a window, an
-// application and a process in the same list, and the process row's footer
-// says plainly that Return destroys the process. The vocabulary's whole
-// guarantee -- the keys do what the footer says -- is what makes a destructive
-// Action acceptable in the pool at all.
-//
-// **In the pool, after applications**, and that ordering is what keeps this
-// Provider safe to rank alongside the rest: a Query that names a running
-// thing ties between its window, its application and its process, and the
-// tie must go to focus-then-launch, never to kill. Windows beat applications
-// (ticket 05), and applications beat processes here -- the launcher wins a
-// three-way tie over the kill row.
+// In the pool, after applications: a Query naming a running thing ties
+// between its window, application and process, and the tie must go to
+// focus-then-launch, never to kill. Windows beat applications, applications
+// beat processes.
 NestableProvider {
     id: root
 
     readonly property string label: "processes"
-
     readonly property string description: "Kill a running process"
 
-    // Never "not ready": a session with nothing to kill is legitimate, and
-    // the listing arrives in one burst anyway. Same reasoning as the windows
-    // Provider's own `ready`.
+    // Never "not ready": nothing to kill is legitimate.
     readonly property bool ready: true
 
-    // Fed by the Process below. A plain string, re-parsed only in the binding
-    // that needs it -- the same shape Clipboard.qml's own `listingText` is.
+    // A plain string, re-parsed only where needed.
     property string listingText: ""
     readonly property var listing: Proc.parseListing(root.listingText)
 
-    // Same trap Clipboard.qml's own note names: an empty result and a wrong
-    // property name look identical from inside the Launcher, and `ready: true`
-    // means this Provider never says "waiting" to give the difference away.
     property string loggedState: ""
     onListingChanged: {
         const state = String(root.listing.length);
@@ -74,24 +56,14 @@ NestableProvider {
         }
     })
 
-    // The primary Action, and the script's own verb and signal: `kill -9`,
-    // destructive by design -- the ticket's own requirement is that
-    // destructive Actions behave as the scripts did, and a SIGKILL is what
-    // this row has always meant. The footer's "kill" is the consent the
-    // script's single-purpose menu never needed to ask for.
+    // A Process, not execDetached, so the outcome can be reported (same
+    // reason as the systemd Provider's restart): the Launcher closes before
+    // this finishes, so the list is not itself a report, and a row is gone
+    // on the next open whether the kill worked or the process had already
+    // exited on its own.
     //
-    // A Process rather than execDetached, so the outcome can be said out loud
-    // -- the same change the systemd Provider's restart needed, for the same
-    // reason: the Launcher has closed by the time this finishes (`after` is
-    // the default close, since killing is final and the script dismissed
-    // itself too), and the list is not a report. A row is gone on the next
-    // open whether the kill worked or the process had already exited on its
-    // own, and `kill -9` on something owned by another user fails in exactly
-    // the same invisible way.
-    //
-    // The name is held on the Provider because `entry` does not survive the
-    // close; one Process with a guard, so a second kill cannot lose the
-    // first's notification. See S.notifyArgv's twin in lib/processes.js.
+    // The name is held on the Provider because `entry` doesn't survive the
+    // close; one Process with a guard, so a second kill can't lose the first's notification.
     property string killingName: ""
 
     function kill(entry): void {
@@ -111,8 +83,8 @@ NestableProvider {
 
         stdout: StdioCollector {}
 
-        // Kept rather than dropped: "No such process" and "Operation not
-        // permitted" are different faults, and kill says which.
+        // Kept, not dropped: "No such process" and "Operation not
+        // permitted" are different faults.
         stderr: StdioCollector {
             id: killError
         }
@@ -124,9 +96,7 @@ NestableProvider {
         }
     }
 
-    // Optional on the Provider interface: ask for a fresh listing. Called at
-    // startup and again on every open, the same as the clipboard Provider's
-    // own refresh -- processes come and go between opens.
+    // Called at startup and on every open -- processes come and go between opens.
     property bool refreshPending: false
 
     function refresh(): void {
@@ -140,9 +110,7 @@ NestableProvider {
 
     Component.onCompleted: root.refresh()
 
-    // Assigned to a property rather than nested bare, the same reason
-    // Themes.qml's own Process is: QtObject has no default property to nest a
-    // child into.
+    // QtObject has no default property to nest a child into.
     readonly property Process finder: Process {
         id: finder
 
@@ -151,8 +119,8 @@ NestableProvider {
             onStreamFinished: root.listingText = output.text
         }
 
-        // Collected and dropped, the same as Clipboard.qml's own `finder`:
-        // an empty listing already says plainly that nothing was found.
+        // Collected and dropped: an empty listing already says plainly that
+        // nothing was found.
         stderr: StdioCollector {}
 
         onExited: {

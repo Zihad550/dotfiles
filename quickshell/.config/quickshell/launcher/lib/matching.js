@@ -1,64 +1,57 @@
 // Matching and ranking for the Launcher -- the single seam under test.
 //
-// Deliberately free of QML types so the same file loads under a plain
-// JavaScript runtime, which is where its tests run (tests/launcher/).
+// Free of QML types so it loads under a plain JS runtime too (tests/launcher/).
 //
-// Note the absence of `.pragma library`: that line is a syntax error under
-// node, so a file that loads in both cannot carry it. The price is that each
-// importing QML document gets its own copy of this scope, which costs nothing
-// here because everything below is a pure function over its arguments. Only
-// top-level `function` declarations are reliably reachable from QML, so
-// anything a consumer needs is a function, not a constant.
+// No `.pragma library`: that's a syntax error under node, so a file loading
+// in both can't carry it. Each importing QML document gets its own copy of
+// this scope, which costs nothing since everything below is a pure function
+// over its arguments. Only top-level `function` declarations are reliably
+// reachable from QML, so anything a consumer needs is a function, not a constant.
 
-// Returned by score() when the needle is not a subsequence of the haystack.
+// Returned by score() when the needle isn't a subsequence of the haystack.
 var NO_MATCH = -1;
 
-// Ranking is one integer per entry so the top-N buffer compares numbers and
-// never calls a comparator. The low bits hold the length tie-break: shorter
-// haystacks win at equal quality, and the shift is wide enough that a
-// one-point difference in quality always outranks any length difference.
+// One integer per entry so the top-N buffer compares numbers, never calls a
+// comparator. The low bits hold the length tie-break (shorter haystacks win
+// at equal quality); the shift is wide enough that a one-point quality
+// difference always outranks any length difference.
 var LENGTH_SHIFT = 1024;
 
-// Per matched character, before bonuses.
 var SCORE_CHAR = 1;
 
-// Matching at the start of a segment -- after a path separator, a dash, an
-// underscore. The corpus is mostly paths and desktop-entry names, so
-// separators carry this signal. camelCase does not survive the lowercasing
-// that happens once at load and is not worth a second pass over the original.
+// Matching at the start of a segment (after a path separator, dash,
+// underscore). camelCase doesn't survive the lowercasing done once at load
+// and isn't worth a second pass over the original.
 var SCORE_BOUNDARY = 6;
 
-// Matching at index 0. Strictly better than a mid-string boundary.
+// Matching at index 0 -- strictly better than a mid-string boundary.
 var SCORE_START = 10;
 
-// Multiplied by the run length so far, so runs are superlinear. This is what
-// keeps an exact-prefix match above a path whose segments merely each begin
-// with a query character -- the specific misranking the benchmark scorer had,
-// where three boundary bonuses beat a three-character run.
+// Multiplied by the run length so far, so runs are superlinear -- what keeps
+// an exact-prefix match above a path whose segments merely each begin with a
+// query character (three boundary bonuses would otherwise beat a
+// three-character run).
 var SCORE_CONSECUTIVE = 8;
 
-// How much a fully-used Entry is worth, in quality points. Frecency arrives in
-// ticket 07; this constant and the `usage` option exist now so that landing it
-// fills a parameter rather than reshaping the seam its tests are written
-// against. At 24 it is worth roughly a three-character contiguous match.
+// How much a fully-used Entry is worth, in quality points. At 24, roughly a
+// three-character contiguous match.
 var FRECENCY_WEIGHT = 24;
 
-// How much it is worth that the Query is *exactly* an Entry's own name, in
-// quality points. Ticket 20: typing "zed" scored the running Zed window and the
-// Zed application identically -- the window carries "Zed" as its short
-// application id -- so pool order decided it and the window won, though only one
-// of the two is *named* Zed.
+// How much it's worth that the Query is *exactly* an Entry's own name, in
+// quality points. Without this, typing "zed" scored the running Zed window
+// and the Zed application identically (the window carries "Zed" as its
+// short application id), so pool order alone decided the winner.
 //
-// Smaller than FRECENCY_WEIGHT, but **not unconditionally smaller than a real
-// Frecency score**: that arrives as round(usage * 24), and usageOf normalises
-// against a CEILING_AT of six choices, so even the most-used Entry in a store
-// clears 12 only once it has been chosen about twice. Under that an exact name
-// wins. Deliberate -- one launch is the calibration frecency.js's CEILING_AT
-// exists to distrust -- and pinned by a test at the boundary.
+// Smaller than FRECENCY_WEIGHT, but not unconditionally smaller than a real
+// Frecency score: that arrives as round(usage * 24), and usageOf normalises
+// against a ceiling of six choices, so even the most-used Entry in a store
+// only clears 12 once chosen about twice. Under that, an exact name wins --
+// deliberate, since one launch is exactly the calibration frecency.js's
+// ceiling exists to distrust.
 var EXACT_WEIGHT = 12;
 
-// How many Entries rank() keeps. Only the visible portion is ever rendered, so
-// ranking the rest is wasted work.
+// How many Entries rank() keeps -- only the visible portion is ever
+// rendered, so ranking the rest is wasted work.
 var DEFAULT_LIMIT = 200;
 
 function isBoundaryCode(code) {
@@ -70,7 +63,6 @@ function isBoundaryCode(code) {
         || code === 32;     // space
 }
 
-// Bonus for landing at `at`, given nothing precedes it in the match.
 function positionBonus(haystack, at) {
     if (at === 0)
         return SCORE_START;
@@ -88,8 +80,8 @@ function scoreContiguous(haystack, at, needleLength) {
         + SCORE_CONSECUTIVE * (runs * (runs + 1)) / 2;
 }
 
-// Greedy leftmost subsequence walk. Also the match test: returns NO_MATCH when
-// the needle is not a subsequence at all.
+// Greedy leftmost subsequence walk. Also the match test: returns NO_MATCH
+// when the needle isn't a subsequence at all.
 function scoreScattered(haystack, needle) {
     var haystackLength = haystack.length;
     var needleLength = needle.length;
@@ -100,9 +92,8 @@ function scoreScattered(haystack, needle) {
     for (var n = 0; n < needleLength; n++) {
         var code = needle.charCodeAt(n);
 
-        // Where this character would land to be consecutive with the previous
-        // one. Captured before the scan, because `found` is assigned from `h`
-        // and comparing the two afterwards is always true.
+        // Where this character would land to be consecutive with the
+        // previous one, captured before the scan.
         var consecutiveAt = h;
         var found = NO_MATCH;
         while (h < haystackLength) {
@@ -125,9 +116,9 @@ function scoreScattered(haystack, needle) {
     return total;
 }
 
-// Both arguments must already be lowercased -- see prepare(). An empty needle
-// matches everything at 0, which leaves the empty Query in encounter order for
-// Frecency to reorder.
+// Both arguments must already be lowercased -- see prepare(). An empty
+// needle matches everything at 0, leaving the empty Query in encounter
+// order for Frecency to reorder.
 function score(haystack, needle) {
     var needleLength = needle.length;
     if (needleLength === 0)
@@ -146,21 +137,18 @@ function score(haystack, needle) {
         if (quality < 0)
             return NO_MATCH;
     } else if (at === 0) {
-        // At index 0 the contiguous path is provably the best one: it already
-        // holds the largest position bonus there is, and its run bonus grows
-        // quadratically with the needle while every alternative path trades
-        // run length for a flat 6 per boundary. Nothing catches it, so the
-        // walk can be skipped -- and typing the start of a name is the common
-        // case this fast path exists for.
+        // Provably the best path at index 0: it already holds the largest
+        // position bonus there is, and its run bonus grows quadratically
+        // with the needle while every alternative trades run length for a
+        // flat 6 per boundary. The walk can be skipped.
         quality = scoreContiguous(haystack, 0, needleLength);
     } else {
-        // Anywhere else a contiguous hit is *not* automatically the best path,
-        // which this used to assume. "alpha beta ab" against "ab" scores 16
-        // contiguous at index 11 but 18 scattered across the two word
-        // initials, so trusting the fast path ranked it below plain "alpha
-        // beta" -- an Entry containing strictly less. Score both, keep the
-        // better. scoreScattered cannot fail here: indexOf already proved the
-        // needle is a subsequence.
+        // Elsewhere a contiguous hit is *not* automatically the best path:
+        // "alpha beta ab" against "ab" scores 16 contiguous at index 11 but
+        // 18 scattered across the two word initials, so trusting the fast
+        // path ranked it below plain "alpha beta" -- an Entry containing
+        // strictly less. Score both, keep the better. scoreScattered can't
+        // fail here: indexOf already proved the needle is a subsequence.
         var contiguous = scoreContiguous(haystack, at, needleLength);
         var scattered = scoreScattered(haystack, needle);
         quality = scattered > contiguous ? scattered : contiguous;
@@ -170,30 +158,19 @@ function score(haystack, needle) {
     return quality * LENGTH_SHIFT - lengthPenalty;
 }
 
-// Lowercase the corpus once, at load. Doing it inside score() instead would
-// run toLowerCase() over every Entry on every keystroke, which would dominate
-// the cost of matching.
+// Lowercase the corpus once, at load -- doing it inside score() would run
+// toLowerCase() over every Entry on every keystroke.
 //
-// `keys` is the parallel array of Entry Keys, with a null or empty slot for
-// Entries whose Provider supplies none. Pass nothing when no Provider in the
-// pool has them.
+// `keys` is the parallel array of Entry Keys (null/empty slot for a
+// Provider that supplies none); pass nothing when no Provider in the pool has them.
 //
-// `owners` is the parallel array of Entry indices, for a Provider that gives an
-// Entry more than one text to be found by -- the windows Provider matches a
-// window on its title and on its application. Pass nothing when the corpus is
-// one text per Entry, which leaves rank()'s indices already in Entry space.
-// `names` is derived rather than passed: **an Entry's name is its first text**,
-// and every multi-text Provider owes prepare() that order. The rule is stated
-// once, in lib/catalog.js's header, where a Provider author meets it, and
-// asserted per Provider in that Provider's own tests via
-// tests/launcher/catalog-check.js. The first text is what EXACT_WEIGHT is
-// measured against, so the bonus means "this Entry is called that" rather than
-// "this Entry knows that word", and a Provider that lists an alias first
-// silently forfeits the bonus for the name people actually read off the row.
-// Without owners every text is its own Entry's name.
-//
-// Named for the concept it carries rather than "primary", which CONTEXT.md
-// already spends on a Core Action's primary slot.
+// `owners` is the parallel array of Entry indices, for a Provider giving one
+// Entry more than one searchable text (the windows Provider matches on
+// title and application). Pass nothing when the corpus is one text per
+// Entry. `names` is derived, not passed: an Entry's name is its first text
+// (lib/catalog.js's rule), and that first text is what EXACT_WEIGHT is
+// measured against, so a Provider listing an alias first silently forfeits
+// the bonus for the name people actually read off the row.
 function prepare(texts, keys, owners) {
     var lower = new Array(texts.length);
     var names = new Array(texts.length);
@@ -217,11 +194,9 @@ function prepare(texts, keys, owners) {
 }
 
 // Whether the previous result set is a sound starting point for `query`.
-//
-// Sound only because matching is a subsequence test: a string that does not
-// contain "fo" as a subsequence cannot contain "foo" either, so the previous
-// match set is a superset of the new one. It would be wrong for a matcher that
-// can match on something a shorter query missed.
+// Sound only because matching is a subsequence test: a string that doesn't
+// contain "fo" as a subsequence can't contain "foo" either, so the previous
+// match set is a superset of the new one.
 function canNarrow(previousQuery, query) {
     if (previousQuery === "" || previousQuery === undefined || previousQuery === null)
         return false;
@@ -237,10 +212,10 @@ function canNarrow(previousQuery, query) {
 // options.narrowFrom `matched` from a previous rank whose query canNarrow()
 //                    accepts, so the scan skips known non-matches
 //
-// Returns { indices, scores, matched, total }. `indices` is the ranked top-N;
-// `matched` is every matching index, unranked and in encounter order, which is
-// what a later narrowing pass needs -- narrowing the top-N would throw away
-// Entries a longer query still has to see.
+// Returns { indices, scores, matched, total }. `indices` is the ranked
+// top-N; `matched` is every matching index, unranked, in encounter order --
+// what a later narrowing pass needs (narrowing the top-N would throw away
+// Entries a longer query still has to see).
 function rank(corpus, query, options) {
     var opts = options || {};
     var limit = opts.limit > 0 ? opts.limit : DEFAULT_LIMIT;
@@ -253,12 +228,8 @@ function rank(corpus, query, options) {
     var names = corpus.names || null;
 
     // A fixed buffer of the best `limit`, held sorted descending, inserted
-    // into. Once it is full the common case is one numeric comparison against
-    // its worst entry and nothing else -- no allocation, and no comparator
-    // call, which is the expensive part of Array.sort in a JS engine.
-    //
-    // The shift condition is a strict `<`, so equal scores stay in encounter
-    // order and the result matches a stable full sort exactly.
+    // into. Once full, the common case is one numeric comparison against
+    // its worst entry -- no allocation, no comparator call.
     var bufIndex = new Array(limit);
     var bufScore = new Array(limit);
     var kept = 0;
@@ -274,10 +245,7 @@ function rank(corpus, query, options) {
 
         matched.push(i);
 
-        // The Query is the whole of this Entry's own name. Both halves matter:
-        // an alias that happens to equal the Query is still an alias, and a name
-        // the Query is only part of is still not what was asked for. See
-        // EXACT_WEIGHT.
+        // The Query is the whole of this Entry's own name -- see EXACT_WEIGHT.
         if (needle !== "" && names !== null && names[i] === true && lower[i] === needle)
             entryScore += EXACT_WEIGHT * LENGTH_SHIFT;
 
@@ -312,21 +280,13 @@ function rank(corpus, query, options) {
 }
 
 // Turn a ranking over corpus texts into a ranking over Entries, keeping each
-// Entry's best text.
+// Entry's best text. A Provider may give one Entry several texts (a window
+// found by title and application), scored separately rather than
+// concatenated -- one long haystack would lose to a short one on score()'s
+// length tie-break, ranking a window below the application that spawned it.
 //
-// A Provider may give one Entry several texts -- a window is found by its title
-// and by its application, and the two are scored separately rather than
-// concatenated, because one long haystack would lose to a short one on
-// score()'s length tie-break and the window would rank below the application
-// that spawned it.
-//
-// The walk keeps the first occurrence of each owner, which is that owner's best
-// text because `indices` is already descending, and the surviving order is
-// therefore still descending. Inert -- returns its argument -- for a corpus
-// prepared without owners.
-//
-// `matched` and `total` pass through untouched, still indexing texts: they
-// exist for narrowing, which scans texts.
+// Keeps the first occurrence of each owner (that owner's best text, since
+// `indices` is already descending). Inert for a corpus prepared without owners.
 function collapse(corpus, result) {
     var owners = corpus.owners;
     if (owners === null || owners === undefined)
@@ -353,22 +313,20 @@ function collapse(corpus, result) {
     };
 }
 
-// Interleave several Providers' rankings into one, best first.
+// Interleave several Providers' rankings into one, best first. Scores are
+// comparable across Providers because there's one scorer and one scale --
+// what makes a single pool possible at all.
 //
-// Scores are comparable across Providers because there is one scorer and one
-// scale -- that is what makes a single pool possible at all, and why Frecency
-// is specified as the only ranking signal shared between them.
+// `results` is one rank() result per Provider, each already descending, in
+// the pool's own order -- that order is the tie-break, and it's
+// load-bearing: an empty Query scores everything 0, so pool order is the
+// *whole* ordering with no Frecency yet. It also decides the case a running
+// window and the application that would launch a second copy of it score
+// identically for: whichever Provider comes first in the pool is the one
+// Enter acts on.
 //
-// `results` is one rank() result per Provider, each already descending, in the
-// pool's own order. That order is the tie-break, and it is load-bearing rather
-// than incidental: an empty Query scores everything 0, so with no Frecency yet
-// the pool order is the *whole* ordering. It also decides the case this ticket
-// exists for -- a running window and the application that would launch a second
-// copy of it score identically, so whichever Provider comes first in the pool
-// is the one Enter acts on.
-//
-// Returns [{ provider, index }], where `provider` indexes `results` and `index`
-// indexes that Provider's Entries.
+// Returns [{ provider, index }], where `provider` indexes `results` and
+// `index` indexes that Provider's Entries.
 function merge(results, limit) {
     var cap = limit > 0 ? limit : DEFAULT_LIMIT;
     var cursors = new Array(results.length);

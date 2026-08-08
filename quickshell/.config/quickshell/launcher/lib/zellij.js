@@ -1,30 +1,16 @@
 // The zellij Provider's pure half: the Entry shape for a zellij session and
-// the argv the primary Action runs.
+// the argv the primary Action runs. Session names are data, declared in
+// Zellij.qml where they hot-reload; this module is what a row says and
+// exactly what a key press runs.
 //
-// Ticket 16. Ported from bin/walker/zellij-sessions (deleted): the script
-// listed three session names -- work, project, dev -- and ran
-// `df-launch-special-app <name> "ghostty -e zellij -l <name> attach --create
-// <name> options --on-force-close quit" <name>` on the chosen one. The
-// session names are data, declared in Zellij.qml where they hot-reload; this
-// module is the part worth testing: what a row says and exactly what a key
-// press runs.
+// The command is attach-*or*-create: `zellij ... attach --create <name>`
+// starts a session that isn't running yet, so a not-yet-running session is
+// still worth listing -- it's the ability to start one.
 //
-// The command is attach-**or**-create: `zellij ... attach --create <name>`
-// attaches when the session exists and starts it when it does not, so a
-// session that is not running is still worth listing -- it is the *ability to
-// start* one. A Provider that listed only running sessions would hide exactly
-// the sessions this one exists to offer.
-//
-// Deliberately free of QML types so the same file loads under a plain
-// JavaScript runtime, which is where its tests run
-// (tests/launcher/zellij.test.js) -- the same arrangement as matching.js.
+// Free of QML types so it loads under a plain JS runtime too (tests/launcher/zellij.test.js).
 
-// One session name, as the shape Zellij.qml's catalog wants.
-//
-// The name is the Entry Key -- stable, and attaching to your work session is
-// a genuine recurring choice. The sub-line says what kind of thing it is and
-// where it goes, because in the merged pool "work" does not say so on its
-// own.
+// The name is the Entry Key -- stable, and attaching to a named session is a
+// genuine recurring choice.
 function entryFor(session, provider) {
     return {
         name: session,
@@ -36,26 +22,14 @@ function entryFor(session, provider) {
     };
 }
 
-// Building the whole catalog out of these is lib/catalog.js's keyedCatalog,
-// which Zellij.qml calls with this entryFor -- see the note there on why the
-// shared function takes the Provider's own entryFor rather than either module
-// wrapping the other.
-
-// The primary Action's argv: df-launch-special-app by absolute path, with
-// the session command as a single argument -- the exact three-argument shape
-// the script used, quoted command included. df-launch-special-app owns the
-// Lua-vs-legacy dispatch and the special-workspace toggle, which is what the
-// script was calling it for.
+// df-launch-special-app owns the Lua-vs-legacy dispatch and the
+// special-workspace toggle.
 //
-// **Session names must be shell-word-safe** -- letters, digits, `_` and `-`.
-// The name is interpolated into the command string, which df-launch-special-app
-// hands to Hyprland's exec dispatcher to re-parse, so a name carrying a space
-// or a quote would split into two words there rather than name one session.
-// The declared names in Zellij.qml are all safe and this is not defended
-// against here, because the defense would have to be a quoting scheme for a
-// re-parse this module cannot see -- guessed, and untestable from anywhere but
-// the host. The constraint belongs on the data instead: a new session name
-// goes in Zellij.qml, and this is the rule it has to meet.
+// Session names must be shell-word-safe (letters, digits, `_`, `-`): the name
+// is interpolated into the command string that df-launch-special-app hands to
+// Hyprland's exec dispatcher to re-parse, so a space or quote would split
+// into two words there. Not defended against here -- the constraint belongs
+// on the data (Zellij.qml), which is the only place a new name gets added.
 function launchArgv(home, session) {
     return [
         home + "/dotfiles/bin/df-launch-special-app",

@@ -1,7 +1,14 @@
 # Guidelines
 
 - You are working inside a container environment. So you will not have access to the host system. So don't try to verify the work. Just ask the user what they need to test manually.
-- Only write code comments, when it's hard to understand by reading code.
+- Write code comments only for what the code can't say for itself: a non-obvious
+  "why", an invariant, or a gotcha a future reader would trip over. Never
+  restate what the code already shows.
+- Keep them short — a line or two. A comment turning into a paragraph of
+  design history or rationale belongs in `docs/<feature>-spec.md`, an ADR
+  (`docs/adr/`), or `CONTEXT.md` instead — leave a one-line pointer in the
+  code (e.g. `// see ticket 12`, `// see docs/launcher-spec.md`), not the
+  story itself.
 
 ### Issue tracker
 

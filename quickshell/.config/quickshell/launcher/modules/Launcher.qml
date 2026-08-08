@@ -14,25 +14,17 @@ import "../lib/power.js" as Power
 // horizontally in it -- the Query line, the ranked Entries, and the keyboard
 // routing over them.
 //
-// Deliberately *not* a LazyLoader, which is how Osd and NotificationPopup do
-// it. Those want no window at all while idle. This one is the opposite case --
-// the whole reason the Launcher is an always-running instance is that the
-// window already exists when the keybind fires, so opening costs nothing
-// beyond mapping the surface. `visible` toggles; nothing is created or
-// destroyed on open. The price is that state persists across opens unless
-// something clears it, which is what reset() below is for.
+// Deliberately not a LazyLoader (unlike Osd/NotificationPopup): the whole
+// point of an always-running instance is that the window already exists when
+// the keybind fires. `visible` toggles; nothing is created or destroyed on
+// open, so state persists across opens unless reset() clears it.
 //
-// Full-screen rather than a small centred window, because a click outside the
-// card can only be seen if there is a surface under it to receive the click.
-// That covers one output: `screen` is left unset, as NotificationPopup and Osd
-// do, so the compositor picks. Unlike those, this window is not recreated per
-// show, so whether the compositor re-picks the active monitor on each map or
-// pins the output at startup is an open question -- see the multi-monitor step
-// in .scratch/launcher/issues/03.
+// Full-screen, not a small centred window, so a click outside the card still
+// lands on a surface. `screen` is left unset (compositor picks), same as
+// NotificationPopup/Osd.
 PanelWindow {
     id: root
 
-    // Every anchor set, so the surface covers the output.
     anchors {
         top: true
         bottom: true
@@ -40,161 +32,88 @@ PanelWindow {
         right: true
     }
 
-    // Reserve nothing. `exclusiveZone: 0` would be enough today, but with all
-    // four anchors set the automatic computation is the thing that surprises
-    // you, so refuse it outright instead.
+    // exclusiveZone: 0 would work today, but with all four anchors set the
+    // automatic computation is the thing that surprises you -- refuse it
+    // outright instead.
     exclusionMode: ExclusionMode.Ignore
 
     color: "transparent"
     visible: false
 
-    // Above everything, including fullscreen windows -- verifiable with
-    // `hyprctl layers`, where `namespace` is what identifies this surface.
+    // Above everything, including fullscreen windows (verify with `hyprctl
+    // layers`).
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "launcher"
 
-    // On-demand, never Exclusive. Exclusive takes the keyboard from every
-    // other surface, so a Launcher stuck open would leave nowhere to type --
-    // including nowhere to type the command that kills it. On-demand still
-    // takes focus the moment the surface maps, which is what makes typing work
-    // without clicking first.
+    // On-demand, never Exclusive: Exclusive would take the keyboard from
+    // every other surface, leaving nowhere to type the command that kills a
+    // stuck Launcher.
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
-    // The Providers, in the order that breaks ties between them.
+    // The default pool, in the order that breaks ties between Providers.
+    // Windows first: a running window and the application that would launch a
+    // second copy score identically for a shared name (see textsFor in
+    // lib/windows.js), so this order makes typing "firefox" offer the window
+    // you have. Frecency still outranks pool order, since usage is a real
+    // score difference rather than a tie (pinned by a test in
+    // tests/launcher/matching.test.js). Static menus come last since their
+    // Entries are hand-written to be typed ("Lock", "Restart") and losing a
+    // tie against a real window/app costs nothing.
     //
-    // Windows first, and that is a decision rather than an accident. A running
-    // window and the application that would launch a second copy of it score
-    // identically for the name they share -- see textsFor in lib/windows.js --
-    // so this order is what makes typing "firefox" offer the window you have.
-    //
-    // **Frecency outranks it**, and that is worth stating because it reverses the
-    // above for one case. Pool order breaks a *tie*; usage is a real score
-    // difference, and windows supply no Entry Key, so an application chosen often
-    // enough comes out above the running window of itself. The spec's remedy if
-    // that proves annoying in use is per-Provider score weighting, which it
-    // deliberately leaves out of scope for now. Pinned by a test in
-    // tests/launcher/matching.test.js rather than left to be rediscovered.
-    //
-    // Ticket 16's five sat here briefly and do not any more -- they are behind
-    // the "?" list, with themes and backgrounds. They were placed carefully
-    // (workspaces after windows, the ex-dmenu four after applications, so a
-    // Query naming a running thing broke its tie towards focus and launch
-    // before it ever reached `kill -9`) and careful placement turned out to be
-    // the wrong answer to the wrong question. The right one is that none of
-    // the five is something a person types blind: they are the things that
-    // used to be a *menu you chose first* and a list you searched second, and
-    // an ex-dmenu Provider ranked against every keystroke puts a row whose
-    // Return is `kill -9` or a system-unit restart one tie away from a
-    // Query that meant an application. Ordering can only make that unlikely;
-    // being entered makes it impossible. See `rankedRoutable`.
-    //
-    // The four static menus come last, and that too is a decision. They are the
-    // only Providers here whose Entries are hand-written, so their names were
-    // chosen to be typed -- "Lock", "Restart" -- and a menu Entry tying with an
-    // application or a window for a query is a query that named the menu Entry.
-    // Losing that tie costs nothing; winning it would put "Restart" above a
-    // running window called the same thing.
-    //
-    // Themes and backgrounds -- ticket 15 -- were here briefly and are not
-    // any more: ticket 18 moved them behind the "?" provider list, which is
-    // what let them have a preview at all. See the header on Themes.qml.
+    // Ex-dmenu Providers (processes, systemd, workspaces, dev servers,
+    // zellij), themes and backgrounds are deliberately not here -- see
+    // `rankedRoutable`.
     readonly property var pool: [windows, apps, systemMenu, mediaMenu, displayMenu, otherMenu]
 
-    // Ranked Providers reachable only through their own prefix, never in the
-    // default pool -- directories, added by ticket 12, files, added by
-    // ticket 17, screenshots, added by ticket 13, and clipboard, added by
-    // ticket 14. Unlike calc and websearch all four have a real `catalog`
-    // and are genuinely scored; directories is kept out of `pool` because
-    // walker's own config already excluded "menus:dotfilesDirs" from the
-    // providers queried by default (walker/.config/walker/config.toml:26,
-    // deleted with ticket 19),
-    // and doing otherwise would score ~17,000 paths on every keystroke of
-    // every other Query. Files is kept out for the same reason walker
-    // excluded "menus:dotfilesFiles" from its defaults too -- and its
-    // catalog, though query-dependent and self-ordered, is still a real
-    // catalog. Screenshots is kept out for a different reason -- see
-    // `previewMode` below. Clipboard is kept out for the same reason
-    // directories is: scoring the whole history against every keystroke of
-    // every other Query would cost time no unrelated Query should pay, and
-    // walker's own config reached clipboard only through its "$" prefix too.
-    // The mechanism is the same for all four: `activePool` is what keeps any
-    // of them out until its own prefix, or nesting into a chooser, routes to
-    // it.
+    // Ranked Providers reachable only through their own prefix or by nesting,
+    // never in the default pool. Directories, files and clipboard are kept
+    // out because scoring their full corpus (~17,000 paths for directories)
+    // against every keystroke of an unrelated Query would cost real time;
+    // screenshots is kept out for a different reason, see `previewMode`.
     //
-    // Themes and backgrounds (ticket 15, placed by ticket 18) are here with no
-    // prefix of their own, which the two lines above say cannot happen -- and
-    // that is the point: `nestedProvider` reads this list, so a Provider
-    // reached only by being entered has to be in it. The provider list itself
-    // is here for the ordinary reason, its "?" prefix.
-    //
-    // Ticket 16's five join them on the same mechanism, and for a reason of
-    // their own: what they list is not what a Query is usually about.
-    // Processes and systemd are the sharp case -- `kill -9` and a
-    // system-unit restart are the Returns, and a row that can be reached by
-    // typing something else is a row that can be pressed by meaning something
-    // else -- but dev servers, zellij and workspaces are here on the milder
-    // half of the same argument: each was a menu you *chose* before you
-    // searched it, nobody types a session name to be offered a session, and
-    // ranking them against every keystroke only adds rows to Queries that
-    // meant an application. Entered from "?", each owns the whole pool, which
-    // is the list the scripts used to show. They keep their `refresh()` on
-    // every open regardless -- this list is what `open()` walks.
+    // Themes, backgrounds and the ex-dmenu Providers (processes, systemd,
+    // workspaces, dev servers, zellij) have no prefix of their own -- reached
+    // only through the "?" provider list's enter()/nested mechanism, which is
+    // why they must be in this list even without a prefix (`nestedProvider`
+    // below reads it). Ranking them against every keystroke would put a row
+    // whose Return is `kill -9` or a unit restart one tie away from an
+    // ordinary Query; being enter-only makes that impossible rather than
+    // merely unlikely. They keep `refresh()` on every open regardless -- this
+    // list is what `open()` walks.
     readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, themes, backgrounds, workspaces, processes, systemd, devServers, zellij, providerList])
 
-    // Which Providers are still coming up. An empty pool with one of these
-    // pending is a different fault from an empty pool with none.
-    //
-    // `root.activePool`, not `root.pool` -- a Query routed to one Provider
-    // that merely has not populated yet should say so about *that* Provider,
-    // not about every other one the Query was routed away from. `activePool`
-    // is declared further down, but the binding below does not care: QML
-    // resolves properties by dependency, not by where they sit in the file.
+    // `root.activePool`, not `root.pool`: a Query routed to one Provider that
+    // hasn't populated yet should report pending for *that* Provider only.
     readonly property var pending: root.activePool.filter(provider => !provider.ready).map(provider => provider.label)
 
-    // Every Provider prefix routing can name -- the ranked, prefix-only
-    // Providers plus the two that generate their own Entries, calc and
-    // websearch. Not `pool` itself: none of those three can be reached by an
-    // unrouted Query (see `localEntries` and `rankedRoutable` above), and a
-    // Provider reachable only by prefix would be unreachable at all if this
-    // list left it out.
+    // Everything prefix routing can name: `rankedRoutable` plus calc and
+    // websearch, which generate their own Entries and so aren't in `pool` or
+    // scored, but are still prefix-reachable.
     //
-    // A plain concatenation of fixed object identities, evaluated the first
-    // time anything reads it -- which route() below does on every keystroke.
-    // No side effect lives here on purpose: Routing.problems() is checked
-    // separately, from Component.onCompleted, so "caught at load" means
-    // exactly that rather than "caught whenever some binding's first
-    // evaluation happens to touch this property first" -- calc's own
-    // `queryText` binding is one such reader, during calc's own construction.
+    // Evaluated lazily on first read (route() does this every keystroke) with
+    // no side effects here on purpose -- Routing.problems() is checked
+    // separately from Component.onCompleted, so "caught at load" means that
+    // and not "caught by whichever binding happens to read this first".
     readonly property var routable: root.rankedRoutable.concat([calc, websearch])
 
-    // Which Provider, if any, the current Query names, and the Query with that
-    // Provider's prefix already stripped off -- CONTEXT.md's own definition of
-    // "Query". Recomputed from `root.queryText` on every keystroke, and kept
-    // deliberately stateless: nothing here remembers the keystroke before, so a
-    // backspace that deletes the prefix character is simply a Query that no
-    // longer matches one, and every Provider below sees the default pool
-    // return on its own. That is checkbox 4, closed by not having state to
-    // clear rather than by a rule that clears it.
+    // Which Provider, if any, the current Query names, with that Provider's
+    // prefix stripped -- recomputed on every keystroke and kept stateless
+    // (nothing remembers the previous keystroke), so a backspace that deletes
+    // the prefix character naturally falls back to the default pool.
     readonly property var routed: Routing.route(root.routable, root.queryText)
 
-    // The Provider currently showing a sub-view of its own, or null -- ticket
-    // 12's directories Provider is the first to have one. Checked ahead of
-    // routing in `activePool` below: while a Provider is nested it owns the
-    // whole pool regardless of what the Query says, the same way a routed
-    // prefix does, except that this is Launcher state rather than something
-    // read off the Query text -- typing "/" while the chooser is open must
-    // not un-nest it.
-    //
-    // `filter(...)[0]`, not `.find()`, to match the array methods already
-    // proven elsewhere in this file; nothing here needed `.find()` before.
+    // The Provider currently showing a sub-view of its own (e.g.
+    // Directories.qml's chooser), or null. Checked ahead of prefix routing in
+    // `activePool`: while nested, a Provider owns the whole pool regardless
+    // of the Query, and this is Launcher state rather than something read off
+    // the Query text -- typing "/" while the chooser is open must not un-nest it.
     readonly property var nestedProvider: root.rankedRoutable.filter(provider => provider.nested === true)[0] || null
 
-    // The ranked pool narrowed to what prefix routing -- or nesting -- allows:
-    // one Provider alone when either names one, everything otherwise.
-    // `indexOf` against `rankedRoutable` rather than trusting `routed.provider`
-    // blindly is what makes routing to calc or websearch collapse this to
-    // `[]` instead of silently ranking the whole pool against a Query meant
-    // for a Provider that is not scored at all.
+    // The ranked pool narrowed to what prefix routing or nesting allows.
+    // `indexOf` against `rankedRoutable` (not trusting `routed.provider`
+    // blindly) is what makes routing to calc/websearch collapse this to `[]`
+    // instead of ranking the whole pool against a Query meant for an
+    // unscored Provider.
     readonly property var activePool: root.nestedProvider !== null
         ? [root.nestedProvider]
         : (root.routed.provider === null ? root.pool : (root.rankedRoutable.indexOf(root.routed.provider) >= 0 ? [root.routed.provider] : []))
@@ -207,37 +126,24 @@ PanelWindow {
     // Provider's the moment both were ever ranked together, which is not a
     // layout either was designed to share. Screenshots.qml is kept out of
     // `pool` for exactly this reason -- see the note on `rankedRoutable` --
-    // so this is only ever true while a prefix or a sub-view has routed the
-    // whole pool to one Provider. Ticket 13 predicted that "a second Provider
-    // wanting this layout would only need to set `layout: "preview"` and stay
-    // out of `pool` the same way"; ticket 18 is that, twice over -- themes and
-    // backgrounds, entered from the "?" list rather than prefixed, and needing
-    // no change here to get the split.
+    // Gated on `activePool` holding exactly one Provider with this layout,
+    // not on the highlighted Entry's own Provider -- otherwise a preview
+    // Provider's Entries could render row-for-row alongside a plain list the
+    // moment both were ever ranked together.
     readonly property bool previewMode: root.activePool.length === 1 && root.activePool[0].layout === "preview"
 
-    // The Query as it stood just before entering a nested sub-view, restored
-    // on the way back out.
-    //
-    // Entering has to clear root.queryText: a chooser's few Entries are
-    // unranked and would otherwise still be filtered by whatever was typed to
-    // find the directory that opened it, which is almost never any of their
-    // names. Leaving without restoring this would land on the *unrouted*
-    // default pool instead of the directory list "back" is supposed to
-    // return to, because the Query that had named it is already gone.
+    // The Query as it stood before entering a nested sub-view, restored on
+    // the way back out. Entering clears root.queryText, since a chooser's few
+    // Entries are unranked and shouldn't stay filtered by whatever named the
+    // directory that opened it.
     property string savedQuery: ""
 
-    // **Restoring is conditional on `root.visible`, and that condition is load
-    // bearing.** Dismissing the Launcher while a chooser is open un-nests it
-    // too -- Directories.active goes false, which clears its own openFor,
-    // which is what this binding is watching -- so the same `root.visible =
-    // false` that closes the Launcher also fires this handler's "leaving"
-    // branch. Without the guard it would restore the pre-chooser Query right
-    // as reset() (from onVisibleChanged, below) is clearing it to "" -- two
-    // reactions to one assignment, in an order neither this file nor QML
-    // promises. The guard removes the race rather than winning it: by the
-    // time either handler runs, root.visible already reads false, so
-    // restoring is skipped and reset()'s "" is the only answer left standing,
-    // regardless of which handler happens to run first.
+    // Guarded on `root.visible` to avoid a race: dismissing the Launcher
+    // while a chooser is open un-nests it too, firing this handler's
+    // "leaving" branch at the same moment reset() (onVisibleChanged, below)
+    // clears the Query to "". The guard means restoring is skipped whenever
+    // the Launcher is already closing, so reset()'s "" always wins regardless
+    // of handler order.
     onNestedProviderChanged: {
         if (root.nestedProvider !== null) {
             root.savedQuery = root.queryText;
@@ -248,52 +154,30 @@ PanelWindow {
         }
     }
 
-    // The Provider currently holding the Query line as a text prompt --
-    // ticket 16's workspace rename -- or null.
-    //
-    // The same shape as `nestedProvider`, one slot over: the Provider owns
-    // the flag (`prompting`, on Workspaces.qml), the Launcher reads it. While
-    // set, the Query line is a prompt rather than a search line: the list and
-    // the empty state are suppressed (see the views below), the placeholder
-    // says what the prompt is for, and the Query field's key handler routes
-    // Return and Escape to the Provider instead of to the ranked Entries.
+    // The Provider currently holding the Query line as a text prompt (e.g.
+    // Workspaces.qml's rename), or null. While set, the Query line is a
+    // prompt rather than a search line: list and empty state are suppressed,
+    // the placeholder names what's being prompted for, and Return/Escape
+    // route to the Provider instead of to the ranked Entries.
     readonly property var promptingProvider: root.rankedRoutable.filter(provider => provider.prompting === true)[0] || null
 
-    // True exactly when a Provider claims the prompt -- same source as
-    // promptingProvider, so the two cannot disagree.
     readonly property bool prompting: root.promptingProvider !== null
 
-    // The Query as it stood just before a prompt began, restored on the way
-    // out -- the same reason and the same guard as `savedQuery` for nesting.
-    // A prompt that kept whatever it prefilled would leave the Launcher
-    // searching for the workspace's own name instead of the Query that found
-    // the workspace.
-    //
-    // Separate from `savedQuery` even though the two cannot be in flight at
-    // once (a prompt can only begin from a row, and rows are unreachable
-    // while a Provider is nested): sharing one slot between two mechanisms
-    // is a coupling a later Provider change would have to remember.
+    // The Query as it stood before a prompt began, restored on the way out --
+    // same reason and guard as `savedQuery`. Kept separate from `savedQuery`
+    // even though the two can't overlap, so a later Provider change doesn't
+    // have to remember they share a slot.
     property string savedPromptQuery: ""
 
-    // Entering hands the Query line to the Provider, prefilled with its
-    // promptValue; leaving -- cancel, apply, or dismissal -- hands it back.
-    //
-    // **Restoring is conditional on `root.visible`, exactly like the nesting
-    // handler's own restore.** Dismissing the Launcher mid-prompt cancels it
-    // (Workspaces.qml's own `active` binding clears `prompting`), and that
-    // fires this handler's "leaving" branch at the same time as reset() --
-    // with the guard, only reset()'s "" is left standing, whichever handler
-    // happens to run first. The same race the nesting handler documents,
-    // removed the same way.
+    // Same `root.visible` guard as the nesting handler above, for the same
+    // race: dismissing mid-prompt cancels it too, and only reset()'s "" should win.
     onPromptingChanged: {
         if (root.prompting) {
             root.savedPromptQuery = root.queryText;
             root.setQuery(root.promptingProvider.promptValue);
         } else if (root.visible) {
             // A session opened *as* the prompt has nothing to go back to --
-            // see renameFocusedWorkspace. Dismissing fires reset(), which
-            // clears both the Query and the flag, so the restore below would
-            // be undone anyway; returning here just says so outright.
+            // see renameFocusedWorkspace.
             if (root.promptOnly) {
                 root.dismiss();
                 return;
@@ -303,63 +187,34 @@ PanelWindow {
         }
     }
 
-    // The Query, held here rather than read off the TextInput.
-    //
-    // Ranking is model logic and now depends on no QML Item at all. It used to
-    // read `query.text` directly, which made the whole ranking a dependency of
-    // a TextInput that lives inside a window starting `visible: false` -- so
-    // "was the Item realised yet" became a question the ranking could get wrong,
-    // and a first evaluation that threw would leave the binding in error with
-    // nothing but a catalog change to rescue it. A plain string with a sound
-    // default cannot be in that state: before anything types, the Query is "",
-    // which is exactly what an untouched Launcher should rank against.
-    //
-    // The field drives this (onTextChanged below); nothing reads back the other
-    // way except reset(), which clears both.
+    // Held here rather than read off the TextInput, so ranking depends on no
+    // QML Item: reading `query.text` directly would make ranking depend on
+    // whether that Item had been realised yet inside a `visible: false`
+    // window. The field drives this (onTextChanged below); reset() is the
+    // only thing that writes back the other way.
     property string queryText: ""
 
     // The Entries for the current Query, best first, across every Provider.
+    // Each catalog is read exactly once so the indices rank() returns stay
+    // paired with the entry list the corpus was prepared from. Three steps:
+    // rank the Provider's own corpus, collapse texts back to Entries, merge
+    // rankings on score across Providers (sound because there's one scorer,
+    // one scale). rank()/merge() are both capped, and the ListView only
+    // builds what's on screen, so a full corpus is never realised as Items.
     //
-    // Each catalog is read exactly once so the indices rank() returns are
-    // guaranteed to index the same entry list the corpus was prepared from.
-    // Re-evaluates on every keystroke, when DesktopEntries finishes populating,
-    // and when a window opens, closes or retitles -- which is the whole point
-    // of the catalogs being bindings.
+    // The Frecency map reaches only Entries carrying an Entry Key (rank()
+    // skips one that has none), which is also what makes the empty Query
+    // useful: everything scores 0, so usage alone decides order.
     //
-    // Three steps, and only the middle one is per-Provider policy: rank the
-    // Provider's own corpus, collapse its texts back to Entries for a Provider
-    // whose Entries have more than one, then merge the rankings on score. This
-    // is sound because there is one scorer and one scale.
+    // `root.activePool`/`root.routed.query`, not `root.pool`/`root.queryText`
+    // -- prefix routing's whole effect on ranking; unrouted, they're the same.
     //
-    // rank() is capped at its own limit, merge() at its own, and the ListView
-    // builds only what fits on screen, so neither a full corpus nor a full
-    // match set is ever realised as Items.
-    //
-    // The Frecency map goes to every Provider, and reaches only the ones whose
-    // Entries carry an Entry Key -- rank() looks a key up and skips an Entry that
-    // has none, so a Provider opting out needs no special case here. This is also
-    // what makes the *empty* Query useful: everything scores 0 there, so usage is
-    // the whole ordering.
-    //
-    // `root.activePool`, not `root.pool`, and `root.routed.query`, not
-    // `root.queryText` -- prefix routing's whole effect on ranking. Unrouted,
-    // `activePool` is `pool` and `routed.query` is `queryText` untouched, so
-    // this is exactly what it was before ticket 11.
-    //
-    // **An `ordered` catalog is not ranked at all** -- ticket 17's files
-    // Provider is the first to carry one. Its Entries are produced in the
-    // order they must display (each matched folder immediately followed by
-    // its own contents), which is a structural claim score() cannot express:
-    // ranking every Entry independently would pull a child that matches the
-    // Query well out from under its parent. So rank() is skipped and the
-    // result hands every Entry an equal score, which is what makes merge()
-    // keep them in encounter order -- the catalog's own order. Only sound
-    // because such a catalog never merges with another Provider: files is
-    // prefix-only, so `activePool` is `[files]` whenever it is ranked at all.
-    // Scores of 0 are therefore never compared against a scored Provider's.
-    // Only the files *listing* is ordered -- its chooser carries an ordinary
-    // corpus and comes through the branch below. See the header on
-    // lib/files.js for the argument, and `catalog` in Files.qml.
+    // An `ordered` catalog (Files.qml) skips rank() entirely: its Entries are
+    // already in required display order (each folder followed by its own
+    // contents), which independent per-Entry scoring would break apart. Every
+    // Entry gets score 0, so merge() keeps encounter order -- sound only
+    // because an ordered catalog is prefix-only and never merges with a
+    // scored Provider. See lib/files.js and Files.qml's `catalog`.
     readonly property var scoredEntries: {
         const usage = Frecency.usage;
         const catalogs = root.activePool.map(provider => provider.catalog);
@@ -371,118 +226,69 @@ PanelWindow {
         return Matching.merge(ranked).map(pick => catalogs[pick.provider].entries[pick.index]);
     }
 
-    // Everything the machine itself answered: the calculator, then the ranked
-    // pool.
+    // Calculator and web search aren't in `pool` and aren't scored: both
+    // generate their Entry from the Query itself, so a corpus holding a copy
+    // of the needle would always rank first. Placed by hand instead, keeping
+    // "one scorer, one scale" intact.
     //
-    // The calculator is not in `pool` and is not scored, and neither is the web
-    // search below. Both generate their Entry *from* the Query, so there is
-    // nothing to match them against -- a corpus holding the Query would hold a
-    // copy of the needle, and score() gives a haystack equal to its needle both
-    // the highest quality there is and the smallest length penalty there is. It
-    // would rank first for everything typed. That is not a scoring bug to tune
-    // around; it is what says these Providers do not belong on the scale.
-    //
-    // Placing them by hand instead is what elephant's scores amount to in a flat
-    // pool, and it leaves "one scorer, one scale" intact: nothing here produces
-    // a score, so nothing here has to be comparable to a score. Two of them do
-    // not justify a general mechanism -- when a third arrives, this is where it
-    // goes.
-    //
-    // **The calculator goes first, above the ranked pool**, which is elephant's
-    // placement rather than a preference: it scored a result at `max_items + 1`
-    // (providers/calc/setup.go:234 -- that checkout is deleted with ticket
-    // 19), one above the cap on everything else, so a
-    // result outranks every fuzzy match. The alternative -- appending it, as the
-    // web search is appended -- reads fine until an expression happens to
-    // fuzzy-match an application, and then Return launches the application
-    // instead of copying the answer. `10 cm to inch` is not a contrived Query.
-    //
-    // It is narrow enough to sit there: lib/calc.js produces an Entry only for a
-    // Query of at least three characters carrying a digit, *and* only once qalc
-    // has returned something that is neither an error nor the Query handed back.
+    // The calculator goes first, above the ranked pool, so a result always
+    // outranks a fuzzy match -- appending it instead would let a Query like
+    // "10 cm to inch" fuzzy-match an application and launch it instead of
+    // copying the answer. It's narrow enough to sit there: lib/calc.js only
+    // produces an Entry for a Query with at least three characters and a
+    // digit, once qalc returns something that isn't an error or an echo.
     readonly property var localEntries: calc.entries.concat(root.scoredEntries)
 
-    // The Entries for the current Query, best first, with the Provider of last
-    // resort on the end.
-    //
-    // Which means the "No matches" empty state below is now unreachable for any
-    // non-empty Query: a Query nothing local answers becomes a web search rather
-    // than a blank card. That is the ticket's own sentence -- "a Query that has
-    // no local answer sent out to the browser" -- and it is what walker did too
-    // (always_show_default). The empty state still says what it always said for
-    // the case that remains: an empty Query against a pool that has not
-    // populated.
+    // Appending the web search means the "No matches" empty state is
+    // unreachable for any non-empty Query -- a Query nothing local answers
+    // becomes a web search instead of a blank card. The empty state still
+    // covers what's left: an empty Query against a pool that hasn't populated.
     readonly property var rankedEntries: root.localEntries.concat(websearch.entries)
 
-    // Not highlightFirst(). The Entries now change without the Query changing
-    // -- a window opening, closing, or merely retitling itself in the
-    // background re-ranks the pool -- and resetting the highlight there would
-    // take it away from the user mid-arrow because some other window's tab
-    // finished loading. Moving back to the best match is the Query's business,
-    // and hangs off the Query field below.
+    // Not highlightFirst(): Entries can change without the Query changing (a
+    // window opening/closing/retitling re-ranks the pool), and resetting the
+    // highlight there would yank it away mid-arrow over something unrelated.
     onRankedEntriesChanged: root.keepHighlight()
 
-    // How tall the Entry list is allowed to get. Theme.maxHeight is the taste
-    // limit; the rest of this is the output. The card starts a sixth of the way
-    // down, so on a 1366x768 screen there are only ~600px left below it and a
-    // 560px list plus the Query line and padding would run the card off the
-    // bottom edge.
-    //
-    // No binding loop, and this is the whole proof: everything read below is
-    // either the output's own geometry or an Item whose size the list cannot
-    // influence -- the card's `y` (from the window height), the Query field's
-    // height (from its font), and the footer's height and visibility (from its
-    // font and from which Entry is highlighted). The card's *height* is what
-    // depends on the list, and nothing here reads it.
+    // Theme.maxHeight is the taste limit; the rest is fitting the output. The
+    // card starts a sixth of the way down, so on a 1366x768 screen a
+    // full-height list plus the Query line and padding would run the card off
+    // the bottom edge. No binding loop: everything read here is the output's
+    // own geometry or an Item whose size doesn't depend on the list.
     readonly property int listMaxHeight: {
-        // The card's own padding top and bottom, the two Column gaps around
-        // the rule, the rule, and the Query line.
-        //
-        // Plus the footer and its own gap when it is showing. An invisible
-        // child takes no room in a Column but still has a height, so this asks
-        // whether it is visible rather than adding it unconditionally -- and
-        // omitting it entirely is what would run the card off the bottom of the
-        // 1366x768 output this whole calculation exists for.
+        // Padding, the two Column gaps around the rule, the rule, the Query
+        // line, and the footer + its gap when visible (an invisible child
+        // still has a height, so this checks rather than adding unconditionally).
         const chrome = Theme.padding * 4 + 1 + query.height + (footer.visible ? footer.height + Theme.padding : 0);
         const available = root.height - card.y - Theme.padding - chrome;
 
-        // One Entry regardless, so a pathologically short output shows
-        // something rather than a zero-height list.
+        // One Entry minimum, so a pathologically short output still shows something.
         return Math.max(Theme.entryHeight, Math.min(Theme.maxHeight, available));
     }
 
-    // Which Entry is highlighted, held here rather than read back off the
-    // ListView. The view is not a reliable place to keep it: `model` is handed
-    // a brand-new array on every re-rank -- which now happens on its own, when
-    // a window in the background retitles -- and a view given a new model may
-    // move currentIndex itself. So this is the intent, and the view follows it.
+    // Held here rather than read back off the ListView: `model` gets a new
+    // array on every re-rank, and a view given a new model may move
+    // currentIndex on its own. This is the intent; the view follows it.
     property int highlightIndex: -1
 
-    // The highlighted Entry itself, so it can be found again by identity after
-    // the Entries change under it rather than only by position.
+    // The highlighted Entry itself, so it can be found again by identity
+    // after the Entries change under it, not just by position.
     property var highlightedEntry: null
 
-    // The one place the highlight moves. Everything below goes through it, so
-    // the view cannot end up showing one Entry while Enter acts on another.
+    // The one place the highlight moves, so the view can't show one Entry
+    // while Enter acts on another.
     function setHighlight(index: int): void {
         root.highlightIndex = index;
         root.highlightedEntry = index >= 0 ? root.rankedEntries[index] : null;
 
-        // Both views are kept in sync regardless of which is showing --
-        // assigning currentIndex on the hidden one is cheap, and it is what
-        // keeps `previewMode` flipping mid-session (routing into and out of
-        // "#") from ever showing a view whose currentIndex is stale from
-        // before it last became visible.
+        // Both views kept in sync regardless of which is showing, so
+        // `previewMode` flipping mid-session never shows a stale currentIndex.
         list.currentIndex = index;
         previewList.currentIndex = index;
 
-        // Re-asserted after the event loop turn, for two reasons that both bite
-        // here: the view's model binding has not caught up yet, so
-        // positioning now would scroll the *previous* content, and assigning
-        // that model can move currentIndex out from under this. Qt.callLater
-        // collapses repeats of the same function, so a burst of these costs one
-        // pass. It reads highlightIndex rather than a captured argument, so
-        // whichever call was last is the one that wins.
+        // Re-asserted next event loop turn: the view's model binding hasn't
+        // caught up yet, so positioning now would scroll the previous
+        // content. Qt.callLater collapses repeats to one pass.
         Qt.callLater(root.applyHighlight);
     }
 
@@ -498,66 +304,37 @@ PanelWindow {
             list.positionViewAtIndex(root.highlightIndex, ListView.Contain);
     }
 
-    // Puts the view back where the highlight says it should be, after the
-    // surface has mapped and the list has its real height.
-    //
-    // Belt and braces around the geometry, not a fix for anything observed:
-    // the surface maps, and the height that produces reaches the list after
-    // open() has already returned, so the position is asserted against the
-    // geometry the view ended up with rather than the one it started from.
-    // Qt.callLater collapses repeats, so asserting more than once costs one
-    // pass. The defect this was first written for turned out to be
-    // highlightPinned below; this stayed because it is cheap and the two-step
-    // geometry is real.
+    // Belt and braces: the surface's real height reaches the list after
+    // open() has already returned, so this re-asserts position against the
+    // geometry the view ended up with. Qt.callLater collapses repeats.
     function reassertView(): void {
         if (!root.visible)
             return;
         Qt.callLater(root.applyHighlight);
     }
 
-    // Whether the highlight is where the *user* put it, or merely where it
-    // defaulted to.
-    //
-    // This distinction is the whole of the "first open lists no windows"
-    // defect, and it is not a detail. keepHighlight below keeps the highlighted
-    // Entry by identity when the list changes underneath -- which is right when
-    // someone has arrowed down to something, and wrong before anyone has
-    // touched anything. At startup the applications land first, the highlight
-    // defaults to the first of them, and then six windows arrive *above* it.
-    // Identity did exactly what it was told: it followed that application from
-    // index 0 to index 6, and the view followed the highlight, leaving the six
-    // window rows above the top edge.
-    //
-    // The log said so outright once it printed the view's own position:
-    // `top: timer -s course 1h | … (contentY 264, currentIndex 6)` -- six rows
-    // of 44px scrolled off, highlight on the seventh. The list was never
-    // missing the windows and the view was never stale; both were faithfully
-    // rendering a highlight that had walked.
-    //
-    // So: identity is honoured only for a highlight the user placed. Otherwise
-    // a re-rank goes back to the best match, which is what an untouched
-    // Launcher should always be showing.
+    // Whether the highlight is where the *user* put it, or just defaulted
+    // there. This is the whole of a real bug: at startup applications land
+    // first and the highlight defaults to the first of them; when windows
+    // then arrive above it, following the highlighted Entry by identity
+    // dragged the highlight (and the view) down with it, leaving the new
+    // windows scrolled off the top. Identity is honoured only for a highlight
+    // the user placed -- otherwise a re-rank goes back to the best match.
     property bool highlightPinned: false
 
-    // Puts the highlight back on the best match. Both directions need this:
-    // narrowing from ten Entries to two would otherwise leave the highlight
-    // past the end and Enter doing nothing, and *widening* -- backspacing after
-    // arrowing down -- would leave it scrolled off the top of the view.
-    //
-    // Also the place the pin is released: typing is a new intent, and the best
-    // match for the new Query outranks wherever the arrows had got to.
+    // Puts the highlight back on the best match -- needed both when the list
+    // narrows (highlight could land past the end) and when it widens after a
+    // backspace (highlight could be scrolled off the top). Also releases the
+    // pin: typing is a new intent that outranks wherever the arrows had got to.
     function highlightFirst(): void {
         root.highlightPinned = false;
         root.setHighlight(Highlight.first(root.rankedEntries));
     }
 
-    // Where the highlight goes when the Entries change under it without the
-    // Query changing -- a window opening, closing or merely retitling itself.
-    //
-    // The rule itself lives in lib/highlight.js, under test, because it is a
-    // rule about intent rather than about drawing and a wrong answer reads as a
-    // preference: it kept the highlight on an Entry nobody had chosen for three
-    // host rounds while the windows sat scrolled off the top of the view.
+    // Where the highlight goes when Entries change under it without the
+    // Query changing (a window opening/closing/retitling). Rule lives in
+    // lib/highlight.js, under test -- a wrong answer here reads as a
+    // preference, not a crash, so it's easy to ship broken.
     function keepHighlight(): void {
         root.setHighlight(Highlight.next(root.rankedEntries, {
             pinned: root.highlightPinned,
@@ -566,12 +343,9 @@ PanelWindow {
         }));
     }
 
-    // Wraps, so the far end of a list is one keypress away rather than a held
-    // key.
-    //
-    // The one thing that pins the highlight: an arrow key is the user saying
-    // where it goes, and from here until the Query changes a re-rank has to
-    // keep it there rather than move it back to the best match.
+    // Wraps, so the far end of the list is one keypress away. The one thing
+    // that pins the highlight -- an arrow key is the user choosing where it
+    // goes, and a re-rank must respect that until the Query changes.
     function moveHighlight(delta: int): void {
         const count = root.rankedEntries.length;
         if (count === 0)
@@ -581,23 +355,17 @@ PanelWindow {
     }
 
     // Which Actions the highlighted Entry's Provider offers, for the footer.
-    // Empty with nothing highlighted, which is also what hides it.
-    //
-    // While a prompt owns the Query line there is no highlighted Entry to
-    // describe -- the list is suppressed -- and the keys that mean something
-    // are the prompt's own, so the footer names those instead. The prompt's
-    // confirm verb comes from the Provider that owns the prompt; "cancel" is
-    // what Escape means in any prompt.
+    // Empty with nothing highlighted, which also hides it. While a prompt
+    // owns the Query line there's no highlighted Entry, so the footer names
+    // the prompt's own keys instead.
     readonly property var promptActions: root.promptingProvider ? [
         { chord: "Return", label: root.promptingProvider.promptVerb || "confirm" },
         { chord: "Escape", label: "cancel" }
     ] : []
 
-    // The same two keys for a confirmation, named after what they do to *this*
-    // action -- "Return: shut down", not "Return: confirm". The footer is the
-    // only thing on screen that says what Return is about to do, so it says the
-    // irreversible part rather than a word that would read identically above
-    // every one of the four.
+    // Named after what Return does to *this* action ("shut down", not
+    // "confirm") -- the footer is the only thing on screen saying what's
+    // about to happen.
     readonly property var confirmActions: root.pendingAction ? [
         { chord: "Return", label: root.pendingAction.label.toLowerCase() },
         { chord: "Escape", label: "cancel" }
@@ -610,23 +378,15 @@ PanelWindow {
             : (root.highlightedEntry ? Actions.available(root.highlightedEntry.provider) : []))
 
     // root.highlightedEntry, not rankedEntries[highlightIndex]: the footer
-    // reads that property too, and the delegate paints from the index it came
-    // from, so one accessor is what makes "the keys do what the footer says"
-    // structural rather than a thing two expressions have to keep agreeing on.
-    // Same reasoning as setHighlight being the only thing that moves the
-    // highlight.
+    // reads the same property, so "the keys do what the footer says" is
+    // structural rather than two expressions that have to be kept in sync.
     function runHighlighted(chord: string): bool {
         return root.runAction(root.highlightedEntry, chord);
     }
 
-    // The one place an Action is dispatched, so the keyboard and the pointer
-    // cannot drift apart on what activating means -- they arrive here with the
-    // same chord, and the pointer gets it by asking for the primary *slot*
-    // rather than by naming a key.
-    //
-    // The Entry carries its own Provider, so this stays one function no matter
-    // how many Providers the pool grows; the Provider decides what the chord
-    // means to its own Entries.
+    // The one place an Action is dispatched, so keyboard and pointer can't
+    // drift apart on what activating means. The Entry carries its own
+    // Provider, so this stays one function regardless of pool size.
     //
     // Returns whether anything ran, which is what the key handler accepts the
     // event on. A chord no Provider filled is left unaccepted on purpose -- see
@@ -639,55 +399,30 @@ PanelWindow {
         if (action === null)
             return false;
 
-        // Dismissed before the Action runs, and only for an Action that asked
-        // to close: this surface holds keyboard focus until it unmaps, and the
-        // window being launched or focused should receive that focus rather
-        // than race the overlay for it.
-        //
-        // The order matters more for the windows Provider than for
-        // applications, and it is the reason there is no delay here. Both the
-        // layer surface going away and the activate request travel the same
-        // Wayland connection, in the order they are issued, so the compositor
-        // refocuses whatever was focused before and *then* honours the
-        // activate. Elephant, which was a separate process with its own
-        // connection and no such ordering, slept first instead -- a
-        // configurable delay, 100ms by default
-        // (resources/elephant/internal/providers/windows/setup.go:117 -- that
-        // checkout is deleted with ticket 19). If
-        // focus ever lands on the previously focused window instead of the
-        // chosen one, that assumption is what broke and a delay here is the
-        // remedy.
+        // Dismissed before the Action runs (only when it asks to close): this
+        // surface holds keyboard focus until it unmaps, so the launched/focused
+        // window should get that focus rather than race the overlay for it. No
+        // delay needed -- the layer surface going away and the activate request
+        // travel the same Wayland connection in issue order, so the compositor
+        // handles the sequencing.
         if (Actions.wantsClose(action))
             root.dismiss();
 
         action.invoke(entry);
 
-        // Recorded *after* the Action, and from `entry` rather than from
-        // root.highlightedEntry. Both halves matter.
-        //
-        // After, because recording reassigns the Frecency store, which
-        // re-evaluates `usage`, which re-ranks every Provider's corpus
-        // synchronously. Between dismiss() and invoke() that work would sit
-        // directly in front of the launch -- free at ~84 applications, but the
-        // directories Provider was measured at 46-61ms per pass, which is a
-        // visible stall on every Return. Nothing about attribution needs it to
-        // happen first.
-        //
-        // From `entry`, because dismiss() above has already fired reset(), which
-        // moves the highlight back to the best match -- so root.highlightedEntry
-        // now names a *different* Entry and reading it here would credit the
-        // wrong key. `entry` is the one that was chosen.
-        //
-        // Actions.counts is what excludes `back`: going back is a move within the
-        // Launcher rather than a choice of an Entry.
+        // Recorded after the Action (dismiss() already re-ranked the pool via
+        // Frecency, and doing that before invoke() would stall the launch --
+        // free for ~84 applications, but directories measured at 46-61ms per
+        // pass). Recorded from `entry`, not root.highlightedEntry: dismiss()
+        // already fired reset(), which moves the highlight to the best match,
+        // so root.highlightedEntry would name the wrong Entry by then.
+        // Actions.counts excludes `back`, which isn't a choice of an Entry.
         if (Actions.counts(action))
             Frecency.record(entry.key);
 
-        // An Action that changed what the list should say. Guarded the same way
-        // open() guards it, because refresh is optional on the Provider
-        // interface -- an Action asking for one from a Provider that has none
-        // leaves the Launcher open on the Entries it had, which is the honest
-        // outcome rather than an error.
+        // refresh is optional on the Provider interface -- an Action asking
+        // for one from a Provider without it just leaves the Entries as they
+        // were, which is the honest outcome.
         if (Actions.wantsRefresh(action) && typeof entry.provider.refresh === "function")
             entry.provider.refresh();
 
@@ -698,33 +433,20 @@ PanelWindow {
         if (root.visible)
             return;
         root.visible = true;
-        // The window takes focus as it maps; this decides which QML Item
-        // inside it holds that focus -- the Query field, so typing works with
-        // no click first.
         query.forceActiveFocus();
 
-        // Every Provider that can be asked for fresher data gets asked, because
-        // an open is exactly when being out of date shows. Optional on the
-        // Provider interface: applications has no such call -- DesktopEntries
-        // is a one-shot population -- and windows re-queries the compositor.
-        //
-        // `rankedRoutable`, not `pool`: directories is prefix-only and still
-        // wants this. Its own refresh() is cheap to call even when there is
-        // nothing to do -- see the note there -- so asking on every open costs
-        // a `test` and a `stat`, not a scan.
+        // Every Provider that can be asked for fresher data is, since an open
+        // is exactly when being out of date shows (`rankedRoutable`, not
+        // `pool`, since prefix-only Providers like directories want this too).
         root.rankedRoutable.forEach(provider => {
             if (typeof provider.refresh === "function")
                 provider.refresh();
         });
 
-        // Frecency decays with wall-clock time, and this process can run for
-        // weeks without restarting, so something has to move its clock forward.
-        // An open is the moment a stale decay would be visible and the last one
-        // before the Entries are ranked.
+        // Frecency decays with wall-clock time and this process may run for
+        // weeks without restarting, so an open is what moves its clock forward.
         Frecency.refresh();
 
-        // The view spent the time since the last open unmapped and a single
-        // Entry tall; nothing has told it where to be since. See reassertView.
         root.reassertView();
     }
 
@@ -739,26 +461,16 @@ PanelWindow {
             root.open();
     }
 
-    // The dedicated clipboard keybind's own entry point -- ticket 14's
-    // checkbox 3, "the existing dedicated keybind opens the Launcher directly
-    // on this Provider". Opens (or leaves open, if already open) and sets the
-    // Query to a prefix rather than to any single Provider's own name, so
-    // routing itself -- not a special case here -- is what narrows to it;
-    // a second dedicated keybind, for a different Provider, would only need
-    // its own prefix passed in.
+    // A dedicated keybind's entry point (e.g. clipboard's own shortcut):
+    // opens (or leaves open) and sets the Query to a prefix, so routing
+    // itself narrows the pool rather than a special case here.
     //
-    // **A nested Provider outranks routing in `activePool`** (see
-    // `nestedProvider` above), which a prefix alone cannot undo -- setting
-    // the Query to "$" while directories' own chooser is open would leave
-    // `activePool` still locked to that chooser, silently missing this
-    // function's whole promise. Rather than reaching into whichever
-    // Provider is nested to clear state this file has no business touching
-    // directly, dismiss-then-reopen is what already closes it: `dismiss()`
-    // sets `visible` false, which is what Directories.qml's own `active`
-    // binding is watching to clear `openFor` (see the note there). Skipped
-    // when nothing is nested, which is the overwhelming case, so a plain
-    // press of the keybind does not flicker the window shut and open again
-    // for no reason.
+    // A nested Provider outranks routing in `activePool` and a prefix alone
+    // can't undo that, so this dismisses-then-reopens when something is
+    // nested -- `dismiss()` sets `visible` false, which Directories.qml's own
+    // `active` binding watches to clear its nested state. Skipped when
+    // nothing is nested (the common case), so a plain keybind press doesn't
+    // flicker the window shut and open again for no reason.
     function openOn(prefix: string): void {
         if (root.nestedProvider !== null)
             root.dismiss();
@@ -767,35 +479,18 @@ PanelWindow {
         root.highlightFirst();
     }
 
-    // The one place the Query is set from outside the field itself, so reset()
-    // and the nesting boundary below cannot drift apart on what "setting the
-    // Query" means -- both the field and root.queryText, always together.
-    //
-    // Not only through the field: assigning text that is already there fires
-    // no onTextChanged, so this is what guarantees the two agree rather than
-    // leaving it to a signal that may not come.
-    // SUPER+SHIFT+R's entry point -- the Launcher opened *as* a rename prompt
-    // for the focused workspace, rather than opened to be searched. Registered
-    // in shell.qml as the "rename-workspace" GlobalShortcut and bound in
-    // hypr/.config/hypr/lua/bindings/utilities.lua.
-    //
-    // Nothing new is rendered for this: while `prompting` is set the list and
-    // the empty state are already suppressed and the Query line is already the
-    // prompt (see `promptingProvider`), so the popup this keybind wants is the
-    // Launcher window in a state it can already reach -- no second window, no
-    // second process.
-    //
-    // The dismiss-if-nested guard is openOn()'s, for openOn()'s reason: a
-    // nested Provider outranks routing and would still own the pool underneath
-    // the prompt.
+    // SUPER+SHIFT+R's entry point -- opens the Launcher already as a rename
+    // prompt for the focused workspace, rather than to be searched. Bound in
+    // hypr/.config/hypr/lua/bindings/utilities.lua. Nothing new to render:
+    // `prompting` already suppresses the list/empty state and turns the Query
+    // line into the prompt.
     //
     // Opened before the prompt is asked for, not after, so the Provider is
-    // `active` (bound to `visible`) the whole time it holds prompt state --
-    // prompting set on an inactive Provider would depend on the order two
-    // handlers happen to run in. The cost is that a workspace that cannot be
-    // renamed maps the window before this closes it again; that is a special
-    // workspace only, and closing is the honest outcome -- an ordinary
-    // Launcher left open is not what SUPER+SHIFT+R asked for.
+    // `active` the whole time it holds prompt state -- setting `prompting` on
+    // an inactive Provider would depend on handler ordering. A workspace that
+    // can't be renamed briefly maps the window before this closes it again;
+    // that's a special-workspace edge case, and closing is more honest than
+    // leaving an ordinary Launcher open when SUPER+SHIFT+R asked for a prompt.
     function renameFocusedWorkspace(): void {
         if (root.nestedProvider !== null)
             root.dismiss();
@@ -817,37 +512,22 @@ PanelWindow {
 
     // --- Confirming a session-ending keybind ---
     //
-    // The power keybinds -- shutdown, restart, logout, lock -- used to run
-    // their command straight from Hyprland. They dispatch here instead, and
-    // this asks first. See lib/power.js for the four declarations and for why
-    // the commands are the keybinds' own rather than SystemMenu.qml's.
+    // The power keybinds (shutdown, restart, logout, lock) dispatch here to
+    // ask first rather than running straight from Hyprland. See lib/power.js.
     //
-    // **A mode of this window, not a Provider.** The rename prompt is a
-    // Provider's (`promptingProvider` scans the ranked pool for one claiming
-    // it), which is right for renaming: it acts on an Entry the pool produced.
-    // A confirmation has no Entry and nothing to search -- putting it in the
-    // pool would mean a Provider with a catalog nobody can reach, ranked on
-    // every keystroke, purely to hold two lines of state. So it sits here,
-    // parallel to `prompting`, and the view and key handler treat the two the
-    // same way.
-    //
-    // No new window and no new process, which is the whole point: the card is
-    // already built, and while this is set the list, the preview and the empty
-    // state are all suppressed, so what is on screen is the question and the
-    // footer's two keys.
+    // A mode of this window, not a Provider: a confirmation has no Entry and
+    // nothing to search, so putting it in the pool would mean a Provider with
+    // an unreachable catalog ranked on every keystroke just to hold two lines
+    // of state. Sits parallel to `prompting`; view and key handler treat the
+    // two the same way, suppressing the list/preview/empty state to show just
+    // the question and the footer's two keys.
     property var pendingAction: null
 
     readonly property bool confirming: root.pendingAction !== null
 
-    // The keybinds' entry point -- shell.qml's four GlobalShortcuts, one per
-    // key in lib/power.js. Opens the Launcher already asking.
-    //
-    // The dismiss-if-nested guard is openOn()'s, for openOn()'s reason.
-    //
-    // A second press of the same keybind while it is already asking is a
-    // no-op rather than a re-ask: the question is already on screen, and
-    // rebuilding the state under it would only risk clearing a confirmation
-    // the user is halfway through answering.
+    // shell.qml's four GlobalShortcuts, one per lib/power.js key. A second
+    // press while already asking is a no-op -- rebuilding state under an
+    // in-progress confirmation risks clearing it.
     function confirmPower(key: string): void {
         const action = Power.actionFor(key);
         if (action === null) {
@@ -862,18 +542,16 @@ PanelWindow {
             root.dismiss();
         root.open();
 
-        // Cleared explicitly: open() does not reset (dismissal does), so a
+        // Cleared explicitly: open() doesn't reset (only dismissal does), so a
         // keybind pressed over an already-open Launcher would otherwise leave
-        // a half-typed Query sitting on the line where the question goes --
-        // the placeholder only shows over an empty field. Nothing to restore
-        // afterwards, because both answers end the session.
+        // a half-typed Query where the question should show.
         root.setQuery("");
         root.pendingAction = action;
     }
 
-    // Return while confirming. Dismisses first, for runAction()'s own reason --
-    // this surface holds the keyboard until it unmaps, and hyprlock in
-    // particular must not come up behind a layer surface that still has it.
+    // Dismisses before running, same reason as runAction(): this surface
+    // holds the keyboard until it unmaps, and hyprlock especially must not
+    // come up behind a layer surface that still has it.
     function applyConfirm(): void {
         const action = root.pendingAction;
         if (action === null)
@@ -890,19 +568,20 @@ PanelWindow {
         root.dismiss();
     }
 
+    // The one place the Query is set from outside the field itself. Assigns
+    // both explicitly: assigning text already in the field fires no
+    // onTextChanged, so relying on that signal alone could leave
+    // root.queryText stale.
     function setQuery(text: string): void {
         query.text = text;
         root.queryText = text;
     }
 
     // Everything a session accumulates is cleared here rather than by the
-    // window being destroyed. The Marks join this in a later ticket, and
-    // "Marks disappear when the Launcher closes" will be this function.
-    //
-    // highlightFirst() is called explicitly rather than left to the Query's
-    // onTextChanged: a Launcher opened, arrowed down and dismissed without
-    // typing leaves the Query already empty, so the text never changes and
-    // nothing else would move the highlight back.
+    // window being destroyed. highlightFirst() is called explicitly rather
+    // than left to onTextChanged: a Launcher opened, arrowed down and
+    // dismissed without typing leaves the Query already empty, so the text
+    // never changes and nothing else would move the highlight back.
     function reset(): void {
         root.setQuery("");
         root.highlightFirst();
@@ -915,25 +594,18 @@ PanelWindow {
             root.reset();
     }
 
-    // Checkbox 6: two Providers claiming the same prefix caught at load, not
-    // resolved silently by whichever one route() happens to reach first.
-    // Component.onCompleted rather than a property binding, and deliberately:
-    // it runs once, after every child in `routable` has been constructed, so
-    // "at load" is a fact about *when this runs* rather than an accident of
-    // which binding first happened to read `root.routable`.
-    //
-    // ProvList.problems is the same idea one Provider over: a row in the "?"
-    // list that can be neither prefixed nor entered is only discoverable by
-    // choosing it, and choosing it fails silently. Both run here so that
-    // adding a Provider to `pool` is caught by the log rather than by a user.
+    // Two Providers claiming the same prefix, or a "?"-list row that's
+    // neither prefixed nor enterable, are caught here at load rather than
+    // failing silently the first time someone hits them. Component.onCompleted
+    // rather than a binding: runs once, after every child in `routable` is
+    // constructed.
     Component.onCompleted: {
         Routing.problems(root.routable).forEach(problem => console.warn("launcher:", problem));
         ProvList.problems(root.routable).forEach(problem => console.warn("launcher:", problem));
     }
 
-    // The pool. It lives here rather than in shell.qml because the window is
-    // what ranks and renders the Entries; nothing outside this window has
-    // needed a Provider yet.
+    // Providers live here, not shell.qml: this window is what ranks and
+    // renders the Entries.
     Applications {
         id: apps
 
@@ -961,13 +633,8 @@ PanelWindow {
     Files {
         id: files
 
-        // Same two properties, for the same two reasons: `active` closes any
-        // open chooser the moment the Launcher is dismissed (see the note on
-        // `active` in Directories.qml), and `queryText` is the Query with
-        // the "~" stripped, or "" routed anywhere else -- the same rule
-        // calc's own queryText follows. The catalog is a binding over this
-        // property, so every keystroke re-selects the folders, which is how
-        // "typing a folder name" narrows the list at all.
+        // `queryText`: the Query with its prefix stripped, or "" when routed
+        // elsewhere -- the catalog binds on this, so every keystroke re-selects.
         active: root.visible
         queryText: root.routed.provider === files ? root.routed.query : ""
     }
@@ -984,9 +651,8 @@ PanelWindow {
         id: clipboard
     }
 
-    // The four static menus. Each is a data file and nothing else -- Menu.qml
-    // is the whole of the behaviour -- so adding an entry is editing one of
-    // these four and letting Quickshell reload it.
+    // The four static menus: each is a data file, Menu.qml is the whole
+    // behaviour, so adding an entry means editing one of these four.
     SystemMenu {
         id: systemMenu
 
@@ -1015,10 +681,7 @@ PanelWindow {
         active: root.visible
     }
 
-    // Ticket 15's two Providers, reached by being entered from the "?" list
-    // below rather than by prefix or from `pool` -- see the header on
-    // Themes.qml. `active` is what drops `entered` when the Launcher closes,
-    // so a session never reopens already inside one of them.
+    // Reached by entering from the "?" list, not by prefix or from `pool`.
     Themes {
         id: themes
 
@@ -1031,12 +694,8 @@ PanelWindow {
         active: root.visible
     }
 
-    // Ticket 16's five: the ex-dmenu scripts, reached by being entered from
-    // the "?" list rather than from `pool` -- see the note on
-    // `rankedRoutable`. `active` drops `entered` when the Launcher closes, so
-    // a session never reopens already inside one of them; on Workspaces it
-    // also clears a half-typed rename, which is session state for the same
-    // reason.
+    // The ex-dmenu Providers -- reached by entering from the "?" list, see
+    // `rankedRoutable`. On Workspaces, `active` also clears a half-typed rename.
     Workspaces {
         id: workspaces
 
@@ -1068,11 +727,9 @@ PanelWindow {
         active: root.visible
     }
 
-    // Ticket 18. `routable` rather than `pool`: the list is meant to cover
-    // every Provider, including the prefix-only ones that are the whole reason
-    // somebody would need reminding. It filters itself out (`listable: false`)
-    // and cannot recurse -- catalogOf reads labels and prefixes off these
-    // objects, never their catalogs.
+    // `routable`, not `pool`: covers every Provider, including the
+    // prefix-only ones that are the whole reason someone needs reminding.
+    // Filters itself out (`listable: false`).
     ProviderList {
         id: providerList
 
@@ -1081,23 +738,14 @@ PanelWindow {
         onQueryRequested: text => root.setQuery(text)
     }
 
-    // The two Providers that are not in the pool, because they are not ranked
-    // -- see localEntries above. Both are bindings over the Query rather than
-    // over a catalog, which is why the Query is handed to them explicitly.
+    // Not in the pool: unranked, see localEntries. Bindings over the Query
+    // rather than a catalog, so the Query is handed to them explicitly.
     Calculator {
         id: calc
 
-        // `routed.query` when nothing routed elsewhere or routing named this
-        // Provider by its own prefix, "" otherwise. The "" is what makes
-        // routing to a different Provider suppress this one without this file
-        // knowing anything about calc: Calc.wanted("") is false, so an Entry
-        // routed away from stays an Entry routed away from, all the way down
-        // to `calculating` below, which reads this same property.
-        //
-        // A nested Provider owns the whole pool (see `activePool`), so it
-        // suppresses this one too: an applications list entered from "?" is
-        // not a place a calculator answer belongs, even once typing resumes
-        // after the entry reset it.
+        // "" when routed to a different Provider or nested elsewhere --
+        // Calc.wanted("") is false, so this suppresses the calculator without
+        // this file knowing anything about calc's own rules.
         queryText: root.nestedProvider !== null ? "" : (root.routed.provider === null || root.routed.provider === calc ? root.routed.query : "")
     }
 
@@ -1106,34 +754,25 @@ PanelWindow {
 
         // Same rule as calc's queryText above, and the same reason: routed
         // to a different Provider, this one sees "" and Web.entriesFor
-        // produces nothing for it. Nested suppresses it for the same reason
-        // it suppresses calc -- a Provider entered from "?" owns the whole
-        // pool, "Search the web" included.
+        // produces nothing for it. Nested suppresses it too, same reason as calc.
         queryText: root.nestedProvider !== null ? "" : (root.routed.provider === null || root.routed.provider === websearch ? root.routed.query : "")
 
-        // Read from localEntries rather than from rankedEntries, which is what
-        // keeps this a dependency and not a loop: rankedEntries is built *from*
-        // this Provider's Entries, so binding it here would be asking the answer
-        // to depend on itself.
-        //
-        // `calculating` is the second half of "local answer" and covers the
-        // moment before there is one: an expression whose qalc is still running
-        // has an answer coming, and offering to search the web for it would put
-        // the browser under Return in the window before it lands. See the note
-        // on that property.
+        // From localEntries, not rankedEntries: rankedEntries is built from
+        // this Provider's own Entries, so binding on it would be a loop.
+        // `calculating` covers the moment before a local answer exists, so a
+        // still-running qalc doesn't offer a web search out from under it.
         hasLocalAnswer: root.localEntries.length > 0 || calc.calculating
     }
 
-    // The backdrop. Dimmed from the theme background rather than a hardcoded
-    // black, so a light theme does not get a black scrim.
+    // Dimmed from the theme background, not a hardcoded black, so a light
+    // theme doesn't get a black scrim.
     Rectangle {
         anchors.fill: parent
         color: Theme.scrim
     }
 
-    // Click-outside dismissal. Fills the window and sits under the card, so
-    // the card's own MouseArea swallows clicks that land on it and only the
-    // ones that miss reach here.
+    // Click-outside dismissal: fills the window under the card, so the
+    // card's own MouseArea swallows clicks that land on it.
     MouseArea {
         anchors.fill: parent
         onClicked: root.dismiss()
@@ -1145,22 +784,18 @@ PanelWindow {
         anchors.fill: parent
         focus: true
 
-        // On the FocusScope rather than on the card, because key events
-        // propagate *up* from whatever holds focus. The Query field below is a
-        // descendant of this and consumes printable keys; Escape still has to
-        // reach here from inside it.
+        // On the FocusScope, not the card, because key events propagate up
+        // from whatever holds focus, and Escape has to reach here from inside
+        // the Query field.
         //
-        // **Leaving a sub-view is checked before dismissing, and only here.**
-        // A Provider's own `back` Action normally handles this and never lets
-        // Escape reach this far -- but `back` is resolved off the *highlighted
-        // Entry* (runAction, above), and a Provider entered while its source is
-        // empty has no Entry to resolve against. Themes with no ~/.config/
-        // themes is exactly that: Escape would fall through to here and dismiss
-        // the whole Launcher, discarding the sub-view instead of leaving it,
-        // which is the one case where "no results" and "no way back" would
-        // compound. Providers that can be entered supply leave() (see
-        // Themes.qml); the typeof guard is for a nested Provider that does not,
-        // which stays dismissable rather than becoming inescapable.
+        // Leaving a sub-view is checked before dismissing, and only here: a
+        // Provider's own `back` Action is resolved off the highlighted Entry,
+        // but a Provider entered while empty (e.g. Themes with no
+        // ~/.config/themes) has no Entry to resolve against, so Escape would
+        // otherwise fall through and dismiss the whole Launcher instead of
+        // just leaving the sub-view. The typeof guard covers a nested
+        // Provider with no leave() -- it stays dismissable rather than
+        // becoming inescapable.
         Keys.onEscapePressed: {
             if (root.nestedProvider !== null && typeof root.nestedProvider.leave === "function")
                 root.nestedProvider.leave();
@@ -1174,15 +809,13 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
 
             // Not vertically centred: the card grows downward as Entries
-            // arrive, and a centred card would slide up the screen on every
-            // keystroke.
+            // arrive, and a centred card would slide up the screen every keystroke.
             y: Math.round(parent.height / 6)
 
             width: Theme.width
 
-            // Grows with the Entries rather than reserving the full height, so
-            // an empty Query is not a screen-tall empty box. Bounded by
-            // root.listMaxHeight, which is what keeps it on the output.
+            // Grows with the Entries rather than reserving full height, so an
+            // empty Query isn't a screen-tall empty box. Bounded by root.listMaxHeight.
             height: body.implicitHeight + Theme.padding * 2
 
             color: Theme.background
@@ -1190,9 +823,7 @@ PanelWindow {
             border.width: 1
             radius: Theme.radius
 
-            // Absorbs clicks on the card so they do not reach the dismissal
-            // MouseArea behind it. No handlers -- accepting the press is the
-            // entire job.
+            // Absorbs clicks so they don't reach the dismissal MouseArea behind it.
             MouseArea {
                 anchors.fill: parent
             }
@@ -1219,40 +850,25 @@ PanelWindow {
                     selectionColor: Theme.highlight
                     selectedTextColor: Theme.foreground
 
-                    // A confirmation has nothing to type into: the line is the
-                    // question (see the placeholder below), and the only two
-                    // keys that mean anything are Return and Escape. Keeping
-                    // the field focused but read-only is what holds those two
-                    // on this Item -- moving focus away instead would leave the
-                    // key handler below unreached.
+                    // A confirmation has nothing to type into -- the line is
+                    // the question -- so it stays focused but read-only rather
+                    // than moving focus away, which would leave the key
+                    // handler below unreached.
                     readOnly: root.confirming
                     cursorVisible: !root.confirming
 
-                    // The field is the Query's input; root.queryText is what
-                    // ranks. Assigned first, so the Entries below are already
-                    // the ones for this keystroke when the highlight moves.
-                    //
-                    // Typing is also what puts the highlight back on the best
-                    // match. That used to hang off the Entries changing, which
-                    // is no longer the same thing: with a live Provider in the
-                    // pool they change on their own.
+                    // Assigned first, so the Entries reflect this keystroke
+                    // before the highlight moves.
                     onTextChanged: {
                         root.queryText = query.text;
                         root.highlightFirst();
                     }
 
-                    // Navigation and activation are handled here, not on the
-                    // ListView, because the ListView must never take focus --
-                    // every printable key has to keep reaching this field.
-                    //
-                    // Both `list` and the preview split are single-column, so
-                    // Up/Down move the highlight by one Entry in either --
-                    // ticket 13's first draft was a thumbnail grid needing a
-                    // row-sized step and Left/Right of its own, which the
-                    // redesign to a list-plus-preview made unnecessary along
-                    // with the tradeoff that came with it (Left/Right stealing
-                    // the Query's own cursor movement). Nothing here needs to
-                    // know which layout is showing.
+                    // Handled here, not on the ListView, since the ListView
+                    // must never take focus (every printable key has to keep
+                    // reaching this field). Both `list` and the preview split
+                    // are single-column, so Up/Down move the highlight by one
+                    // Entry in either.
                     Keys.onUpPressed: event => {
                         root.moveHighlight(-1);
                         event.accepted = true;
@@ -1262,47 +878,28 @@ PanelWindow {
                         event.accepted = true;
                     }
 
-                    // Every Action arrives here, as a chord.
+                    // One handler, not Keys.onReturnPressed and friends: a
+                    // chord built from the raw event also makes Ctrl+something
+                    // reachable, with no dedicated handler to add per chord.
                     //
-                    // One handler rather than Keys.onReturnPressed and friends,
-                    // for a reason that cannot be checked from a devcontainer:
-                    // whether the specific handlers still fire with a modifier
-                    // held is a question, and a chord built from the raw event
-                    // makes it not one. It also means an extra Action on
-                    // Ctrl+something is reachable at all -- there is no
-                    // Keys.onCtrlWPressed to add.
-                    //
-                    // **The event is accepted only when the chord resolved.**
-                    // That single rule is what makes three separate promises
-                    // true at once: printable keys keep reaching the field
-                    // (chordOf returns "" for them), a slot no Provider filled
-                    // does nothing rather than erroring, and Escape over a
-                    // Provider with no back Action goes unaccepted and
-                    // propagates up to the FocusScope's Keys.onEscapePressed,
-                    // which dismisses. Getting this wrong stops the Launcher
-                    // being typeable.
+                    // The event is accepted only when the chord resolved --
+                    // that's what keeps printable keys reaching the field
+                    // (chordOf returns "" for them) and lets Escape over a
+                    // Provider with no `back` propagate up to the FocusScope's
+                    // Keys.onEscapePressed instead of being silently swallowed.
                     Keys.onPressed: event => {
                         const chord = Actions.chordOf(event);
                         if (chord === "")
                             return;
 
                         // While a Provider holds the Query line as a text
-                        // prompt, the two keys the prompt answers to go
-                        // straight to it: Return hands the field's current
-                        // text to the Provider, Escape cancels. Every other
-                        // chord is accepted and ignored -- swallowed here so
-                        // it cannot propagate anywhere that moves focus (a
-                        // TextInput that lost focus mid-prompt would leave
-                        // the prompt untypeable), while plain letters still
-                        // reach the field through chordOf's "" above.
-                        // A confirmation answers to the same two keys and
-                        // swallows everything else, for the same reason the
-                        // prompt does -- but it is checked first and it is
-                        // stricter: while this is up, no chord may reach an
-                        // Action. There is no list under it, so there is no
-                        // Entry a chord could act on, and a key that fell
-                        // through to one would be acting on a session the user
-                        // opened to answer a question.
+                        // A prompt/confirmation answers only to Return/Escape;
+                        // every other chord is swallowed here rather than
+                        // propagating (a TextInput that lost focus mid-prompt
+                        // would leave it untypeable). Checked before prompting
+                        // below, and stricter: no chord may reach an Action
+                        // while confirming, since there's no list and so no
+                        // Entry for it to act on.
                         if (root.confirming) {
                             if (chord === "Return")
                                 root.applyConfirm();
@@ -1329,14 +926,9 @@ PanelWindow {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
 
-                        // Provider-agnostic, and stops being a lie every time
-                        // the pool grows: it said "Search applications" while
-                        // applications were the only Provider, and windows are
-                        // matchable now.
-                        //
-                        // While a prompt owns the line, the placeholder is the
-                        // prompt's own -- the old script's "Rename workspace
-                        // 3 (3-(dev))" text, shown when the prefill is empty.
+                        // Provider-agnostic ("Type a name…"), not "Search
+                        // applications" -- stays true as the pool grows. A
+                        // prompt shows its own placeholder instead.
                         visible: query.text === ""
                         text: root.confirming
                             ? root.pendingAction.question
@@ -1344,10 +936,9 @@ PanelWindow {
                                 ? (root.promptingProvider ? root.promptingProvider.promptPlaceholder : "…")
                                 : "Type a name…")
 
-                        // A question is the card's own text, not a hint about
-                        // what to type into a field that cannot be typed into
-                        // (see `readOnly` above). Muted placeholder grey would
-                        // read as the latter.
+                        // A question is the card's own text, not a hint for a
+                        // field that can't be typed into -- muted placeholder
+                        // grey would read as the latter.
                         color: root.confirming ? Theme.foreground : Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.queryFontSize
@@ -1366,27 +957,23 @@ PanelWindow {
 
                     width: parent.width
 
-                    // Sized off the count rather than contentHeight, which
-                    // would be a binding on a property the view's own height
-                    // feeds back into.
+                    // Sized off the count, not contentHeight, which would
+                    // feed back into the view's own height.
                     height: Math.min(root.rankedEntries.length * Theme.entryHeight, root.listMaxHeight)
                     visible: !root.previewMode && root.rankedEntries.length > 0 && !root.prompting && !root.confirming
 
-                    // Growing from one Entry tall to its real height is the
-                    // last step of an open, and it happens after open() has
-                    // returned -- so this, not open() alone, is what guarantees
-                    // the view is positioned against the geometry it ended up
-                    // with rather than the one it started from.
+                    // The last step of an open (growing to real height)
+                    // happens after open() returns, so this -- not open()
+                    // alone -- positions the view against its final geometry.
                     onHeightChanged: root.reassertView()
 
                     clip: true
                     model: root.rankedEntries
                     reuseItems: true
 
-                    // The Query field owns the keyboard; root.setHighlight is
-                    // the only thing that moves the highlight. Declared rather
-                    // than left to default, so this view cannot start eating
-                    // arrow keys if it ever ends up focusable.
+                    // root.setHighlight is the only thing that moves the
+                    // highlight; declared false so this view can't start
+                    // eating arrow keys if it ever becomes focusable.
                     keyNavigationEnabled: false
 
                     delegate: Rectangle {
@@ -1395,35 +982,23 @@ PanelWindow {
                         required property int index
                         required property var modelData
 
-                        // An Entry's icon is an icon-*theme* name, not a path,
-                        // so resolving it is the theme's job. The second
-                        // argument to iconPath is what turns a miss into an
-                        // empty string instead of a broken image -- the same
-                        // call the bar's NotificationItem makes. A window's
-                        // application id misses more often than an
-                        // application's own icon name, which costs a blank
-                        // slot and nothing else.
+                        // An icon-*theme* name, not a path -- resolving it is
+                        // the theme's job. `true` turns a miss into "" instead
+                        // of a broken image.
                         readonly property string iconSource: entry.modelData.icon ? Quickshell.iconPath(entry.modelData.icon, true) : ""
 
                         width: list.width
                         height: Theme.entryHeight
                         radius: Math.round(Theme.radius / 2)
-                        // Painted from root.highlightIndex, not from
-                        // list.currentIndex: the view's own index can be moved
-                        // by a model reassignment, and what is painted has to
-                        // be what Enter will act on.
+                        // From root.highlightIndex, not list.currentIndex: the
+                        // view's own index can be moved by a model
+                        // reassignment, and this has to match what Enter acts on.
                         color: entry.index === root.highlightIndex ? Theme.highlight : (pointer.containsMouse ? Theme.hover : "transparent")
 
-                        // Hover paints its own weaker tint rather than moving
-                        // currentIndex. Moving it would let a stationary
-                        // pointer fight the keyboard: delegates are recreated
-                        // under the cursor on every keystroke, so `entered`
-                        // fires without the pointer going anywhere and the
-                        // highlight would jump back under the mouse mid-type.
-                        //
-                        // Declared before the icon and the name, both of which
-                        // are non-interactive, so nothing above it steals the
-                        // click.
+                        // Hover paints its own tint rather than moving
+                        // currentIndex -- delegates are recreated under the
+                        // cursor on every keystroke, so moving it would let a
+                        // stationary pointer fight the keyboard.
                         MouseArea {
                             id: pointer
 
@@ -1431,12 +1006,10 @@ PanelWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
 
-                            // Clicking acts on what was clicked, not on what
-                            // the keyboard had highlighted -- and it means the
-                            // primary Action, asked for by slot rather than by
-                            // key, since a click carries no modifiers. Both
-                            // routes go through runAction, so the pointer
-                            // cannot end up doing something Return does not.
+                            // Acts on what was clicked, not what's highlighted
+                            // -- always the primary Action, since a click
+                            // carries no modifiers. Same runAction as the
+                            // keyboard, so a click can't do anything Return doesn't.
                             onClicked: root.runAction(entry.modelData, Actions.chordFor("primary"))
                         }
 
@@ -1447,23 +1020,16 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.leftMargin: Math.round(Theme.padding / 2)
 
-                            // Hidden rather than collapsed. An invisible Item
-                            // still anchors, so the name column stays put and
-                            // an application with no icon does not pull its
-                            // Entry out of line with the rest.
+                            // Hidden, not collapsed: an invisible Item still
+                            // anchors, so an entry with no icon doesn't pull
+                            // the name column out of line with the rest.
                             visible: entry.iconSource !== ""
                             source: entry.iconSource
                             implicitSize: Theme.entryIconSize
                         }
 
-                        // Two lines when the Provider supplies a sub-line, one
-                        // when it does not -- an invisible child takes no room
-                        // in a Column, so an application's Entry is laid out
-                        // exactly as it was before windows existed.
-                        //
-                        // The Column's width comes from its anchors, not from
-                        // its children, which is what lets both Texts bind to
-                        // parent.width to elide without a loop.
+                        // The Column's width comes from its anchors, not its
+                        // children, so both Texts can bind to parent.width to elide.
                         Column {
                             anchors.left: icon.right
                             anchors.right: parent.right
@@ -1500,43 +1066,27 @@ PanelWindow {
                     }
                 }
 
-                // The screenshots Provider's own view -- ticket 13, redesigned
-                // after the first host round: a thumbnail grid turned out to
-                // pick blind -- a filename and a timestamp are not enough to
-                // tell two screenshots apart before committing to one. This is
-                // a narrow list of names and dates on the left, paired with a
-                // single large preview of whichever one is highlighted on the
-                // right, so what Return is about to copy is what is on
-                // screen. A sibling to `list` rather than an attempt to make
-                // `list` itself two-column-capable: the two are mutually
-                // exclusive on `visible`, so exactly one is ever painting, and
-                // every touchpoint the highlight has to reach -- setHighlight,
-                // applyHighlight, reassertView, the height bound below --
-                // addresses whichever one that is rather than teaching one
-                // view two shapes.
-                //
-                // Also the cheaper design, incidentally: a grid decodes one
-                // thumbnail per visible cell -- dozens at once, and hundreds
-                // once scrolling -- where this decodes exactly one image at a
-                // time, whichever is highlighted. Checkbox 2's "without
-                // blocking typing" is easier to keep true this way, not
-                // harder.
+                // The screenshots Provider's own view: a narrow list of names
+                // and dates on the left, a single large preview of whichever
+                // is highlighted on the right (a grid turned out to pick
+                // blind -- filename and timestamp aren't enough to tell two
+                // screenshots apart). A sibling to `list`, not an attempt to
+                // make `list` two-column-capable: the two are mutually
+                // exclusive on `visible`, and every highlight touchpoint
+                // (setHighlight, applyHighlight, reassertView) addresses
+                // whichever one is showing. Also cheaper: this decodes one
+                // image at a time rather than a grid's one-per-visible-cell.
                 Item {
                     id: preview
 
                     width: parent.width
 
-                    // **The full available height, not the list's own.** Unlike
-                    // `list`, which grows with its Entries and is meant to, this
-                    // split stays the same size however many Entries match: the
-                    // right-hand pane is a picture, and a picture that resizes as
-                    // you type is unreadable at the moment it matters most --
-                    // narrowing to the single Entry you were aiming for shrank
-                    // the preview to one row tall, which is exactly when you want
-                    // to look at it. The left column keeps sizing to its content
-                    // (see previewList); only the split's outer height is pinned,
-                    // so the empty space lands below the names rather than
-                    // stretching them.
+                    // Full available height, not the list's own: unlike
+                    // `list`, this split stays the same size regardless of
+                    // match count, since a resizing preview pane is
+                    // unreadable exactly when narrowing to one Entry matters
+                    // most. Only the split's outer height is pinned; the left
+                    // column (previewList) still sizes to its own content.
                     height: root.listMaxHeight
                     visible: root.previewMode && root.rankedEntries.length > 0 && !root.prompting && !root.confirming
 
@@ -1547,37 +1097,26 @@ PanelWindow {
                         anchors.top: parent.top
                         width: Theme.previewListWidth
 
-                        // Sized and capped exactly like `list`'s own height --
-                        // see the note there. Deliberately *not* the split's
-                        // height: the names column ending after the last name is
-                        // what it should do, and only the pane beside it needs
-                        // pinning.
+                        // Sized/capped like `list`'s own height, but not the
+                        // split's height: the names column should end after
+                        // the last name, only the pane beside it needs pinning.
                         height: Math.min(root.rankedEntries.length * Theme.entryHeight, root.listMaxHeight)
 
                         onHeightChanged: root.reassertView()
 
                         clip: true
 
-                        // `root.previewMode ? root.rankedEntries : []`, not
-                        // `root.rankedEntries` unconditionally -- a delegate
-                        // can be instantiated for layout purposes even while
-                        // `visible` is false (invisible is not the same as
-                        // absent), and the preview pane below reads
-                        // `target.path`, which no non-screenshot Entry has.
-                        // Bound to the live pool regardless of mode, that
-                        // surfaced as `file://undefined` on every application
-                        // and window Entry the moment the Launcher opened on
-                        // the default pool, not only while "#" was typed -- an
-                        // empty model when this view is not the one showing is
-                        // what keeps it from ever seeing an Entry shape it
-                        // does not understand.
+                        // Empty, not `root.rankedEntries`, when not in preview
+                        // mode: a delegate can be instantiated for layout even
+                        // while invisible, and the preview pane reads
+                        // `target.path`, which non-screenshot Entries don't
+                        // have -- this previously surfaced as `file://undefined`
+                        // on every application/window Entry.
                         model: root.previewMode ? root.rankedEntries : []
                         reuseItems: true
 
-                        // Same reasoning as list's own: the Query field owns
-                        // the keyboard, root.setHighlight is the only thing
-                        // that moves the highlight, and this view must never
-                        // itself become focusable.
+                        // Same reasoning as `list`: the Query field owns the
+                        // keyboard, this view must never become focusable.
                         keyNavigationEnabled: false
 
                         delegate: Rectangle {
@@ -1595,11 +1134,8 @@ PanelWindow {
                             color: row.index === root.highlightIndex ? Theme.highlight : (pointer.containsMouse ? Theme.hover : "transparent")
 
                             // Marked Entries carry their own border regardless
-                            // of the highlight, so a mark stays visible as the
-                            // highlight arrows past it -- checkbox 5's
-                            // "visibly distinct from the highlighted one"
-                            // would not hold if marking and highlighting
-                            // painted the same way.
+                            // of highlight, so a mark stays visible as the
+                            // highlight arrows past it.
                             border.width: row.marked ? 2 : 0
                             border.color: Theme.markedBorder
 
@@ -1610,11 +1146,6 @@ PanelWindow {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
 
-                                // Same routing as the main list delegate's own
-                                // click -- the primary *slot*, not a
-                                // hardcoded chord, so clicking a row and
-                                // pressing Return over it cannot drift apart
-                                // on what they do.
                                 onClicked: root.runAction(row.modelData, Actions.chordFor("primary"))
                             }
 
@@ -1658,32 +1189,23 @@ PanelWindow {
                         anchors.right: parent.right
                         anchors.top: parent.top
 
-                        // The split's height rather than the list's, so the
-                        // image keeps its size as the Query narrows -- see the
-                        // note on `preview`.
+                        // The split's height, not the list's, so the image
+                        // keeps its size as the Query narrows -- see `preview`.
                         height: preview.height
 
                         color: Theme.hover
                         radius: Theme.radius
 
-                        // Which file the highlighted Entry wants previewed, or
-                        // "" for none. `target.preview` first, then
-                        // `target.path`: screenshots and backgrounds *are* the
-                        // image they preview, so their path is the answer,
-                        // while a theme is a directory of colour files whose
-                        // preview is a separate image beside it (ticket 18 --
-                        // see lib/themes.js). A theme that shipped no preview
-                        // has `preview: ""` and falls through to a `path` it
-                        // does not have, landing on "" -- which is the "No
-                        // selection" text below, and correct.
+                        // `target.preview` first, then `target.path`:
+                        // screenshots/backgrounds *are* the image they
+                        // preview, while a theme is a directory whose preview
+                        // is a separate image beside it. Falls through to ""
+                        // (the "No selection" text) when neither is set.
                         //
-                        // file:// with the path percent-encoded -- a plain
-                        // absolute path would also load under Qt, but a
-                        // screenshot filename with a space or a non-ASCII
-                        // character in it is exactly the case an unencoded
-                        // path silently mishandles. "" for nothing
-                        // highlighted, which Image treats as no source rather
-                        // than an error.
+                        // Percent-encoded: an unencoded path silently
+                        // mishandles a filename with a space or non-ASCII
+                        // character. "" for nothing highlighted, which Image
+                        // treats as no source rather than an error.
                         readonly property string previewFile: root.highlightedEntry
                             ? (root.highlightedEntry.target.preview || root.highlightedEntry.target.path || "") : ""
                         readonly property string previewSource: root.previewMode && previewPane.previewFile !== ""
@@ -1696,15 +1218,10 @@ PanelWindow {
                             fillMode: Image.PreserveAspectFit
                             visible: previewPane.previewSource !== ""
 
-                            // Both halves matter: `asynchronous` keeps
-                            // decoding off the thread that reads keystrokes --
-                            // checkbox 2 -- and `sourceSize` is what keeps a
-                            // 4K screenshot from being decoded at its full
-                            // resolution just to be shown at
-                            // Theme.previewImageSize. Only ever one of these
-                            // decoding at a time (whichever Entry is
-                            // highlighted), unlike a grid's one per visible
-                            // cell.
+                            // `asynchronous` keeps decoding off the keystroke
+                            // thread; `sourceSize` keeps a 4K screenshot from
+                            // decoding at full resolution just to show at
+                            // Theme.previewImageSize.
                             asynchronous: true
                             sourceSize.width: Theme.previewImageSize
                             sourceSize.height: Theme.previewImageSize
@@ -1725,21 +1242,16 @@ PanelWindow {
                     }
                 }
 
-                // Two different empty states, on purpose. A Provider that is
-                // not ready has not populated -- or its catalog binding never
-                // re-evaluated, which is ticket 04's named trap. An empty
-                // result set over a ready pool is just a Query that matches
-                // nothing. Collapsing both into one blank card makes those
-                // indistinguishable exactly when it matters.
-                //
-                // Named per Provider rather than hardcoded to applications,
-                // because "no windows" is an answer and "no applications" is a
-                // fault, and only the Provider knows which it is.
+                // Two different empty states on purpose: a Provider not ready
+                // hasn't populated yet (a fault, or at least a wait), while an
+                // empty result set over a ready pool is just a Query matching
+                // nothing. Named per Provider rather than hardcoded, since
+                // only the Provider knows which case it is.
                 Text {
                     width: parent.width
 
-                    // Suppressed while a prompt owns the line: an empty prompt
-                    // ("back to the plain id") is not "No matches".
+                    // Suppressed while a prompt owns the line: an empty
+                    // prompt isn't "No matches".
                     visible: root.rankedEntries.length === 0 && !root.prompting && !root.confirming
                     text: root.pending.length === 0 ? "No matches" : `Waiting for ${root.pending.join(" and ")}…`
                     color: Theme.muted
@@ -1748,26 +1260,16 @@ PanelWindow {
                     textFormat: Text.PlainText
                 }
 
-                // What the keys do here, in this Provider's own words. The
-                // checkbox is "visible without guessing", and the reason it is
-                // a checkbox is that the alternative is unknowable: an Action
-                // nobody can see is indistinguishable from one that does not
-                // exist, and a key that does nothing is indistinguishable from
-                // a key that is not bound.
-                //
-                // Bound to the *highlighted* Entry rather than to the pool,
-                // because that is whose Provider the keys will reach -- so
-                // arrowing from a window to an application changes "switch to"
-                // to "launch" while the key stays Return. That change is the
-                // visible proof the vocabulary is per Provider.
+                // What the keys do, in the highlighted Entry's own Provider's
+                // words -- bound to the highlighted Entry, not the pool, so
+                // arrowing from a window to an application changes "switch
+                // to" into "launch" while the key stays Return.
                 Row {
                     id: footer
 
                     spacing: Theme.padding
 
-                    // Nothing highlighted is nothing to act on. Also covers the
-                    // empty-Query-empty-pool case, where a footer would be
-                    // describing keys that reach no Entry.
+                    // Nothing highlighted is nothing to act on.
                     visible: root.highlightActions.length > 0
 
                     Repeater {
@@ -1780,8 +1282,8 @@ PanelWindow {
 
                             spacing: Math.round(Theme.padding / 3)
 
-                            // The key, louder than what it does: this line is
-                            // read to find a key, not to read a sentence.
+                            // The key, louder than what it does -- read to
+                            // find a key, not a sentence.
                             Text {
                                 text: Actions.hintOf(hint.modelData.chord)
                                 color: Theme.accent

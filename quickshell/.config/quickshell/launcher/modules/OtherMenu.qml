@@ -1,43 +1,24 @@
-// The other menu: the specific application invocations that no desktop entry
-// covers -- a browser profile, a database client wanting a secret, the two
-// zellij sessions.
-//
+// The other menu: specific application invocations no desktop entry covers
+// (a browser profile, a database client wanting a secret, zellij sessions).
 // Data only -- see lib/menus.js for what a declaration may contain, and
-// Menu.qml for the Provider that runs them. Ported from
-// elephant/.config/elephant/menus/other.toml (deleted with ticket 19), whose
-// commented-out entries are
-// deliberately not ported: they are not entries this menu has today.
+// Menu.qml for the Provider that runs them.
 //
-// This menu is where the port had to decide per entry, and the three shapes are
-// all here:
-//
-// - **Zen** named `uwsm-app` itself, because elephant applied no launch prefix.
-//   Menu.qml applies it now, so the data must not -- keeping it would run
-//   `uwsm-app -- uwsm-app -- flatpak run …`.
-// - **Compass** substitutes a command, `$(pass env/mongodb_uri)`, so it is a
-//   `shell` declaration. It is the only entry in the four menus that genuinely
-//   needs one.
-// - **The three df-launch-special-app entries** pass a whole command line as a
-//   single argument, one of them with quotes inside it. Those were shell
-//   quoting before and are one array element now, which is stronger: nothing
-//   re-splits them. The script hands that argument on to Hyprland's exec
-//   dispatcher, which is what parses it.
-//
-// The df-launch-special-app entries are `scoped: false` because the script does
-// not stay around -- it asks the compositor to spawn the terminal, so the
-// process that survives is the compositor's child, not one this could scope.
+// Three shapes of entry here:
+// - Zen: a plain `command` -- must not name `uwsm-app` itself, since Menu.qml
+//   already applies the launch prefix.
+// - Compass: a `shell` declaration, since it substitutes a command
+//   (`$(pass env/mongodb_uri)`) -- the only entry across these menus that needs one.
+// - The df-launch-special-app entries: a whole command line as one array
+//   element (Hyprland's exec dispatcher parses it), `scoped: false` because
+//   the script itself doesn't stay around -- it asks the compositor to spawn
+//   the terminal, so the surviving process is the compositor's child, not
+//   one this could scope.
 Menu {
     label: "other"
     description: "Everything that fits nowhere else"
     subtext: "Other"
 
-    // None of the five entries declares an icon, and none did in the TOML
-    // either -- they inherited the menu's, because elephant fell an entry's
-    // icon back to its menu's
-    // (resources/elephant/internal/providers/menus/setup.go:369-372 -- that
-    // checkout is deleted with ticket 19). So this
-    // is what they render as today, and dropping it would have been five blank
-    // slots that nothing in the port would have called a change.
+    // None of the five entries declares an icon; they fall back to the menu's own.
     icon: "applications-other"
 
     entries: [

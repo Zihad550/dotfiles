@@ -1,17 +1,12 @@
-// How a window is named, found and described.
+// How a window is named, found and described. This is where the Provider's
+// promise actually lives -- that typing the name of something already
+// running offers the window rather than a second copy -- decided entirely by
+// which strings a window is matched against. A wrong answer here looks like
+// a preference, not a fault.
 //
-// Split out of Windows.qml for the same reason matching.js is split out of the
-// Launcher: this is where the Provider's promise actually lives -- that typing
-// the name of something already running offers the window rather than the
-// application that would launch a second copy -- and that promise is decided by
-// which strings a window is matched against. A wrong answer here looks like a
-// preference, not a fault, which is the class of bug this repo puts under test.
-//
-// Free of QML types, and no `.pragma library` (a syntax error under node), for
-// the same reasons given at the top of matching.js.
+// Free of QML types, no `.pragma library` -- see the top of matching.js.
 
-// What to show, and the first thing to match against. A window that has not
-// set a title yet is still worth offering under its application id.
+// A window with no title yet is still worth offering under its application id.
 function nameFor(title, appId) {
     if (title)
         return title;
@@ -21,8 +16,7 @@ function nameFor(title, appId) {
 }
 
 // The last segment of a reverse-DNS application id -- "firefox" from
-// "org.mozilla.firefox", "Zed" from "dev.zed.Zed". Empty when there is nothing
-// to shorten, which is the common case for an X11 class or a plain id.
+// "org.mozilla.firefox". Empty when there's nothing to shorten.
 function shortIdOf(appId) {
     if (!appId)
         return "";
@@ -32,22 +26,14 @@ function shortIdOf(appId) {
     return appId.slice(at + 1);
 }
 
-// Every string a window can be found by, as separate corpus texts.
+// Separate corpus texts, never concatenated: score() penalises a long
+// haystack, so folding the application id into the title would leave the
+// window below the application that shares its name.
 //
-// Separate, never concatenated: score() penalises a long haystack, so folding
-// an application id into a window title would leave the window below the
-// application that shares its name. Elephant scored the same two fields
-// separately and kept the better
-// (resources/elephant/internal/providers/windows/setup.go:207 -- that checkout
-// is deleted with ticket 19).
-//
-// The name first -- the rule stated in lib/catalog.js's keylessCatalog, which
-// is what builds this Provider's catalog -- then the application id, then the
-// short id, the text that delivers the ticket's promise. Typing "firefox"
-// scores the application "Firefox" at full marks and "org.mozilla.firefox"
-// well below it; a "firefox" text scores the window the same as the
-// application, and the pool order in Launcher.qml -- windows before
-// applications -- then puts the running window on top.
+// Name first (keylessCatalog's rule), then the application id, then the
+// short id -- the text that delivers the promise: typing "firefox" scores
+// the window the same as the application, and pool order (windows before
+// applications) puts the running window on top.
 function textsFor(item, entry) {
     var texts = [entry.name];
 
@@ -61,9 +47,8 @@ function textsFor(item, entry) {
     return texts;
 }
 
-// Where a window is, in words. Hyprland names special workspaces "special" and
-// "special:<name>", which read as themselves; a numbered workspace needs the
-// word to mean anything. Empty when the compositor did not say.
+// Hyprland's "special"/"special:<name>" already read as themselves; a
+// numbered workspace needs the word "workspace" to mean anything.
 function whereFor(workspace) {
     if (!workspace)
         return "";
@@ -72,9 +57,8 @@ function whereFor(workspace) {
     return "workspace " + workspace;
 }
 
-// The sub-line: which application, and where. The workspace half is not
-// decoration -- it is what tells you the window you are about to switch to is
-// on a special workspace rather than the one in front of you.
+// The workspace half isn't decoration -- it's what says the window you're
+// about to switch to is on a special workspace, not the one in front of you.
 function subtextFor(appId, workspace) {
     var parts = [];
     if (appId)
@@ -87,27 +71,11 @@ function subtextFor(appId, workspace) {
     return parts.join(" · ");
 }
 
-// One window, as the shape Windows.qml's catalog wants. `item` is what the
-// compositor reported about it -- `{ title, appId, workspace, target }` -- in
-// the order the compositor reported them.
+// `item` is `{ title, appId, workspace, target }` as the compositor reported it.
 //
-// The provider argument is the QML Provider, carried on the Entry so the
-// window can dispatch an Action without knowing which Provider it came from;
-// nothing here reads anything off it.
-//
-// No `key`, deliberately: an Entry Key has to survive a restart and a window
-// address does not, so this Provider accumulates no Frecency and ranks on
-// match score alone. The shell reads whatever the Entry carries and treats a
-// missing key as nothing to record, so the absence is the whole opt-out --
-// there is no flag to set, and keylessCatalog (lib/catalog.js) is what keeps
-// the corpus keyless to match.
-//
-// `name` is the first corpus text, which is what makes it the Entry's name --
-// the rule stated in lib/catalog.js. An icon-*theme* name is carried too,
-// resolved by the Launcher window rather than here, exactly as an
-// application's is. Reverse-DNS ids are usually installed under their own
-// name; when the lookup misses, the Entry keeps a blank icon slot and nothing
-// else changes.
+// No `key`: an Entry Key has to survive a restart and a window address
+// doesn't, so this Provider ranks on match score alone -- keylessCatalog
+// keeps the corpus keyless to match.
 function entryFor(item, provider) {
     var name = nameFor(item.title, item.appId);
 

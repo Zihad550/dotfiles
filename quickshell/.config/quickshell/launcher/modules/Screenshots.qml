@@ -5,49 +5,30 @@ import "../lib/matching.js" as Matching
 import "../lib/screenshots.js" as Shots
 
 // The screenshots Provider: pick a screenshot from a list of names and dates
-// with a live preview of whichever one is highlighted, mark several, and act
-// on all of them at once -- the other half of ticket 12's abstraction
-// stress-test, and the capability docs/launcher-spec.md names as the reason a
-// custom layout was impossible under walker (entries there render as one
-// uniform row).
+// with a live preview of whichever is highlighted, mark several, act on all
+// at once. Provider interface: see docs/launcher-spec.md ("layout: preview"
+// and the `mark` slot).
 //
-// **Redesigned after the first host round.** The original shape here was a
-// grid of thumbnails; a filename and a timestamp under a small thumbnail
-// turned out not to be enough to tell two screenshots apart before
-// committing to one, so this is a narrow list on the left and a single large
-// preview of the highlighted Entry on the right -- see the header on the
-// preview split in Launcher.qml for the rest of that reasoning. Nothing
-// about the Provider side changed: the catalog, the Actions and the marking
-// mechanism below are exactly what a grid layout would need too, because
-// none of it assumes a shape for how an Entry is drawn.
+// A narrow list on the left, a single large preview of the highlighted Entry
+// on the right (a thumbnail grid turned out to pick blind -- see the header
+// on the preview split in Launcher.qml). Nothing about the Provider side
+// depends on that layout choice: catalog, Actions and marking below would
+// work the same under a grid.
 //
-// The Provider interface it fills is documented at the top of
-// Applications.qml, including the two additions this ticket makes to it:
-// `layout: "preview"` and filling the `mark` slot.
+// Reached only through its own prefix, out of `pool`: a two-column layout
+// mixed into a one-line-per-Entry ranked list wouldn't be legible either way.
+// `previewMode` in Launcher.qml only renders it when this Provider owns the
+// whole pool, which prefix routing guarantees.
 //
-// **Reached only through its own prefix**, the same arrangement as
-// Directories.qml and for a related but different reason: that Provider stays
-// out of `pool` because scoring ~17,000 paths on every keystroke is too slow
-// to pay by default; this one stays out because its two-column layout mixed
-// into a one-line-per-Entry ranked list makes neither legible. Launcher.qml's
-// `previewMode` only ever renders it when this Provider owns the whole pool,
-// which prefix routing (or Directories-style nesting, unused here) is what
-// guarantees.
+// Marking is owned here, not by the shell: lib/actions.js declares the
+// `mark` slot and its Tab chord, but has nowhere to keep "which Entries are
+// marked" that wouldn't leak between Providers, so the selection lives on
+// this Provider (mirroring Directories.qml's `openFor`). `active`, bound to
+// Launcher.qml's `root.visible`, clears it the moment the Launcher closes so
+// a mark never reaches a later session.
 //
-// **Marking, owned here rather than by the shell.** lib/actions.js declares
-// the `mark` slot and its Tab chord, but has nowhere itself to keep "which
-// Entries are marked" that would not leak between Providers -- so the
-// selection and its toggle both live on the Provider whose Entries they mark,
-// mirroring Directories.qml's own `openFor`. `active`, bound to
-// Launcher.qml's `root.visible` the same way, is what makes a mark vanish the
-// moment the Launcher closes and never reach a later session -- the exact bug
-// docs/launcher-spec.md's problem statement opens with, which existed only
-// because df-screenshot-mark (deleted with ticket 19) kept the selection in
-// a runtime file nothing owned.
-//
-// `marked` is reassigned wholesale on every toggle rather than mutated in
-// place -- a QML `property var` only notifies on assignment, and the list
-// delegate's border would not repaint against a mutated object.
+// `marked` is reassigned wholesale on every toggle, not mutated in place: a
+// QML `property var` only notifies on assignment.
 QtObject {
     id: root
 
@@ -59,19 +40,17 @@ QtObject {
     readonly property string home: Quickshell.env("HOME")
     readonly property string dir: Shots.screenshotsDir(root.home)
 
-    // Whether the Launcher window is open, handed down the same way
-    // Directories.qml's own `active` is -- required, so a Provider bound to
-    // nothing fails loudly instead of silently carrying marks into every
-    // future session.
+    // Required so a Provider bound to nothing fails loudly instead of
+    // silently carrying marks into a future session.
     required property bool active
     onActiveChanged: {
         if (!root.active)
             root.marked = ({});
     }
 
-    // The selection: a plain object keyed by absolute path. Empty is "nothing
-    // marked", which both the secondary Action and the delegate treat as
-    // meaningfully different from "the empty set" -- see copyPaths.
+    // Keyed by absolute path. Empty means "nothing marked", which the
+    // secondary Action treats as meaningfully different from an explicit
+    // empty set -- see copyPaths.
     property var marked: ({})
 
     function toggleMark(entry) {
@@ -84,14 +63,11 @@ QtObject {
         root.marked = next;
     }
 
-    // Never "not ready" -- an empty ~/Pictures/Screenshots is a legitimate
-    // state (nobody has taken one yet), not a fault to report. Same reasoning
-    // as the windows and directories Providers' own `ready`.
+    // Never "not ready": an empty ~/Pictures/Screenshots is legitimate (no
+    // screenshot taken yet), not a fault.
     readonly property bool ready: true
 
-    // Fed by the Process below. A plain string rather than the parsed list,
-    // so re-parsing only happens in the one binding that needs it -- the same
-    // shape Directories.qml's `cacheText` is.
+    // A plain string, not the parsed list, so re-parsing happens only where needed.
     property string listingText: ""
     readonly property var items: Shots.parseListing(root.listingText)
 
@@ -104,12 +80,9 @@ QtObject {
         console.log("launcher: screenshots Provider sees", root.items.length, "screenshot(s) in", root.dir);
     }
 
-    // Read once, so the corpus rank() scores is always the entry list it was
-    // prepared from -- the same reasoning as every other catalog here.
-    // Depends on `root.marked` as well as `root.items`: toggling a mark has
-    // to reach the Entry Launcher.qml's preview list delegate reads
-    // `target.marked` off, and a catalog that did not depend on the
-    // selection would go on showing the old tick.
+    // Depends on `root.marked` as well as `root.items`: the preview list
+    // delegate reads `target.marked` off the Entry, and a catalog that
+    // ignored the selection would go on showing a stale tick.
     readonly property var catalog: {
         const built = Shots.catalogOf(root.items, root.marked, root);
         return {
@@ -118,12 +91,7 @@ QtObject {
         };
     }
 
-    // Which slots this Provider fills: copy the image, copy the path(s),
-    // toggle the mark. No `back` -- there is no sub-view to leave.
-    //
-    // `mark`'s own slot default is already "stay" (lib/actions.js) -- this
-    // Provider is the reason that default exists alongside `back`'s -- so
-    // nothing here has to override `after`.
+    // copy the image, copy the path(s), toggle the mark. No `back` -- no sub-view to leave.
     readonly property var actions: ({
         primary: {
             label: "copy image",
@@ -141,31 +109,24 @@ QtObject {
         }
     })
 
-    // The primary Action.
     function copyImage(entry): void {
         Quickshell.execDetached(Shots.copyImageArgv(entry.target.path));
 
-        // Copying ends the selection, the same way df-screenshot-copy (deleted
-        // with ticket 19) always did -- otherwise a mark made before a plain
-        // Return would still be marked the next time this Provider is reached
-        // in the same session.
+        // Copying ends the selection -- otherwise a mark from before a plain
+        // Return would still be marked next time this Provider is reached in
+        // the same session.
         root.marked = ({});
     }
 
-    // The secondary Action: every marked path, or just the highlighted one
-    // when nothing is marked -- checkbox 4's whole rule, and the reason
-    // `marked` is read here rather than threaded through as an argument
-    // nothing else in the Core Action vocabulary needs.
+    // Every marked path, or just the highlighted one when nothing is marked.
     function copyPaths(entry): void {
         const paths = Object.keys(root.marked);
         Quickshell.execDetached(Shots.copyPathsArgv(paths.length > 0 ? paths : [entry.target.path]));
         root.marked = ({});
     }
 
-    // Optional on the Provider interface: ask the source for what it may not
-    // have yet. Called at startup and again on every open, the same as the
-    // windows and directories Providers -- a screenshot taken since the
-    // Launcher last opened should be in the list the next time it does.
+    // Called at startup and on every open, so a screenshot taken since the
+    // Launcher last opened shows up.
     function refresh(): void {
         if (finder.running)
             return;
@@ -175,9 +136,7 @@ QtObject {
 
     Component.onCompleted: root.refresh()
 
-    // Assigned to a property rather than nested bare, the same reason
-    // Calculator.qml's own Process is: QtObject has no default property to
-    // nest a child into.
+    // QtObject has no default property to nest a child into.
     readonly property Process finder: Process {
         id: finder
 
@@ -186,19 +145,13 @@ QtObject {
             onStreamFinished: root.listingText = output.text
         }
 
-        // Collected and dropped, the same as Calculator.qml's qalc: `find`
-        // writes a diagnostic per unreadable entry, which would otherwise put
-        // a line in the log on every refresh rather than only when it matters
-        // -- an empty list already says plainly that nothing was found.
+        // Collected and dropped: `find` writes a diagnostic per unreadable
+        // entry, which an empty list already covers without a log line per refresh.
         stderr: StdioCollector {}
 
-        // Settled again here, on purpose, and not a duplicate of the
-        // collector's own handler -- the same reasoning as Calculator.qml's
-        // qalc.onExited. Which of `onStreamFinished` and `onExited` fires
-        // first is not something this file gets to assume, so both settle the
-        // same text; a process that exits before its stream drains would
-        // otherwise leave `listingText` on whatever it was before this
-        // refresh, silently, rather than on what `find` actually found.
+        // Not a duplicate of onStreamFinished: which fires first isn't
+        // guaranteed, and a process exiting before its stream drains would
+        // otherwise leave `listingText` stale.
         onExited: root.listingText = output.text
     }
 }
