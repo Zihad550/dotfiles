@@ -114,6 +114,12 @@ PopupWindow {
                 width: rows.width
             }
 
+            // Same reasoning as TailscaleRow above -- the row itself keeps
+            // showing the flipped state as it settles.
+            DevcontainerRoutingRow {
+                width: rows.width
+            }
+
             Volume {
                 width: rows.width
                 onCloseRequested: root.shown = false

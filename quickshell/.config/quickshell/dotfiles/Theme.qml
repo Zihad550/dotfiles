@@ -29,7 +29,11 @@ Singleton {
     readonly property int edgeMargin: 8
 
     // Gear menu: total popup width, inner padding, height of one row's header.
-    readonly property int menuWidth: 240
+    // Widened from 240 for DevcontainerRoutingRow: at 240, its label, toggle,
+    // and the resolved host "devcontainer.devpod" (the default -- see ticket
+    // 03) elided past legibility. Tailscale's toggle never faced this, since
+    // its detail is always short or blank.
+    readonly property int menuWidth: 360
     readonly property int menuPadding: 10
     readonly property int menuRowHeight: 30
 
