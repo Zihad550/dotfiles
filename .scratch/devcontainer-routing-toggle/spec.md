@@ -103,9 +103,22 @@ format neither side currently needs.
 to stream — the state is just a file's existence and contents — so no
 long-lived `Process` is needed. The row's `detail` text shows the resolved
 host when on (the custom host if set, otherwise `devcontainer.devpod`) and
-is blank when off, giving the "which host" story (13/14) a place to live
-without a live text field in the panel (that was explicitly considered and
-declined — see Out of Scope).
+is blank when off, giving the "which host" story (13/14) a place to live.
+
+**Revision (ticket 05): the row also gains an inline text field for the
+custom host, shown only while routing is on.** The original spec declined
+this as "real QML work for something set rarely" and left the host as a
+hand-edited file only; reversed because the file-editing path turned out to
+be friction the toggle itself doesn't have — the row already tells you
+*which* host is active, so being unable to change it from the same place
+was an inconsistent affordance, not a scope saving. Editing on `Enter` or on
+losing focus writes the trimmed value to `devcontainer-host` (`printf`
+through `execDetached`, argv-passed rather than shell-interpolated, same
+approach the toggle click already uses); an empty field writes an empty
+file, which the state file's own contract already treats as "use the
+default." Hidden while routing is off, so the field is never visible
+suggesting an effect it wouldn't have — nothing reads the host file until
+the toggle is on.
 
 **No dynamic detection is added.** Whether devpod is installed, whether a
 container is running, whether `devcontainer.json` exists in the current
@@ -159,9 +172,6 @@ ticked from "the code looks right."
 
 - **Per-surface toggles.** One shared switch only; a per-tool matrix was
   considered and rejected (see the ADR).
-- **A live hostname text field inside the Quick Settings row.** The custom
-  host is set by hand-editing its state file; an in-panel editable field was
-  considered and declined as real QML work for something set rarely.
 - **An env var or CLI interface for the toggle.** Quick Settings is the only
   surface; the underlying state file can still be edited by hand, but no
   command is built to do it.
