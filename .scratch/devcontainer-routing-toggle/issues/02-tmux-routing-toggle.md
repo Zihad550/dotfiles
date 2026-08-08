@@ -22,14 +22,18 @@ a flag passed in.
 
 **Blocked by:** None — can start immediately
 
-- [ ] With the enabled flag absent, running the script with stubbed
+**Status:** needs-info — all four stub-based checkboxes closed from the
+container; the two real-devpod ones need a host with tmux and a devpod
+workspace. See **Comments**.
+
+- [x] With the enabled flag absent, running the script with stubbed
       `ssh`/`tmux` never invokes `ssh` at all — only the local window is
       created
-- [ ] With the flag present, path under the allowlist, no custom host: the
+- [x] With the flag present, path under the allowlist, no custom host: the
       stubbed `ssh` is invoked targeting `devcontainer.devpod`
-- [ ] With the flag present, path under the allowlist, custom host set: the
+- [x] With the flag present, path under the allowlist, custom host set: the
       stubbed `ssh` is invoked targeting the custom host instead
-- [ ] With the flag present, path outside the allowlist: the stubbed `ssh`
+- [x] With the flag present, path outside the allowlist: the stubbed `ssh`
       is never invoked — local window only
 - [ ] Real devpod verification: routing off leaves a stopped workspace
       stopped (no auto-start triggered)
@@ -63,3 +67,35 @@ real devpod workspace and tmux.
    ```
    *Pass:* window one is an SSH shell on `devcontainer.devpod` (or the
    configured custom host) inside `~/dotfiles`; window two is local.
+
+## Comments
+
+Implemented in `bin/df-tmux-session`: reads `toggles/devcontainer-routing`
+(presence) and `devcontainer-host` (trimmed first line, blank/missing falls
+back to `devcontainer.devpod`), and re-checks the mirrored allowlist
+(`~/dev`, `~/dotfiles`, `~/.agents`) itself, per the spec's Implementation
+Decisions — no flag passed in from either caller. Routed (enabled **and**
+mirrored): the original two-window session, ssh command built the same way
+as before. Not routed: a single local window only, where the script
+previously always opened a second, ssh window regardless.
+
+The four stub-based checkboxes were run inside the container with a stub
+`ssh` and a stub `tmux` whose `new-session` evaluates the pane command it's
+handed (the same technique ticket 03 used for quoting), so the ssh
+invocation and its target host are observed directly rather than inferred
+from the command string. All four passed. The remaining two need a real
+devpod workspace and tmux, so they're left to the host per the Manual
+verification block above.
+
+Confirmed against `hypr/.config/hypr/lua/bindings/apps.lua`'s `SUPER + U`
+binding: it passes `$HOME/dotfiles` as a plain resolved absolute path (no
+`~`, no trailing slash), so `is_mirrored`'s exact-root case arm matches it
+directly — no normalization needed for the one real caller that invokes this
+script with no computed decision.
+
+Code review (`/code-review`, fixed point `HEAD`) flagged two things, both
+fixed: the custom host was interpolated into the remote command unquoted,
+so a hostname containing a space in the state file would have been
+word-split into two `ssh` arguments; it now goes through the same `sq`
+quoting as the path. The file header comment also ran long against
+CLAUDE.md's "a line or two" rule; trimmed to a pointer at the ADR/spec.
