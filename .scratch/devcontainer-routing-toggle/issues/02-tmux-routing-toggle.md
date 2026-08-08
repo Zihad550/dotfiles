@@ -22,9 +22,8 @@ a flag passed in.
 
 **Blocked by:** None — can start immediately
 
-**Status:** needs-info — all four stub-based checkboxes closed from the
-container; the two real-devpod ones need a host with tmux and a devpod
-workspace. See **Comments**.
+**Status:** done — all six checkboxes closed, the two real-devpod ones
+verified on the host. See **Comments**.
 
 - [x] With the enabled flag absent, running the script with stubbed
       `ssh`/`tmux` never invokes `ssh` at all — only the local window is
@@ -35,9 +34,9 @@ workspace. See **Comments**.
       stubbed `ssh` is invoked targeting the custom host instead
 - [x] With the flag present, path outside the allowlist: the stubbed `ssh`
       is never invoked — local window only
-- [ ] Real devpod verification: routing off leaves a stopped workspace
+- [x] Real devpod verification: routing off leaves a stopped workspace
       stopped (no auto-start triggered)
-- [ ] Real devpod verification: routing on connects the SSH window to the
+- [x] Real devpod verification: routing on connects the SSH window to the
       configured host, same as before this ticket when unconfigured
 
 ## Manual verification
@@ -99,3 +98,11 @@ so a hostname containing a space in the state file would have been
 word-split into two `ssh` arguments; it now goes through the same `sq`
 quoting as the path. The file header comment also ran long against
 CLAUDE.md's "a line or two" rule; trimmed to a pointer at the ADR/spec.
+
+The two real-devpod checkboxes, the custom-host case, the outside-allowlist
+case, and the real `SUPER+U` keybind itself were all run on the host and
+passed: routing off left a stopped workspace stopped with one local window;
+routing on connected window one to `devcontainer.devpod`, then to a
+configured custom host, then correctly fell back to the default once that
+file was removed; a path outside the allowlist stayed local-only even with
+routing on. All six checkboxes closed.
