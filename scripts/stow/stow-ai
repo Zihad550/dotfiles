@@ -13,7 +13,11 @@ cd "$DOTFILES" || exit
 stow opencode
 
 # kilocode
-stow kilocode
+# ~/.kilocode must be a real directory, not the single folded symlink `stow
+# kilocode` would produce for it — otherwise every ln -snf below (and any
+# runtime file kilo itself writes there) lands inside the dotfiles repo.
+mkdir -p ~/.kilocode
+stow -d kilocode -t ~/.kilocode .kilocode
 ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.kilocode/agent
 ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.kilocode/command
 ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.kilocode/AGENTS.md
