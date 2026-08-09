@@ -106,8 +106,9 @@ Settings.
 _Avoid_: gear menu, settings menu, control centre, tray
 
 **Gear**:
-The bar item that opens Quick Settings. The button, never the panel — which is
-why the panel is not named after it.
+The bar item that opens Quick Settings on click. The button, never the panel —
+which is why the panel is not named after it. `SUPER+CTRL+A` opens the same
+panel without it, on whichever monitor is focused.
 _Avoid_: cog, settings button
 
 **Row**:

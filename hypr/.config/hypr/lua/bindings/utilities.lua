@@ -8,6 +8,15 @@ o.bind("SUPER + SHIFT + COMMA","Dismiss all notifications", "qs -c dotfiles ipc 
 o.bind("SUPER + CTRL + COMMA", "Toggle silencing notifications",
     "qs -c dotfiles ipc call notifications toggleDnd")
 
+-- Quick Settings
+-- Windows' Quick Settings shortcut is SUPER+A, but that combo already opens
+-- the Claude webapp (bindings/apps.lua) and SUPER+COMMA is already the
+-- notification-dismiss family above -- see docs/adr/0004-quicksettings-keybind.md.
+-- Dispatches straight into the running bar process, same reasoning as
+-- rename-workspace below -- see the "quicksettings:toggle" GlobalShortcut in
+-- quickshell/.config/quickshell/dotfiles/shell.qml.
+o.bind("SUPER + CTRL + A", "Quick Settings", hl.dsp.global("quicksettings:toggle"))
+
 -- Workspaces
 -- Dispatches straight into the running Launcher process, which opens as a
 -- rename prompt for the focused workspace -- see the "rename-workspace"

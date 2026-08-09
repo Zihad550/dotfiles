@@ -8,6 +8,13 @@ PanelWindow {
     required property var modelData
     screen: modelData
 
+    // Snapshotted imperatively, not left as a live binding on modelData.name:
+    // on monitor unplug the ShellScreen can fire its own change signals
+    // while tearing down, which a `: modelData.name` binding would still be
+    // subscribed to. Assigning once here freezes the value before that.
+    property string monitorName
+    Component.onCompleted: bar.monitorName = modelData.name
+
     anchors {
         top: true
         left: true
@@ -54,5 +61,11 @@ PanelWindow {
         id: quickSettings
 
         target: gear
+
+        // Lets SUPER+CTRL+A (hypr/.config/hypr/lua/bindings/utilities.lua)
+        // find this monitor's panel via shell.qml's GlobalShortcut -- see
+        // QuickSettingsRegistry.qml.
+        Component.onCompleted: QuickSettingsRegistry.register(bar.monitorName, quickSettings)
+        Component.onDestruction: QuickSettingsRegistry.unregister(bar.monitorName, quickSettings)
     }
 }
