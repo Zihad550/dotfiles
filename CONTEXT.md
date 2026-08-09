@@ -121,3 +121,15 @@ Content that replaces the rows of Quick Settings in the same window, reached
 from a row and left by a back arrow. Not a second window and not a submenu —
 the panel is showing something else for a while.
 _Avoid_: popup, submenu, screen, view, flyout
+
+**Flyout**:
+A popup anchored under the bar entry that opened it, listing rows to act on,
+dismissed by picking one or by clicking outside. One shared component,
+`Flyout`, holds the chrome — `PopupWindow`, focus grab, reopen-debounce,
+bordered `Column` of rows — behind both the special-workspaces Flyout and
+the scrolling-workspace window list. Not a Page: a Page replaces Quick
+Settings' own rows in the same window, while a Flyout is a second window
+anchored under the entry that opened it. Not a Chooser: a Chooser is a
+Launcher concept, replacing entries in the query window rather than opening
+one of its own.
+_Avoid_: dropdown, submenu, menu, popup, page
