@@ -46,8 +46,10 @@ apps in your live session):
 
 ```
 # Open a second special workspace alongside the existing one (SUPER+U
-# already opened "herdr"; SUPER+O opens "obsidian" as a second one):
-# press SUPER+O, then SUPER+O again to toggle it open if it starts closed
+# already opened "herdr"; SUPER+O opens/toggles "obsidian" as a second one).
+# Press SUPER+O once. If it doesn't appear (toggled shut instead of open),
+# check `hyprctl activeworkspace -j` for "special:obsidian" -- if it's not
+# there, press SUPER+O again.
 ```
 
 Pass looks like:
