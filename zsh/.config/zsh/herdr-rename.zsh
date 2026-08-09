@@ -39,8 +39,11 @@ _herdr_rename_tab() {
     current="${info#*$'\t'}"
 
     # Strip the "N:" prefix we prepend so a tab renumbering (e.g. an earlier
-    # tab closing) isn't mistaken for a manual rename below.
-    local current_label="${current#${number}:}"
+    # tab closing) isn't mistaken for a manual rename below. Match the
+    # prefix actually on $current, not the freshly computed $number -- a
+    # closed tab shifts $number before $current's stored label catches up.
+    local current_label="$current"
+    [[ "$current" =~ ^([0-9]+): ]] && current_label="${current#${match[1]}:}"
 
     # Label drifted from what we last set -> renamed by hand since; stop
     # touching it, same as tmux's automatic-rename going off on manual rename.
