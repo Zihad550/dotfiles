@@ -74,34 +74,6 @@ Row {
     Repeater {
         model: root.normals
 
-        delegate: Item {
-            id: button
-
-            required property var modelData
-
-            readonly property bool empty: button.modelData.toplevels.values.length === 0
-            readonly property bool isActive: button.modelData.active
-
-            implicitWidth: Math.max(name.implicitWidth, 9) + 12 // padding: 0 6px
-            implicitHeight: Theme.barHeight
-
-            Text {
-                id: name
-
-                anchors.centerIn: parent
-                text: button.modelData.name
-                color: Theme.foreground
-                opacity: button.isActive ? 1.0 : (button.empty ? 0.5 : 0.75)
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize
-                font.bold: button.isActive
-                textFormat: Text.PlainText
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: button.modelData.activate()
-            }
-        }
+        delegate: Workspace {}
     }
 }
