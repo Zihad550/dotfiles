@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Reload herdr's live config (used by dotfiles theme switching). Reloads
+# every *running* session, not the default socket -- see
+# docs/adr/0003-tmux-to-herdr.md.
+#
+# Best-effort by design (no -e): a hiccup here must never abort the
+# df-theme-set caller partway through its remaining steps.
+set -uo pipefail
+
+command -v herdr >/dev/null 2>&1 || exit 0
+
+sessions_json="$(herdr session list --json 2>/dev/null)" || exit 0
+
+echo "$sessions_json" | jq -r '.sessions[]? | select(.running) | .socket_path' 2>/dev/null |
+    while IFS= read -r socket; do
+        HERDR_SOCKET_PATH="$socket" herdr server reload-config >/dev/null 2>&1 || true
+    done
+
+exit 0

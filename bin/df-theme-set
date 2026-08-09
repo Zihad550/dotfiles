@@ -83,10 +83,6 @@ switch_theme() {
     mkdir -p ~/.config/lazygit
     ln -snf ~/.config/theme/lazygit.yml ~/.config/lazygit/config.yml
 
-    # Tmux theme symlink
-    mkdir -p ~/.config/tmux
-    ln -snf ~/.config/theme/tmux.conf ~/.config/tmux/tmux.theme.conf
-
     # Background: pick ~/.config/backgrounds/<theme>.<ext>
     BACKGROUND_PATH=""
     shopt -s nullglob
@@ -141,8 +137,8 @@ switch_theme() {
 
     hyprctl reload >/dev/null 2>&1 || true
 
-    if command -v df-restart-tmux &>/dev/null; then
-        df-restart-tmux
+    if command -v df-restart-herdr &>/dev/null; then
+        df-restart-herdr
     fi
 
     echo "Theme '$theme' is now active"

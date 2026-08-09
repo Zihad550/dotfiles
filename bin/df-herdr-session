@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+# Open a directory in herdr, routing into the devcontainer when the toggle
+# says to -- see docs/adr/0002-devcontainer-routing-toggle.md and
+# docs/adr/0003-tmux-to-herdr.md.
+#
+# Called by the Launcher's Herdr entry and directly by SUPER+U (ticket 03) --
+# neither hands in a routing decision, so this re-derives it itself. Args
+# are argv, never shell-words.
+#
+# --local (optional, must come first): force the local branch regardless of
+# the toggle/allowlist -- SUPER+U's fixed shortcut uses this. See
+# docs/adr/0003-tmux-to-herdr.md.
+force_local=false
+if [ "${1:-}" = "--local" ]; then
+    force_local=true
+    shift
+fi
+
+name="$1"
+path="$2"
+
+# Resolved once, before any `cd` below (a directory containing an entry
+# named "herdr" -- ~/dotfiles/herdr/ -- would otherwise shadow the real
+# binary), with a fallback: Hyprland's own exec hands this a PATH without
+# ~/.local/bin, so bare `command -v` alone silently fails here. See
+# docs/adr/0003-tmux-to-herdr.md.
+HERDR_BIN="$(command -v herdr || true)"
+if [ -z "$HERDR_BIN" ]; then
+    for candidate in \
+        "$HOME/.local/bin/herdr" \
+        "$HOME/.local/share/mise/installs/github-herdrdev-herdr/latest/herdr"
+    do
+        if [ -x "$candidate" ]; then
+            HERDR_BIN="$candidate"
+            break
+        fi
+    done
+fi
+if [ -z "$HERDR_BIN" ]; then
+    echo "df-herdr-session: herdr not found on PATH or in known install locations" >&2
+    exit 127
+fi
+
+STATE_DIR="$HOME/.local/state/dotfiles"
+ENABLED_FLAG="$STATE_DIR/toggles/devcontainer-routing"
+HOST_FILE="$STATE_DIR/devcontainer-host"
+
+# Fallback host, mirroring directories.js's SSH_HOST -- see spec.
+DEFAULT_SSH_HOST="devcontainer.devpod"
+
+# Duplicated from directories.js's MIRRORED, deliberately -- see
+# docs/adr/0003-tmux-to-herdr.md.
+MIRRORED=("dev" "dotfiles" ".agents")
+
+routing_enabled() {
+    [ -e "$ENABLED_FLAG" ]
+}
+
+is_mirrored() {
+    local candidate="$1" root
+    for root in "${MIRRORED[@]}"; do
+        case "$candidate" in
+            "$HOME/$root" | "$HOME/$root"/*) return 0 ;;
+        esac
+    done
+    return 1
+}
+
+# Blank, missing, or unreadable falls back to DEFAULT_SSH_HOST.
+resolved_host() {
+    local line=""
+    if [ -r "$HOST_FILE" ]; then
+        IFS= read -r line <"$HOST_FILE" || true
+    fi
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    printf '%s' "${line:-$DEFAULT_SSH_HOST}"
+}
+
+routed=false
+if [ "$force_local" != true ] && routing_enabled && is_mirrored "$path"; then
+    routed=true
+fi
+
+if [ "$routed" = true ]; then
+    # herdr --remote attaches this whole client to a herdr server on the far
+    # end (bootstrapping it there over ssh if one isn't already running) --
+    # there's no equivalent of tmux's "-c path" here, so this opens wherever
+    # the remote server's own session already sits, not necessarily $path.
+    # See docs/adr/0003-tmux-to-herdr.md.
+    exec "$HERDR_BIN" --remote "$(resolved_host)" --session "$name"
+fi
+
+cd "$path"
+exec "$HERDR_BIN" --session "$name"

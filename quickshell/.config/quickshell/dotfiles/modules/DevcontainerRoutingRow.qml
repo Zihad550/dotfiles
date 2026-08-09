@@ -47,7 +47,7 @@ Column {
         icon: "󰡨"
         label: "Devcontainer"
         // "devcontainer.devpod" duplicated a third time (Dirs.SSH_HOST,
-        // df-tmux-session's DEFAULT_SSH_HOST) -- the two quickshell configs
+        // df-herdr-session's DEFAULT_SSH_HOST) -- the two quickshell configs
         // share no code, so this is the accepted fallback copy per the
         // spec/ADR, not drift.
         detail: root.routingEnabled ? (root.customHost || "devcontainer.devpod") : ""

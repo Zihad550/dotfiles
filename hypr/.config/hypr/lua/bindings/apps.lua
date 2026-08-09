@@ -43,18 +43,14 @@ o.bind("SUPER + SHIFT + D", "Docker", dotfiles_bin .. "/df-launch-tui lazydocker
 --     dotfiles_bin .. [[/df-launch-special-app "^lazydocker$" "ghostty -e lazydocker" "lazydocker"]])
 
 -- Special TUI sessions
--- SUPER+U: the directories Launcher's Tmux session for ~/dotfiles, run by the
--- session script it names (bin/df-tmux-session, tickets 02-03): window one an
--- ssh shell into the devcontainer at the same path, window two local. Wrapped
--- in df-launch-special-app for the focus-don't-duplicate behavior. The window
--- match key is --class=tmux, not the title: the directories Launcher's other
--- Tmux entries (quickshell/launcher/lib/directories.js) spawn ghostty windows
--- with no --title of their own, so once attached they fall back to Ghostty's
--- generic "tmux" title same as this one -- title alone can't tell them apart.
--- --class is set once at spawn and never rewritten, so it stays a unique key
--- for this window even after tmux takes over the title.
-o.bind("SUPER + U", "Tmux",
-    dotfiles_bin .. [[/df-launch-special-app "tmux" "ghostty --title=tmux --class=tmux -e ]] .. dotfiles_bin .. [[/df-tmux-session tmux ']] .. home .. [[/dotfiles'" "tmux"]])
+-- SUPER+U: local-only "herdr" session for ~/dotfiles via bin/df-herdr-session
+-- --local -- a fixed shortcut, so it never honors devcontainer routing the
+-- way the Launcher's per-directory Herdr entries do. No --class (rejected by
+-- this ghostty build); window matching relies on the bare "herdr" --title
+-- being unique, so a Launcher session literally named "herdr" would collide.
+-- See docs/adr/0003-tmux-to-herdr.md.
+o.bind("SUPER + U", "Herdr",
+    dotfiles_bin .. [[/df-launch-special-app "herdr" "ghostty --title=herdr -e ]] .. dotfiles_bin .. [[/df-herdr-session --local herdr ']] .. home .. [[/dotfiles'" "herdr"]])
 -- o.bind("SUPER + i", "Zellij",
 --     dotfiles_bin .. [[/df-launch-special-app 'work-zellij' 'ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit' 'work-zellij']])
 -- o.bind("SUPER + i", "Tmux work session",

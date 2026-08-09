@@ -18,8 +18,7 @@ themes/
 │   ├── kitty.conf.tpl
 │   ├── lazygit.yml.tpl
 │   ├── obsidian.css.tpl
-│   ├── quickshell.json.tpl
-│   └── tmux.conf.tpl
+│   └── quickshell.json.tpl
 ├── .config/themes/         # Theme directories with colors.toml
 │   ├── rose-pine/
 │   │   ├── colors.toml    # Source of truth for theme colors

@@ -193,7 +193,7 @@ function parseChildren(text) {
 
 // `host` is the resolved custom host, or falsy to mean "use the default" --
 // the fallback the devcontainer-host state file's contract promises (blank
-// or missing = default). SSH_HOST is that shared default; bin/df-tmux-session
+// or missing = default). SSH_HOST is that shared default; bin/df-herdr-session
 // (ticket 02) and the Quick Settings row (ticket 03) must honor the same rule.
 function sshUrlFor(path, host) {
     return "ssh://" + (host || SSH_HOST) + path;

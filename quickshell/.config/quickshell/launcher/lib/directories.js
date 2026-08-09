@@ -107,17 +107,10 @@ function textsFor(rel) {
     return leaf !== rel ? [leaf, rel] : [rel];
 }
 
-// The tmux session name a directory's Entry runs its session under: the
-// relative path slugged, "/" -> "-", "home" for $HOME itself. A hyphen the
-// path already contains survives, so the slug isn't injective (~/dev/foo and
-// ~/dev-foo both name session "dev-foo", first one wins) -- accepted, not
-// defended against.
-//
-// "." and ":" -> "_": those are target separators in tmux's own grammar (a
-// name containing one parses as window.pane, so `new-window -t` fails).
-// Found via ~/.agents (a mirrored root) naming its session ".agents", where
-// the leading dot tripped it. "_" rather than "-" so a dot-led path doesn't
-// open its session name with a dash.
+// The herdr session name a directory's Entry runs its session under: the
+// relative path slugged ("/" -> "-", "." and ":" -> "_" -- tmux's old target
+// grammar tripped on both, kept as a safe default here too -- "home" for
+// $HOME itself). Not injective -- accepted, not defended against.
 function sessionNameOf(path, home) {
     var rel = relOf(path, home);
     if (rel === "~")
@@ -127,7 +120,7 @@ function sessionNameOf(path, home) {
 
 // `host` is the resolved custom host, or falsy to mean "use the default" --
 // the fallback the devcontainer-host state file's contract promises (blank
-// or missing = default). SSH_HOST is that shared default; bin/df-tmux-session
+// or missing = default). SSH_HOST is that shared default; bin/df-herdr-session
 // (ticket 02) and the Quick Settings row (ticket 03) must honor the same rule.
 function sshUrlFor(path, host) {
     return "ssh://" + (host || SSH_HOST) + path;
@@ -143,19 +136,24 @@ function defaultOpenArgv(path, routed, launchPrefix, host) {
     return (launchPrefix || []).concat(["zeditor", target]);
 }
 
-// A ghostty window on the session script (bin/df-tmux-session), with the
+// A ghostty window on the session script (bin/df-herdr-session), with the
 // directory's session name and its path as separate arguments.
+//
+// `--title` is the session name -- required so this window's title never
+// collides with SUPER+U's bare "herdr" one. See hypr/.../bindings/apps.lua
+// and docs/adr/0003-tmux-to-herdr.md.
 //
 // The path is passed raw, not through shellEscape: ghostty 1.2+ execs its
 // `-e` arguments verbatim (no shell round-trip), so single-quote doubling
 // would reach the session script as literal text. Escaping only matters
 // where a shell re-parses the argument, which is inside the session script
 // itself -- it owns that escape.
-function tmuxLaunchArgv(path, home) {
+function herdrLaunchArgv(path, home) {
+    var sessionName = sessionNameOf(path, home);
     return [
-        "ghostty", "-e",
-        home + "/dotfiles/bin/df-tmux-session",
-        sessionNameOf(path, home),
+        "ghostty", "--title=" + sessionName, "-e",
+        home + "/dotfiles/bin/df-herdr-session",
+        sessionName,
         path
     ];
 }
@@ -163,17 +161,14 @@ function tmuxLaunchArgv(path, home) {
 // The secondary Action's chooser. Files carries no remote command at all, so
 // a mirrored directory still opens it locally.
 //
-// Tmux opens the window on the session script rather than on the directory
-// itself, so it needs `home` too (the script path and session name both
-// derive from it), and runs locally even for a mirrored directory (the
-// script owns the remote window) -- same argv either way, unaffected by
-// `routed`/`host` (it re-resolves both itself, per ticket 02).
+// Herdr's argv is the same regardless of `routed`/`host` -- the script
+// re-resolves routing itself and opens a separate remote session instead of
+// a local one when it applies (ticket 02, docs/adr/0003-tmux-to-herdr.md).
 //
-// Tmux is `scoped: false`, unlike Files: an unscoped Tmux window is the
-// launcher's child and dies with it, which is fine here because the ghostty
-// window is only a client -- tmux detaches the client and the session lives
-// on. That's not true for an editor, which is why Files keeps the launch
-// prefix (so `df-qs-restart launcher` doesn't take its window down).
+// Herdr is `scoped: false`, unlike Files: the ghostty window is only a
+// client, so it can die with the launcher without taking the (server-side,
+// persistent) session down with it -- not true for an editor, which is why
+// Files keeps the launch prefix instead.
 function chooserApps(path, routed, home, host) {
     var target = routed ? sshUrlFor(path, host) : path;
     var sshHost = host || SSH_HOST;
@@ -183,6 +178,15 @@ function chooserApps(path, routed, home, host) {
     }
 
     return [
+        {
+            // `target` is the session name, not the path the other rows show
+            // -- it's what the row attaches you to and what appears in
+            // `herdr session list`.
+            name: "Herdr", icon: "utilities-terminal",
+            target: sessionNameOf(path, home),
+            scoped: false,
+            argv: herdrLaunchArgv(path, home)
+        },
         {
             name: "Zed", icon: "zed", target: target,
             argv: pick(["zeditor", path], ["zeditor", target])
@@ -205,14 +209,6 @@ function chooserApps(path, routed, home, host) {
                 // break silently.
                 ["ghostty", "-e", "ssh", "-t", sshHost, "cd " + shellEscape(path) + " && exec nvim"]
             )
-        },
-        {
-            // `target` is the session name, not the path the other rows show
-            // -- it's what the row attaches you to and what appears in `tmux ls`.
-            name: "Tmux", icon: "utilities-terminal",
-            target: sessionNameOf(path, home),
-            scoped: false,
-            argv: tmuxLaunchArgv(path, home)
         },
         {
             // No remote command at all -- Files is always local.
@@ -308,7 +304,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         sessionNameOf: sessionNameOf,
         sshUrlFor: sshUrlFor,
         defaultOpenArgv: defaultOpenArgv,
-        tmuxLaunchArgv: tmuxLaunchArgv,
+        herdrLaunchArgv: herdrLaunchArgv,
         chooserApps: chooserApps,
         chooserEntriesFor: chooserEntriesFor,
         buildCacheScript: buildCacheScript,

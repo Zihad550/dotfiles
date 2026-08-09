@@ -155,24 +155,24 @@ test("sessionNameOf neutralizes dot and colon, tmux's target separators", () => 
     assert.strictEqual(D.sessionNameOf(`${HOME}/dev/a:b`, HOME), "dev-a_b", "a colon, tmux's other target separator");
 });
 
-test("tmuxLaunchArgv runs the session script in ghostty, with the session name and path as separate arguments", () => {
-    const argv = D.tmuxLaunchArgv(`${HOME}/dev/monorepo/backend`, HOME);
+test("herdrLaunchArgv runs the session script in ghostty, titled with the session name, and passes the name and path as separate arguments", () => {
+    const argv = D.herdrLaunchArgv(`${HOME}/dev/monorepo/backend`, HOME);
     assert.deepStrictEqual(argv, [
-        "ghostty", "-e",
-        `${HOME}/dotfiles/bin/df-tmux-session`,
+        "ghostty", "--title=dev-monorepo-backend", "-e",
+        `${HOME}/dotfiles/bin/df-herdr-session`,
         "dev-monorepo-backend",
         `${HOME}/dev/monorepo/backend`
     ]);
-    assert.strictEqual(D.tmuxLaunchArgv(HOME, HOME)[3], "home", "the ~ entry's session is named home");
+    assert.strictEqual(D.herdrLaunchArgv(HOME, HOME)[4], "home", "the ~ entry's session is named home");
 });
 
-test("tmuxLaunchArgv passes a hostile path through as one argument, unescaped", () => {
+test("herdrLaunchArgv passes a hostile path through as one argument, unescaped", () => {
     const path = `${HOME}/dev/it's "fine"`;
-    const argv = D.tmuxLaunchArgv(path, HOME);
-    assert.strictEqual(argv.length, 5);
-    assert.strictEqual(argv[4], path,
+    const argv = D.herdrLaunchArgv(path, HOME);
+    assert.strictEqual(argv.length, 6);
+    assert.strictEqual(argv[5], path,
         "the path is one argv element -- ghostty 1.2+ execs its -e arguments verbatim, so single-quote doubling would arrive at the script as literal text");
-    assert.strictEqual(argv[3], `dev-it's "fine"`);
+    assert.strictEqual(argv[4], `dev-it's "fine"`);
 });
 
 test("defaultOpenArgv opens a mirrored directory over ssh and everything else locally", () => {
@@ -187,15 +187,15 @@ test("defaultOpenArgv opens a mirrored directory over ssh and everything else lo
     );
 });
 
-test("chooserApps offers Tmux alongside the same five apps, mirrored or not", () => {
+test("chooserApps offers Herdr alongside the same five apps, mirrored or not", () => {
     const local = D.chooserApps(`${HOME}/Downloads`, false, HOME).map(a => a.name);
     const mirrored = D.chooserApps(`${HOME}/dotfiles`, true, HOME).map(a => a.name);
-    assert.deepStrictEqual(local, ["Zed", "VSCode", "Cursor", "Neovim", "Tmux", "Files"]);
-    assert.deepStrictEqual(mirrored, ["Zed", "VSCode", "Cursor", "Neovim", "Tmux", "Files"],
-        "Tmux is offered for every directory, with no mirror condition");
+    assert.deepStrictEqual(local, ["Herdr", "Zed", "VSCode", "Cursor", "Neovim", "Files"]);
+    assert.deepStrictEqual(mirrored, ["Herdr", "Zed", "VSCode", "Cursor", "Neovim", "Files"],
+        "Herdr is offered for every directory, with no mirror condition");
 });
 
-test("chooserApps sends every app but Files and Tmux over ssh for a mirrored directory", () => {
+test("chooserApps sends every app but Files and Herdr over ssh for a mirrored directory", () => {
     const apps = D.chooserApps(`${HOME}/dotfiles`, true, HOME);
     const byName = Object.fromEntries(apps.map(a => [a.name, a]));
 
@@ -210,36 +210,34 @@ test("chooserApps sends every app but Files and Tmux over ssh for a mirrored dir
     assert.deepStrictEqual(byName.Files.argv, ["nautilus", `${HOME}/dotfiles`]);
     assert.strictEqual(byName.Files.target, `${HOME}/dotfiles`);
 
-    // Tmux runs the session script locally even for a mirrored directory --
-    // the script does the remote work itself, this launcher just opens the
-    // window on it.
-    assert.strictEqual(byName.Tmux.argv[0], "ghostty");
-    assert.ok(!byName.Tmux.argv.join(" ").includes("ssh"));
+    // Herdr's own argv stays local; the session script resolves routing itself.
+    assert.strictEqual(byName.Herdr.argv[0], "ghostty");
+    assert.ok(!byName.Herdr.argv.join(" ").includes("ssh"));
 });
 
 test("chooserApps stays local for every app when the directory is not mirrored", () => {
     const apps = D.chooserApps(`${HOME}/Downloads`, false, HOME);
     for (const app of apps) {
         assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} should not go over ssh for a host-only directory`);
-        if (app.name !== "Tmux")
+        if (app.name !== "Herdr")
             assert.strictEqual(app.target, `${HOME}/Downloads`);
         else
-            assert.strictEqual(app.target, "Downloads", "Tmux's subtext is the session it joins, not a URL");
+            assert.strictEqual(app.target, "Downloads", "Herdr's subtext is the session it joins, not a URL");
     }
 });
 
-test("chooserApps builds Tmux's argv from the directory's session name and path", () => {
+test("chooserApps builds Herdr's argv from the directory's session name and path", () => {
     const apps = D.chooserApps(`${HOME}/dev/monorepo/backend`, true, HOME);
-    const tmux = apps.find(a => a.name === "Tmux");
-    assert.deepStrictEqual(tmux.argv, [
-        "ghostty", "-e",
-        `${HOME}/dotfiles/bin/df-tmux-session`,
+    const herdr = apps.find(a => a.name === "Herdr");
+    assert.deepStrictEqual(herdr.argv, [
+        "ghostty", "--title=dev-monorepo-backend", "-e",
+        `${HOME}/dotfiles/bin/df-herdr-session`,
         "dev-monorepo-backend",
         `${HOME}/dev/monorepo/backend`
     ]);
 });
 
-test("chooserEntriesFor applies the launch prefix to every Entry but Tmux, and carries no Entry Key", () => {
+test("chooserEntriesFor applies the launch prefix to every Entry but Herdr, and carries no Entry Key", () => {
     const provider = {};
     const entries = D.chooserEntriesFor(`${HOME}/dotfiles`, true, HOME, ["uwsm-app", "--"], provider);
 
@@ -249,30 +247,33 @@ test("chooserEntriesFor applies the launch prefix to every Entry but Tmux, and c
         assert.strictEqual(entry.provider, provider);
     }
 
-    for (const entry of entries.filter(e => e.name !== "Tmux"))
+    for (const entry of entries.filter(e => e.name !== "Herdr"))
         assert.deepStrictEqual(entry.target.argv.slice(0, 2), ["uwsm-app", "--"]);
 
-    // Tmux is a plain local exec: no launch-prefix machinery, exactly what
+    // Herdr is a plain local exec: no launch-prefix machinery, exactly what
     // its argv would be run as if it were the only app.
-    const tmux = entries.find(e => e.name === "Tmux");
-    assert.deepStrictEqual(tmux.target.argv.slice(0, 2), ["ghostty", "-e"]);
+    const herdr = entries.find(e => e.name === "Herdr");
+    assert.strictEqual(herdr.target.argv[0], "ghostty");
+    assert.strictEqual(herdr.target.argv[2], "-e");
 
     const zed = entries.find(e => e.name === "Zed");
     assert.ok(zed.target.argv.join(" ").includes("ssh://"));
 });
 
-test("the Tmux chooser Entry passes a hostile path through as one argument with no prefix", () => {
+test("the Herdr chooser Entry passes a hostile path through as one argument with no prefix", () => {
     const path = `${HOME}/dev/it's "fine"`;
     const entries = D.chooserEntriesFor(path, false, HOME, ["uwsm-app", "--"], null);
-    const tmux = entries.find(e => e.name === "Tmux");
-    assert.deepStrictEqual(tmux.target.argv, [
-        "ghostty", "-e", `${HOME}/dotfiles/bin/df-tmux-session`, `dev-it's "fine"`, path
+    const herdr = entries.find(e => e.name === "Herdr");
+    assert.deepStrictEqual(herdr.target.argv, [
+        "ghostty", `--title=dev-it's "fine"`, "-e",
+        `${HOME}/dotfiles/bin/df-herdr-session`, `dev-it's "fine"`, path
     ]);
 });
 
 test("chooserEntriesFor defaults to no prefix when none is given", () => {
     const entries = D.chooserEntriesFor(`${HOME}/Downloads`, false, HOME, null, null);
-    assert.deepStrictEqual(entries[0].target.argv, ["zeditor", `${HOME}/Downloads`]);
+    const zed = entries.find(e => e.name === "Zed");
+    assert.deepStrictEqual(zed.target.argv, ["zeditor", `${HOME}/Downloads`]);
 });
 
 test("refreshScript skips the scan while a build is already running", () => {
@@ -335,7 +336,7 @@ test("routing enabled with no custom host matches today's hardcoded SSH_HOST beh
     assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${D.SSH_HOST}`, path]);
 });
 
-test("routing enabled with a custom host reaches every ssh surface but not Tmux", () => {
+test("routing enabled with a custom host reaches every ssh surface but not Herdr", () => {
     const path = `${HOME}/dotfiles`;
     const host = "my-other-box";
     const byName = Object.fromEntries(D.chooserApps(path, true, HOME, host).map(a => [a.name, a]));
@@ -347,10 +348,10 @@ test("routing enabled with a custom host reaches every ssh surface but not Tmux"
     assert.deepStrictEqual(byName.Cursor.argv, ["cursor", "--remote", `ssh-remote+${host}`, path]);
     assert.strictEqual(byName.Neovim.argv[4], host, "the ssh -t target is the custom host, not the default");
 
-    // Tmux re-resolves routing itself (ticket 02) rather than trusting this
+    // Herdr re-resolves routing itself (ticket 02) rather than trusting this
     // argv -- neither host name should appear in it.
-    assert.ok(!byName.Tmux.argv.some(arg => arg.includes(host)));
-    assert.ok(!byName.Tmux.argv.some(arg => arg.includes(D.SSH_HOST)));
+    assert.ok(!byName.Herdr.argv.some(arg => arg.includes(host)));
+    assert.ok(!byName.Herdr.argv.some(arg => arg.includes(D.SSH_HOST)));
 });
 
 test("chooserEntriesFor threads the resolved host through to the mapped Entries", () => {
