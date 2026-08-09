@@ -22,22 +22,36 @@ _herdr_tab_label() {
 _herdr_rename_tab() {
     [[ -n "$HERDR_ENV" && -n "$HERDR_TAB_ID" ]] || return
 
-    local label
-    label="$(_herdr_tab_label "$1")"
-    [[ "$label" == "${_herdr_rename_last[$HERDR_TAB_ID]}" ]] && return
+    local desired
+    desired="$(_herdr_tab_label "$1")"
 
-    local current
-    current="$(herdr tab get "$HERDR_TAB_ID" 2>/dev/null | jq -r '.result.tab.label // empty')"
-    [[ -n "$current" ]] || return
+    # herdr's own .number is a never-reused tab_id counter (t5 stays "5"
+    # forever), not a tab-bar position -- derive the 1,2,3... position
+    # ourselves from where the tab sits in the list instead.
+    local info number current
+    info="$(herdr tab list 2>/dev/null | jq -r --arg id "$HERDR_TAB_ID" '
+        .result.tabs as $tabs
+        | ($tabs | to_entries | map(select(.value.tab_id == $id)) | first | .key) as $idx
+        | if $idx == null then empty else "\($idx + 1)\t\($tabs[$idx].label)" end
+    ')"
+    [[ -n "$info" ]] || return
+    number="${info%%$'\t'*}"
+    current="${info#*$'\t'}"
+
+    # Strip the "N:" prefix we prepend so a tab renumbering (e.g. an earlier
+    # tab closing) isn't mistaken for a manual rename below.
+    local current_label="${current#${number}:}"
 
     # Label drifted from what we last set -> renamed by hand since; stop
     # touching it, same as tmux's automatic-rename going off on manual rename.
-    if [[ -n "${_herdr_rename_last[$HERDR_TAB_ID]}" && "$current" != "${_herdr_rename_last[$HERDR_TAB_ID]}" ]]; then
+    if [[ -n "${_herdr_rename_last[$HERDR_TAB_ID]}" && "$current_label" != "${_herdr_rename_last[$HERDR_TAB_ID]}" ]]; then
         return
     fi
 
-    herdr tab rename "$HERDR_TAB_ID" "$label" >/dev/null 2>&1
-    _herdr_rename_last[$HERDR_TAB_ID]="$label"
+    # Prefix with the tab's number, tmux-window-list style ("1:dirname").
+    local label="${number}:${desired}"
+    [[ "$label" != "$current" ]] && herdr tab rename "$HERDR_TAB_ID" "$label" >/dev/null 2>&1
+    _herdr_rename_last[$HERDR_TAB_ID]="$desired"
 }
 
 typeset -ga precmd_functions preexec_functions
