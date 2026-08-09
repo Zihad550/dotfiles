@@ -1,3 +1,4 @@
+onboarding = false
 # herdr config — ported from tmux/.tmux.conf + tmux/.config/tmux/tmux.reset.conf
 #
 # Concept mapping (tmux -> herdr):
@@ -147,6 +148,9 @@ auto_switch = false
 # tmux: set -g mouse on / set -g set-clipboard on
 mouse_capture = true
 copy_on_select = true
+
+# Start with the sidebar collapsed (takes effect on next launch).
+sidebar_start_collapsed = true
 
 # tmux's new-window never asked for a name either -- skip herdr's prompt and
 # take the generated one.
