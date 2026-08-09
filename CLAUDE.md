@@ -20,3 +20,7 @@ The five canonical roles, used verbatim as `Status:` values. See `docs/agents/tr
 ### Domain docs
 
 Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Code review
+
+After `/code-review` finishes, also run the `/coderabbit:code-review` skill as a third, independent pass. Report its findings under their own heading — don't merge them into Standards or Spec.
