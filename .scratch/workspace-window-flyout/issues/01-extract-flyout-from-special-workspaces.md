@@ -12,7 +12,7 @@ second time.
 
 **Blocked by:** None — can start immediately
 
-**Status:** needs-info
+**Status:** done
 
 - [x] A new `Flyout` component exists, taking a model and a row delegate (or
       equivalent), reproducing the `PopupWindow` / `HyprlandFocusGrab` /
@@ -20,10 +20,11 @@ second time.
       `SpecialWorkspaces`
 - [x] `SpecialWorkspaces` is rewired to use `Flyout` instead of its own
       inline popup; no other file changes behavior
-- [ ] (Host-only — with two or more special workspaces open, the collapsed
+- [x] (Host-only — with two or more special workspaces open, the collapsed
       entry's label, the bullet on the currently-open one, each row's
       `"N windows"` detail text, click-to-activate on a row, and
       dismiss-on-outside-click all still match pre-refactor behavior exactly)
+      — host-verified, see Comments
 
 ## Manual verification
 
@@ -66,3 +67,13 @@ All four are unchanged from pre-refactor `SpecialWorkspaces` behavior (the
 `Flyout` extraction moved this chrome, it didn't rewrite it) — this check is
 about confirming the move didn't silently drop something, not exploring new
 behavior.
+
+## Comments
+
+**Host verification (2026-08-09):** the user opened a second special
+workspace and ran the block above; confirmed it works — the arrow appears
+with two special workspaces open, the dropdown lists both with the open one
+bulleted and each row's `"N windows"` detail intact, a row click switches
+and closes the dropdown, and an outside click dismisses without switching.
+The `Flyout` extraction moved this chrome without changing its behavior.
+Ticket closed.
