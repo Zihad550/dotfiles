@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 import qs
 
 // The special workspaces, collapsed into one bar entry.
@@ -119,81 +118,26 @@ Item {
         }
     }
 
-    // Same shape as QuickSettings, left-aligned under the entry instead of
-    // right-aligned under the gear.
-    PopupWindow {
+    Flyout {
         id: menu
 
-        property bool shown: false
+        target: root
+        model: root.ordered
 
-        // Set when the focus grab closes the menu. Hyprland may still deliver
-        // that click to the entry underneath, which would immediately reopen
-        // what the user just dismissed; toggle() ignores an open right after.
-        property double lastCleared: 0
+        delegate: MenuRow {
+            required property var modelData
 
-        function toggle(): void {
-            if (!menu.shown && Date.now() - menu.lastCleared < 200)
-                return;
-            menu.shown = !menu.shown;
-        }
+            readonly property int windows: modelData.toplevels.values.length
 
-        HyprlandFocusGrab {
-            windows: [menu]
-            active: menu.shown
+            width: parent.width
+            // A dot on the one that is open. Nothing else in the menu is an
+            // icon, so the column stays quiet.
+            icon: root.matches(modelData, root.activeSpecial) ? "•" : " "
+            label: root.label(modelData)
+            detail: windows === 1 ? "1 window" : `${windows} windows`
 
-            onCleared: {
-                menu.lastCleared = Date.now();
-                menu.shown = false;
-            }
-        }
-
-        anchor.item: root
-        anchor.rect.x: 0
-        anchor.rect.y: root.height
-
-        visible: menu.shown
-        color: "transparent"
-
-        implicitWidth: Theme.menuWidth
-        implicitHeight: rows.implicitHeight + 2 * Theme.menuPadding
-
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.background
-            border.color: Theme.accent
-            border.width: 1
-            radius: 4
-
-            Column {
-                id: rows
-
-                // Top/left/right only: the Column's own height drives the popup's.
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: Theme.menuPadding
-                spacing: 2
-
-                Repeater {
-                    model: root.ordered
-
-                    delegate: MenuRow {
-                        required property var modelData
-
-                        readonly property int windows: modelData.toplevels.values.length
-
-                        width: rows.width
-                        // A dot on the one that is open. Nothing else in the
-                        // menu is an icon, so the column stays quiet.
-                        icon: root.matches(modelData, root.activeSpecial) ? "•" : " "
-                        label: root.label(modelData)
-                        detail: windows === 1 ? "1 window" : `${windows} windows`
-
-                        onClicked: modelData.activate()
-                        onCloseRequested: menu.shown = false
-                    }
-                }
-            }
+            onClicked: modelData.activate()
+            onCloseRequested: menu.shown = false
         }
     }
 }
