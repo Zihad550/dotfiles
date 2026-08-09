@@ -124,3 +124,11 @@ mirrored directory from the Launcher still routes when the toggle is on.
   (asking for a tab name before creating one) is switched off to match —
   new tabs get herdr's generated name immediately, same muscle memory as
   before.
+- `zsh/.config/zsh/herdr-rename.zsh` ports tmux's `automatic-rename` /
+  `automatic-rename-format` (dir basename, `(command)` while one's running).
+  Herdr has no built-in equivalent and no config toggle for it — only
+  third-party plugins that hook every command via a shell integration, which
+  is no smaller a shell hook than writing the ~40 lines directly against
+  `HERDR_TAB_ID`/`herdr tab rename`, so it's done in-repo instead of adding
+  a plugin dependency. Manual renames (`prefix+r`) are detected and left
+  alone by comparing the live label against the one this hook last set.

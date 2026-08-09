@@ -143,7 +143,10 @@ if command -v procs >/dev/null 2>&1; then
     unset _procs_comp
 fi
 if command -v kubectl >/dev/null 2>&1; then source <(kubectl completion zsh); fi
-if command -v herdr >/dev/null 2>&1; then source <(herdr completion zsh); fi
+if command -v herdr >/dev/null 2>&1; then
+    source <(herdr completion zsh)
+    source "$XDG_CONFIG_HOME/zsh/herdr-rename.zsh"
+fi
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
 if command -v atuin >/dev/null 2>&1; then eval "$(atuin init zsh)"; fi
