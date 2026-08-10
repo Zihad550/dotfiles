@@ -11,9 +11,9 @@ ln -snf "$DOTFILES/git/.config/git" ~/.config/git
 mkdir -p ~/.config/mise
 cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
 
+# only config.toml is managed; the rest is runtime state (approvals, locks)
 mkdir -p ~/.config/worktrunk
 ln -snf "$DOTFILES/worktrunk/.config/worktrunk/config.toml" ~/.config/worktrunk/config.toml
-ln -snf "$DOTFILES/worktrunk/.config/worktrunk/approvals.toml" ~/.config/worktrunk/approvals.toml
 
 rm -rf ~/.bashrc
 ln -snf ~/dotfiles/bash/.bashrc ~/.bashrc

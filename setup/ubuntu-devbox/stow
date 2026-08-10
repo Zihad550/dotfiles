@@ -15,10 +15,14 @@ stow lazygit
 stow starship
 stow yazi
 stow tmux
-stow herdr
+# stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
+mkdir -p ~/.config/herdr
+ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml
 stow gh-dash
 stow procs
-stow worktrunk
+# stow worktrunk — only config.toml is managed; the rest is runtime state (approvals, locks)
+mkdir -p ~/.config/worktrunk
+ln -snf "$DOTFILES/worktrunk/.config/worktrunk/config.toml" ~/.config/worktrunk/config.toml
 stow branch-creator
 
 # ai tools

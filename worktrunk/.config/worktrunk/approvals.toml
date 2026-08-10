@@ -1,9 +1,0 @@
-[projects."/home/jehad/test/worktrunk"]
-approved-commands = [
-    '[ -n "$TMUX" ] && tmux rename-window {{branch | sanitize}}',
-    """[ -n "$TMUX" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | sanitize}}""",
-    "wt step copy-ignored",
-    "[ -f mise.toml ] && mise trust",
-    "[ -f mise.toml ] && mise install",
-]
-

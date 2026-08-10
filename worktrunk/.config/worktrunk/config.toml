@@ -84,6 +84,19 @@ template-append = """
 [list]
 summary = true
 
+# ============================================================================
+# Project-specific overrides
+# ============================================================================
+# mamacrm/frontend: the Caddy failover proxy's cert pair is root-owned 0600,
+# so `wt step copy-ignored` can't read it and the whole copy aborts. The repo's
+# .config/wt.toml already excludes the pair, but that file is gitignored — a
+# freshly created worktree doesn't have it yet when the blocking pre-start
+# `copy` hook runs from inside the new worktree, so the project exclude isn't
+# loaded and the copy dies on Permission denied. Repeating it here fixes that:
+# user config is loaded regardless of cwd. User and project excludes combine.
+[projects."git.tail7d3230.ts.net/mamacrm/frontend"]
+step.copy-ignored.exclude = ["caddy-tailscale.key", "caddy-tailscale.crt"]
+
 # Worktrunk Project Configuration
 # Copy to: <repo>/.config/wt.toml
 #
