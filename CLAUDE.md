@@ -8,6 +8,7 @@
   (`docs/adr/`), or `CONTEXT.md` instead — leave a one-line pointer in the
   code (e.g. `// see ticket 12`, `// see docs/launcher-spec.md`), not the
   story itself.
+- When doing git **commit** or **stage** ignore .claude/settings.json and git/.config/git/config, Unless the user explicitly asked to.
 
 ### Issue tracker
 
