@@ -45,9 +45,13 @@ _herdr_rename_tab() {
     local current_label="$current"
     [[ "$current" =~ ^([0-9]+): ]] && current_label="${current#${match[1]}:}"
 
-    # Label drifted from what we last set -> renamed by hand since; stop
-    # touching it, same as tmux's automatic-rename going off on manual rename.
+    # Label drifted from what we last set -> renamed by hand since; leave the
+    # content alone (automatic-rename off, like tmux), but still keep its "N:"
+    # prefix in sync -- tmux renumbers manually-named windows too, it just
+    # doesn't touch their name.
     if [[ -n "${_herdr_rename_last[$HERDR_TAB_ID]}" && "$current_label" != "${_herdr_rename_last[$HERDR_TAB_ID]}" ]]; then
+        local renumbered="${number}:${current_label}"
+        [[ "$renumbered" != "$current" ]] && herdr tab rename "$HERDR_TAB_ID" "$renumbered" >/dev/null 2>&1
         return
     fi
 
