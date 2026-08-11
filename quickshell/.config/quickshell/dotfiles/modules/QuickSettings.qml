@@ -203,6 +203,10 @@ PopupWindow {
                 active: root.wifiPageShown
 
                 onBack: root.wifiPageShown = false
+                // Ticket 09: the nmtui hand-off closes the whole panel, the
+                // same escape hatch BluetoothItem's closeRequested already
+                // uses for bluetui.
+                onCloseRequested: root.shown = false
             }
         }
     }

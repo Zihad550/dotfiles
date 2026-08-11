@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Networking
 import qs
 
@@ -10,7 +11,9 @@ import qs
 // between aiming and clicking.
 //
 // Ticket 04: clicking a row connects. Ticket 07: a secured network with no
-// saved credentials asks for one first, in place, on the same row.
+// saved credentials asks for one first, in place, on the same row. Ticket 08:
+// right-click opens Disconnect/Forget. Ticket 09: unsaved enterprise networks
+// hand off to nmtui instead of attempting a connect that can't succeed.
 Column {
     id: root
 
@@ -21,6 +24,10 @@ Column {
     property bool active: false
 
     signal back
+    // Ticket 09: the nmtui hand-off closes the whole panel, not just this
+    // Page -- nmtui is a terminal window that would otherwise open behind it.
+    // Distinct from `back`, which only returns to Quick Settings' own rows.
+    signal closeRequested
 
     readonly property var device: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
     readonly property var wifiIcons: ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
@@ -54,10 +61,16 @@ Column {
     property var contextMenuTarget: null
 
     // Literal pre-shared-key types only. Excluded on purpose: Wpa2Eap,
-    // WpaEap, Wpa3SuiteB192, DynamicWep, Leap are EAP-backed (ticket 09's
-    // job); Open/Owe need no password; StaticWep's key isn't NM's `psk`
-    // field, so connectWithPsk (see below) can't carry it either.
+    // WpaEap, Wpa3SuiteB192, DynamicWep, Leap are EAP-backed (see
+    // enterpriseSecurityTypes below); Open/Owe need no password; StaticWep's
+    // key isn't NM's `psk` field, so connectWithPsk (see below) can't carry
+    // it either.
     readonly property var pskSecurityTypes: [WifiSecurityType.WpaPsk, WifiSecurityType.Wpa2Psk, WifiSecurityType.Sae]
+
+    // Ticket 09: the EAP-backed family excluded from pskSecurityTypes above.
+    // connectWithPsk can't carry these -- an identity, certificates and a
+    // profile have to exist first, which only nmtui can build.
+    readonly property var enterpriseSecurityTypes: [WifiSecurityType.Wpa2Eap, WifiSecurityType.WpaEap, WifiSecurityType.Wpa3SuiteB192, WifiSecurityType.DynamicWep, WifiSecurityType.Leap]
 
     function glyph(network) {
         const strength = network.signalStrength ?? 0;
@@ -82,11 +95,25 @@ Column {
         return !network.known && root.pskSecurityTypes.includes(network.security);
     }
 
+    function isEnterprise(network) {
+        return root.enterpriseSecurityTypes.includes(network.security);
+    }
+
+    // Ticket 09: the mark takes the slot a percentage would otherwise fill --
+    // signal strength on an enterprise network is not the useful number here,
+    // whether it's connected, saved, or neither.
     function detailFor(network) {
         if (network === root.connecting)
             return "Connecting…";
         if (network === root.failedNetwork)
-            return root.failureDetail(root.failureReason);
+            return root.failureDetail(network, root.failureReason);
+        if (root.isEnterprise(network)) {
+            if (network.connected)
+                return "enterprise · Connected";
+            if (network.known)
+                return "enterprise · Saved";
+            return "enterprise";
+        }
         const pct = `${Math.round((network.signalStrength ?? 0) * 100)}%`;
         if (network.connected)
             return `${pct} · Connected`;
@@ -95,8 +122,12 @@ Column {
         return pct;
     }
 
-    // Ticket 04's reason table.
-    function failureDetail(reason) {
+    // Ticket 04's reason table. Ticket 09: NoSecrets on an enterprise
+    // network is a rejected identity/certificate, not a wrong PSK -- the
+    // generic wording would mislead about what to retry.
+    function failureDetail(network, reason) {
+        if (reason === ConnectionFailReason.NoSecrets && root.isEnterprise(network))
+            return "Enterprise credentials rejected";
         switch (reason) {
         case ConnectionFailReason.NoSecrets:
             return "Wrong password";
@@ -118,6 +149,15 @@ Column {
         // whichever row was right-clicked, and a left-click elsewhere reads
         // as leaving it.
         root.contextMenuTarget = null;
+        // Ticket 09: no profile exists yet and connectWithPsk can't build
+        // one -- nmtui is the only thing that can enrol it. A saved
+        // enterprise network skips this and falls through to the ordinary
+        // connect below, same as any other known network.
+        if (!network.known && root.isEnterprise(network)) {
+            Quickshell.execDetached(["ghostty", "-e", "nmtui"]);
+            root.closeRequested();
+            return;
+        }
         if (root.needsPasswordPrompt(network)) {
             if (network !== root.failedNetwork)
                 root.failedNetwork = null;
@@ -238,7 +278,11 @@ Column {
             root.connecting = null;
             root.failedNetwork = network;
             root.failureReason = reason;
-            if (reason === ConnectionFailReason.NoSecrets)
+            // A saved enterprise network's secrets can't be retyped through
+            // this field -- connectWithPsk only carries the PSK family (see
+            // pskSecurityTypes above). Ticket 09: it stays on failureDetail
+            // instead, rather than opening a field it can never satisfy.
+            if (reason === ConnectionFailReason.NoSecrets && root.pskSecurityTypes.includes(network.security))
                 root.passwordTarget = network;
         }
 
