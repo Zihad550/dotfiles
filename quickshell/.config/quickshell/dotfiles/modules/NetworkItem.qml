@@ -7,14 +7,13 @@ import qs
 //
 // Now a row in Quick Settings. Ticket 03: click opens the Wi-Fi Page in
 // place of nmtui. Ticket 05: the glyph is a second click target, toggling
-// the radio.
+// the radio. Ticket 06: wired state moved to its own row -- WiredRow.
 MenuRow {
     id: root
 
     // Any Wi-Fi device, connected or not -- the Page needs one to scan on
-    // even when this row itself is showing "Disconnected" or "Wired".
+    // even when this row itself is showing "Disconnected".
     readonly property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi) ?? null
-    readonly property bool wired: Networking.devices.values.some(device => device.type === DeviceType.Wired && device.connected)
     readonly property var wifiNetwork: wifiDevice ? (wifiDevice.networks.values.find(network => network.connected) ?? null) : null
 
     // A hard block is a physical switch software can't undo, and with no
@@ -37,7 +36,7 @@ MenuRow {
 
     icon: {
         // Distinct from 󰤮's "on, no link", so the glyph visibly changes on
-        // toggle. Outranks `wired` below -- ticket 06 gives wired its own row.
+        // toggle.
         if (root.inert || !Networking.wifiEnabled)
             return "󰤭";
         if (wifiDevice?.connected) {
@@ -46,8 +45,6 @@ MenuRow {
             const index = Math.min(wifiIcons.length - 1, Math.floor(strength * wifiIcons.length));
             return wifiIcons[index];
         }
-        if (wired)
-            return "󰀂";
         return "󰤮";
     }
 
@@ -70,8 +67,6 @@ MenuRow {
             return `${Math.round(wifiNetwork.signalStrength * 100)}%`;
         if (wifiDevice?.connected)
             return "Connected";
-        if (wired)
-            return "Wired";
         return "";
     }
 

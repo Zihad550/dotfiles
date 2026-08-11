@@ -127,6 +127,12 @@ PopupWindow {
                     onRequestWifiPage: root.wifiPageShown = true
                 }
 
+                // Ticket 06: status only, visible only while a cable is in.
+                // No onCloseRequested -- it has no click to wire one to.
+                WiredRow {
+                    width: rows.width
+                }
+
                 BluetoothItem {
                     width: rows.width
                     onCloseRequested: root.shown = false
