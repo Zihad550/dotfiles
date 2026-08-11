@@ -12,11 +12,11 @@
 
 ### Issue tracker
 
-Issues and specs live as markdown files under `.scratch/<feature>/` in this repo. See `docs/agents/issue-tracker.md`.
+Issues live in this repo's GitHub Issues; skills use the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five canonical roles, used verbatim as `Status:` values. See `docs/agents/triage-labels.md`.
+The five canonical roles, used verbatim as GitHub labels. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
