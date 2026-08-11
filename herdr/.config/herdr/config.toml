@@ -13,8 +13,9 @@ onboarding = false
 # VERIFY BEFORE TRUSTING
 # The docs only demonstrate prefix+<key>, prefix+shift+<key> and prefix+alt+<key>.
 # This file also uses prefix+ctrl+<key> (so tmux's ^C/^D/^W muscle memory ports
-# over) on: new_tab, detach, close_workspace, settings, resize_mode, last_pane,
-# previous_workspace, next_workspace, swap_pane_left/up/right/down.
+# over) on: new_tab, detach, kill session (^W, see [[keys.command]]), settings,
+# resize_mode, last_pane, previous_workspace, next_workspace,
+# swap_pane_left/up/right/down.
 # Also unattested: prefix = "ctrl+space", and theme.name = "terminal".
 # Check with:  herdr --default-config  then  herdr server reload-config  and
 # prefix+? — the live binding list shows whether a key string was accepted or
@@ -88,7 +89,10 @@ navigate_pane_right = "l"
 # --- workspaces (tmux sessions) -----------------------------------------
 new_workspace      = "prefix+shift+n"
 rename_workspace   = "prefix+shift+w"
-close_workspace    = ["prefix+ctrl+w", "prefix+shift+d"]   # tmux: bind ^W kill-session
+close_workspace    = "prefix+shift+d"        # closes only the current workspace, with confirm prompt
+# prefix+ctrl+w is bound below (see [[keys.command]]) to actually kill the
+# session -- close_workspace alone leaves the client/window running with
+# zero workspaces. tmux: bind ^W kill-session.
 previous_workspace = "prefix+ctrl+p"
 next_workspace     = "prefix+ctrl+n"
 switch_workspace   = "prefix+shift+1..9"
@@ -114,6 +118,20 @@ edit_scrollback = "prefix+e"
 open_notification_target = "prefix+o"
 
 # --- popups (replacing tmux plugins) ------------------------------------
+# close_workspace only tears down the current workspace's tabs/panes; the
+# client stays attached with zero workspaces, so the window never closes
+# (df-herdr-session execs `herdr --session <name>` directly, so there's no
+# underlying shell to fall back to either). This stops the persistent
+# session outright, which does close the window. No confirm prompt, same as
+# tmux's ^W kill-session.
+[[keys.command]]
+key = "prefix+ctrl+w"
+type = "shell"
+# Hyprland's exec PATH lacks ~/.local/bin (see df-herdr-session), so bare
+# `herdr` isn't found here -- use the absolute path herdr injects itself.
+command = "\"$HERDR_BIN_PATH\" session stop \"$HERDR_SESSION\""
+description = "kill session (exits herdr entirely)"
+
 # tmux-floax: @floax-bind 'p', 80% x 80%
 [[keys.command]]
 key = "prefix+p"
