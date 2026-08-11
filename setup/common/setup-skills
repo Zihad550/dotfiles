@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+# Installs every agent skill via the `skills` CLI (vercel-labs/skills), for all
+# agents, on any machine. Replaces manually cloning github.com/Zihad550/.agents:
+# the CLI owns ~/.agents as its global skill store, this file is the only thing
+# that needs to live in dotfiles. See docs/adr/ for the ADR, if one exists.
+#
+# Idempotent: re-running re-syncs the same skills. To add a skill, add a line
+# here. To add a custom skill with no upstream repo, add it under
+# skills/<name>/SKILL.md in github.com/Zihad550/skills and list it in the
+# "our own skills" block below.
+
+set -e
+
+AGENTS=(claude-code cursor pi kilo)
+
+mise use -g npm:skills
+eval "$(mise activate bash)"
+
+######## third-party skills
+skills add JuliusBrussee/caveman --skill caveman caveman-commit caveman-compress caveman-review -g --agent "${AGENTS[@]}" -y
+skills add vercel-labs/skills --skill find-skills -g --agent "${AGENTS[@]}" -y
+skills add herdrdev/herdr --skill herdr -g --agent "${AGENTS[@]}" -y
+skills add giuseppe-trisciuoglio/developer-kit --skill shadcn-ui -g --agent "${AGENTS[@]}" -y
+skills add anthropics/skills --skill webapp-testing -g --agent "${AGENTS[@]}" -y
+skills add max-sixty/worktrunk --skill worktrunk -g --agent "${AGENTS[@]}" -y
+
+######## our own skills, no upstream repo — sourced from github.com/Zihad550/skills
+skills add https://github.com/Zihad550/skills \
+  --skill draft-tea-command-for-issue-create gh-create-issue gh-get-issue mise simplify \
+          tea-create-issue tea-get-issue tea-plan-issue template-skill \
+  -g --agent "${AGENTS[@]}" -y
+
+######## dormant — tried before, not currently installed. Uncomment to reinstate.
+# skills add mattpocock/skills -g --agent "${AGENTS[@]}" -y
+# skills add -g --all
+# skills add github/awesome-copilot --skill ai-prompt-engineering-safety-review -g --all
+# skills add vercel/ai --skill ai-sdk -g --agent "${AGENTS[@]}" -y
+# skills add biomejs/biome --skill biome-developer -g --agent "${AGENTS[@]}" -y
+# skills add steipete/clawdis --skill mcporter -g --agent "${AGENTS[@]}" -y
+#
+# deepagents
+# skills add langchain-ai/deepagents --skill arxiv-search -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill blog-post -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill coding-prefs -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill competitor-analysis -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill cudf-analytics -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill cuml-machine-learning -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill query-writing -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill remember -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill schema-exploration -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill social-media -g --agent "${AGENTS[@]}" -y
+# skills add langchain-ai/deepagents --skill web-research -g --agent "${AGENTS[@]}" -y
+#
+# anthropics
+# skills add anthropics/knowledge-work-plugins --skill code-review -g --agent "${AGENTS[@]}" -y
+# skills add anthropics/knowledge-work-plugins --skill data-visualization -g --agent "${AGENTS[@]}" -y
+# theme-factory/frontend-design removed 2026-07-21: frontend-design ships as an
+# enabled plugin; theme-factory unused. See git log for the wider skill cull.
+#
+# vue (antfu)
+# skills add antfu/skills --skill vue -g --agent "${AGENTS[@]}" -y
+# skills add antfu/skills --skill vue-best-practices -g --agent "${AGENTS[@]}" -y
+# skills add antfu/skills --skill web-design-guidelines -g --agent "${AGENTS[@]}" -y
+# skills add antfu/skills -g --agent "${AGENTS[@]}" -y
+#
+# vercel labs
+# skills add vercel-labs/agent-skills --skill web-design-guidelines -g --agent "${AGENTS[@]}" -y

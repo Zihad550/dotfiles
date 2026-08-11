@@ -21,6 +21,7 @@ sudo apt install -y make gcc ripgrep fd-find tree-sitter-cli unzip git xclip neo
 $HOME/dotfiles/setup/devcontainer/stow
 mise trust
 $HOME/dotfiles/setup/devcontainer/tools
+$HOME/dotfiles/setup/common/setup-skills
 
 sudo chsh -s $(which zsh) $USER
 
