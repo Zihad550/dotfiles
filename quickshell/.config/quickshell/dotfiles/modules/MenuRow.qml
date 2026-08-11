@@ -19,11 +19,16 @@ Item {
     property bool toggleVisible: false
     property bool toggleOn: false
 
+    // Ticket 05: an optional second click target on the glyph. Off by
+    // default, so every row that doesn't set this is unchanged.
+    property bool glyphClickable: false
+
     signal clicked
     // Emitted alongside `clicked` so the panel can close itself. A second
     // `onClicked` at the use site would shadow the one the module file declares
     // for its own action, hence the separate signal.
     signal closeRequested
+    signal glyphClicked
 
     // QuickSettings sets the real width; this is just the fallback.
     implicitWidth: Theme.menuWidth - 2 * Theme.menuPadding
@@ -126,5 +131,38 @@ Item {
             root.clicked();
             root.closeRequested();
         }
+    }
+
+    // Declared after `mouse`, so it sits on top and a click here never falls
+    // through. Disabled MouseAreas don't hit-test, which is what makes
+    // `glyphClickable`'s off-by-default safe for every other row.
+    Rectangle {
+        id: glyphHighlight
+
+        visible: root.glyphClickable
+        anchors.fill: glyphMouse
+        radius: 4
+        color: Theme.accent
+        opacity: glyphMouse.containsMouse ? 0.25 : 0
+    }
+
+    MouseArea {
+        id: glyphMouse
+
+        // Spans from the row's left edge (bleeding into the menu's padding,
+        // like the highlight above) to just short of the label -- as padded
+        // as it can be without ever eating into the row's own click area. A
+        // bare ~16px target whose action drops the connection is a mis-click
+        // waiting to happen.
+        anchors.left: parent.left
+        anchors.leftMargin: -Theme.menuPadding / 2
+        anchors.right: labelText.left
+        anchors.rightMargin: 2
+        anchors.verticalCenter: parent.verticalCenter
+        height: root.height
+        enabled: root.glyphClickable
+        hoverEnabled: root.glyphClickable
+
+        onClicked: root.glyphClicked()
     }
 }
