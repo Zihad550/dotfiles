@@ -16,6 +16,12 @@ PopupWindow {
     property Item target
     property bool shown: false
 
+    // The Wi-Fi Page (ticket 03) replaces the rows below in this same window
+    // -- see Page in CONTEXT.md. Reset whenever the panel closes, by whatever
+    // path, so a reopen always starts at the rows and the scanner it gates
+    // (WifiPage.active) can never keep running behind a closed panel.
+    property bool wifiPageShown: false
+
     // Set when the focus grab closes the panel. Hyprland may still deliver that
     // click to the gear underneath, which would immediately reopen what the
     // user just dismissed; toggle() ignores an open that lands right after.
@@ -25,6 +31,11 @@ PopupWindow {
         if (!shown && Date.now() - lastCleared < 200)
             return;
         shown = !shown;
+    }
+
+    onShownChanged: {
+        if (!shown)
+            wifiPageShown = false;
     }
 
     HyprlandFocusGrab {
@@ -79,7 +90,7 @@ PopupWindow {
     color: "transparent"
 
     implicitWidth: Theme.menuWidth
-    implicitHeight: rows.implicitHeight + 2 * Theme.menuPadding
+    implicitHeight: (root.wifiPageShown ? wifiPage.implicitHeight : rows.implicitHeight) + 2 * Theme.menuPadding
 
     Rectangle {
         anchors.fill: parent
@@ -88,70 +99,104 @@ PopupWindow {
         border.width: 1
         radius: 4
 
-        Column {
-            id: rows
+        // Hidden behind this wrapper rather than by setting the Column's own
+        // `visible` false -- a Column stops updating implicitHeight while
+        // invisible, and the popup's height above reads it the instant the
+        // Page takes over.
+        Item {
+            id: rowsWrapper
 
-            // Top/left/right only: the Column's own height drives the popup's.
+            visible: !root.wifiPageShown
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.margins: Theme.menuPadding
-            spacing: 2
 
-            NetworkItem {
-                width: rows.width
-                onCloseRequested: root.shown = false
-            }
+            Column {
+                id: rows
 
-            BluetoothItem {
-                width: rows.width
-                onCloseRequested: root.shown = false
-            }
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: 2
 
-            // No onCloseRequested: a switch should stay on screen while it
-            // settles.
-            TailscaleRow {
-                width: rows.width
-            }
-
-            // Same reasoning as TailscaleRow above -- the row itself keeps
-            // showing the flipped state as it settles.
-            DevcontainerRoutingRow {
-                width: rows.width
-            }
-
-            Volume {
-                width: rows.width
-                onCloseRequested: root.shown = false
-            }
-
-            // Splits the status half from the power half.
-            Item {
-                width: rows.width
-                height: Theme.menuPadding
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width
-                    height: 1
-                    color: Theme.foreground
-                    opacity: 0.15
-                }
-            }
-
-            Repeater {
-                model: root.powerActions
-
-                delegate: MenuRow {
-                    required property var modelData
-
+                NetworkItem {
                     width: rows.width
-                    icon: modelData.icon
-                    label: modelData.label
+                    // Opening the Wi-Fi Page must not close the panel it is
+                    // drawn in -- same reasoning as TailscaleRow's
+                    // onCloseRequested comment.
+                    onRequestWifiPage: root.wifiPageShown = true
+                }
 
-                    onClicked: Quickshell.execDetached(modelData.command)
+                BluetoothItem {
+                    width: rows.width
                     onCloseRequested: root.shown = false
                 }
+
+                // No onCloseRequested: a switch should stay on screen while it
+                // settles.
+                TailscaleRow {
+                    width: rows.width
+                }
+
+                // Same reasoning as TailscaleRow above -- the row itself keeps
+                // showing the flipped state as it settles.
+                DevcontainerRoutingRow {
+                    width: rows.width
+                }
+
+                Volume {
+                    width: rows.width
+                    onCloseRequested: root.shown = false
+                }
+
+                // Splits the status half from the power half.
+                Item {
+                    width: rows.width
+                    height: Theme.menuPadding
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        height: 1
+                        color: Theme.foreground
+                        opacity: 0.15
+                    }
+                }
+
+                Repeater {
+                    model: root.powerActions
+
+                    delegate: MenuRow {
+                        required property var modelData
+
+                        width: rows.width
+                        icon: modelData.icon
+                        label: modelData.label
+
+                        onClicked: Quickshell.execDetached(modelData.command)
+                        onCloseRequested: root.shown = false
+                    }
+                }
+            }
+        }
+
+        Item {
+            id: wifiPageWrapper
+
+            visible: root.wifiPageShown
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: Theme.menuPadding
+
+            WifiPage {
+                id: wifiPage
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                active: root.wifiPageShown
+
+                onBack: root.wifiPageShown = false
             }
         }
     }
