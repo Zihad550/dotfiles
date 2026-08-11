@@ -29,6 +29,10 @@ Item {
     // for its own action, hence the separate signal.
     signal closeRequested
     signal glyphClicked
+    // Ticket 08: a right-click alternative to `clicked`, for rows that offer
+    // destructive actions off the everyday click. No `closeRequested`
+    // counterpart -- opening a menu must not close the panel it's drawn in.
+    signal rightClicked
 
     // QuickSettings sets the real width; this is just the fallback.
     implicitWidth: Theme.menuWidth - 2 * Theme.menuPadding
@@ -126,10 +130,15 @@ Item {
 
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-        onClicked: {
-            root.clicked();
-            root.closeRequested();
+        onClicked: event => {
+            if (event.button === Qt.RightButton) {
+                root.rightClicked();
+            } else {
+                root.clicked();
+                root.closeRequested();
+            }
         }
     }
 

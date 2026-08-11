@@ -47,6 +47,12 @@ Column {
     // the field reopens already labelled with why.
     property var passwordTarget: null
 
+    // Ticket 08: the network with an open right-click menu. A network is
+    // never both this and `passwordTarget` -- Forget requires `known`, and a
+    // password prompt requires `!known`, so the two states can't land on the
+    // same network.
+    property var contextMenuTarget: null
+
     // Literal pre-shared-key types only. Excluded on purpose: Wpa2Eap,
     // WpaEap, Wpa3SuiteB192, DynamicWep, Leap are EAP-backed (ticket 09's
     // job); Open/Owe need no password; StaticWep's key isn't NM's `psk`
@@ -108,6 +114,10 @@ Column {
         // rather than starting a second attempt on top of the first.
         if (root.connecting)
             return;
+        // Left-click stays purely "connect" -- an open menu belongs to
+        // whichever row was right-clicked, and a left-click elsewhere reads
+        // as leaving it.
+        root.contextMenuTarget = null;
         if (root.needsPasswordPrompt(network)) {
             if (network !== root.failedNetwork)
                 root.failedNetwork = null;
@@ -117,9 +127,37 @@ Column {
         root.attemptConnect(network);
     }
 
+    // Offers only what applies: Disconnect on the network you're on, Forget
+    // on any saved one, both on a network that's both. Neither -- nothing
+    // opens, per ticket 08.
+    function handleRowRightClick(network) {
+        if (root.connecting)
+            return;
+        // Mirrors handleRowClick clearing `contextMenuTarget`: a right-click
+        // is its own row's business, so any password field left open on
+        // another row closes rather than sitting open alongside this menu.
+        root.passwordTarget = null;
+        if (!network.connected && !network.known) {
+            root.contextMenuTarget = null;
+            return;
+        }
+        root.contextMenuTarget = root.contextMenuTarget === network ? null : network;
+    }
+
+    function disconnectNetwork(network) {
+        root.contextMenuTarget = null;
+        network.disconnect();
+    }
+
+    function forgetNetwork(network) {
+        root.contextMenuTarget = null;
+        network.forget();
+    }
+
     function beginAttempt(network) {
         root.failedNetwork = null;
         root.passwordTarget = null;
+        root.contextMenuTarget = null;
         root.connecting = network;
     }
 
@@ -140,6 +178,7 @@ Column {
         root.connecting = null;
         root.failedNetwork = null;
         root.passwordTarget = null;
+        root.contextMenuTarget = null;
     }
 
     onActiveChanged: {
@@ -160,9 +199,9 @@ Column {
     // the bottom. If `ordered` opened empty (cache not warm yet), the first
     // results still get the one sort instead of landing in scan order.
     //
-    // `connecting`/`passwordTarget` are pinned regardless -- NetworkManager
-    // prunes stale scan results mid-connect (see ticket 02's probe), and
-    // this row's the one place that's happening.
+    // `connecting`/`passwordTarget`/`contextMenuTarget` are pinned regardless
+    // -- NetworkManager prunes stale scan results mid-connect (see ticket
+    // 02's probe), and this row's the one place that's happening.
     onLiveNetworksChanged: {
         if (!root.active)
             return;
@@ -170,7 +209,7 @@ Column {
             root.ordered = root.sorted(root.liveNetworks);
             return;
         }
-        const pinned = [root.connecting, root.passwordTarget].filter(n => n !== null);
+        const pinned = [root.connecting, root.passwordTarget, root.contextMenuTarget].filter(n => n !== null);
         const kept = root.ordered.filter(n => root.liveNetworks.includes(n) || pinned.includes(n));
         const additions = root.liveNetworks.filter(n => !kept.includes(n));
         if (kept.length !== root.ordered.length || additions.length > 0)
@@ -232,6 +271,7 @@ Column {
 
             required property var modelData
             readonly property bool promptOpen: root.passwordTarget === entry.modelData
+            readonly property bool menuOpen: root.contextMenuTarget === entry.modelData
 
             width: root.width
             // Attempting or prompting is this row's own business; everything
@@ -245,6 +285,29 @@ Column {
                 detail: root.detailFor(entry.modelData)
 
                 onClicked: root.handleRowClick(entry.modelData)
+                onRightClicked: root.handleRowRightClick(entry.modelData)
+            }
+
+            // Ticket 08: right-click's Disconnect/Forget, indented under the
+            // row they act on. `handleRowRightClick` already refuses to open
+            // `menuOpen` for a network that's neither connected nor known, so
+            // at least one of these two is visible whenever it's open.
+            MenuRow {
+                x: 12
+                width: entry.width - 12
+                visible: entry.menuOpen && entry.modelData.connected
+                label: "Disconnect"
+
+                onClicked: root.disconnectNetwork(entry.modelData)
+            }
+
+            MenuRow {
+                x: 12
+                width: entry.width - 12
+                visible: entry.menuOpen && entry.modelData.known
+                label: "Forget"
+
+                onClicked: root.forgetNetwork(entry.modelData)
             }
 
             Item {
