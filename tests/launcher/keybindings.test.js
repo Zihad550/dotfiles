@@ -88,7 +88,7 @@ test("all physical-code binds resolve to their real keys", () => {
 
 test("unfamiliar physical key codes remain visible", () => {
     const entry = Keybindings.entriesFor(SAMPLE, null)
-        .find(item => item.name === "Custom physical bind");
+        .find(entry => entry.name === "Custom physical bind");
 
     assert.strictEqual(entry.subtext, "SUPER+code:42");
 });
