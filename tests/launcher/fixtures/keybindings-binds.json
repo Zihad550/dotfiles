@@ -12,6 +12,18 @@
     "description": "Close window"
   },
   {
+    "modmask": 68,
+    "key": "C",
+    "keycode": 0,
+    "description": "Control combo"
+  },
+  {
+    "modmask": 69,
+    "key": "V",
+    "keycode": 0,
+    "description": "Control shift combo"
+  },
+  {
     "modmask": 65,
     "key": "",
     "keycode": 10,
@@ -52,5 +64,47 @@
     "key": "Q",
     "keycode": 0,
     "description": ""
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 42,
+    "description": "Custom physical bind"
+  },
+  {
+    "modmask": 0,
+    "key": "l",
+    "keycode": 0,
+    "description": "Resize right"
+  },
+  {
+    "modmask": 0,
+    "key": "h",
+    "keycode": 0,
+    "description": "Resize left"
+  },
+  {
+    "modmask": 0,
+    "key": "k",
+    "keycode": 0,
+    "description": "Resize up"
+  },
+  {
+    "modmask": 0,
+    "key": "j",
+    "keycode": 0,
+    "description": "Resize down"
+  },
+  {
+    "modmask": 0,
+    "key": "escape",
+    "keycode": 0,
+    "description": "Exit resize mode"
+  },
+  {
+    "modmask": 0,
+    "key": "catchall",
+    "keycode": 0,
+    "description": "Exit resize mode"
   }
 ]

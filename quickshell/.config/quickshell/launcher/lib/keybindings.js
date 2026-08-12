@@ -1,9 +1,3 @@
-// The keybindings Provider's pure half: decoding `hyprctl binds -j`, building
-// searchable Entries, and declaring the commands its Actions run.
-//
-// Free of QML types so the live JSON-to-Entry seam loads under Node too
-// (tests/launcher/keybindings.test.js).
-
 var ICON = "input-keyboard";
 
 // Hyprland's modmask bits. The display order follows the Lua bindings' own
@@ -66,7 +60,14 @@ function keyFor(bind, description) {
     if (key !== "" && !/^code:\d+$/i.test(key))
         return key;
 
-    return codeKeyFor(description);
+    var readableCode = codeKeyFor(description);
+    if (readableCode !== "")
+        return readableCode;
+
+    if (bind && bind.keycode !== undefined && bind.keycode !== null)
+        return "code:" + String(bind.keycode);
+
+    return key !== "" ? key : "unknown";
 }
 
 function comboFor(bind) {
@@ -74,20 +75,26 @@ function comboFor(bind) {
         ? bind.description.trim()
         : "";
     var key = keyFor(bind, description);
-    if (description === "" || key === "")
+    if (key === "")
         return "";
 
     return modifiersFor(modmaskOf(bind)).concat([key]).join("+");
 }
 
 function entryFor(bind, provider) {
-    var description = typeof bind.description === "string" ? bind.description.trim() : "";
+    var description = bind && typeof bind.description === "string"
+        ? bind.description.trim()
+        : "";
     var combo = comboFor(bind);
-    if (description === "" || combo === "")
+    if (combo === "")
         return null;
 
+    // Keep an undescribed live bind visible and searchable by its combo rather
+    // than silently losing an active shortcut.
+    var name = description !== "" ? description : combo;
+
     return {
-        name: description,
+        name: name,
         subtext: combo,
         icon: ICON,
         key: combo,
@@ -95,6 +102,7 @@ function entryFor(bind, provider) {
         target: {
             combo: combo,
             description: description,
+            key: keyFor(bind, description),
             modmask: modmaskOf(bind)
         }
     };
@@ -113,7 +121,7 @@ function entriesFor(binds, provider) {
         if (modmask !== 0)
             return modmask;
 
-        var keyOrder = a.subtext.localeCompare(b.subtext);
+        var keyOrder = a.target.key.localeCompare(b.target.key);
         return keyOrder !== 0 ? keyOrder : a.name.localeCompare(b.name);
     });
 }
@@ -141,42 +149,18 @@ function copyArgv(combo) {
     return ["sh", "-c", 'printf "%s" "$1" | wl-copy', "sh", combo];
 }
 
-function findSourceCommand(description, bindingsDir) {
-    return [
-        "sh", "-c", 'grep -n -m 1 -F -- "$1" "$2"/*.lua', "sh",
-        description, bindingsDir
-    ];
-}
-
-function sourceMatchOf(text) {
-    if (typeof text !== "string")
-        return null;
-
-    var match = /^(.*):(\d+):/.exec(text.trim());
-    if (match === null)
-        return null;
-
-    return { path: match[1], line: Number(match[2]) };
-}
-
-function openArgv(match) {
-    return ["zeditor", match.path + ":" + match.line];
-}
-
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
         ICON: ICON,
         listCommand: listCommand,
         parseListing: parseListing,
+        modmaskOf: modmaskOf,
         modifiersFor: modifiersFor,
         keyFor: keyFor,
         comboFor: comboFor,
         entryFor: entryFor,
         entriesFor: entriesFor,
         catalogOf: catalogOf,
-        copyArgv: copyArgv,
-        findSourceCommand: findSourceCommand,
-        sourceMatchOf: sourceMatchOf,
-        openArgv: openArgv
+        copyArgv: copyArgv
     };
 }
