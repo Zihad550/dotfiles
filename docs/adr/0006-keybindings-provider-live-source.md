@@ -14,7 +14,7 @@ of truth for data that already exists live.
 
 - 24 binds are triggered by physical `code:N` rather than a named key (10
   workspace switch/move pairs, 4 resize binds) — `hyprctl` reports these with
-  an empty key field, so the Provider carries a small hardcoded lookup table
-  for them instead, matched against the bind's `description`.
+  an empty key field, so the Provider recovers workspace numbers from the bind
+  description and uses a small hardcoded lookup table for resize keycodes.
 - `resize` submap binds needed real descriptions added in `tiling.lua` (they
   had none) so the Provider never has to special-case a nameless Entry.

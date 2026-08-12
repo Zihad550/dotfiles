@@ -50,11 +50,40 @@ test("physical key codes get readable workspace and resize keys", () => {
     const entries = Keybindings.entriesFor(SAMPLE, null);
 
     assert.strictEqual(entries.find(entry => entry.name === "Switch to workspace 1").subtext,
-        "SUPER+SHIFT+1");
+        "SUPER+1");
     assert.strictEqual(entries.find(entry => entry.name === "Expand window left").subtext,
-        "SUPER+SHIFT+-");
+        "SUPER+-");
     assert.strictEqual(entries.find(entry => entry.name === "Expand window down").subtext,
         "SUPER+SHIFT+=");
+});
+
+test("all physical-code binds resolve to their real keys", () => {
+    const physical = SAMPLE.filter(bind => bind.key === ""
+        && bind.keycode >= 10 && bind.keycode <= 21);
+    const entries = Keybindings.entriesFor(physical, null);
+
+    assert.strictEqual(entries.length, 24);
+    for (let workspace = 1; workspace <= 10; workspace += 1) {
+        const key = workspace === 10 ? "0" : String(workspace);
+        assert.strictEqual(entries.find(entry =>
+            entry.name === `Switch to workspace ${workspace}`).target.key,
+        key);
+        assert.strictEqual(entries.find(entry =>
+            entry.name === `Move window to workspace ${workspace}`).target.key,
+        key);
+    }
+
+    assert.deepStrictEqual(
+        entries.filter(entry => entry.target.key === "-" || entry.target.key === "=")
+            .map(entry => [entry.name, entry.target.key]),
+        [
+            ["Expand window left", "-"],
+            ["Shrink window left", "="],
+            ["Shrink window up", "-"],
+            ["Expand window down", "="]
+        ]
+    );
+    assert.strictEqual(entries.every(entry => !entry.subtext.endsWith("+")), true);
 });
 
 test("unfamiliar physical key codes remain visible", () => {
@@ -92,7 +121,10 @@ test("nameless entries remain visible and the base order is modmask then key", (
     const entries = Keybindings.entriesFor(SAMPLE, null).filter(entry =>
         !entry.name.startsWith("Resize")
         && entry.name !== "Exit resize mode"
-        && entry.name !== "Custom physical bind");
+        && entry.name !== "Custom physical bind"
+        && !/workspace \d+$/.test(entry.name)
+        && !["Expand window left", "Shrink window left", "Shrink window up",
+            "Expand window down"].includes(entry.name));
 
     assert.strictEqual(entries.some(entry => entry.name === "SUPER+Q"), true);
     assert.deepStrictEqual(entries.map(entry => entry.subtext), [
@@ -101,9 +133,6 @@ test("nameless entries remain visible and the base order is modmask then key", (
         "SUPER+Q",
         "SUPER+S",
         "SUPER+W",
-        "SUPER+SHIFT+-",
-        "SUPER+SHIFT+=",
-        "SUPER+SHIFT+1",
         "SUPER+CTRL+C",
         "SUPER+CTRL+SHIFT+V",
         "SUPER+ALT+SHIFT+P"

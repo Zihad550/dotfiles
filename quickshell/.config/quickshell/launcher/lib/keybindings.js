@@ -9,13 +9,11 @@ var MODIFIERS = [
     { bit: 1, name: "SHIFT" }
 ];
 
-// `hyprctl` leaves key empty for binds written as `code:N`. These are the
-// only code binds this Provider needs to name without copying the bindings.
-var RESIZE_KEYS = {
-    "Expand window left": "-",
-    "Shrink window left": "=",
-    "Shrink window up": "-",
-    "Expand window down": "="
+// `hyprctl` leaves key empty for binds written as `code:N`. Workspace binds
+// are named from their descriptions; these are the remaining physical keys.
+var CODE_KEYS = {
+    "20": "-",
+    "21": "="
 };
 
 function listCommand() {
@@ -47,12 +45,15 @@ function modifiersFor(modmask) {
     });
 }
 
-function codeKeyFor(description) {
+function codeKeyFor(bind, description) {
     var workspace = /workspace (\d+)$/i.exec(description);
     if (workspace !== null)
-        return workspace[1];
+        return workspace[1] === "10" ? "0" : workspace[1];
 
-    return RESIZE_KEYS[description] || "";
+    var keycode = bind && bind.keycode;
+    return keycode === undefined || keycode === null
+        ? ""
+        : CODE_KEYS[String(keycode)] || "";
 }
 
 function keyFor(bind, description) {
@@ -60,7 +61,7 @@ function keyFor(bind, description) {
     if (key !== "" && !/^code:\d+$/i.test(key))
         return key;
 
-    var readableCode = codeKeyFor(description);
+    var readableCode = codeKeyFor(bind, description);
     if (readableCode !== "")
         return readableCode;
 
