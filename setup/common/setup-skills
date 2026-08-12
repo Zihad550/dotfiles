@@ -12,7 +12,7 @@
 
 set -e
 
-AGENTS=(claude-code cursor pi kilo)
+AGENTS=(claude-code cursor codex pi kilo)
 
 mise use -g npm:skills
 eval "$(mise activate bash)"
@@ -24,6 +24,7 @@ skills add herdrdev/herdr --skill herdr -g --agent "${AGENTS[@]}" -y
 skills add giuseppe-trisciuoglio/developer-kit --skill shadcn-ui -g --agent "${AGENTS[@]}" -y
 skills add anthropics/skills --skill webapp-testing -g --agent "${AGENTS[@]}" -y
 skills add max-sixty/worktrunk --skill worktrunk -g --agent "${AGENTS[@]}" -y
+skills add mattpocock/skills -g --agent cursor codex pi kilo -y
 
 ######## our own skills, no upstream repo — sourced from github.com/Zihad550/skills
 skills add https://github.com/Zihad550/skills \
