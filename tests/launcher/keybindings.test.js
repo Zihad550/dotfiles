@@ -8,6 +8,28 @@ const fs = require("node:fs");
 const K = require("../../quickshell/.config/quickshell/launcher/lib/keybindings.js");
 const SAMPLE = JSON.parse(fs.readFileSync(
     "tests/launcher/fixtures/keybindings-binds.json", "utf8"));
+const TILING = fs.readFileSync(
+    "hypr/.config/hypr/lua/bindings/tiling.lua", "utf8");
+const RESIZE_SUBMAP = TILING.match(
+    /hl\.define_submap\("resize", function\(\)\n([\s\S]*?)\nend\)/
+)[1];
+
+test("resize submap declarations retain descriptions", () => {
+    const descriptions = [
+        ["l", "Resize right"],
+        ["h", "Resize left"],
+        ["k", "Resize up"],
+        ["j", "Resize down"],
+        ["escape", "Exit resize mode"],
+        ["catchall", "Exit resize mode"]
+    ];
+
+    for (const [key, description] of descriptions) {
+        assert.match(RESIZE_SUBMAP, new RegExp(
+            `o\\.bind\\("${key}",\\s+"${description}"`
+        ));
+    }
+});
 
 test("the live listing command asks Hyprland for JSON binds", () => {
     assert.deepStrictEqual(K.listCommand(), ["hyprctl", "binds", "-j"]);
