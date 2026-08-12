@@ -70,10 +70,14 @@ function keyFor(bind, description) {
     return key !== "" ? key : "unknown";
 }
 
-function comboFor(bind) {
-    var description = bind && typeof bind.description === "string"
+function descriptionFor(bind) {
+    return bind && typeof bind.description === "string"
         ? bind.description.trim()
         : "";
+}
+
+function comboFor(bind) {
+    var description = descriptionFor(bind);
     var key = keyFor(bind, description);
     if (key === "")
         return "";
@@ -82,9 +86,7 @@ function comboFor(bind) {
 }
 
 function entryFor(bind, provider) {
-    var description = bind && typeof bind.description === "string"
-        ? bind.description.trim()
-        : "";
+    var description = descriptionFor(bind);
     var combo = comboFor(bind);
     if (combo === "")
         return null;
@@ -135,11 +137,9 @@ function catalogOf(binds, provider) {
     var owners = [];
 
     entries.forEach(function (entry, index) {
-        [entry.name, entry.subtext].forEach(function (text) {
-            texts.push(text);
-            keys.push(entry.key);
-            owners.push(index);
-        });
+        texts.push(entry.name);
+        keys.push(entry.key);
+        owners.push(index);
     });
 
     return { entries: entries, texts: texts, keys: keys, owners: owners };

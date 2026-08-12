@@ -110,16 +110,14 @@ test("nameless entries remain visible and the base order is modmask then key", (
     ]);
 });
 
-test("the catalog searches both descriptions and combos while keeping stable keys", () => {
+test("the catalog searches descriptions while keeping stable keys", () => {
     const catalog = Keybindings.catalogOf(SAMPLE, null);
     const index = catalog.entries.findIndex(entry => entry.name === "Toggle floating");
-    const offset = index * 2;
 
-    assert.deepStrictEqual(catalog.texts.slice(offset, offset + 2), [
-        "Toggle floating", "CTRL+F"
-    ]);
-    assert.deepStrictEqual(catalog.keys.slice(offset, offset + 2), ["CTRL+F", "CTRL+F"]);
-    assert.deepStrictEqual(catalog.owners.slice(offset, offset + 2), [index, index]);
+    assert.strictEqual(catalog.texts[index], "Toggle floating");
+    assert.strictEqual(catalog.texts.includes("CTRL+F"), false);
+    assert.strictEqual(catalog.keys[index], "CTRL+F");
+    assert.strictEqual(catalog.owners[index], index);
 });
 
 test("clipboard action keeps the combo as one argv value", () => {
