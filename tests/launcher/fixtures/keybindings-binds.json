@@ -1,0 +1,56 @@
+[
+  {
+    "modmask": 4,
+    "key": "F",
+    "keycode": 0,
+    "description": "Toggle floating"
+  },
+  {
+    "modmask": 64,
+    "key": "W",
+    "keycode": 0,
+    "description": "Close window"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 10,
+    "description": "Switch to workspace 1"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 20,
+    "description": "Expand window left"
+  },
+  {
+    "modmask": 73,
+    "key": "P",
+    "keycode": 0,
+    "description": "Pseudo window"
+  },
+  {
+    "modmask": 64,
+    "key": "S",
+    "keycode": 0,
+    "description": "Full width"
+  },
+  {
+    "modmask": 64,
+    "key": "D",
+    "keycode": 0,
+    "description": "Full width"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 21,
+    "description": "Expand window down"
+  },
+  {
+    "modmask": 64,
+    "key": "Q",
+    "keycode": 0,
+    "description": ""
+  }
+]

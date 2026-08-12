@@ -96,12 +96,12 @@ o.bind("SUPER + SHIFT + S", "Move to magic workspace", hl.dsp.window.move({ work
 -- Resize submap
 o.bind("SUPER + R", "Enter resize submap", hl.dsp.submap("resize"))
 hl.define_submap("resize", function()
-    hl.bind("l", hl.dsp.window.resize({ x = 10,  y = 0,   relative = true }), { repeating = true })
-    hl.bind("h", hl.dsp.window.resize({ x = -10, y = 0,   relative = true }), { repeating = true })
-    hl.bind("k", hl.dsp.window.resize({ x = 0,   y = -10, relative = true }), { repeating = true })
-    hl.bind("j", hl.dsp.window.resize({ x = 0,   y = 10,  relative = true }), { repeating = true })
-    hl.bind("escape",   hl.dsp.submap("reset"))
-    hl.bind("catchall", hl.dsp.submap("reset"))
+    o.bind("l", "Resize right", hl.dsp.window.resize({ x = 10,  y = 0,   relative = true }), { repeating = true })
+    o.bind("h", "Resize left",  hl.dsp.window.resize({ x = -10, y = 0,   relative = true }), { repeating = true })
+    o.bind("k", "Resize up",    hl.dsp.window.resize({ x = 0,   y = -10, relative = true }), { repeating = true })
+    o.bind("j", "Resize down",  hl.dsp.window.resize({ x = 0,   y = 10,  relative = true }), { repeating = true })
+    o.bind("escape",   "Exit resize mode", hl.dsp.submap("reset"))
+    o.bind("catchall", "Exit resize mode", hl.dsp.submap("reset"))
 end)
 
 -- F11 fullscreen shortcuts
