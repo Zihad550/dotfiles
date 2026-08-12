@@ -8,12 +8,12 @@
 
 # not working cpu type othe than host
 mise use -g uv npm:skills
-mise use -g node@24 node go pnpm claude
+mise use -g node@24 node go pnpm
 # mise use -g bun deno node@lts pnpm
 # mise use -g mcporter # use mcp server using cli
 
-mise use -g opencode npm:@kilocode/cli gemini oh-my-pi
-# mise use -g npm:cline
+mise use -g claude opencode npm:@kilocode/cli oh-my-pi codex
+# mise use -g npm:cline gemini
 # mise use -g npm:btca # better context engine by bendevis
 mise use -g aichat # use any model in terminal, also used in automations
 # mise use -g npm:@fission-ai/openspec@latest

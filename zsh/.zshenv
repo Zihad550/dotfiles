@@ -28,6 +28,12 @@ if command -v pass &>/dev/null; then
     export CONTEXT7_API_KEY BROWSER_USE_API_KEY MISE_GITHUB_TOKEN GEMINI_API_KEY OPENROUTER_API_KEY
 fi
 
+# avoid GitHub API rate limits (mise, gh, etc.)
+if command -v gh &>/dev/null; then
+    GITHUB_TOKEN="$(gh auth token 2>/dev/null)"
+    export GITHUB_TOKEN
+fi
+
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 
