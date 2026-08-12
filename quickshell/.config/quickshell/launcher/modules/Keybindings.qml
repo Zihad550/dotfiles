@@ -31,11 +31,19 @@ QtObject {
         primary: {
             label: "copy",
             invoke: entry => root.copy(entry)
+        },
+        secondary: {
+            label: "edit",
+            invoke: entry => root.edit(entry)
         }
     })
 
     function copy(entry): void {
         Quickshell.execDetached(Keybindings.copyArgv(entry.target.combo));
+    }
+
+    function edit(entry): void {
+        Quickshell.execDetached(Keybindings.editArgv(entry.target.description));
     }
 
     property bool refreshPending: false

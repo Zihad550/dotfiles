@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const childProcess = require("node:child_process");
 
 const Keybindings = require("../../quickshell/.config/quickshell/launcher/lib/keybindings.js");
 const SAMPLE = JSON.parse(fs.readFileSync(
@@ -153,4 +156,52 @@ test("clipboard action keeps the combo as one argv value", () => {
     assert.deepStrictEqual(Keybindings.copyArgv("SUPER+W"), [
         "sh", "-c", 'printf "%s" "$1" | wl-copy', "sh", "SUPER+W"
     ]);
+});
+
+test("edit action greps the live binding sources and opens the first match in Zed", () => {
+    assert.deepStrictEqual(Keybindings.editArgv("Terminal"), [
+        "sh", "-c",
+        'needle="\\"$1\\""\n' +
+            'match=$(grep -n -m 1 -F -- "$needle" "$HOME"/dotfiles/hypr/.config/hypr/lua/bindings/*.lua | head -n 1)\n' +
+            '[ -n "$match" ] || exit 1\n' +
+            'file=${match%%:*}\n' +
+            'rest=${match#*:}\n' +
+            'line=${rest%%:*}\n' +
+            'exec uwsm-app -- zeditor "$file:$line"',
+        "sh", "Terminal"
+    ]);
+});
+
+test("edit action resolves a binding definition in each active source file", t => {
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), "keybindings-edit-"));
+    const capture = path.join(temp, "capture");
+    const launcher = path.join(temp, "uwsm-app");
+    fs.writeFileSync(launcher, '#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE"\n');
+    fs.chmodSync(launcher, 0o755);
+    t.after(() => fs.rmSync(temp, { recursive: true }));
+
+    const expected = [
+        ["Terminal", "apps.lua:21"],
+        ["Universal copy", "clipboard.lua:3"],
+        ["Volume up", "media.lua:8"],
+        ["Shutdown", "system.lua:20"],
+        ["Close window", "tiling.lua:5"],
+        ["Dismiss last notification", "utilities.lua:4"]
+    ];
+
+    for (const [description, location] of expected) {
+        const argv = Keybindings.editArgv(description);
+        const result = childProcess.spawnSync(argv[0], argv.slice(1), {
+            env: {
+                ...process.env,
+                CAPTURE: capture,
+                PATH: `${temp}:${process.env.PATH}`
+            }
+        });
+
+        assert.strictEqual(result.status, 0, result.stderr.toString());
+        const opened = fs.readFileSync(capture, "utf8").trim().split("\n");
+        assert.deepStrictEqual(opened.slice(0, 2), ["--", "zeditor"]);
+        assert.ok(opened[2].endsWith(`/bindings/${location}`), opened[2]);
+    }
 });

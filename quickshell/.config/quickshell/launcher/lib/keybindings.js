@@ -150,6 +150,20 @@ function copyArgv(combo) {
     return ["sh", "-c", 'printf "%s" "$1" | wl-copy', "sh", combo];
 }
 
+function editArgv(description) {
+    return [
+        "sh", "-c",
+        'needle="\\"$1\\""\n' +
+            'match=$(grep -n -m 1 -F -- "$needle" "$HOME"/dotfiles/hypr/.config/hypr/lua/bindings/*.lua | head -n 1)\n' +
+            '[ -n "$match" ] || exit 1\n' +
+            'file=${match%%:*}\n' +
+            'rest=${match#*:}\n' +
+            'line=${rest%%:*}\n' +
+            'exec uwsm-app -- zeditor "$file:$line"',
+        "sh", description
+    ];
+}
+
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
         ICON: ICON,
@@ -162,6 +176,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         entryFor: entryFor,
         entriesFor: entriesFor,
         catalogOf: catalogOf,
-        copyArgv: copyArgv
+        copyArgv: copyArgv,
+        editArgv: editArgv
     };
 }
