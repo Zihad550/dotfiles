@@ -81,7 +81,7 @@ PanelWindow {
     // ordinary Query; being enter-only makes that impossible rather than
     // merely unlikely. They keep `refresh()` on every open regardless -- this
     // list is what `open()` walks.
-    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, themes, backgrounds, workspaces, processes, systemd, devServers, zellij, providerList])
+    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, systemd, devServers, zellij, providerList])
 
     // `root.activePool`, not `root.pool`: a Query routed to one Provider that
     // hasn't populated yet should report pending for *that* Provider only.
@@ -666,6 +666,10 @@ PanelWindow {
 
     Clipboard {
         id: clipboard
+    }
+
+    Keybindings {
+        id: keybindings
     }
 
     // The four static menus: each is a data file, Menu.qml is the whole

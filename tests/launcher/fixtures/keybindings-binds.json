@@ -1,0 +1,236 @@
+[
+  {
+    "modmask": 4,
+    "key": "F",
+    "keycode": 0,
+    "description": "Toggle floating"
+  },
+  {
+    "modmask": 64,
+    "key": "W",
+    "keycode": 0,
+    "description": "Close window"
+  },
+  {
+    "modmask": 68,
+    "key": "C",
+    "keycode": 0,
+    "description": "Control combo"
+  },
+  {
+    "modmask": 69,
+    "key": "V",
+    "keycode": 0,
+    "description": "Control shift combo"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 10,
+    "description": "Switch to workspace 1"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 10,
+    "description": "Move window to workspace 1"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 11,
+    "description": "Switch to workspace 2"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 11,
+    "description": "Move window to workspace 2"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 12,
+    "description": "Switch to workspace 3"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 12,
+    "description": "Move window to workspace 3"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 13,
+    "description": "Switch to workspace 4"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 13,
+    "description": "Move window to workspace 4"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 14,
+    "description": "Switch to workspace 5"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 14,
+    "description": "Move window to workspace 5"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 15,
+    "description": "Switch to workspace 6"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 15,
+    "description": "Move window to workspace 6"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 16,
+    "description": "Switch to workspace 7"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 16,
+    "description": "Move window to workspace 7"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 17,
+    "description": "Switch to workspace 8"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 17,
+    "description": "Move window to workspace 8"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 18,
+    "description": "Switch to workspace 9"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 18,
+    "description": "Move window to workspace 9"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 19,
+    "description": "Switch to workspace 10"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 19,
+    "description": "Move window to workspace 10"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 20,
+    "description": "Expand window left"
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 21,
+    "description": "Shrink window left"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 20,
+    "description": "Shrink window up"
+  },
+  {
+    "modmask": 65,
+    "key": "",
+    "keycode": 21,
+    "description": "Expand window down"
+  },
+  {
+    "modmask": 73,
+    "key": "P",
+    "keycode": 0,
+    "description": "Pseudo window"
+  },
+  {
+    "modmask": 64,
+    "key": "S",
+    "keycode": 0,
+    "description": "Full width"
+  },
+  {
+    "modmask": 64,
+    "key": "D",
+    "keycode": 0,
+    "description": "Full width"
+  },
+  {
+    "modmask": 64,
+    "key": "Q",
+    "keycode": 0,
+    "description": ""
+  },
+  {
+    "modmask": 64,
+    "key": "",
+    "keycode": 42,
+    "description": "Custom physical bind"
+  },
+  {
+    "modmask": 0,
+    "key": "l",
+    "keycode": 0,
+    "description": "Resize right"
+  },
+  {
+    "modmask": 0,
+    "key": "h",
+    "keycode": 0,
+    "description": "Resize left"
+  },
+  {
+    "modmask": 0,
+    "key": "k",
+    "keycode": 0,
+    "description": "Resize up"
+  },
+  {
+    "modmask": 0,
+    "key": "j",
+    "keycode": 0,
+    "description": "Resize down"
+  },
+  {
+    "modmask": 0,
+    "key": "escape",
+    "keycode": 0,
+    "description": "Exit resize mode"
+  },
+  {
+    "modmask": 0,
+    "key": "catchall",
+    "keycode": 0,
+    "description": "Exit resize mode"
+  }
+]

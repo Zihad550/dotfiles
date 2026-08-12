@@ -1,0 +1,20 @@
+# Keybindings Provider reads live `hyprctl binds`, not the Lua source
+
+The Launcher's `keybindings` Provider (`!` prefix) lists every Hyprland bind by
+shelling out to `hyprctl binds -j` on each open, rather than parsing
+`hypr/.config/hypr/lua/bindings/*.lua`. Static parsing was the more obvious
+path — it would give exact key text and file+line for free — but was
+rejected: hyprlua binds have no re-invocation path (`hyprctl dispatch __lua N`
+errors, confirmed by test), so nothing forced full source knowledge, and a
+hand-maintained parser for `o.bind()` calls — including the
+`for i = 1, 10 do` loop generating the workspace binds — is a second source
+of truth for data that already exists live.
+
+## Consequences
+
+- 24 binds are triggered by physical `code:N` rather than a named key (10
+  workspace switch/move pairs, 4 resize binds) — `hyprctl` reports these with
+  an empty key field, so the Provider recovers workspace numbers from the bind
+  description and uses a small hardcoded lookup table for resize keycodes.
+- `resize` submap binds needed real descriptions added in `tiling.lua` (they
+  had none) so the Provider never has to special-case a nameless Entry.
