@@ -8,7 +8,6 @@ alias v='nvim'
 alias vi='nvim'
 alias cat='bat --color=always'
 alias top='btm'
-alias hr='herdr'
 # alias top='procs --sortd cpu -W 1'
 #alias find='fd'
 alias wifi='nmtui'
@@ -23,6 +22,8 @@ alias d='docker'
 alias zed='zeditor'
 alias z='zeditor'
 alias cl='claude'
+alias cx='codex'
+alias hr='herdr'
 
 # short aliases
 # cat="bat" \
