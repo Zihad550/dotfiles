@@ -67,7 +67,8 @@ sudo pacman -S --noconfirm \
     ttf-hack-nerd \
     noto-fonts \
     ttf-nerd-fonts-symbols-mono \
-    noto-fonts-emoji
+    noto-fonts-emoji \
+    ttf-dejavu
 # ttf-fira-code lives in ./quickshell-packages -- it is quickshell's Theme.qml
 # fontFamily, so it belongs with the shell rather than being optional here.
 
