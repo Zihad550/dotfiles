@@ -1,5 +1,40 @@
 {
   "extensions": {
+    "caddyfile": {
+      "manifest": {
+        "id": "caddyfile",
+        "name": "Caddyfile",
+        "version": "0.0.6",
+        "schema_version": 1,
+        "description": "Caddyfile support with syntax highlighting and Tree-sitter grammar.",
+        "repository": "https://github.com/nusnewob/caddyfile-zed",
+        "authors": [
+          "Bowen Sun <me@nusnewob.dev>"
+        ],
+        "lib": {
+          "kind": "Rust",
+          "version": "0.7.0"
+        },
+        "themes": [],
+        "icon_themes": [],
+        "languages": [
+          "languages/caddyfile"
+        ],
+        "grammars": {
+          "caddyfile": {
+            "repository": "https://github.com/nusnewob/tree-sitter-caddyfile.git",
+            "rev": "9d3af6ae44ea5f9015bc2c9a5a02066c192ab627",
+            "path": null
+          }
+        },
+        "language_servers": {},
+        "context_servers": {},
+        "slash_commands": {},
+        "snippets": null,
+        "capabilities": []
+      },
+      "dev": false
+    },
     "catppuccin-icons": {
       "manifest": {
         "id": "catppuccin-icons",
@@ -950,6 +985,20 @@
     }
   },
   "languages": {
+    "Caddyfile": {
+      "extension": "caddyfile",
+      "path": "languages/caddyfile",
+      "matcher": {
+        "path_suffixes": [
+          "Caddyfile",
+          "caddyfile"
+        ],
+        "first_line_pattern": null,
+        "modeline_aliases": []
+      },
+      "hidden": false,
+      "grammar": "caddyfile"
+    },
     "Dockerfile": {
       "extension": "dockerfile",
       "path": "languages/dockerfile",
