@@ -1,10 +1,10 @@
 import QtQuick
-import Quickshell
 import Quickshell.Services.UPower
 import qs
 
 // waybar: "battery", format "{icon} {capacity}%", on-click `elephant menu system`,
-// tooltip "{power}W↓ {capacity}%", plus notify-send events at 30/10/80/100.
+// tooltip "{power}W↓ {capacity}%". BatteryService owns threshold notifications
+// once for the whole shell; this component is instantiated once per monitor.
 //
 // The click no longer opens the system menu -- those entries live in Quick
 // Settings now (QuickSettings.powerActions); `elephant menu system` died with
@@ -26,8 +26,6 @@ BarItem {
     readonly property var chargingIcons: ["󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"]
     readonly property var dischargingIcons: ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
 
-    property int lastPercent: -1
-
     text: {
         if (!battery?.isLaptopBattery)
             return "";
@@ -41,29 +39,5 @@ BarItem {
     tooltipText: {
         const watts = Math.round(battery?.changeRate ?? 0);
         return charging ? `${watts}W↑ ${percent}%` : `${watts}W↓ ${percent}%`;
-    }
-
-    // Reimplements waybar's battery "events" block.
-    onPercentChanged: {
-        const previous = lastPercent;
-        lastPercent = percent;
-        if (previous < 0)
-            return;
-
-        if (charging) {
-            if (previous < 100 && percent >= 100)
-                notify("normal", "Battery Full!");
-            else if (previous < 80 && percent >= 80)
-                notify("normal", "Battery 80% Full!");
-        } else {
-            if (previous > 10 && percent <= 10)
-                notify("critical", "Very Low Battery");
-            else if (previous > 30 && percent <= 30)
-                notify("normal", "Low Battery");
-        }
-    }
-
-    function notify(urgency: string, message: string): void {
-        Quickshell.execDetached(["notify-send", "-u", urgency, message]);
     }
 }

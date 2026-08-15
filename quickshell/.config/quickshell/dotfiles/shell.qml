@@ -13,6 +13,8 @@ ShellRoot {
         Bar {}
     }
 
+    BatteryService {}
+
     // The org.freedesktop.Notifications server, replacing mako. Not a
     // singleton: shell.qml owns it so the IpcHandler below can reach it.
     NotificationDaemon {
