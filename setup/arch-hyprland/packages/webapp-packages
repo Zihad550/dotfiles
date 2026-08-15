@@ -21,6 +21,8 @@
 ~/dotfiles/bin/df-webapp-install "Deepl " https://www.deepl.com/en/translator deepl.svg
 ~/dotfiles/bin/df-webapp-install "Pi-hole " https://pihole.home/admin pi-hole.svg
 ~/dotfiles/bin/df-webapp-install "Tplink router" http://router.home tplink.png
+~/dotfiles/bin/df-webapp-install "Claude Design" https://claude.ai/design claude.png
+
 
 # df-webapp-install "YouTube" https://youtube.com/ YouTube.png
 # df-webapp-install "Discord" https://discord.com/channels/@me Discord.png
