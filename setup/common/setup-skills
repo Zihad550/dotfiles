@@ -18,7 +18,8 @@ mise use -g npm:skills
 eval "$(mise activate bash)"
 
 ######## third-party skills
-skills add JuliusBrussee/caveman --skill caveman caveman-commit caveman-compress caveman-review -g --agent "${AGENTS[@]}" -y
+# skills add JuliusBrussee/caveman --skill caveman caveman-commit caveman-compress caveman-review -g --agent "${AGENTS[@]}" -y
+skills add JuliusBrussee/caveman --skill caveman-commit -g --agent "${AGENTS[@]}" -y
 skills add vercel-labs/skills --skill find-skills -g --agent "${AGENTS[@]}" -y
 skills add herdrdev/herdr --skill herdr -g --agent "${AGENTS[@]}" -y
 skills add giuseppe-trisciuoglio/developer-kit --skill shadcn-ui -g --agent "${AGENTS[@]}" -y
