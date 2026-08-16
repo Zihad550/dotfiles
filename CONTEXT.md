@@ -99,9 +99,9 @@ reached from it.
 ## Language
 
 **Quick Settings**:
-The panel under the bar's Status Cluster holding the modules that are controls rather
-than at-a-glance status — network, bluetooth, volume, power. The name every
-major desktop gives this: GNOME, Android and Windows all call it Quick
+The panel under the bar's Status Cluster holding the modules that are controls
+rather than at-a-glance status — network, bluetooth, volume, power. The name
+every major desktop gives this: GNOME, Android and Windows all call it Quick
 Settings.
 _Avoid_: gear menu, settings menu, control centre, tray
 
@@ -112,14 +112,21 @@ whichever monitor is focused.
 _Avoid_: gear, tray, system tray, indicator group, status icons
 
 **Row**:
-One line in Quick Settings: leading glyph, label, trailing detail, and
-whatever control it owns. A row is a module's whole presence in the panel.
-_Avoid_: item, entry, tile
+One line in a Quick Settings Page: leading glyph, label, trailing detail, and
+whatever control it owns. Rows form lists; the primary Quick Settings surface
+uses Tiles instead.
+_Avoid_: item, entry, tile, option
+
+**Tile**:
+A pill-shaped control on the primary Quick Settings surface, paired in a
+two-column grid. Its main segment changes state; an optional trailing chevron
+opens the control's Page.
+_Avoid_: row, item, entry, button, card
 
 **Page**:
-Content that replaces the rows of Quick Settings in the same window, reached
-from a row and left by a back arrow. Not a second window and not a submenu —
-the panel is showing something else for a while.
+Content that replaces the primary Quick Settings surface in the same window,
+reached from a Tile or Row and left by a back arrow. Not a second window and
+not a submenu — the panel is showing something else for a while.
 _Avoid_: popup, submenu, screen, view, flyout
 
 **Flyout**:
