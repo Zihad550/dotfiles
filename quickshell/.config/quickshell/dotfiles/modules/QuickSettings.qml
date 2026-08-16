@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Bluetooth
 import Quickshell.Hyprland
 import Quickshell.Networking
 import Quickshell.Services.UPower
@@ -14,7 +15,13 @@ PopupWindow {
         Primary,
         Wifi,
         Audio,
-        Power
+        Bluetooth,
+        Power,
+        Devcontainer
+    }
+
+    DevcontainerRoutingState {
+        id: devcontainerRouting
     }
 
     property Item target
@@ -31,6 +38,11 @@ PopupWindow {
         : null
     readonly property bool wifiConnecting: root.wifiDevice?.state === ConnectionState.Connecting
     readonly property var wifiIcons: ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
+    readonly property BluetoothAdapter bluetoothAdapter: Bluetooth.defaultAdapter
+    readonly property var bluetoothConnectedDevices: Bluetooth.devices.values.filter(device => device.connected)
+    readonly property bool bluetoothTransitioning: root.bluetoothAdapter?.state === BluetoothAdapterState.Enabling
+        || root.bluetoothAdapter?.state === BluetoothAdapterState.Disabling
+    property bool bluetoothTogglePending: false
 
     readonly property int monitorWidth: root.screen
         ? Math.max(1, root.screen.width - 2 * Theme.edgeMargin)
@@ -77,8 +89,12 @@ PopupWindow {
             return wifiPage.implicitHeight;
         if (root.currentPage === QuickSettings.Audio)
             return audioPage.implicitHeight;
+        if (root.currentPage === QuickSettings.Bluetooth)
+            return bluetoothPage.implicitHeight;
         if (root.currentPage === QuickSettings.Power)
             return powerPage.implicitHeight;
+        if (root.currentPage === QuickSettings.Devcontainer)
+            return devcontainerPage.implicitHeight;
         return primaryContent.implicitHeight;
     }
 
@@ -97,6 +113,13 @@ PopupWindow {
         return root.wifiIcons[index];
     }
 
+    function setBluetoothEnabled(enabled: bool): void {
+        if (!root.bluetoothAdapter || root.bluetoothTogglePending || root.bluetoothTransitioning)
+            return;
+        root.bluetoothTogglePending = true;
+        root.bluetoothAdapter.enabled = enabled;
+    }
+
     function focusCurrentSurface(): void {
         if (!root.shown)
             return;
@@ -106,8 +129,12 @@ PopupWindow {
             wifiPage.focusHeader();
         else if (root.currentPage === QuickSettings.Audio)
             audioPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Bluetooth)
+            bluetoothPage.focusHeader();
         else if (root.currentPage === QuickSettings.Power)
             powerPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Devcontainer)
+            devcontainerPage.focusHeader();
         else if (lockAction.visible)
             lockAction.forceActiveFocus();
         else if (wifiTile.visible)
@@ -117,7 +144,7 @@ PopupWindow {
     }
 
     function navigate(page: int, keyboardFocus: bool): void {
-        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Power) {
+        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
@@ -152,6 +179,27 @@ PopupWindow {
     }
 
     onCurrentPageChanged: Qt.callLater(() => root.focusCurrentSurface())
+
+    Connections {
+        target: root.bluetoothAdapter
+
+        function onStateChanged() {
+            if (root.bluetoothAdapter.state !== BluetoothAdapterState.Enabling
+                    && root.bluetoothAdapter.state !== BluetoothAdapterState.Disabling)
+                root.bluetoothTogglePending = false;
+        }
+    }
+
+    Timer {
+        interval: 500
+        repeat: true
+        running: root.bluetoothTogglePending
+
+        onTriggered: {
+            if (!root.bluetoothTransitioning)
+                root.bluetoothTogglePending = false;
+        }
+    }
 
     HyprlandFocusGrab {
         windows: [root]
@@ -363,7 +411,7 @@ PopupWindow {
                         Flow {
                             id: tileGrid
 
-                            visible: root.wifiDevice !== null || TailscaleService.installed
+                            visible: root.wifiDevice !== null || TailscaleService.installed || root.bluetoothAdapter !== null || devcontainerRouting !== null
                             width: parent.width
                             height: tileGrid.visible ? tileGrid.implicitHeight : 0
                             spacing: Theme.quickSettingsGap
@@ -394,6 +442,34 @@ PopupWindow {
                             }
 
                             Tile {
+                                id: bluetoothTile
+
+                                visible: root.bluetoothAdapter !== null
+                                width: tileGrid.tileWidth
+                                enabled: !!root.bluetoothAdapter
+
+                                icon: ""
+                                label: {
+                                    const connected = root.bluetoothConnectedDevices;
+                                    if (connected.length === 1)
+                                        return connected[0].name || connected[0].deviceName || connected[0].address || "Bluetooth";
+                                    if (connected.length > 1)
+                                        return `${connected.length} connected`;
+                                    return "Bluetooth";
+                                }
+                                active: root.bluetoothAdapter?.enabled ?? false
+                                busy: root.bluetoothTransitioning || root.bluetoothTogglePending
+                                chevronVisible: true
+
+                                onClicked: root.setBluetoothEnabled(!root.bluetoothAdapter.enabled)
+                                onChevronClicked: keyboard => {
+                                    if (!root.bluetoothAdapter.enabled)
+                                        root.setBluetoothEnabled(true);
+                                    root.navigate(QuickSettings.Bluetooth, keyboard);
+                                }
+                            }
+
+                            Tile {
                                 id: tailscaleTile
 
                                 visible: TailscaleService.installed
@@ -407,6 +483,15 @@ PopupWindow {
 
                                 onClicked: TailscaleService.toggle()
                             }
+
+                            DevcontainerRoutingTile {
+                                id: devcontainerTile
+
+                                width: tileGrid.tileWidth
+                                routingState: devcontainerRouting
+
+                                onPageRequested: keyboard => root.navigate(QuickSettings.Devcontainer, keyboard)
+                            }
                         }
 
                         Column {
@@ -419,14 +504,6 @@ PopupWindow {
                                 width: legacyRows.width
                             }
 
-                            BluetoothItem {
-                                width: legacyRows.width
-                                onCloseRequested: root.dismiss()
-                            }
-
-                            DevcontainerRoutingRow {
-                                width: legacyRows.width
-                            }
                         }
                     }
                 }
@@ -503,6 +580,41 @@ PopupWindow {
             }
 
             Item {
+                id: bluetoothSurface
+
+                x: root.currentPage === QuickSettings.Bluetooth ? 0 : 8
+                width: parent.width
+                height: parent.height
+                visible: opacity > 0
+                enabled: root.currentPage === QuickSettings.Bluetooth
+                opacity: root.currentPage === QuickSettings.Bluetooth ? 1 : 0
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                BluetoothPage {
+                    id: bluetoothPage
+
+                    anchors.fill: parent
+                    active: root.shown && root.currentPage === QuickSettings.Bluetooth
+
+                    onBack: keyboard => root.showPrimary(keyboard)
+                    onCloseRequested: root.dismiss()
+                }
+            }
+
+            Item {
                 id: powerSurface
 
                 x: root.currentPage === QuickSettings.Power ? 0 : 8
@@ -550,6 +662,40 @@ PopupWindow {
                             }
                         }
                     }
+                }
+            }
+
+            Item {
+                id: devcontainerSurface
+
+                x: root.currentPage === QuickSettings.Devcontainer ? 0 : 8
+                width: parent.width
+                height: parent.height
+                visible: opacity > 0
+                enabled: root.currentPage === QuickSettings.Devcontainer
+                opacity: root.currentPage === QuickSettings.Devcontainer ? 1 : 0
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                DevcontainerRoutingPage {
+                    id: devcontainerPage
+
+                    anchors.fill: parent
+                    routingState: devcontainerRouting
+                    active: root.shown && root.currentPage === QuickSettings.Devcontainer
+                    onBack: keyboard => root.showPrimary(keyboard)
                 }
             }
         }

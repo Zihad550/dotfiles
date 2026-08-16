@@ -15,6 +15,7 @@ Item {
     property bool overflowFocusVisible: false
 
     signal clicked(bool keyboard)
+    signal pressed
     signal rightClicked
     signal overflowClicked
 
@@ -137,6 +138,7 @@ Item {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
             onPressed: {
+                root.pressed();
                 root.forceActiveFocus();
                 root.mainFocusVisible = false;
             }

@@ -69,6 +69,84 @@ test("Audio Page is native, availability-aware, and keeps advanced settings as a
     assert.match(audioPage, /Quickshell\.execDetached\(\["pavucontrol"\]\)/);
 });
 
+test("Devcontainer routing uses a Tile and a dedicated Page", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const tile = source("modules/DevcontainerRoutingTile.qml");
+    const page = source("modules/DevcontainerRoutingPage.qml");
+
+    assert.match(quickSettings, /enum Page \{[\s\S]*Devcontainer[\s\S]*\}/);
+    assert.match(quickSettings, /DevcontainerRoutingState\s*\{\s*id:\s*devcontainerRouting/);
+    assert.match(quickSettings, /DevcontainerRoutingTile\s*\{[\s\S]*routingState:\s*devcontainerRouting[\s\S]*onPageRequested:[\s\S]*QuickSettings\.Devcontainer/);
+    assert.match(quickSettings, /DevcontainerRoutingPage\s*\{[\s\S]*routingState:\s*devcontainerRouting/);
+    assert.doesNotMatch(quickSettings, /DevcontainerRoutingRow/);
+    assert.equal(fs.existsSync(path.join(dotfilesRoot, "modules/DevcontainerRoutingRow.qml")), false);
+
+    assert.match(tile, /label:\s*"Devcontainer"/);
+    assert.match(tile, /active:\s*root\.routingState\.routingEnabled/);
+    assert.match(tile, /busy:\s*root\.routingState\.busy/);
+    assert.match(tile, /onClicked:\s*root\.routingState\.toggle\(\)/);
+    assert.match(tile, /chevronVisible:\s*true/);
+
+    assert.match(page, /title:\s*"Devcontainer"/);
+    assert.match(page, /TextInput\s*\{/);
+    assert.match(page, /onAccepted:\s*root\.commitHost\(\)/);
+    assert.match(page, /if \(!activeFocus && root\.routingState\.routingEnabled\)/);
+    assert.match(page, /root\.routingState\.commitHost\(hostInput\.text\)/);
+});
+
+test("Devcontainer routing settles from the file and serializes writes", () => {
+    const state = source("DevcontainerRoutingState.qml");
+
+    assert.match(state, /readonly property bool busy:\s*toggleProcess\.running/);
+    assert.match(state, /if \(root\.busy\)\s*return/);
+    assert.match(state, /toggleProcess\.running\s*=\s*true/);
+    assert.match(state, /onExited:\s*root\.toggleFile\.reload\(\)/);
+    assert.match(state, /onLoaded:\s*root\.routingEnabled\s*=\s*true/);
+    assert.match(state, /onLoadFailed:\s*root\.routingEnabled\s*=\s*false/);
+    assert.match(state, /onFileChanged:\s*reload\(\)/);
+    assert.doesNotMatch(state, /execDetached/);
+});
+
+test("Bluetooth is an optional Tile with authoritative adapter state", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const tile = source("modules/Tile.qml");
+
+    assert.match(quickSettings, /import Quickshell\.Bluetooth/);
+    assert.match(quickSettings, /enum Page \{[\s\S]*Bluetooth[\s\S]*\}/);
+    assert.match(quickSettings, /Bluetooth\.defaultAdapter/);
+    assert.match(quickSettings, /bluetoothTile[\s\S]*visible:[\s\S]*bluetoothAdapter/);
+    assert.match(quickSettings, /bluetoothTile[\s\S]*active:[\s\S]*bluetoothAdapter\.enabled/);
+    assert.match(quickSettings, /bluetoothTile[\s\S]*enabled:[\s\S]*bluetoothAdapter/);
+    assert.match(quickSettings, /bluetoothTogglePending/);
+    assert.match(quickSettings, /setBluetoothEnabled[\s\S]*bluetoothTogglePending[\s\S]*return/);
+    assert.match(quickSettings, /bluetoothTile[\s\S]*busy:[\s\S]*bluetoothTogglePending/);
+    assert.match(quickSettings, /bluetoothTile[\s\S]*onClicked:[\s\S]*setBluetoothEnabled/);
+    assert.match(quickSettings, /bluetoothTile[\s\S]*onChevronClicked:[\s\S]*QuickSettings\.Bluetooth/);
+    assert.doesNotMatch(quickSettings, /BluetoothItem\s*{/);
+    assert.equal(fs.existsSync(path.join(dotfilesRoot, "modules/BluetoothItem.qml")), false);
+    assert.match(tile, /elide:\s*Text\.ElideRight/);
+    assert.match(tile, /Tooltip\s*{[\s\S]*text:\s*root\.label/);
+});
+
+test("Bluetooth Page operates on paired devices and keeps authenticated pairing external", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const bluetoothPage = source("modules/BluetoothPage.qml");
+
+    assert.match(quickSettings, /BluetoothPage\s*{/);
+    assert.match(bluetoothPage, /title:\s*"Bluetooth"/);
+    assert.match(bluetoothPage, /Bluetooth\.devices\.values[\s\S]*\.filter\([\s\S]*paired/);
+    assert.match(bluetoothPage, /device\.connect\(\)/);
+    assert.match(bluetoothPage, /device\.disconnect\(\)/);
+    assert.match(bluetoothPage, /device\.forget\(\)/);
+    assert.match(bluetoothPage, /overflowVisible:[\s\S]*modelData\.paired/);
+    assert.match(bluetoothPage, /onRightClicked:/);
+    assert.match(bluetoothPage, /onOverflowClicked:/);
+    assert.match(bluetoothPage, /label:\s*"Forget"/);
+    assert.match(bluetoothPage, /Quickshell\.execDetached\(\["ghostty", "-e", "bluetui"\]\)/);
+    assert.match(bluetoothPage, /root\.closeRequested\(\)/);
+    assert.doesNotMatch(bluetoothPage, /device\.pair\(\)/);
+});
+
 test("Tailscale is an availability-aware Tile in the shared grid", () => {
     const quickSettings = source("modules/QuickSettings.qml");
 
