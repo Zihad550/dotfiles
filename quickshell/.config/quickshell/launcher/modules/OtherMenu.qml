@@ -28,6 +28,11 @@ Menu {
             command: ["flatpak", "run", "app.zen_browser.zen", "-P", "008"]
         },
         {
+            name: "Zen Browser profile webdev",
+            keywords: ["zen webdev", "webdev", "zen webdev profile", "webdev profile"],
+            command: ["flatpak", "run", "app.zen_browser.zen", "-P", "webdev"]
+        },
+        {
             name: "MongoDB Compass env",
             keywords: ["mongodb", "compass"],
             shell: "flatpak run com.mongodb.Compass --trustedConnectionString $(pass env/mongodb_uri)"
