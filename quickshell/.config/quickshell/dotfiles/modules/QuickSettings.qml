@@ -238,17 +238,20 @@ PopupWindow {
                             id: quickSettingsHeader
 
                             width: parent.width
-                            height: headerContent.implicitHeight
+                            height: Theme.quickSettingsRowHeight
 
-                            Row {
+                            Item {
                                 id: headerContent
 
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: Theme.quickSettingsGap
+                                anchors.fill: parent
 
                                 Item {
+                                    id: batterySummary
+
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
                                     width: root.hasLaptopBattery ? 132 : 0
-                                    height: headerActions.height
+                                    height: parent.height
                                     visible: root.hasLaptopBattery
 
                                     Text {
@@ -279,6 +282,8 @@ PopupWindow {
                                 Row {
                                     id: headerActions
 
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
                                     spacing: 6
 
                                     HeaderAction {
