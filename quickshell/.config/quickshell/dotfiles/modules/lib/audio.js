@@ -12,4 +12,6 @@ function availableSinkNames(sinks) {
         .map(sink => sink.name);
 }
 
-module.exports = { hasAvailablePort, availableSinkNames };
+if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+    module.exports = { hasAvailablePort, availableSinkNames };
+}
