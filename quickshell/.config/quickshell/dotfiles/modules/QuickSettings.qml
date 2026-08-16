@@ -353,6 +353,13 @@ PopupWindow {
                             }
                         }
 
+                        Volume {
+                            id: volumeSlider
+
+                            width: primaryContent.width
+                            onPageRequested: keyboard => root.navigate(QuickSettings.Audio, keyboard)
+                        }
+
                         Flow {
                             id: tileGrid
 
@@ -385,13 +392,6 @@ PopupWindow {
                                     root.navigate(QuickSettings.Wifi, keyboard);
                                 }
                             }
-                        }
-
-                        Volume {
-                            id: volumeSlider
-
-                            width: primaryContent.width
-                            onPageRequested: keyboard => root.navigate(QuickSettings.Audio, keyboard)
                         }
 
                         Column {

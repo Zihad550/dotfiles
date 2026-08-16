@@ -39,25 +39,6 @@ Item {
     }
 
     Rectangle {
-        anchors.fill: parent
-        radius: height / 2
-        color: Theme.foreground
-        opacity: root.available ? 0.10 : 0.06
-    }
-
-    Rectangle {
-        id: fill
-
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: parent.width * Math.max(0, Math.min(100, root.volume)) / 100
-        radius: height / 2
-        color: root.muted ? Theme.warn : Theme.accent
-        opacity: root.available ? 0.22 : 0.08
-    }
-
-    Rectangle {
         id: track
 
         anchors.left: parent.left
