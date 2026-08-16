@@ -55,6 +55,7 @@ QuickSettingsPage {
     // password prompt requires `!known`, so the two states can't land on the
     // same network.
     property var contextMenuTarget: null
+    property bool returnKeyboardFocus: false
 
     // Literal pre-shared-key types only. Excluded on purpose: Wpa2Eap,
     // WpaEap, Wpa3SuiteB192, DynamicWep, Leap are EAP-backed (see
@@ -136,11 +137,12 @@ QuickSettingsPage {
         }
     }
 
-    function handleRowClick(network) {
+    function handleRowClick(network, keyboard: bool) {
         // In flight already -- ignore clicks on every row until it resolves,
         // rather than starting a second attempt on top of the first.
         if (root.connecting)
             return;
+        root.returnKeyboardFocus = keyboard;
         // Left-click stays purely "connect" -- an open menu belongs to
         // whichever row was right-clicked, and a left-click elsewhere reads
         // as leaving it.
@@ -205,7 +207,8 @@ QuickSettingsPage {
     // `psk` lives only in this call's argument list -- never assigned to a
     // property, never logged. The field that read it clears itself the
     // moment `passwordTarget` moves off its row.
-    function attemptConnectWithPsk(network, psk) {
+    function attemptConnectWithPsk(network, psk, keyboard: bool) {
+        root.returnKeyboardFocus = keyboard;
         root.beginAttempt(network);
         network.connectWithPsk(psk);
     }
@@ -215,6 +218,7 @@ QuickSettingsPage {
         root.failedNetwork = null;
         root.passwordTarget = null;
         root.contextMenuTarget = null;
+        root.returnKeyboardFocus = false;
     }
 
     onActiveChanged: {
@@ -287,7 +291,7 @@ QuickSettingsPage {
             if (network && network.connected) {
                 root.connecting = null;
                 root.failedNetwork = null;
-                root.back();
+                root.back(root.returnKeyboardFocus);
             }
         }
     }
@@ -321,7 +325,7 @@ QuickSettingsPage {
                 detail: root.detailFor(entry.modelData)
                 overflowVisible: entry.modelData.connected || entry.modelData.known
 
-                onClicked: root.handleRowClick(entry.modelData)
+                onClicked: keyboard => root.handleRowClick(entry.modelData, keyboard)
                 onRightClicked: root.handleRowRightClick(entry.modelData)
                 onOverflowClicked: root.handleRowRightClick(entry.modelData)
             }
@@ -388,7 +392,7 @@ QuickSettingsPage {
 
                     Keys.onEscapePressed: root.passwordTarget = null
 
-                    onAccepted: root.attemptConnectWithPsk(entry.modelData, text)
+                    onAccepted: root.attemptConnectWithPsk(entry.modelData, text, true)
                 }
             }
 

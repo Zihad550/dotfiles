@@ -15,6 +15,7 @@ PopupWindow {
 
     property Item target
     property bool shown: false
+    property bool keyboardFocusRequested: false
 
     // One value represents navigation, so Pages cannot become visible in
     // impossible combinations.
@@ -55,7 +56,9 @@ PopupWindow {
     function focusCurrentSurface(): void {
         if (!root.shown)
             return;
-        if (root.currentPage === QuickSettings.Wifi)
+        if (!root.keyboardFocusRequested)
+            panelFocus.forceActiveFocus();
+        else if (root.currentPage === QuickSettings.Wifi)
             wifiPage.focusHeader();
         else if (wifiTile.visible)
             wifiTile.forceActiveFocus();
@@ -63,26 +66,32 @@ PopupWindow {
             panelFocus.forceActiveFocus();
     }
 
-    function navigate(page: int): void {
+    function navigate(page: int, keyboardFocus: bool): void {
         if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
+        root.keyboardFocusRequested = keyboardFocus;
         root.currentPage = page;
     }
 
-    function showPrimary(): void {
-        root.navigate(QuickSettings.Primary);
+    function showPrimary(keyboardFocus: bool): void {
+        root.navigate(QuickSettings.Primary, keyboardFocus);
     }
 
     function dismiss(): void {
         root.shown = false;
     }
 
-    function toggle(): void {
+    function toggle(keyboardFocus: bool): void {
         if (!root.shown && Date.now() - root.lastCleared < 200)
             return;
-        root.shown = !root.shown;
+        if (root.shown) {
+            root.shown = false;
+        } else {
+            root.keyboardFocusRequested = keyboardFocus;
+            root.shown = true;
+        }
     }
 
     onShownChanged: {
@@ -146,13 +155,6 @@ PopupWindow {
         root.monitorAvailableHeight
     )
 
-    Behavior on implicitHeight {
-        NumberAnimation {
-            duration: Theme.quickSettingsPageMotion
-            easing.type: Easing.OutCubic
-        }
-    }
-
     Rectangle {
         anchors.fill: parent
         color: Theme.background
@@ -169,13 +171,13 @@ PopupWindow {
                 if (root.currentPage === QuickSettings.Primary)
                     root.dismiss();
                 else
-                    root.showPrimary();
+                    root.showPrimary(true);
             }
 
             Item {
                 id: primarySurface
 
-                x: root.currentPage === QuickSettings.Primary ? 0 : -Math.round(width / 10)
+                x: root.currentPage === QuickSettings.Primary ? 0 : -8
                 width: parent.width
                 height: parent.height
                 visible: opacity > 0
@@ -238,10 +240,10 @@ PopupWindow {
                                 chevronVisible: true
 
                                 onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
-                                onChevronClicked: {
+                                onChevronClicked: keyboard => {
                                     if (!Networking.wifiEnabled)
                                         Networking.wifiEnabled = true;
-                                    root.navigate(QuickSettings.Wifi);
+                                    root.navigate(QuickSettings.Wifi, keyboard);
                                 }
                             }
                         }
@@ -309,7 +311,7 @@ PopupWindow {
             Item {
                 id: wifiSurface
 
-                x: root.currentPage === QuickSettings.Wifi ? 0 : Math.round(width / 10)
+                x: root.currentPage === QuickSettings.Wifi ? 0 : 8
                 width: parent.width
                 height: parent.height
                 visible: opacity > 0
@@ -336,7 +338,7 @@ PopupWindow {
                     anchors.fill: parent
                     active: root.shown && root.currentPage === QuickSettings.Wifi
 
-                    onBack: root.showPrimary()
+                    onBack: keyboard => root.showPrimary(keyboard)
                     onCloseRequested: root.dismiss()
                 }
             }

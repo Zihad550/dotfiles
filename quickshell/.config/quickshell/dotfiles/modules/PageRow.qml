@@ -11,14 +11,16 @@ Item {
     property string label: ""
     property string detail: ""
     property bool overflowVisible: false
+    property bool mainFocusVisible: false
+    property bool overflowFocusVisible: false
 
-    signal clicked
+    signal clicked(bool keyboard)
     signal rightClicked
     signal overflowClicked
 
     function activateMain(event): void {
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-            root.clicked();
+            root.clicked(true);
             event.accepted = true;
         }
     }
@@ -33,6 +35,7 @@ Item {
     implicitHeight: Theme.quickSettingsRowHeight
     activeFocusOnTab: root.enabled && root.visible
     Keys.onPressed: event => root.activateMain(event)
+    onActiveFocusChanged: root.mainFocusVisible = root.activeFocus
     opacity: root.enabled ? 1 : 0.45
     scale: mainMouse.pressed || overflowMouse.pressed ? 0.99 : 1
 
@@ -133,12 +136,15 @@ Item {
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-            onPressed: root.forceActiveFocus()
+            onPressed: {
+                root.forceActiveFocus();
+                root.mainFocusVisible = false;
+            }
             onClicked: event => {
                 if (event.button === Qt.RightButton)
                     root.rightClicked();
                 else
-                    root.clicked();
+                    root.clicked(false);
             }
         }
 
@@ -148,7 +154,7 @@ Item {
             radius: 9
             color: "transparent"
             border.color: Theme.accent
-            border.width: root.activeFocus ? 2 : 0
+            border.width: root.mainFocusVisible ? 2 : 0
         }
     }
 
@@ -163,6 +169,7 @@ Item {
 
         activeFocusOnTab: root.enabled && root.overflowVisible && root.visible
         Keys.onPressed: event => root.activateOverflow(event)
+        onActiveFocusChanged: root.overflowFocusVisible = overflowSegment.activeFocus
 
         Text {
             anchors.centerIn: parent
@@ -180,7 +187,10 @@ Item {
             enabled: root.enabled
             hoverEnabled: true
 
-            onPressed: overflowSegment.forceActiveFocus()
+            onPressed: {
+                overflowSegment.forceActiveFocus();
+                root.overflowFocusVisible = false;
+            }
             onClicked: root.overflowClicked()
         }
 
@@ -190,13 +200,13 @@ Item {
             radius: 8
             color: "transparent"
             border.color: Theme.accent
-            border.width: overflowSegment.activeFocus ? 2 : 0
+            border.width: root.overflowFocusVisible ? 2 : 0
         }
     }
 
     Tooltip {
         target: root
         text: root.label
-        shown: mainMouse.containsMouse || overflowMouse.containsMouse || root.activeFocus || overflowSegment.activeFocus
+        shown: mainMouse.containsMouse || overflowMouse.containsMouse || root.mainFocusVisible || root.overflowFocusVisible
     }
 }

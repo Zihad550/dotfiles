@@ -52,7 +52,7 @@ test("the Status Cluster is the one Quick Settings opener and anchor on each bar
     const bar = source("modules/Bar.qml");
 
     assert.match(bar, /Voxtype\s*{}[\s\S]*StatusCluster\s*{/);
-    assert.match(bar, /onClicked:\s*quickSettings\.toggle\(\)/);
+    assert.match(bar, /onClicked:\s*quickSettings\.toggle\(false\)/);
     assert.match(bar, /QuickSettings\s*{[\s\S]*target:\s*statusCluster/);
     assert.match(bar, /Component\.onCompleted:\s*QuickSettingsRegistry\.register\(bar\.monitorName, quickSettings\)/);
     assert.match(bar, /Component\.onDestruction:\s*QuickSettingsRegistry\.unregister\(bar\.monitorName, quickSettings\)/);

@@ -122,7 +122,7 @@ ShellRoot {
                 return;
             }
 
-            panel.toggle();
+            panel.toggle(true);
         }
     }
 }

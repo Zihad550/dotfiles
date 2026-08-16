@@ -11,9 +11,11 @@ Item {
     property bool active: false
     property bool busy: false
     property bool chevronVisible: false
+    property bool mainFocusVisible: false
+    property bool chevronFocusVisible: false
 
     signal clicked
-    signal chevronClicked
+    signal chevronClicked(bool keyboard)
 
     readonly property bool interactive: root.enabled && !root.busy
     readonly property color settledColor: root.active
@@ -33,7 +35,7 @@ Item {
         if (!root.interactive)
             return;
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-            root.chevronClicked();
+            root.chevronClicked(true);
             event.accepted = true;
         }
     }
@@ -44,6 +46,8 @@ Item {
     scale: mainMouse.pressed || chevronMouse.pressed ? 0.98 : 1
 
     Keys.onPressed: event => root.activateMain(event)
+
+    onActiveFocusChanged: root.mainFocusVisible = root.activeFocus
 
     Behavior on opacity {
         NumberAnimation {
@@ -154,7 +158,10 @@ Item {
             enabled: root.interactive
             hoverEnabled: true
 
-            onPressed: root.forceActiveFocus()
+            onPressed: {
+                root.forceActiveFocus();
+                root.mainFocusVisible = false;
+            }
             onClicked: root.clicked()
         }
     }
@@ -182,6 +189,7 @@ Item {
 
         activeFocusOnTab: root.interactive && root.chevronVisible && root.visible
         Keys.onPressed: event => root.activateChevron(event)
+        onActiveFocusChanged: root.chevronFocusVisible = chevronSegment.activeFocus
 
         Text {
             anchors.centerIn: parent
@@ -199,8 +207,11 @@ Item {
             enabled: root.interactive
             hoverEnabled: true
 
-            onPressed: chevronSegment.forceActiveFocus()
-            onClicked: root.chevronClicked()
+            onPressed: {
+                chevronSegment.forceActiveFocus();
+                root.chevronFocusVisible = false;
+            }
+            onClicked: root.chevronClicked(false)
         }
 
         Rectangle {
@@ -209,7 +220,7 @@ Item {
             radius: height / 2
             color: "transparent"
             border.color: root.active ? Theme.foreground : Theme.accent
-            border.width: chevronSegment.activeFocus ? 2 : 0
+            border.width: root.chevronFocusVisible ? 2 : 0
         }
     }
 
@@ -219,12 +230,12 @@ Item {
         radius: height / 2
         color: "transparent"
         border.color: root.active ? Theme.foreground : Theme.accent
-        border.width: root.activeFocus ? 2 : 0
+        border.width: root.mainFocusVisible ? 2 : 0
     }
 
     Tooltip {
         target: root
         text: root.label
-        shown: mainMouse.containsMouse || chevronMouse.containsMouse || root.activeFocus || chevronSegment.activeFocus
+        shown: mainMouse.containsMouse || chevronMouse.containsMouse || root.mainFocusVisible || root.chevronFocusVisible
     }
 }

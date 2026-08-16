@@ -47,7 +47,7 @@ PanelWindow {
             id: statusCluster
 
             panelShown: quickSettings.shown
-            onClicked: quickSettings.toggle()
+            onClicked: quickSettings.toggle(false)
         }
     }
 

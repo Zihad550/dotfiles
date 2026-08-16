@@ -10,7 +10,7 @@ Item {
     property bool active: false
     default property alias contentData: pageBody.data
 
-    signal back
+    signal back(bool keyboard)
 
     function focusHeader(): void {
         backTarget.forceActiveFocus();
@@ -40,7 +40,7 @@ Item {
 
     implicitHeight: header.height + Theme.quickSettingsGap + pageBody.implicitHeight
 
-    Keys.onEscapePressed: root.back()
+    Keys.onEscapePressed: root.back(true)
 
     Item {
         id: header
@@ -58,11 +58,14 @@ Item {
             width: 36
             height: 36
 
+            property bool focusVisible: false
+
             activeFocusOnTab: root.active && root.visible
             scale: backMouse.pressed ? 0.96 : 1
+            onActiveFocusChanged: focusVisible = activeFocus
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                    root.back();
+                    root.back(true);
                     event.accepted = true;
                 }
             }
@@ -103,8 +106,11 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
 
-                onPressed: backTarget.forceActiveFocus()
-                onClicked: root.back()
+                onPressed: {
+                    backTarget.forceActiveFocus();
+                    backTarget.focusVisible = false;
+                }
+                onClicked: root.back(false)
             }
 
             Rectangle {
@@ -112,13 +118,13 @@ Item {
                 radius: height / 2
                 color: "transparent"
                 border.color: Theme.accent
-                border.width: backTarget.activeFocus ? 2 : 0
+                border.width: backTarget.focusVisible ? 2 : 0
             }
 
             Tooltip {
                 target: backTarget
                 text: "Back"
-                shown: backMouse.containsMouse || backTarget.activeFocus
+                shown: backMouse.containsMouse || backTarget.focusVisible
             }
         }
 
