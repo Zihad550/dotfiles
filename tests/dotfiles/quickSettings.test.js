@@ -15,6 +15,9 @@ test("Quick Settings exposes laptop battery state and immediate header actions",
     assert.match(quickSettings, /UPower\.displayDevice/);
     assert.match(quickSettings, /battery\?\.isLaptopBattery/);
     assert.match(quickSettings, /batteryPercent/);
+    assert.match(quickSettings, /batteryGlyph:\s*Status\.batteryIcon/);
+    assert.match(quickSettings, /id:\s*batterySummary[\s\S]*radius:\s*height\s*\/\s*2/);
+    assert.match(quickSettings, /text:\s*`\$\{root\.batteryPercent\}%`/);
     assert.match(quickSettings, /id:\s*batterySummary[\s\S]*anchors\.left:\s*parent\.left/);
     assert.match(quickSettings, /id:\s*headerActions[\s\S]*anchors\.right:\s*parent\.right/);
     assert.match(quickSettings, /HeaderAction\s*{[\s\S]*id:\s*lockAction/);

@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Networking
 import Quickshell.Services.UPower
 import qs
+import "lib/statusCluster.js" as Status
 
 // The per-monitor Quick Settings panel beneath the Status Cluster.
 PopupWindow {
@@ -51,6 +52,25 @@ PopupWindow {
             return "Fully charged";
         return "Discharging";
     }
+    readonly property string batteryGlyph: Status.batteryIcon(
+        root.batteryCharging,
+        root.batteryFull,
+        root.batteryPercent
+    )
+    readonly property string batteryTone: Status.batteryTone(root.batteryCharging, root.batteryPercent)
+    readonly property color batteryColor: {
+        switch (root.batteryTone) {
+        case "ok":
+            return Theme.ok;
+        case "warn":
+            return Theme.warn;
+        case "error":
+            return Theme.error;
+        default:
+            return Theme.foreground;
+        }
+    }
+    readonly property string batteryTooltip: `Battery ${root.batteryPercent}% (${root.batteryState.toLowerCase()})`
     readonly property real surfaceImplicitHeight: {
         if (root.currentPage === QuickSettings.Wifi)
             return wifiPage.implicitHeight;
@@ -250,32 +270,50 @@ PopupWindow {
 
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: root.hasLaptopBattery ? 132 : 0
+                                    width: root.hasLaptopBattery ? 90 : 0
                                     height: parent.height
                                     visible: root.hasLaptopBattery
 
-                                    Text {
-                                        anchors.left: parent.left
-                                        anchors.top: parent.top
-
-                                        text: `${root.batteryPercent}%`
-                                        color: root.batteryCharging || root.batteryFull ? Theme.ok : Theme.foreground
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize + 5
-                                        font.weight: Font.DemiBold
-                                        textFormat: Text.PlainText
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: height / 2
+                                        color: Theme.foreground
+                                        opacity: 0.12
                                     }
 
-                                    Text {
-                                        anchors.left: parent.left
-                                        anchors.bottom: parent.bottom
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 8
 
-                                        text: root.batteryState
-                                        color: Theme.foreground
-                                        opacity: 0.65
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize - 2
-                                        textFormat: Text.PlainText
+                                        Text {
+                                            text: root.batteryGlyph
+                                            color: root.batteryColor
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize + 1
+                                            textFormat: Text.PlainText
+                                        }
+
+                                        Text {
+                                            text: `${root.batteryPercent}%`
+                                            color: Theme.foreground
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize
+                                            font.weight: Font.DemiBold
+                                            textFormat: Text.PlainText
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: batteryMouse
+
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                    }
+
+                                    Tooltip {
+                                        target: batterySummary
+                                        text: root.batteryTooltip
+                                        shown: batteryMouse.containsMouse
                                     }
                                 }
 
