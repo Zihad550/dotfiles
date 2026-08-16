@@ -99,17 +99,17 @@ reached from it.
 ## Language
 
 **Quick Settings**:
-The panel under the bar's gear holding the modules that are controls rather
+The panel under the bar's Status Cluster holding the modules that are controls rather
 than at-a-glance status — network, bluetooth, volume, power. The name every
 major desktop gives this: GNOME, Android and Windows all call it Quick
 Settings.
 _Avoid_: gear menu, settings menu, control centre, tray
 
-**Gear**:
-The bar item that opens Quick Settings on click. The button, never the panel —
-which is why the panel is not named after it. `SUPER+CTRL+A` opens the same
-panel without it, on whichever monitor is focused.
-_Avoid_: cog, settings button
+**Status Cluster**:
+The grouped at-a-glance indicators at the right of the bar and the mouse entry
+point for Quick Settings. `SUPER+CTRL+A` opens the same panel without it, on
+whichever monitor is focused.
+_Avoid_: gear, tray, system tray, indicator group, status icons
 
 **Row**:
 One line in Quick Settings: leading glyph, label, trailing detail, and

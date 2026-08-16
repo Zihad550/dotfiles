@@ -8,16 +8,16 @@ function iconAt(values, ratio) {
     return values[Math.min(values.length - 1, Math.floor(clamped * values.length))];
 }
 
-function networkIcon(wiredConnected, wifiAdapterExists, wifiEnabled, wifiConnected, wifiStrength) {
-    if (wiredConnected)
+function networkIcon(state) {
+    if (state.wiredConnected)
         return "󰀂";
-    if (!wifiAdapterExists)
+    if (!state.wifiAdapterExists)
         return "";
-    if (!wifiEnabled)
+    if (!state.wifiEnabled)
         return "󰤭";
-    if (!wifiConnected)
+    if (!state.wifiConnected)
         return "󰤮";
-    return iconAt(WIFI_ICONS, wifiStrength);
+    return iconAt(WIFI_ICONS, state.wifiStrength);
 }
 
 function volumeIcon(available, muted, volume) {

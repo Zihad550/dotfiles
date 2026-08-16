@@ -22,6 +22,7 @@ Item {
 
     readonly property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi) ?? null
     readonly property var wifiNetwork: wifiDevice?.networks.values.find(network => network.connected) ?? null
+    readonly property bool wifiEnabled: Networking.wifiHardwareEnabled && Networking.wifiEnabled
     readonly property bool wiredConnected: Networking.devices.values.some(device => device.type === DeviceType.Wired && device.connected)
 
     readonly property BluetoothAdapter bluetoothAdapter: Bluetooth.defaultAdapter
@@ -57,7 +58,7 @@ Item {
             return "Wired connected";
         if (!root.wifiDevice)
             return "";
-        if (!Networking.wifiEnabled)
+        if (!root.wifiEnabled)
             return "Wi-Fi disabled";
         if (!root.wifiNetwork)
             return "Wi-Fi disconnected";
@@ -119,13 +120,13 @@ Item {
 
         Indicator {
             visible: text !== ""
-            text: Status.networkIcon(
-                root.wiredConnected,
-                root.wifiDevice !== null,
-                Networking.wifiEnabled,
-                root.wifiNetwork !== null,
-                root.wifiNetwork?.signalStrength ?? 0
-            )
+            text: Status.networkIcon({
+                wiredConnected: root.wiredConnected,
+                wifiAdapterExists: root.wifiDevice !== null,
+                wifiEnabled: root.wifiEnabled,
+                wifiConnected: root.wifiNetwork !== null,
+                wifiStrength: root.wifiNetwork?.signalStrength ?? 0
+            })
         }
 
         Indicator {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Emits one JSON object per line, consumed by modules/Tailscale.qml.
+# Emits one JSON object per line, consumed by TailscaleService.qml.
 #
 # Moved from waybar/.config/waybar/scripts/tailscale_status.sh, then converted
 # from a one-shot script (waybar re-ran it every 10s) into a long-lived stream,
@@ -29,17 +29,27 @@ build_status() {
     fi
 
     local status
-    status=$(tailscale status 2>&1)
+    if ! status=$(tailscale status --json 2>/dev/null); then
+        echo '{"class": "disconnected", "tooltip": "Tailscale: Unavailable"}'
+        return
+    fi
 
-    if echo "$status" | grep -q "Tailscale is stopped"; then
-        echo '{"class": "disconnected", "tooltip": "Tailscale: Stopped"}'
+    local backend
+    if ! backend=$(jq -r '.BackendState // "Unknown"' <<<"$status" 2>/dev/null); then
+        echo '{"class": "disconnected", "tooltip": "Tailscale: Unavailable"}'
+        return
+    fi
+
+    if [[ $backend != Running ]]; then
+        jq -cn --arg tooltip "Tailscale: $backend" '{class: "disconnected", tooltip: $tooltip}'
         return
     fi
 
     local ip
-    ip=$(tailscale ip -4 2>/dev/null || echo "N/A")
+    ip=$(jq -r '.TailscaleIPs[0] // "N/A"' <<<"$status")
 
-    echo "{\"class\": \"connected\", \"tooltip\": \"Tailscale: Running\\nIP: $ip\"}"
+    jq -cn --arg tooltip "Tailscale: Running
+IP: $ip" '{class: "connected", tooltip: $tooltip}'
 }
 
 # The IPN bus is chatty and most events do not change what we display, so only
