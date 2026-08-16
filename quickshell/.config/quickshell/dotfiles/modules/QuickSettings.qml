@@ -363,9 +363,9 @@ PopupWindow {
                         Flow {
                             id: tileGrid
 
-                            visible: root.wifiDevice !== null
+                            visible: root.wifiDevice !== null || TailscaleService.installed
                             width: parent.width
-                            height: wifiTile.visible ? Theme.quickSettingsTileHeight : 0
+                            height: tileGrid.visible ? tileGrid.implicitHeight : 0
                             spacing: Theme.quickSettingsGap
 
                             readonly property real tileWidth: width >= 330
@@ -375,7 +375,7 @@ PopupWindow {
                             Tile {
                                 id: wifiTile
 
-                                visible: tileGrid.visible
+                                visible: root.wifiDevice !== null
                                 width: tileGrid.tileWidth
                                 enabled: Networking.wifiHardwareEnabled
 
@@ -392,6 +392,21 @@ PopupWindow {
                                     root.navigate(QuickSettings.Wifi, keyboard);
                                 }
                             }
+
+                            Tile {
+                                id: tailscaleTile
+
+                                visible: TailscaleService.installed
+                                width: tileGrid.tileWidth
+
+                                icon: TailscaleService.icon
+                                label: "Tailscale"
+                                active: TailscaleService.connected
+                                busy: TailscaleService.busy
+                                chevronVisible: false
+
+                                onClicked: TailscaleService.toggle()
+                            }
                         }
 
                         Column {
@@ -407,10 +422,6 @@ PopupWindow {
                             BluetoothItem {
                                 width: legacyRows.width
                                 onCloseRequested: root.dismiss()
-                            }
-
-                            TailscaleRow {
-                                width: legacyRows.width
                             }
 
                             DevcontainerRoutingRow {

@@ -68,3 +68,13 @@ test("Audio Page is native, availability-aware, and keeps advanced settings as a
     assert.match(audioPage, /label:\s*"Advanced audio settings"/);
     assert.match(audioPage, /Quickshell\.execDetached\(\["pavucontrol"\]\)/);
 });
+
+test("Tailscale is an availability-aware Tile in the shared grid", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+
+    assert.match(quickSettings, /id:\s*tileGrid[\s\S]*visible:\s*root\.wifiDevice !== null \|\| TailscaleService\.installed/);
+    assert.match(quickSettings, /id:\s*tileGrid[\s\S]*height:\s*tileGrid\.visible \? tileGrid\.implicitHeight : 0/);
+    assert.match(quickSettings, /id:\s*wifiTile[\s\S]*visible:\s*root\.wifiDevice !== null/);
+    assert.match(quickSettings, /id:\s*tailscaleTile[\s\S]*visible:\s*TailscaleService\.installed[\s\S]*icon:\s*TailscaleService\.icon[\s\S]*label:\s*"Tailscale"[\s\S]*active:\s*TailscaleService\.connected[\s\S]*busy:\s*TailscaleService\.busy[\s\S]*chevronVisible:\s*false[\s\S]*onClicked:\s*TailscaleService\.toggle\(\)/);
+    assert.doesNotMatch(quickSettings, /TailscaleRow/);
+});

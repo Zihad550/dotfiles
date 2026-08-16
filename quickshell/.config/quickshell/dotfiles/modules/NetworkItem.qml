@@ -27,8 +27,7 @@ MenuRow {
 
     readonly property var wifiIcons: ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
 
-    // QuickSettings must not bind this to closing the panel -- same reasoning
-    // as TailscaleRow's onCloseRequested comment.
+    // Opening the Page must not close the panel it is drawn in.
     signal requestWifiPage
 
     enabled: !root.inert
