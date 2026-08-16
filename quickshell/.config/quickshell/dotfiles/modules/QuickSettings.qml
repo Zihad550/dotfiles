@@ -13,6 +13,7 @@ PopupWindow {
     enum Page {
         Primary,
         Wifi,
+        Audio,
         Power
     }
 
@@ -74,6 +75,8 @@ PopupWindow {
     readonly property real surfaceImplicitHeight: {
         if (root.currentPage === QuickSettings.Wifi)
             return wifiPage.implicitHeight;
+        if (root.currentPage === QuickSettings.Audio)
+            return audioPage.implicitHeight;
         if (root.currentPage === QuickSettings.Power)
             return powerPage.implicitHeight;
         return primaryContent.implicitHeight;
@@ -101,6 +104,8 @@ PopupWindow {
             panelFocus.forceActiveFocus();
         else if (root.currentPage === QuickSettings.Wifi)
             wifiPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Audio)
+            audioPage.focusHeader();
         else if (root.currentPage === QuickSettings.Power)
             powerPage.focusHeader();
         else if (lockAction.visible)
@@ -112,7 +117,7 @@ PopupWindow {
     }
 
     function navigate(page: int, keyboardFocus: bool): void {
-        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Power) {
+        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Power) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
@@ -382,6 +387,13 @@ PopupWindow {
                             }
                         }
 
+                        Volume {
+                            id: volumeSlider
+
+                            width: primaryContent.width
+                            onPageRequested: keyboard => root.navigate(QuickSettings.Audio, keyboard)
+                        }
+
                         Column {
                             id: legacyRows
 
@@ -404,12 +416,6 @@ PopupWindow {
                             DevcontainerRoutingRow {
                                 width: legacyRows.width
                             }
-
-                            Volume {
-                                width: legacyRows.width
-                                onCloseRequested: root.dismiss()
-                            }
-
                         }
                     }
                 }
@@ -444,6 +450,41 @@ PopupWindow {
 
                     anchors.fill: parent
                     active: root.shown && root.currentPage === QuickSettings.Wifi
+
+                    onBack: keyboard => root.showPrimary(keyboard)
+                    onCloseRequested: root.dismiss()
+                }
+            }
+
+            Item {
+                id: audioSurface
+
+                x: root.currentPage === QuickSettings.Audio ? 0 : 8
+                width: parent.width
+                height: parent.height
+                visible: opacity > 0
+                enabled: root.currentPage === QuickSettings.Audio
+                opacity: root.currentPage === QuickSettings.Audio ? 1 : 0
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                AudioPage {
+                    id: audioPage
+
+                    anchors.fill: parent
+                    active: root.shown && root.currentPage === QuickSettings.Audio
 
                     onBack: keyboard => root.showPrimary(keyboard)
                     onCloseRequested: root.dismiss()

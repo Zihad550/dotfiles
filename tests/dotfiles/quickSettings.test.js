@@ -49,3 +49,22 @@ test("Power Page keeps existing actions in their established order", () => {
     assert.match(quickSettings, /onEscapePressed:[\s\S]*root\.currentPage === QuickSettings\.Primary[\s\S]*root\.showPrimary\(true\)/);
     assert.match(quickSettings, /onShownChanged:[\s\S]*root\.currentPage = QuickSettings\.Primary/);
 });
+
+test("Audio Page is native, availability-aware, and keeps advanced settings as a hand-off", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const volume = source("modules/Volume.qml");
+    const audioPage = source("modules/AudioPage.qml");
+
+    assert.match(quickSettings, /enum Page \{[\s\S]*Audio[\s\S]*\}/);
+    assert.match(quickSettings, /AudioPage\s*\{/);
+    assert.match(audioPage, /title:\s*"Audio"/);
+    assert.match(audioPage, /Pipewire\.preferredDefaultAudioSink\s*=\s*node/);
+    assert.match(volume, /Pipewire\.defaultAudioSink/);
+    assert.match(volume, /signal pageRequested\(bool keyboard\)/);
+    assert.match(audioPage, /pactl.*-f.*json.*list.*sinks/);
+    assert.match(audioPage, /availableSinkNames/);
+    assert.match(audioPage, /Pipewire\.nodes\.values/);
+    assert.match(audioPage, /Pipewire\.defaultAudioSink/);
+    assert.match(audioPage, /label:\s*"Advanced audio settings"/);
+    assert.match(audioPage, /Quickshell\.execDetached\(\["pavucontrol"\]\)/);
+});
