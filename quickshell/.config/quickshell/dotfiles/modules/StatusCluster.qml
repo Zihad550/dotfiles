@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Bluetooth
 import Quickshell.Networking
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
@@ -25,8 +24,9 @@ Item {
     readonly property bool wifiEnabled: Networking.wifiHardwareEnabled && Networking.wifiEnabled
     readonly property bool wiredConnected: Networking.devices.values.some(device => device.type === DeviceType.Wired && device.connected)
 
-    readonly property BluetoothAdapter bluetoothAdapter: Bluetooth.defaultAdapter
-    readonly property int bluetoothConnectedCount: Bluetooth.devices.values.filter(device => device.connected).length
+    readonly property var bluetoothRuntime: bluetoothLoader.item
+    readonly property var bluetoothAdapter: root.bluetoothRuntime?.adapter ?? null
+    readonly property int bluetoothConnectedCount: root.bluetoothRuntime?.connectedDevices?.length ?? 0
 
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property bool muted: sink?.audio?.muted ?? false
@@ -169,5 +169,12 @@ Item {
 
     PwObjectTracker {
         objects: root.sink ? [root.sink] : []
+    }
+
+    Loader {
+        id: bluetoothLoader
+
+        active: BluetoothAvailability.available
+        source: "BluetoothRuntime.qml"
     }
 }

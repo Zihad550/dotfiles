@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Bluetooth
 import Quickshell.Hyprland
 import Quickshell.Networking
 import Quickshell.Services.UPower
@@ -38,10 +37,11 @@ PopupWindow {
         : null
     readonly property bool wifiConnecting: root.wifiDevice?.state === ConnectionState.Connecting
     readonly property var wifiIcons: ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
-    readonly property BluetoothAdapter bluetoothAdapter: Bluetooth.defaultAdapter
-    readonly property var bluetoothConnectedDevices: Bluetooth.devices.values.filter(device => device.connected)
-    readonly property bool bluetoothTransitioning: root.bluetoothAdapter?.state === BluetoothAdapterState.Enabling
-        || root.bluetoothAdapter?.state === BluetoothAdapterState.Disabling
+    readonly property var bluetoothRuntime: bluetoothLoader.item
+    readonly property var bluetoothAdapter: root.bluetoothRuntime?.adapter ?? null
+    readonly property var bluetoothConnectedDevices: root.bluetoothRuntime?.connectedDevices ?? []
+    readonly property bool bluetoothAvailable: root.bluetoothAdapter !== null
+    readonly property bool bluetoothTransitioning: root.bluetoothRuntime?.transitioning ?? false
     property bool bluetoothTogglePending: false
 
     readonly property int monitorWidth: root.screen
@@ -84,13 +84,21 @@ PopupWindow {
         }
     }
     readonly property string batteryTooltip: `Battery ${root.batteryPercent}% (${root.batteryState.toLowerCase()})`
+
+    Loader {
+        id: bluetoothLoader
+
+        active: BluetoothAvailability.available
+        source: "BluetoothRuntime.qml"
+    }
+
     readonly property real surfaceImplicitHeight: {
         if (root.currentPage === QuickSettings.Wifi)
             return wifiPage.implicitHeight;
         if (root.currentPage === QuickSettings.Audio)
             return audioPage.implicitHeight;
         if (root.currentPage === QuickSettings.Bluetooth)
-            return bluetoothPage.implicitHeight;
+            return bluetoothPageLoader.item?.implicitHeight ?? 0;
         if (root.currentPage === QuickSettings.Power)
             return powerPage.implicitHeight;
         if (root.currentPage === QuickSettings.Devcontainer)
@@ -114,10 +122,10 @@ PopupWindow {
     }
 
     function setBluetoothEnabled(enabled: bool): void {
-        if (!root.bluetoothAdapter || root.bluetoothTogglePending || root.bluetoothTransitioning)
+        if (!root.bluetoothRuntime || root.bluetoothTogglePending || root.bluetoothTransitioning)
             return;
         root.bluetoothTogglePending = true;
-        root.bluetoothAdapter.enabled = enabled;
+        root.bluetoothRuntime.setEnabled(enabled);
     }
 
     function focusCurrentSurface(): void {
@@ -129,8 +137,8 @@ PopupWindow {
             wifiPage.focusHeader();
         else if (root.currentPage === QuickSettings.Audio)
             audioPage.focusHeader();
-        else if (root.currentPage === QuickSettings.Bluetooth)
-            bluetoothPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Bluetooth && bluetoothPageLoader.item)
+            bluetoothPageLoader.item.focusHeader();
         else if (root.currentPage === QuickSettings.Power)
             powerPage.focusHeader();
         else if (root.currentPage === QuickSettings.Devcontainer)
@@ -144,6 +152,8 @@ PopupWindow {
     }
 
     function navigate(page: int, keyboardFocus: bool): void {
+        if (page === QuickSettings.Bluetooth && !root.bluetoothAvailable)
+            return;
         if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
@@ -179,16 +189,6 @@ PopupWindow {
     }
 
     onCurrentPageChanged: Qt.callLater(() => root.focusCurrentSurface())
-
-    Connections {
-        target: root.bluetoothAdapter
-
-        function onStateChanged() {
-            if (root.bluetoothAdapter.state !== BluetoothAdapterState.Enabling
-                    && root.bluetoothAdapter.state !== BluetoothAdapterState.Disabling)
-                root.bluetoothTogglePending = false;
-        }
-    }
 
     Timer {
         interval: 500
@@ -411,7 +411,7 @@ PopupWindow {
                         Flow {
                             id: tileGrid
 
-                            visible: root.wifiDevice !== null || TailscaleService.installed || root.bluetoothAdapter !== null || devcontainerRouting !== null
+                            visible: root.wifiDevice !== null || TailscaleService.installed || root.bluetoothAvailable || devcontainerRouting !== null
                             width: parent.width
                             height: tileGrid.visible ? tileGrid.implicitHeight : 0
                             spacing: Theme.quickSettingsGap
@@ -444,7 +444,7 @@ PopupWindow {
                             Tile {
                                 id: bluetoothTile
 
-                                visible: root.bluetoothAdapter !== null
+                                visible: root.bluetoothAvailable
                                 width: tileGrid.tileWidth
                                 enabled: !!root.bluetoothAdapter
 
@@ -603,14 +603,18 @@ PopupWindow {
                     }
                 }
 
-                BluetoothPage {
-                    id: bluetoothPage
+                Loader {
+                    id: bluetoothPageLoader
 
                     anchors.fill: parent
-                    active: root.shown && root.currentPage === QuickSettings.Bluetooth
+                    active: root.bluetoothAvailable && root.shown && root.currentPage === QuickSettings.Bluetooth
+                    source: "BluetoothPage.qml"
 
-                    onBack: keyboard => root.showPrimary(keyboard)
-                    onCloseRequested: root.dismiss()
+                    onLoaded: {
+                        item.active = true;
+                        item.back.connect(root.showPrimary);
+                        item.closeRequested.connect(root.dismiss);
+                    }
                 }
             }
 

@@ -109,11 +109,18 @@ test("Devcontainer routing settles from the file and serializes writes", () => {
 
 test("Bluetooth is an optional Tile with authoritative adapter state", () => {
     const quickSettings = source("modules/QuickSettings.qml");
+    const availability = source("BluetoothAvailability.qml");
+    const runtime = source("modules/BluetoothRuntime.qml");
     const tile = source("modules/Tile.qml");
 
-    assert.match(quickSettings, /import Quickshell\.Bluetooth/);
+    assert.doesNotMatch(quickSettings, /import Quickshell\.Bluetooth/);
+    assert.match(quickSettings, /BluetoothAvailability\.available/);
+    assert.match(quickSettings, /source:\s*"BluetoothRuntime\.qml"/);
     assert.match(quickSettings, /enum Page \{[\s\S]*Bluetooth[\s\S]*\}/);
-    assert.match(quickSettings, /Bluetooth\.defaultAdapter/);
+    assert.match(availability, /busctl.*org\.bluez/);
+    assert.match(availability, /root\.available\s*=\s*exitCode === 0/);
+    assert.match(runtime, /import Quickshell\.Bluetooth/);
+    assert.match(runtime, /Bluetooth\.defaultAdapter/);
     assert.match(quickSettings, /bluetoothTile[\s\S]*visible:[\s\S]*bluetoothAdapter/);
     assert.match(quickSettings, /bluetoothTile[\s\S]*active:[\s\S]*bluetoothAdapter\.enabled/);
     assert.match(quickSettings, /bluetoothTile[\s\S]*enabled:[\s\S]*bluetoothAdapter/);
@@ -132,7 +139,7 @@ test("Bluetooth Page operates on paired devices and keeps authenticated pairing 
     const quickSettings = source("modules/QuickSettings.qml");
     const bluetoothPage = source("modules/BluetoothPage.qml");
 
-    assert.match(quickSettings, /BluetoothPage\s*{/);
+    assert.match(quickSettings, /id:\s*bluetoothPageLoader[\s\S]*source:\s*"BluetoothPage\.qml"/);
     assert.match(bluetoothPage, /title:\s*"Bluetooth"/);
     assert.match(bluetoothPage, /Bluetooth\.devices\.values[\s\S]*\.filter\([\s\S]*paired/);
     assert.match(bluetoothPage, /device\.connect\(\)/);

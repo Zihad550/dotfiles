@@ -82,8 +82,18 @@ QuickSettingsPage {
         }
     }
 
+    Connections {
+        target: root.pendingDevice
+
+        function onStateChanged() {
+            const state = root.pendingDevice?.state;
+            if (state !== BluetoothDeviceState.Connecting && state !== BluetoothDeviceState.Disconnecting)
+                root.clearPending();
+        }
+    }
+
     Timer {
-        interval: 250
+        interval: 2000
         repeat: true
         running: root.pendingDevice !== null
 
