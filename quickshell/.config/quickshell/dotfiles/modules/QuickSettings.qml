@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Networking
+import Quickshell.Services.UPower
 import qs
 
 // The per-monitor Quick Settings panel beneath the Status Cluster.
@@ -10,7 +11,8 @@ PopupWindow {
 
     enum Page {
         Primary,
-        Wifi
+        Wifi,
+        Power
     }
 
     property Item target
@@ -34,9 +36,28 @@ PopupWindow {
     readonly property int monitorAvailableHeight: root.screen
         ? Math.max(1, root.screen.height - Theme.barHeight)
         : 10000
-    readonly property real surfaceImplicitHeight: root.currentPage === QuickSettings.Wifi
-        ? wifiPage.implicitHeight
-        : primaryContent.implicitHeight
+    readonly property UPowerDevice battery: UPower.displayDevice
+    readonly property bool hasLaptopBattery: root.battery?.isLaptopBattery ?? false
+    readonly property bool batteryCharging: root.battery?.state === UPowerDeviceState.Charging
+    readonly property bool batteryFull: root.battery?.state === UPowerDeviceState.FullyCharged
+    readonly property int batteryPercent: {
+        const raw = root.battery?.percentage ?? 0;
+        return Math.round(raw > 1 ? raw : raw * 100);
+    }
+    readonly property string batteryState: {
+        if (root.batteryCharging)
+            return "Charging";
+        if (root.batteryFull)
+            return "Fully charged";
+        return "Discharging";
+    }
+    readonly property real surfaceImplicitHeight: {
+        if (root.currentPage === QuickSettings.Wifi)
+            return wifiPage.implicitHeight;
+        if (root.currentPage === QuickSettings.Power)
+            return powerPage.implicitHeight;
+        return primaryContent.implicitHeight;
+    }
 
     // Set when the focus grab closes the panel. Hyprland may still deliver
     // that click to the Status Cluster underneath; toggle() ignores the
@@ -60,6 +81,10 @@ PopupWindow {
             panelFocus.forceActiveFocus();
         else if (root.currentPage === QuickSettings.Wifi)
             wifiPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Power)
+            powerPage.focusHeader();
+        else if (lockAction.visible)
+            lockAction.forceActiveFocus();
         else if (wifiTile.visible)
             wifiTile.forceActiveFocus();
         else
@@ -67,7 +92,7 @@ PopupWindow {
     }
 
     function navigate(page: int, keyboardFocus: bool): void {
-        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi) {
+        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Power) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
@@ -113,12 +138,7 @@ PopupWindow {
         }
     }
 
-    readonly property var powerActions: [
-        {
-            icon: "",
-            label: "Lock",
-            command: ["hyprlock"]
-        },
+    readonly property var powerPageActions: [
         {
             icon: "󰤄",
             label: "Suspend",
@@ -214,6 +234,77 @@ PopupWindow {
                         width: primaryScroller.width
                         spacing: Theme.quickSettingsGap
 
+                        Item {
+                            id: quickSettingsHeader
+
+                            width: parent.width
+                            height: headerContent.implicitHeight
+
+                            Row {
+                                id: headerContent
+
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: Theme.quickSettingsGap
+
+                                Item {
+                                    width: root.hasLaptopBattery ? 132 : 0
+                                    height: headerActions.height
+                                    visible: root.hasLaptopBattery
+
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.top: parent.top
+
+                                        text: `${root.batteryPercent}%`
+                                        color: root.batteryCharging || root.batteryFull ? Theme.ok : Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize + 5
+                                        font.weight: Font.DemiBold
+                                        textFormat: Text.PlainText
+                                    }
+
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.bottom: parent.bottom
+
+                                        text: root.batteryState
+                                        color: Theme.foreground
+                                        opacity: 0.65
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 2
+                                        textFormat: Text.PlainText
+                                    }
+                                }
+
+                                Row {
+                                    id: headerActions
+
+                                    spacing: 6
+
+                                    HeaderAction {
+                                        id: lockAction
+
+                                        icon: ""
+                                        tooltipText: "Lock"
+
+                                        onClicked: {
+                                            Quickshell.execDetached(["hyprlock"]);
+                                            root.dismiss();
+                                        }
+                                    }
+
+                                    HeaderAction {
+                                        id: powerAction
+
+                                        icon: "󰐥"
+                                        tooltipText: "Power"
+
+                                        onClicked: keyboard => root.navigate(QuickSettings.Power, keyboard)
+                                    }
+                                }
+                            }
+                        }
+
                         Flow {
                             id: tileGrid
 
@@ -276,33 +367,6 @@ PopupWindow {
                                 onCloseRequested: root.dismiss()
                             }
 
-                            Item {
-                                width: legacyRows.width
-                                height: Theme.quickSettingsPadding
-
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width
-                                    height: 1
-                                    color: Theme.foreground
-                                    opacity: 0.15
-                                }
-                            }
-
-                            Repeater {
-                                model: root.powerActions
-
-                                delegate: MenuRow {
-                                    required property var modelData
-
-                                    width: legacyRows.width
-                                    icon: modelData.icon
-                                    label: modelData.label
-
-                                    onClicked: Quickshell.execDetached(modelData.command)
-                                    onCloseRequested: root.dismiss()
-                                }
-                            }
                         }
                     }
                 }
@@ -340,6 +404,57 @@ PopupWindow {
 
                     onBack: keyboard => root.showPrimary(keyboard)
                     onCloseRequested: root.dismiss()
+                }
+            }
+
+            Item {
+                id: powerSurface
+
+                x: root.currentPage === QuickSettings.Power ? 0 : 8
+                width: parent.width
+                height: parent.height
+                visible: opacity > 0
+                enabled: root.currentPage === QuickSettings.Power
+                opacity: root.currentPage === QuickSettings.Power ? 1 : 0
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                QuickSettingsPage {
+                    id: powerPage
+
+                    anchors.fill: parent
+                    title: "Power"
+                    active: root.shown && root.currentPage === QuickSettings.Power
+                    onBack: keyboard => root.showPrimary(keyboard)
+
+                    Repeater {
+                        model: root.powerPageActions
+
+                        delegate: PageRow {
+                            required property var modelData
+
+                            width: powerPage.width
+                            icon: modelData.icon
+                            label: modelData.label
+
+                            onClicked: {
+                                Quickshell.execDetached(modelData.command);
+                                root.dismiss();
+                            }
+                        }
+                    }
                 }
             }
         }
