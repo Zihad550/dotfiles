@@ -2,8 +2,8 @@ import QtQuick
 import Quickshell
 import qs
 
-// `tailscale up`/`down` as a switch. The bar keeps its own Tailscale icon --
-// this is the control, that is the glance.
+// `tailscale up`/`down` as a switch. The Status Cluster owns the glance; this
+// is the control.
 //
 // QuickSettings deliberately does not wire this row's closeRequested: the point
 // of flipping a switch is watching it settle, and the state only lands once

@@ -3,13 +3,13 @@ import Quickshell
 import Quickshell.Hyprland
 import qs
 
-// Quick Settings: the panel hung under the gear in the bar, holding the
+// Quick Settings: the panel hung under the Status Cluster in the bar, holding the
 // modules that are controls rather than at-a-glance status -- network,
 // bluetooth, the tailscale switch, volume, and the power entries that used to
 // open from a click on the battery.
 //
 // Closes on a click outside (HyprlandFocusGrab), on a second click of the
-// gear, or when a row launches something (MenuRow.closeRequested).
+// Status Cluster, or when a row launches something (MenuRow.closeRequested).
 PopupWindow {
     id: root
 
@@ -23,7 +23,7 @@ PopupWindow {
     property bool wifiPageShown: false
 
     // Set when the focus grab closes the panel. Hyprland may still deliver that
-    // click to the gear underneath, which would immediately reopen what the
+    // click to the Status Cluster underneath, which would immediately reopen what the
     // user just dismissed; toggle() ignores an open that lands right after.
     property double lastCleared: 0
 
@@ -80,8 +80,8 @@ PopupWindow {
     ]
 
     anchor.item: target
-    // Right-aligned rather than centred on the gear (what Tooltip does): the
-    // gear is the last item in the bar, so a centred panel would hang off the
+    // Right-aligned rather than centred on the Status Cluster (what Tooltip
+    // does): it is the last item in the bar, so a centred panel would hang off the
     // right edge of the screen.
     anchor.rect.x: target ? target.width - root.width : 0
     anchor.rect.y: target ? target.height : 0

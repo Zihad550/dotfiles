@@ -43,16 +43,10 @@ PanelWindow {
         spacing: 0
 
         Voxtype {}
-        Tailscale {}
-        Battery {}
+        StatusCluster {
+            id: statusCluster
 
-        // Network, bluetooth and volume moved into Quick Settings behind this.
-        BarItem {
-            id: gear
-
-            text: "󰒓"
-            textColor: quickSettings.shown ? Theme.accent : Theme.foreground
-            // Deliberately no tooltip: it anchors where the panel opens.
+            panelShown: quickSettings.shown
             onClicked: quickSettings.toggle()
         }
     }
@@ -60,7 +54,7 @@ PanelWindow {
     QuickSettings {
         id: quickSettings
 
-        target: gear
+        target: statusCluster
 
         // Lets SUPER+CTRL+A (hypr/.config/hypr/lua/bindings/utilities.lua)
         // find this monitor's panel via shell.qml's GlobalShortcut -- see

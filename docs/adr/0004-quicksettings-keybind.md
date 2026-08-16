@@ -1,6 +1,6 @@
 # Quick Settings gets a keybind, reached through a per-monitor registry
 
-Quick Settings had one entry point: clicking the Gear. Windows, GNOME and
+Quick Settings had one entry point: clicking the Status Cluster. Windows, GNOME and
 Android all ship the same panel under this name (`CONTEXT.md`), and Windows'
 is the one with a documented default keybind — `SUPER+A`. This adds the
 equivalent here.
@@ -16,10 +16,10 @@ doesn't belong in it. `SUPER+CTRL+A` was unclaimed and keeps the `A` mnemonic.
 
 **A per-monitor registry, not a single floating panel.** `QuickSettings` is
 instantiated once per screen inside `Bar.qml`, anchored under that screen's
-own Gear (`anchor.item: target`). The alternative was collapsing it to one
+own Status Cluster (`anchor.item: target`). The alternative was collapsing it to one
 shared instance with `screen` left unset — the pattern `Osd.qml` uses to
 "float on the active monitor" — which is less code, but a floating panel has
-no gear to anchor under, so a click-open and a keybind-open would land in
+no Status Cluster to anchor under, so a click-open and a keybind-open would land in
 different places. `QuickSettingsRegistry.qml` keeps one `QuickSettings` per
 monitor and lets `shell.qml`'s `GlobalShortcut` reach the focused one by
 name, so both entry points open in the exact same spot.
@@ -49,4 +49,4 @@ directly with the compositor: no fork, no exec, on every press.
   no confirmation UI to fail loudly into.
 - `bindings/utilities.lua` gains `SUPER+CTRL+A`, next to the other binds that
   dispatch into the `dotfiles` bar process rather than the Launcher.
-- The Gear's `CONTEXT.md` entry now notes it isn't the only opener.
+- The Status Cluster's `CONTEXT.md` entry notes it isn't the only opener.

@@ -42,7 +42,7 @@ Scope {
     // mako silenced everything under do-not-disturb except notify-send
     // (`[mode=do-not-disturb app-name=notify-send] invisible=false`) so the
     // toggle's own confirmation still appears and the toggle stays verifiable.
-    // Battery.qml also shells out to notify-send, so its low-battery warnings
+    // BatteryService also shells out to notify-send, so its low-battery warnings
     // come through DND as well -- mako behaved the same way.
     function suppressed(notification: var): bool {
         return root.dnd && notification.appName !== "notify-send";

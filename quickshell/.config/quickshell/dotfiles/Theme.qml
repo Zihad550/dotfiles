@@ -28,7 +28,7 @@ Singleton {
     // Horizontal padding of the left/right module groups (.modules-left/right).
     readonly property int edgeMargin: 8
 
-    // Gear menu: total popup width, inner padding, height of one row's header.
+    // Quick Settings: total popup width, inner padding, height of one row's header.
     // Widened from 240 for DevcontainerRoutingRow: at 240, its label, toggle,
     // and the resolved host "devcontainer.devpod" (the default -- see ticket
     // 03) elided past legibility. Tailscale's toggle never faced this, since

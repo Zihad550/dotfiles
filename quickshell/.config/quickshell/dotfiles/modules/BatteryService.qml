@@ -2,8 +2,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.UPower
 
-// One threshold watcher for the whole shell. Battery bar items are replicated
-// per monitor, so keeping notifications in Battery.qml emits one per monitor.
+// One threshold watcher for the whole shell. Status Clusters are replicated
+// per monitor, so keeping notifications in them would emit one per monitor.
 QtObject {
     id: root
 

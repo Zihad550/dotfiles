@@ -12,14 +12,14 @@ function source(relativePath) {
 test("battery thresholds have one notification producer across multiple monitors", () => {
     const shell = source("shell.qml");
     const bar = source("modules/Bar.qml");
-    const battery = source("modules/Battery.qml");
+    const statusCluster = source("modules/StatusCluster.qml");
 
     assert.match(shell, /Variants\s*{[\s\S]*model:\s*Quickshell\.screens[\s\S]*Bar\s*{}/);
-    assert.match(bar, /Battery\s*{}/);
+    assert.match(bar, /StatusCluster\s*{/);
     assert.doesNotMatch(
-        battery,
+        statusCluster,
         /notify-send|execDetached/,
-        "Battery is instantiated once per monitor, so it must not emit threshold notifications",
+        "the Status Cluster is instantiated once per monitor, so it must not emit threshold notifications",
     );
     assert.match(shell, /BatteryService\s*{}/, "the shell should own one battery notification producer");
 });

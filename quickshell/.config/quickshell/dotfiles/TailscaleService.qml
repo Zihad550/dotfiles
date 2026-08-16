@@ -4,8 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Tailscale state, shared by the bar icon (modules/Tailscale.qml) and the menu
-// toggle (modules/TailscaleRow.qml).
+// Tailscale state, shared by the Status Cluster and the Quick Settings toggle.
 //
 // A singleton because Variants builds one Bar per monitor: with the Process
 // living in the bar module, a two-monitor session ran two copies of the status
