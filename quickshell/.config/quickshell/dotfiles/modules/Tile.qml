@@ -11,6 +11,10 @@ Item {
     property bool active: false
     property bool busy: false
     property bool chevronVisible: false
+    // The Flow that owns the primary Tiles. Arrow navigation uses the actual
+    // laid-out positions so it keeps working when the panel collapses to one
+    // column on a narrow monitor.
+    property Item navigationContainer: null
     property bool mainFocusVisible: false
     property bool chevronFocusVisible: false
 
@@ -21,6 +25,67 @@ Item {
     readonly property color settledColor: root.active
         ? Theme.accent
         : Qt.rgba(Theme.foreground.r, Theme.foreground.g, Theme.foreground.b, 0.12)
+
+    function moveSpatially(key: int): bool {
+        if (!root.navigationContainer)
+            return false;
+
+        const origin = root.mapToItem(root.navigationContainer, 0, 0);
+        const originCenterX = origin.x + root.width / 2;
+        const originCenterY = origin.y + root.height / 2;
+        const candidates = root.navigationContainer.children.filter(item =>
+            item !== root && item.visible && item.enabled && item.width > 0 && item.height > 0
+        );
+        const horizontal = key === Qt.Key_Left || key === Qt.Key_Right;
+        const direction = key === Qt.Key_Left || key === Qt.Key_Up ? -1 : 1;
+        const rowTolerance = root.height * 0.75;
+        let best = null;
+        let bestScore = Number.POSITIVE_INFINITY;
+
+        candidates.forEach(item => {
+            const position = item.mapToItem(root.navigationContainer, 0, 0);
+            const centerX = position.x + item.width / 2;
+            const centerY = position.y + item.height / 2;
+            const deltaX = centerX - originCenterX;
+            const deltaY = centerY - originCenterY;
+
+            if (horizontal) {
+                if (Math.abs(deltaY) > rowTolerance || Math.sign(deltaX) !== direction)
+                    return;
+                const score = Math.abs(deltaX) + Math.abs(deltaY) * 4;
+                if (score < bestScore) {
+                    best = item;
+                    bestScore = score;
+                }
+                return;
+            }
+
+            if (Math.sign(deltaY) !== direction)
+                return;
+            const score = Math.abs(deltaY) + Math.abs(deltaX) * 2;
+            if (score < bestScore) {
+                best = item;
+                bestScore = score;
+            }
+        });
+
+        if (!best)
+            return false;
+        best.forceActiveFocus();
+        return true;
+    }
+
+    function handleKey(event, chevron: bool): void {
+        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right
+                || event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
+            event.accepted = root.moveSpatially(event.key);
+            return;
+        }
+        if (chevron)
+            root.activateChevron(event);
+        else
+            root.activateMain(event);
+    }
 
     function activateMain(event): void {
         if (!root.interactive)
@@ -45,7 +110,7 @@ Item {
     opacity: root.enabled ? 1 : 0.45
     scale: mainMouse.pressed || chevronMouse.pressed ? 0.98 : 1
 
-    Keys.onPressed: event => root.activateMain(event)
+    Keys.onPressed: event => root.handleKey(event, false)
 
     onActiveFocusChanged: root.mainFocusVisible = root.activeFocus
 
@@ -188,7 +253,7 @@ Item {
         width: 42
 
         activeFocusOnTab: root.interactive && root.chevronVisible && root.visible
-        Keys.onPressed: event => root.activateChevron(event)
+        Keys.onPressed: event => root.handleKey(event, true)
         onActiveFocusChanged: root.chevronFocusVisible = chevronSegment.activeFocus
 
         Text {

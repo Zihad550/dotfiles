@@ -46,6 +46,8 @@ QuickSettingsPage {
         } else {
             root.availableNames = [];
             refreshTimer.stop();
+            reconnectTimer.stop();
+            sinkList.running = false;
             subscription.running = false;
         }
     }

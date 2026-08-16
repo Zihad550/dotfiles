@@ -1,6 +1,6 @@
 # Quick Settings gets a keybind, reached through a per-monitor registry
 
-Quick Settings had one entry point: clicking the Status Cluster. Windows, GNOME and
+Quick Settings has a mouse entry point: clicking the Status Cluster. Windows, GNOME and
 Android all ship the same panel under this name (`CONTEXT.md`), and Windows'
 is the one with a documented default keybind — `SUPER+A`. This adds the
 equivalent here.

@@ -9,6 +9,23 @@ function source(relativePath) {
     return fs.readFileSync(path.join(dotfilesRoot, relativePath), "utf8");
 }
 
+test("Primary surface keeps the finished hierarchy and spatial Tile navigation", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const tile = source("modules/Tile.qml");
+    const audioPage = source("modules/AudioPage.qml");
+
+    assert.ok(
+        quickSettings.indexOf("WiredStatus {") < quickSettings.indexOf("id: tileGrid"),
+        "Wired status belongs above the Tile grid",
+    );
+    assert.doesNotMatch(quickSettings, /legacyRows|WiredRow/);
+    assert.match(quickSettings, /id:\s*wifiTile[\s\S]*id:\s*bluetoothTile[\s\S]*id:\s*tailscaleTile[\s\S]*id:\s*devcontainerTile/);
+    assert.match(quickSettings, /wifiTile[\s\S]*navigationContainer:\s*tileGrid/);
+    assert.match(tile, /Key_Left[\s\S]*Key_Right[\s\S]*Key_Up[\s\S]*Key_Down/);
+    assert.match(tile, /mapToItem\(root\.navigationContainer/);
+    assert.match(audioPage, /reconnectTimer\.stop\(\)[\s\S]*sinkList\.running\s*=\s*false/);
+});
+
 test("Quick Settings exposes laptop battery state and immediate header actions", () => {
     const quickSettings = source("modules/QuickSettings.qml");
 

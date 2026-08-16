@@ -408,10 +408,14 @@ PopupWindow {
                             onPageRequested: keyboard => root.navigate(QuickSettings.Audio, keyboard)
                         }
 
+                        WiredStatus {
+                            width: parent.width
+                        }
+
                         Flow {
                             id: tileGrid
 
-                            visible: root.wifiDevice !== null || TailscaleService.installed || root.bluetoothAvailable || devcontainerRouting !== null
+                            visible: root.wifiDevice !== null || TailscaleService.installed || root.bluetoothAvailable || devcontainerTile.visible
                             width: parent.width
                             height: tileGrid.visible ? tileGrid.implicitHeight : 0
                             spacing: Theme.quickSettingsGap
@@ -425,6 +429,7 @@ PopupWindow {
 
                                 visible: root.wifiDevice !== null
                                 width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
                                 enabled: Networking.wifiHardwareEnabled
 
                                 icon: root.wifiGlyph()
@@ -446,6 +451,7 @@ PopupWindow {
 
                                 visible: root.bluetoothAvailable
                                 width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
                                 enabled: !!root.bluetoothAdapter
 
                                 icon: ""
@@ -474,6 +480,7 @@ PopupWindow {
 
                                 visible: TailscaleService.installed
                                 width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
 
                                 icon: TailscaleService.icon
                                 label: "Tailscale"
@@ -488,23 +495,13 @@ PopupWindow {
                                 id: devcontainerTile
 
                                 width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
                                 routingState: devcontainerRouting
 
                                 onPageRequested: keyboard => root.navigate(QuickSettings.Devcontainer, keyboard)
                             }
                         }
 
-                        Column {
-                            id: legacyRows
-
-                            width: parent.width
-                            spacing: 2
-
-                            WiredRow {
-                                width: legacyRows.width
-                            }
-
-                        }
                     }
                 }
             }
