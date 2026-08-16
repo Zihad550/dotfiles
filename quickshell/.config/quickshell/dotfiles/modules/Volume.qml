@@ -38,7 +38,7 @@ Item {
         root.setVolume(Math.round(x / track.width * 100));
     }
 
-    Rectangle {
+    Item {
         id: track
 
         anchors.left: parent.left
@@ -46,16 +46,22 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: 48
         anchors.rightMargin: 48
-        height: 5
-        radius: height / 2
-        color: Theme.foreground
-        opacity: root.available ? 0.25 : 0.12
+        height: 12
+
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
+            height: 5
+            radius: height / 2
+            color: Theme.foreground
+            opacity: root.available ? 0.25 : 0.12
+        }
 
         Rectangle {
             anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
+            anchors.verticalCenter: parent.verticalCenter
             width: parent.width * Math.max(0, Math.min(100, root.volume)) / 100
+            height: 5
             radius: height / 2
             color: root.muted ? Theme.warn : Theme.accent
         }
