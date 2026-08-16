@@ -3,8 +3,8 @@ import Quickshell
 import Quickshell.Networking
 import qs
 
-// The Wi-Fi Page: NetworkItem's row expands into this, replacing Quick
-// Settings' own rows in the same window -- see Page in CONTEXT.md.
+// The Wi-Fi Page: the Tile's chevron enters this, replacing the primary Quick
+// Settings surface in the same window -- see Page in CONTEXT.md.
 //
 // Order is fixed once, when the Page becomes visible, and held until it
 // closes -- live signal jitter would otherwise swap rows under the pointer
@@ -12,18 +12,14 @@ import qs
 //
 // Ticket 04: clicking a row connects. Ticket 07: a secured network with no
 // saved credentials asks for one first, in place, on the same row. Ticket 08:
-// right-click opens Disconnect/Forget. Ticket 09: unsaved enterprise networks
-// hand off to nmtui instead of attempting a connect that can't succeed.
-Column {
+// right-click or the trailing overflow opens Disconnect/Forget. Ticket 09:
+// unsaved enterprise networks hand off to nmtui instead of attempting a
+// connect that can't succeed.
+QuickSettingsPage {
     id: root
 
-    // Separate from Item.visible: QuickSettings hides this Page behind a
-    // wrapper Item rather than toggling `visible` here directly, because a
-    // Column stops updating implicitHeight while its own `visible` is false
-    // -- and the popup's height reads that the instant this becomes active.
-    property bool active: false
+    title: "Wi-Fi"
 
-    signal back
     // Ticket 09: the nmtui hand-off closes the whole panel, not just this
     // Page -- nmtui is a terminal window that would otherwise open behind it.
     // Distinct from `back`, which only returns to Quick Settings' own rows.
@@ -256,8 +252,8 @@ Column {
             root.ordered = kept.concat(additions);
     }
 
-    // Only runs while this Page is on screen. QuickSettings resets
-    // wifiPageShown on every dismiss path, which is what drives `active`.
+    // Only runs while this Page is on screen. QuickSettings resets its single
+    // navigation state on every dismiss path, which is what drives `active`.
     Binding {
         target: root.device
         property: "scannerEnabled"
@@ -296,17 +292,6 @@ Column {
         }
     }
 
-    spacing: 2
-
-    MenuRow {
-        width: root.width
-        // Plain arrow, not a nerd font glyph -- same reasoning as
-        // SpecialWorkspaces' expand indicator.
-        icon: "←"
-        label: "Wi-Fi"
-        onClicked: root.back()
-    }
-
     Repeater {
         model: root.ordered
 
@@ -322,21 +307,30 @@ Column {
             // else steps back so it reads clearly.
             opacity: root.connecting && root.connecting !== entry.modelData ? 0.4 : 1
 
-            MenuRow {
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.quickSettingsFastMotion
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            PageRow {
                 width: entry.width
                 icon: root.glyph(entry.modelData)
                 label: entry.modelData.name
                 detail: root.detailFor(entry.modelData)
+                overflowVisible: entry.modelData.connected || entry.modelData.known
 
                 onClicked: root.handleRowClick(entry.modelData)
                 onRightClicked: root.handleRowRightClick(entry.modelData)
+                onOverflowClicked: root.handleRowRightClick(entry.modelData)
             }
 
             // Ticket 08: right-click's Disconnect/Forget, indented under the
             // row they act on. `handleRowRightClick` already refuses to open
             // `menuOpen` for a network that's neither connected nor known, so
             // at least one of these two is visible whenever it's open.
-            MenuRow {
+            PageRow {
                 x: 12
                 width: entry.width - 12
                 visible: entry.menuOpen && entry.modelData.connected
@@ -345,7 +339,7 @@ Column {
                 onClicked: root.disconnectNetwork(entry.modelData)
             }
 
-            MenuRow {
+            PageRow {
                 x: 12
                 width: entry.width - 12
                 visible: entry.menuOpen && entry.modelData.known
@@ -356,16 +350,20 @@ Column {
 
             Item {
                 width: entry.width
-                height: 24
+                height: Theme.quickSettingsRowHeight
                 visible: entry.promptOpen
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Theme.background
+                    color: Qt.rgba(
+                        Theme.foreground.r,
+                        Theme.foreground.g,
+                        Theme.foreground.b,
+                        0.08
+                    )
                     border.color: Theme.accent
-                    border.width: 1
-                    radius: 3
-                    opacity: pwInput.activeFocus ? 1 : 0.4
+                    border.width: pwInput.activeFocus ? 2 : 0
+                    radius: 10
                 }
 
                 TextInput {
@@ -381,6 +379,7 @@ Column {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSize - 2
                     selectByMouse: true
+                    activeFocusOnTab: entry.promptOpen
 
                     // Dots only, no brief reveal of the last character typed
                     // -- ticket 07 criterion 2 says "never".

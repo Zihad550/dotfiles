@@ -37,6 +37,16 @@ Singleton {
     readonly property int menuPadding: 10
     readonly property int menuRowHeight: 30
 
+    // GNOME-style Quick Settings surface.
+    readonly property int quickSettingsWidth: 420
+    readonly property int quickSettingsPadding: 20
+    readonly property int quickSettingsRadius: 24
+    readonly property int quickSettingsTileHeight: 48
+    readonly property int quickSettingsRowHeight: 40
+    readonly property int quickSettingsGap: 10
+    readonly property int quickSettingsFastMotion: 120
+    readonly property int quickSettingsPageMotion: 160
+
     // Notification popups: stack width, inner padding, and text sizes. Set
     // larger than the bar, which is deliberately compact -- notifications are
     // read at a glance from across the screen, not scanned.
