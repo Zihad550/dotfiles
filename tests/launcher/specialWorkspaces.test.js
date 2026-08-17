@@ -54,7 +54,7 @@ function fixture(t, options = {}) {
     t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
 
     fs.writeFileSync(path.join(state, "clients.json"), JSON.stringify(options.clients || [[]]));
-    fs.writeFileSync(path.join(state, "active-workspace"), options.activeWorkspace || "1");
+    fs.writeFileSync(path.join(state, "active-special-workspace"), options.activeSpecialWorkspace || "");
     fs.writeFileSync(path.join(state, "client-call"), "0");
 
     writeExecutable(path.join(bin, "hyprctl"), `#!/usr/bin/node
@@ -68,9 +68,9 @@ if (args[0] === "clients" && args[1] === "-j") {
     const responses = JSON.parse(fs.readFileSync(path.join(state, "clients.json"), "utf8"));
     fs.writeFileSync(counter, String(call + 1));
     process.stdout.write(JSON.stringify(responses[Math.min(call, responses.length - 1)]));
-} else if (args[0] === "activeworkspace" && args[1] === "-j") {
-    const name = fs.readFileSync(path.join(state, "active-workspace"), "utf8");
-    process.stdout.write(JSON.stringify({ name }));
+} else if (args[0] === "monitors" && args[1] === "-j") {
+    const name = fs.readFileSync(path.join(state, "active-special-workspace"), "utf8");
+    process.stdout.write(JSON.stringify([{ focused: true, specialWorkspace: { name } }]));
 } else if (args[0] === "dispatch") {
     fs.appendFileSync(path.join(state, "dispatches"), JSON.stringify(args.slice(1)) + "\\n");
     if (process.env.FAIL_LUA === "1" && args[1].startsWith("hl."))
@@ -148,7 +148,7 @@ test("one exact initialClass match focuses its address and ignores every mutable
 
 test("an active configured Special Workspace hides before client selection", t => {
     const harness = fixture(t, {
-        activeWorkspace: "special:herdr",
+        activeSpecialWorkspace: "special:herdr",
         clients: [[
             client("0xone", INITIAL_CLASS, "1"),
             client("0xtwo", INITIAL_CLASS, "2")

@@ -122,8 +122,8 @@ resolve_existing_client_or_exit() {
    fi
 }
 
-active_workspace="$(hyprctl activeworkspace -j | jq -r '.name // empty')"
-if [[ "$active_workspace" == "special:$workspace" ]]; then
+active_special_workspace="$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .specialWorkspace.name // empty')"
+if [[ "$active_special_workspace" == "special:$workspace" ]]; then
    if toggle_special "$workspace"; then
       exit 0
    fi
