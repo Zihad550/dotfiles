@@ -283,6 +283,13 @@ const audit = [
     {
         file: "OtherMenu.qml",
         menu: "other",
+        elephant: "",
+        entry: { name: "Zen Browser profile webdev", command: ["flatpak", "run", "app.zen_browser.zen", "-P", "webdev"] },
+        argv: ["uwsm-app", "--", "flatpak", "run", "app.zen_browser.zen", "-P", "webdev"]
+    },
+    {
+        file: "OtherMenu.qml",
+        menu: "other",
         // The one command substitution in the four menus.
         elephant: "flatpak run com.mongodb.Compass --trustedConnectionString $(pass env/mongodb_uri)",
         entry: { name: "MongoDB Compass env", shell: "flatpak run com.mongodb.Compass --trustedConnectionString $(pass env/mongodb_uri)" },
@@ -294,10 +301,10 @@ const audit = [
         elephant: "~/dotfiles/bin/df-launch-special-app 'work-zellij' 'ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit' 'work-zellij'",
         entry: {
             name: "work - zellij session",
-            command: ["~/dotfiles/bin/df-launch-special-app", "work-zellij", "ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit", "work-zellij"],
+            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.work", "work-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.work", "-e", "zellij", "-l", "work", "attach", "--create", "work-zellij", "options", "--on-force-close", "quit"],
             scoped: false
         },
-        argv: ["/home/jehad/dotfiles/bin/df-launch-special-app", "work-zellij", "ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit", "work-zellij"]
+        argv: ["/home/jehad/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.work", "work-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.work", "-e", "zellij", "-l", "work", "attach", "--create", "work-zellij", "options", "--on-force-close", "quit"]
     },
     {
         file: "OtherMenu.qml",
@@ -305,10 +312,10 @@ const audit = [
         elephant: "~/dotfiles/bin/df-launch-special-app 'project-zellij' 'ghostty -e zellij -l project attach --create project-zellij options --on-force-close quit' 'project-zellij'",
         entry: {
             name: "project - zellij session",
-            command: ["~/dotfiles/bin/df-launch-special-app", "project-zellij", "ghostty -e zellij -l project attach --create project-zellij options --on-force-close quit", "project-zellij"],
+            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.project", "project-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.project", "-e", "zellij", "-l", "project", "attach", "--create", "project-zellij", "options", "--on-force-close", "quit"],
             scoped: false
         },
-        argv: ["/home/jehad/dotfiles/bin/df-launch-special-app", "project-zellij", "ghostty -e zellij -l project attach --create project-zellij options --on-force-close quit", "project-zellij"]
+        argv: ["/home/jehad/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.project", "project-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.project", "-e", "zellij", "-l", "project", "attach", "--create", "project-zellij", "options", "--on-force-close", "quit"]
     },
     {
         file: "OtherMenu.qml",
@@ -316,10 +323,10 @@ const audit = [
         elephant: "~/dotfiles/bin/df-launch-special-app 'helium-work' 'helium-browser --profile-directory=\"Profile 2\"' 'work'",
         entry: {
             name: "Helium - work profile",
-            command: ["~/dotfiles/bin/df-launch-special-app", "helium-work", 'helium-browser --profile-directory="Profile 2"', "work"],
+            command: ["~/dotfiles/bin/df-launch-special-workspace", "helium", "work", "helium-browser", "--profile-directory=Profile 2"],
             scoped: false
         },
-        argv: ["/home/jehad/dotfiles/bin/df-launch-special-app", "helium-work", 'helium-browser --profile-directory="Profile 2"', "work"]
+        argv: ["/home/jehad/dotfiles/bin/df-launch-special-workspace", "helium", "work", "helium-browser", "--profile-directory=Profile 2"]
     }
 ];
 

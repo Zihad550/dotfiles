@@ -112,8 +112,8 @@ mirrored directory from the Launcher still routes when the toggle is on.
   "Command failed" banner — so `bin/df-herdr-session` now falls back to
   known install paths and errors loudly (exit 127, message on stderr) if
   `herdr` truly can't be found, rather than dying silent.
-- A bare `--class=herdr` remains ineffective: Ghostty rejects a non-dotted
-  application identity and Hyprland reports the generic
+- Live host probing confirmed that a bare `--class=herdr` remains ineffective:
+  Ghostty rejects a non-dotted application identity and Hyprland reports the generic
   `com.mitchellh.ghostty` class. A valid dotted identity does work, however.
   The fixed `SUPER+U` window now launches with
   `io.github.zihad550.dotfiles.herdr`, which Ghostty exposes through both its

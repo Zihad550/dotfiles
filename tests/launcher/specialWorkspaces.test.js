@@ -8,6 +8,26 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "../..");
 const LAUNCHER = path.join(ROOT, "bin/df-launch-special-workspace");
 const INITIAL_CLASS = "io.github.zihad550.dotfiles.herdr";
+const NATIVE_APPLICATIONS = [
+    {
+        keys: "SUPER + O",
+        initialClass: "obsidian",
+        workspace: "note",
+        launch: "obsidian -disable-gpu --enable-wayland-ime"
+    },
+    {
+        keys: "SUPER + SHIFT + W",
+        initialClass: "helium",
+        workspace: "work",
+        launch: "helium-browser --profile-directory='Profile 2'"
+    },
+    {
+        keys: "SUPER + M",
+        initialClass: "thunderbird",
+        workspace: "thunderbird",
+        launch: "thunderbird"
+    }
+];
 
 function client(address, initialClass, workspace, extra = {}) {
     return {
@@ -77,8 +97,9 @@ fs.appendFileSync(path.join(process.env.TEST_STATE, "notifications"),
         FAIL_LUA: options.failLua ? "1" : "0"
     };
 
-    function run(workspace = "herdr", launch = ["ghostty", `--class=${INITIAL_CLASS}`]) {
-        return childProcess.spawnSync(LAUNCHER, [INITIAL_CLASS, workspace, ...launch], {
+    function run(workspace = "herdr", launch = ["ghostty", `--class=${INITIAL_CLASS}`],
+        initialClass = INITIAL_CLASS) {
+        return childProcess.spawnSync(LAUNCHER, [initialClass, workspace, ...launch], {
             env,
             encoding: "utf8"
         });
@@ -289,4 +310,52 @@ test("the fixed Herdr binding declares its dotted identity while Launcher-create
     const launcherHerdr = directories.match(/function herdrLaunchArgv[\s\S]*?\n}/)[0];
     assert.doesNotMatch(launcherHerdr, /--class/);
     assert.doesNotMatch(launcherHerdr, new RegExp(INITIAL_CLASS.replaceAll(".", "\\.")));
+});
+
+test("native application bindings declare their exact initial classes", () => {
+    const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
+
+    for (const { keys, initialClass, workspace, launch } of NATIVE_APPLICATIONS) {
+        const binding = apps.match(new RegExp(
+            `o\\.bind\\("${keys.replaceAll("+", "\\+")}\\"[\\s\\S]*?\\n\\s*dotfiles_bin[^\\n]+\\)`
+        ))[0];
+        assert.match(binding, /df-launch-special-workspace/);
+        assert.match(binding, new RegExp(`"${initialClass}" "${workspace}"`));
+        assert.match(binding, new RegExp(launch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+        assert.doesNotMatch(binding, /df-launch-special-app/);
+    }
+});
+
+test("each native identity ignores titles and focuses its sole exact client wherever it lives", t => {
+    for (const { initialClass, workspace } of NATIVE_APPLICATIONS) {
+        const titleOnly = client(`0xtitle-${initialClass}`, "wrong-class", `special:${workspace}`, {
+            title: initialClass,
+            initialTitle: initialClass
+        });
+        const exact = client(`0xexact-${initialClass}`, initialClass, "8", {
+            title: "renamed window",
+            initialTitle: "unrelated title"
+        });
+        const harness = fixture(t, { clients: [[titleOnly, exact]] });
+
+        const result = harness.run(workspace, [initialClass], initialClass);
+
+        assert.strictEqual(result.status, 0, result.stderr);
+        const focuses = dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus");
+        assert.strictEqual(focuses.length, 1);
+        assert.match(focuses[0].join(" "), new RegExp(`address:0xexact-${initialClass}`));
+        assert.strictEqual(dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length, 0);
+    }
+});
+
+test("enabled Special Workspace bindings use only the shared exact-class lifecycle", () => {
+    const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
+    const otherMenu = fs.readFileSync(path.join(ROOT,
+        "quickshell/.config/quickshell/launcher/modules/OtherMenu.qml"), "utf8");
+    const zellij = fs.readFileSync(path.join(ROOT,
+        "quickshell/.config/quickshell/launcher/lib/zellij.js"), "utf8");
+    const enabledConfig = apps.split("\n").filter(line => !/^\s*--/.test(line)).join("\n");
+
+    assert.strictEqual(fs.existsSync(path.join(ROOT, "bin/df-launch-special-app")), false);
+    assert.doesNotMatch(`${enabledConfig}\n${otherMenu}\n${zellij}`, /df-launch-special-app/);
 });

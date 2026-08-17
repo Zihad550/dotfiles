@@ -22,20 +22,26 @@ function entryFor(session, provider) {
     };
 }
 
-// df-launch-special-app owns the Lua-vs-legacy dispatch and the
-// special-workspace toggle.
-//
-// Session names must be shell-word-safe (letters, digits, `_`, `-`): the name
-// is interpolated into the command string that df-launch-special-app hands to
-// Hyprland's exec dispatcher to re-parse, so a space or quote would split
-// into two words there. Not defended against here -- the constraint belongs
-// on the data (Zellij.qml), which is the only place a new name gets added.
+// Session names must be application-ID-safe (letters, digits, `_`, `-`). The
+// constraint belongs on the data (Zellij.qml), where sessions are declared.
 function launchArgv(home, session) {
+    var initialClass = "io.github.zihad550.dotfiles.zellij." + session;
     return [
-        home + "/dotfiles/bin/df-launch-special-app",
+        home + "/dotfiles/bin/df-launch-special-workspace",
+        initialClass,
         session,
-        "ghostty -e zellij -l " + session + " attach --create " + session + " options --on-force-close quit",
-        session
+        "ghostty",
+        "--class=" + initialClass,
+        "-e",
+        "zellij",
+        "-l",
+        session,
+        "attach",
+        "--create",
+        session,
+        "options",
+        "--on-force-close",
+        "quit"
     ];
 }
 

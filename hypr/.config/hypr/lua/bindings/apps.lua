@@ -29,11 +29,11 @@ o.bind("SUPER + E", "Zed", terminal .. [[ -e zsh -i -c "zed_open_dir"]])
 -- o.bind("SUPER + ALT + B", "Zen Browser 008",
 --     dotfiles_bin .. [[/df-launch-zen "zen008" "uwsm-app -- flatpak run app.zen_browser.zen -P 008"]])
 o.bind("SUPER + O", "Obsidian",
-    dotfiles_bin .. [[/df-launch-special-app "obsidian" "obsidian -disable-gpu --enable-wayland-ime" "note"]])
+    dotfiles_bin .. [[/df-launch-special-workspace "obsidian" "note" obsidian -disable-gpu --enable-wayland-ime]])
 o.bind("SUPER + SHIFT + W", "Helium (work)",
-    dotfiles_bin .. [[/df-launch-special-app "helium" "helium-browser --profile-directory='Profile 2'" "work"]])
+    dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" helium-browser --profile-directory='Profile 2']])
 o.bind("SUPER + M", "Thunderbird",
-    dotfiles_bin .. [[/df-launch-special-app "thunderbird" "thunderbird" "thunderbird"]])
+    dotfiles_bin .. [[/df-launch-special-workspace "thunderbird" "thunderbird" thunderbird]])
 
 -- TUI apps
 o.bind("SUPER + SHIFT + T", "Bottom", dotfiles_bin .. "/df-launch-tui btm")

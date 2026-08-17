@@ -146,3 +146,14 @@ anchored under the entry that opened it. Not a Chooser: a Chooser is a
 Launcher concept, replacing entries in the query window rather than opening
 one of its own.
 _Avoid_: dropdown, submenu, menu, popup, page
+
+# Desktop
+
+The Hyprland desktop's application and workspace conventions.
+
+## Language
+
+**Special Workspace**:
+A named workspace normally kept out of view and summoned by a dedicated key,
+giving a recurring application a single place that can be shown or hidden.
+_Avoid_: scratchpad, special scratchpad, Special App

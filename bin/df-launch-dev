@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# See df-launch-special-app for the lua-vs-legacy dispatch rationale.
+# Lua-config dispatches use Lua expressions; the fallback keeps this ordinary
+# launch-or-focus helper portable to Hyprland's legacy config mode.
 
 window_pattern="localhost"
 workspace="localhost"

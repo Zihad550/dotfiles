@@ -8,17 +8,14 @@
 //   already applies the launch prefix.
 // - Compass: a `shell` declaration, since it substitutes a command
 //   (`$(pass env/mongodb_uri)`) -- the only entry across these menus that needs one.
-// - The df-launch-special-app entries: a whole command line as one array
-//   element (Hyprland's exec dispatcher parses it), `scoped: false` because
-//   the script itself doesn't stay around -- it asks the compositor to spawn
-//   the terminal, so the surviving process is the compositor's child, not
-//   one this could scope.
+// - Special Workspace entries: exact identity, workspace, then launch argv;
+//   unscoped because Hyprland spawns the surviving process.
 Menu {
     label: "other"
     description: "Everything that fits nowhere else"
     subtext: "Other"
 
-    // None of the five entries declares an icon; they fall back to the menu's own.
+    // None of the six entries declares an icon; they fall back to the menu's own.
     icon: "applications-other"
 
     entries: [
@@ -39,19 +36,19 @@ Menu {
         },
         {
             name: "work - zellij session",
-            command: ["~/dotfiles/bin/df-launch-special-app", "work-zellij", "ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit", "work-zellij"],
+            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.work", "work-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.work", "-e", "zellij", "-l", "work", "attach", "--create", "work-zellij", "options", "--on-force-close", "quit"],
             scoped: false
         },
         {
             name: "project - zellij session",
             keywords: ["project", "zellij"],
-            command: ["~/dotfiles/bin/df-launch-special-app", "project-zellij", "ghostty -e zellij -l project attach --create project-zellij options --on-force-close quit", "project-zellij"],
+            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.project", "project-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.project", "-e", "zellij", "-l", "project", "attach", "--create", "project-zellij", "options", "--on-force-close", "quit"],
             scoped: false
         },
         {
             name: "Helium - work profile",
             keywords: ["helium", "helium work"],
-            command: ["~/dotfiles/bin/df-launch-special-app", "helium-work", "helium-browser --profile-directory=\"Profile 2\"", "work"],
+            command: ["~/dotfiles/bin/df-launch-special-workspace", "helium", "work", "helium-browser", "--profile-directory=Profile 2"],
             scoped: false
         }
     ]

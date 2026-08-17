@@ -3,10 +3,8 @@
 //
 //     node --test "tests/launcher/*.test.js"
 //
-// The argv is the risky half: the session command travels as one argument
-// through df-launch-special-app into Hyprland's exec dispatcher, which is
-// what re-parses it -- so a quoting mistake here is a session that opens on
-// the wrong workspace or not at all.
+// The argv is the risky half: each session needs a stable dotted Ghostty
+// identity while its attach-or-create arguments remain separate.
 
 const test = require("node:test");
 const assert = require("node:assert");
@@ -45,11 +43,22 @@ test("a session is found by its name", () => {
     assert.deepStrictEqual(names("work"), ["work"]);
 });
 
-test("the primary runs df-launch-special-app with the attach-or-create command intact", () => {
+test("the primary runs the exact-class lifecycle with the attach-or-create command intact", () => {
     assert.deepStrictEqual(Z.launchArgv("/home/jehad", "work"), [
-        "/home/jehad/dotfiles/bin/df-launch-special-app",
+        "/home/jehad/dotfiles/bin/df-launch-special-workspace",
+        "io.github.zihad550.dotfiles.zellij.work",
         "work",
-        "ghostty -e zellij -l work attach --create work options --on-force-close quit",
-        "work"
+        "ghostty",
+        "--class=io.github.zihad550.dotfiles.zellij.work",
+        "-e",
+        "zellij",
+        "-l",
+        "work",
+        "attach",
+        "--create",
+        "work",
+        "options",
+        "--on-force-close",
+        "quit"
     ]);
 });
