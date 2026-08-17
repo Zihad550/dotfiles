@@ -112,13 +112,15 @@ mirrored directory from the Launcher still routes when the toggle is on.
   "Command failed" banner — so `bin/df-herdr-session` now falls back to
   known install paths and errors loudly (exit 127, message on stderr) if
   `herdr` truly can't be found, rather than dying silent.
-- `--class=herdr` is dropped from the `apps.lua` keybind entirely. This
-  ghostty build rejects it outright (`invalid 'class' in config, ignoring`),
-  and even where accepted `class` sets the DBus bus name, not the app_id
-  Hyprland reports (every ghostty window here shows class
-  `com.mitchellh.ghostty` regardless of what's passed) — so it was already
-  dead weight for tmux too, just never noticed. Window disambiguation for
-  `SUPER+U` relies entirely on `--title` now (see `apps.lua`'s comment).
+- A bare `--class=herdr` remains ineffective: Ghostty rejects a non-dotted
+  application identity and Hyprland reports the generic
+  `com.mitchellh.ghostty` class. A valid dotted identity does work, however.
+  The fixed `SUPER+U` window now launches with
+  `io.github.zihad550.dotfiles.herdr`, which Ghostty exposes through both its
+  initial and current class fields. The Special Workspace launcher selects
+  the exact initial class only; the visible `herdr` title is not identity.
+  Launcher-created Herdr terminals pass no class and remain ordinary Ghostty
+  windows.
 - `[ui].prompt_new_tab_name = false` in `config.toml`: tmux's `new-window`
   never asked for a name either, so herdr's default confirmation prompt
   (asking for a tab name before creating one) is switched off to match —

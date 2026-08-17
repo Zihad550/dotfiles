@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+
+set -u
+
+if (($# < 3)); then
+   echo "usage: df-launch-special-workspace <initialClass> <workspace> <program> [args ...]" >&2
+   exit 64
+fi
+
+initial_class="$1"
+workspace="$2"
+shift 2
+
+if [[ -z "$initial_class" || ! "$workspace" =~ ^[A-Za-z0-9._-]+$ ]]; then
+   echo "df-launch-special-workspace: initialClass and a safe workspace name are required" >&2
+   exit 64
+fi
+
+poll_attempts="${DF_SPECIAL_WORKSPACE_POLL_ATTEMPTS:-50}"
+poll_interval="${DF_SPECIAL_WORKSPACE_POLL_INTERVAL:-0.1}"
+if [[ ! "$poll_attempts" =~ ^[1-9][0-9]*$ ]]; then
+   echo "df-launch-special-workspace: poll attempts must be a positive integer" >&2
+   exit 64
+fi
+
+notify_failure() {
+   notify-send --urgency=critical "Special Workspace failed" "$1"
+}
+
+lua_string() {
+   local value="$1" equals=""
+   while [[ "$value" == *"]${equals}]"* ]]; do
+      equals="=${equals}"
+   done
+   printf '[%s[%s]%s]' "$equals" "$value" "$equals"
+}
+
+dispatch_with_fallback() {
+   local lua_dispatch="$1"
+   shift
+   hyprctl dispatch "$lua_dispatch" >/dev/null 2>&1 || hyprctl dispatch "$@"
+}
+
+toggle_special() {
+   local lua_workspace
+   lua_workspace="$(lua_string "$1")"
+   dispatch_with_fallback "hl.dsp.workspace.toggle_special($lua_workspace)" \
+      togglespecialworkspace "$1"
+}
+
+focus_address() {
+   local selector="address:$1" lua_selector
+   lua_selector="$(lua_string "$selector")"
+   dispatch_with_fallback "hl.dsp.focus({ window = $lua_selector })" \
+      focuswindow "$selector"
+}
+
+move_address_to_special() {
+   local target_workspace="special:$1" selector="address:$2"
+   local lua_workspace lua_selector
+   lua_workspace="$(lua_string "$target_workspace")"
+   lua_selector="$(lua_string "$selector")"
+   dispatch_with_fallback "hl.dsp.window.move({ workspace = $lua_workspace, follow = false, window = $lua_selector })" \
+      movetoworkspacesilent "$target_workspace,$selector"
+}
+
+exec_on_special() {
+   local target="[workspace special:$1] $2" lua_target
+   lua_target="$(lua_string "$target")"
+   dispatch_with_fallback "hl.dsp.exec_cmd($lua_target)" exec "$target"
+}
+
+read_clients() {
+   local clients
+   if ! clients="$(hyprctl clients -j)" || ! jq -e 'type == "array"' >/dev/null <<<"$clients"; then
+      notify_failure "Could not read compositor clients for '$workspace'."
+      exit 1
+   fi
+   printf '%s' "$clients"
+}
+
+focus_existing() {
+   local clients="$1" exact configured count configured_count address
+   exact="$(jq -c --arg class "$initial_class" '[.[] | select(.initialClass == $class)]' <<<"$clients")"
+   count="$(jq 'length' <<<"$exact")"
+
+   if ((count == 0)); then
+      return 1
+   fi
+
+   if ((count == 1)); then
+      address="$(jq -r '.[0].address' <<<"$exact")"
+   else
+      configured="$(jq -c --arg workspace "special:$workspace" '[.[] | select(.workspace.name == $workspace)]' <<<"$exact")"
+      configured_count="$(jq 'length' <<<"$configured")"
+      if ((configured_count != 1)); then
+         notify_failure "Exact initialClass '$initial_class' is ambiguous for Special Workspace '$workspace'."
+         return 2
+      fi
+      address="$(jq -r '.[0].address' <<<"$configured")"
+   fi
+
+   if ! focus_address "$address"; then
+      notify_failure "Could not focus '$initial_class' at '$address' for Special Workspace '$workspace'."
+      return 2
+   fi
+   return 0
+}
+
+resolve_existing_client_or_exit() {
+   local selection_status
+   if ! clients="$(read_clients)"; then
+      exit 1
+   fi
+   if focus_existing "$clients"; then
+      exit 0
+   else
+      selection_status=$?
+   fi
+   if ((selection_status == 2)); then
+      exit 1
+   fi
+}
+
+active_workspace="$(hyprctl activewindow -j | jq -r '.workspace.name // empty')"
+if [[ "$active_workspace" == "special:$workspace" ]]; then
+   if toggle_special "$workspace"; then
+      exit 0
+   fi
+   notify_failure "Could not hide active Special Workspace '$workspace'."
+   exit 1
+fi
+
+resolve_existing_client_or_exit
+
+runtime_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+lock_file="$runtime_dir/df-special-workspace-$workspace.lock"
+if ! exec {lock_fd}>"$lock_file"; then
+   notify_failure "Could not create the launch lock for Special Workspace '$workspace'."
+   exit 1
+fi
+if ! flock -n "$lock_fd"; then
+   notify-send "Special Workspace" "A launch is already in progress for '$workspace'."
+   exit 75
+fi
+
+# A client can map between the first lookup and lock acquisition. Recheck
+# under the lock so that race never turns into a duplicate launch.
+resolve_existing_client_or_exit
+
+snapshot="$(jq -c '[.[].address]' <<<"$clients")"
+launch_command="uwsm-app --"
+for argument in "$@"; do
+   printf -v quoted_argument '%q' "$argument"
+   launch_command+=" $quoted_argument"
+done
+
+if ! toggle_special "$workspace" || ! exec_on_special "$workspace" "$launch_command"; then
+   notify_failure "Could not launch '$initial_class' for Special Workspace '$workspace'."
+   exit 1
+fi
+
+moved_address=""
+last_new_count=0
+for ((attempt = 1; attempt <= poll_attempts; attempt++)); do
+   if ! clients="$(read_clients)"; then
+      exit 1
+   fi
+   new_exact="$(jq -c --arg class "$initial_class" --argjson snapshot "$snapshot" '
+        [.[] | select(.initialClass == $class and (.address as $address | $snapshot | index($address) | not))]
+    ' <<<"$clients")"
+   last_new_count="$(jq 'length' <<<"$new_exact")"
+
+   if ((last_new_count == 1)); then
+      new_address="$(jq -r '.[0].address' <<<"$new_exact")"
+      new_workspace="$(jq -r '.[0].workspace.name' <<<"$new_exact")"
+
+      if [[ -n "$moved_address" && "$new_address" != "$moved_address" ]]; then
+         moved_address=""
+      fi
+
+      if [[ "$new_workspace" == "special:$workspace" ]]; then
+         exit 0
+      fi
+
+      if [[ -z "$moved_address" ]]; then
+         if ! move_address_to_special "$workspace" "$new_address"; then
+            notify_failure "Could not move '$initial_class' at '$new_address' into Special Workspace '$workspace'."
+            exit 1
+         fi
+         moved_address="$new_address"
+      fi
+   fi
+
+   if ((attempt < poll_attempts)); then
+      sleep "$poll_interval"
+   fi
+done
+
+notify_failure "Launch verification failed for initialClass '$initial_class' in Special Workspace '$workspace' ($last_new_count new exact clients)."
+exit 1
