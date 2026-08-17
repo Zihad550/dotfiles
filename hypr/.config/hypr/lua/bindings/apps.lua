@@ -63,20 +63,20 @@ o.bind("SUPER + U", "Herdr",
 -- o.bind("SUPER + A", "ChatGPT",
 --     dotfiles_bin .. [[/df-launch-special-webapp "chatgpt" "https://chatgpt.com" "ai"]])
 o.bind("SUPER + A", "Claude",
-    dotfiles_bin .. [[/df-launch-special-webapp "claude" "https://claude.ai/chat" "ai"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-claude.ai__chat-Profile_2" "https://claude.ai/chat" "ai"]])
 -- o.bind("SUPER + M", "Gmail",
 --     dotfiles_bin .. [[/df-launch-special-webapp "gmail" "https://mail.google.com/mail/u/0" "gmail"]])
 o.bind("SUPER + SHIFT + C", "Calendar",
-    dotfiles_bin .. [[/df-launch-special-webapp "Google Calendar" "https://calendar.google.com/calendar" "calendar"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-calendar.google.com__calendar-Profile_2" "https://calendar.google.com/calendar" "calendar"]])
 o.bind("SUPER + SHIFT + M", "Meet",
-    dotfiles_bin .. [[/df-launch-special-webapp "meet" "https://meet.google.com" "meet"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-meet.google.com__-Profile_2" "https://meet.google.com" "meet"]])
 o.bind("SUPER + Z", "Zulip",
-    dotfiles_bin .. [[/df-launch-special-webapp "zulip" "https://mamacrm.zulipchat.com" "zulip"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-mamacrm.zulipchat.com__-Profile_2" "https://mamacrm.zulipchat.com" "zulip"]])
 o.bind("SUPER + Y", "YouTube",
-    dotfiles_bin .. [[/df-launch-special-webapp "youtube" "https://www.youtube.com" "yt"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-www.youtube.com__-Profile_2" "https://www.youtube.com" "yt"]])
 o.bind("SUPER + T", "Tasks",
-    dotfiles_bin .. [[/df-launch-special-webapp "tasks" "https://tasks.google.com/u/1/tasks/" "tasks"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-tasks.google.com__u_1_tasks_-Profile_2" "https://tasks.google.com/u/1/tasks/" "tasks"]])
 o.bind("SUPER + SHIFT + F", "Figma",
-    dotfiles_bin .. [[/df-launch-special-webapp "figma" "https://www.figma.com" "figma"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-www.figma.com__-Profile_2" "https://www.figma.com" "figma"]])
 o.bind("SUPER + Q", "Quran",
-    dotfiles_bin .. [[/df-launch-special-webapp "quran" "https://quran.com" "holy-quran"]])
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-quran.com__-Profile_2" "https://quran.com" "holy-quran"]])
