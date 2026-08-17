@@ -68,9 +68,9 @@ if (args[0] === "clients" && args[1] === "-j") {
     const responses = JSON.parse(fs.readFileSync(path.join(state, "clients.json"), "utf8"));
     fs.writeFileSync(counter, String(call + 1));
     process.stdout.write(JSON.stringify(responses[Math.min(call, responses.length - 1)]));
-} else if (args[0] === "activewindow" && args[1] === "-j") {
+} else if (args[0] === "activeworkspace" && args[1] === "-j") {
     const name = fs.readFileSync(path.join(state, "active-workspace"), "utf8");
-    process.stdout.write(JSON.stringify({ workspace: { name } }));
+    process.stdout.write(JSON.stringify({ name }));
 } else if (args[0] === "dispatch") {
     fs.appendFileSync(path.join(state, "dispatches"), JSON.stringify(args.slice(1)) + "\\n");
     if (process.env.FAIL_LUA === "1" && args[1].startsWith("hl."))
@@ -240,6 +240,21 @@ test("failed launch verification notifies and never closes the unexpected client
     assert.notStrictEqual(result.status, 0);
     assert.match(harness.notifications().flat().join(" "), /verification failed/i);
     assert.strictEqual(harness.dispatches().some(args => /close|kill/.test(args.join(" "))), false);
+});
+
+test("multiple newly launched exact clients fail verification without arbitrary selection", t => {
+    const appeared = [
+        client("0xnew-one", INITIAL_CLASS, "special:herdr"),
+        client("0xnew-two", INITIAL_CLASS, "special:herdr")
+    ];
+    const harness = fixture(t, { clients: [[], [], appeared], pollAttempts: "2" });
+
+    const result = harness.run();
+
+    assert.notStrictEqual(result.status, 0);
+    assert.match(harness.notifications().flat().join(" "), /2 new exact clients/i);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus").length, 0);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "movetoworkspacesilent", "hl.dsp.window.move").length, 0);
 });
 
 test("a second launch for one workspace reports the held lock while another workspace remains lockable", async t => {
