@@ -3,7 +3,7 @@
 set -u
 
 if (($# < 3)); then
-   echo "usage: df-launch-special-workspace <initialClass> <workspace> <program> [args ...]" >&2
+   echo "usage: df-launch-special-workspace <initialClass> <workspace> [--workspace-owned] <program> [args ...]" >&2
    exit 64
 fi
 
@@ -11,7 +11,13 @@ initial_class="$1"
 workspace="$2"
 shift 2
 
-if [[ -z "$initial_class" || ! "$workspace" =~ ^[A-Za-z0-9._-]+$ ]]; then
+workspace_owned=false
+if [[ "${1:-}" == "--workspace-owned" ]]; then
+   workspace_owned=true
+   shift
+fi
+
+if (($# == 0)) || [[ -z "$initial_class" || ! "$workspace" =~ ^[A-Za-z0-9._-]+$ ]]; then
    echo "df-launch-special-workspace: initialClass and a safe workspace name are required" >&2
    exit 64
 fi
@@ -88,11 +94,21 @@ focus_existing() {
       return 1
    fi
 
-   if ((count == 1)); then
+   configured="$(jq -c --arg workspace "special:$workspace" '[.[] | select(.workspace.name == $workspace)]' <<<"$exact")"
+   configured_count="$(jq 'length' <<<"$configured")"
+
+   if [[ "$workspace_owned" == true ]]; then
+      if ((configured_count == 0)); then
+         return 1
+      fi
+      if ((configured_count > 1)); then
+         notify_failure "Exact initialClass '$initial_class' is ambiguous for Special Workspace '$workspace'."
+         return 2
+      fi
+      address="$(jq -r '.[0].address' <<<"$configured")"
+   elif ((count == 1)); then
       address="$(jq -r '.[0].address' <<<"$exact")"
    else
-      configured="$(jq -c --arg workspace "special:$workspace" '[.[] | select(.workspace.name == $workspace)]' <<<"$exact")"
-      configured_count="$(jq 'length' <<<"$configured")"
       if ((configured_count != 1)); then
          notify_failure "Exact initialClass '$initial_class' is ambiguous for Special Workspace '$workspace'."
          return 2

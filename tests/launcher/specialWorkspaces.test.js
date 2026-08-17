@@ -174,6 +174,25 @@ test("a sole exact client is focused wherever the user moved it", t => {
     assert.strictEqual(dispatchesNamed(harness.dispatches(), "movetoworkspacesilent", "hl.dsp.window.move").length, 0);
 });
 
+test("a workspace-owned binding ignores exact clients outside its configured Special Workspace", t => {
+    const ordinary = client("0xordinary", "helium", "3");
+    const work = client("0xwork", "helium", "special:work");
+    const harness = fixture(t, { clients: [[ordinary], [ordinary], [ordinary, work]] });
+
+    const result = harness.run("work", [
+        "--workspace-owned",
+        "helium-browser",
+        "--profile-directory=Profile 2"
+    ], "helium");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus").length, 0);
+    const launches = dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd");
+    assert.strictEqual(launches.length, 1);
+    assert.match(launches[0].join(" "), /helium-browser/);
+    assert.match(launches[0].join(" "), /Profile\\ 2/);
+});
+
 test("duplicate exact clients prefer the sole client in the configured Special Workspace", t => {
     const harness = fixture(t, { clients: [[
         client("0xother", INITIAL_CLASS, "7"),
@@ -338,6 +357,8 @@ test("native application bindings declare their exact initial classes", () => {
         assert.match(binding, new RegExp(`"${initialClass}" "${workspace}"`));
         assert.match(binding, new RegExp(launch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
         assert.doesNotMatch(binding, /df-launch-special-app/);
+        if (initialClass === "helium")
+            assert.match(binding, /--workspace-owned/);
     }
 });
 

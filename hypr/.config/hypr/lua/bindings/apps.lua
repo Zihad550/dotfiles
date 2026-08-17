@@ -31,7 +31,7 @@ o.bind("SUPER + E", "Zed", terminal .. [[ -e zsh -i -c "zed_open_dir"]])
 o.bind("SUPER + O", "Obsidian",
     dotfiles_bin .. [[/df-launch-special-workspace "obsidian" "note" obsidian -disable-gpu --enable-wayland-ime]])
 o.bind("SUPER + SHIFT + W", "Helium (work)",
-    dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" helium-browser --profile-directory='Profile 2']])
+    dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" --workspace-owned helium-browser --profile-directory='Profile 2']])
 o.bind("SUPER + M", "Thunderbird",
     dotfiles_bin .. [[/df-launch-special-workspace "thunderbird" "thunderbird" thunderbird]])
 
