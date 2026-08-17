@@ -21,16 +21,18 @@ const WEB_APPS = [
 
 test("the web-app adapter preserves identity, workspace, URL, profile, and extra launch arguments", t => {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), "special-webapp-"));
+    const adapter = path.join(temp, "df-launch-special-webapp");
     const delegate = path.join(temp, "df-launch-special-workspace");
     const recorded = path.join(temp, "argv.json");
     t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+    fs.symlinkSync(LAUNCHER, adapter);
 
     fs.writeFileSync(delegate, `#!/usr/bin/node
 require("node:fs").writeFileSync(process.env.RECORDED_ARGV, JSON.stringify(process.argv.slice(2)));
 `);
     fs.chmodSync(delegate, 0o755);
 
-    const result = childProcess.spawnSync(LAUNCHER, [
+    const result = childProcess.spawnSync(adapter, [
         "chrome-example.test__path-Profile_2",
         "https://example.test/path?q=two words&next=$(hostile)",
         "research",
@@ -56,6 +58,30 @@ require("node:fs").writeFileSync(process.env.RECORDED_ARGV, JSON.stringify(proce
     ]);
 });
 
+test("an absolute adapter launch resolves the shared launcher beside it without relying on PATH", t => {
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), "special-webapp-path-"));
+    const adapter = path.join(temp, "df-launch-special-webapp");
+    const delegate = path.join(temp, "df-launch-special-workspace");
+    const recorded = path.join(temp, "argv.json");
+    t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+    fs.symlinkSync(LAUNCHER, adapter);
+    fs.writeFileSync(delegate, `#!/usr/bin/node
+require("node:fs").writeFileSync(process.env.RECORDED_ARGV, JSON.stringify(process.argv.slice(2)));
+`);
+    fs.chmodSync(delegate, 0o755);
+
+    const result = childProcess.spawnSync(adapter, [
+        "chrome-claude.ai__chat-Profile_2", "https://claude.ai/chat", "ai"
+    ], {
+        env: { ...process.env, PATH: "/usr/bin", RECORDED_ARGV: recorded },
+        encoding: "utf8"
+    });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(JSON.parse(fs.readFileSync(recorded, "utf8"))[0],
+        "chrome-claude.ai__chat-Profile_2");
+});
+
 test("all web-app bindings declare their URL-derived identity", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
     for (const [name, identity] of WEB_APPS) {
@@ -67,8 +93,10 @@ test("all web-app bindings declare their URL-derived identity", () => {
 
 test("all eight web apps cross the adapter boundary with their declared configuration", t => {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), "special-webapps-"));
+    const adapter = path.join(temp, "df-launch-special-webapp");
     const delegate = path.join(temp, "df-launch-special-workspace");
     t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+    fs.symlinkSync(LAUNCHER, adapter);
     fs.writeFileSync(delegate, `#!/usr/bin/node
 require("node:fs").appendFileSync(process.env.RECORDED_ARGV,
     JSON.stringify(process.argv.slice(2)) + "\\n");
@@ -78,7 +106,7 @@ require("node:fs").appendFileSync(process.env.RECORDED_ARGV,
     const env = { ...process.env, PATH: `${temp}:${process.env.PATH}`, RECORDED_ARGV: recorded };
 
     for (const [, identity, url, workspace] of WEB_APPS) {
-        const result = childProcess.spawnSync(LAUNCHER, [identity, url, workspace], { env, encoding: "utf8" });
+        const result = childProcess.spawnSync(adapter, [identity, url, workspace], { env, encoding: "utf8" });
         assert.strictEqual(result.status, 0, result.stderr);
     }
 

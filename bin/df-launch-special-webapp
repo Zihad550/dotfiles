@@ -11,8 +11,9 @@ initial_class="$1"
 url="$2"
 workspace="$3"
 shift 3
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-exec df-launch-special-workspace "$initial_class" "$workspace" \
+exec "$script_dir/df-launch-special-workspace" "$initial_class" "$workspace" \
    helium-browser \
    "--profile-directory=Profile 2" \
    --new-window \
