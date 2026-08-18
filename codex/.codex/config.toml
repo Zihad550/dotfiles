@@ -1,0 +1,30 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+approvals_reviewer = "auto_review"
+service_tier = "default"
+
+[projects."/home/jehad"]
+trust_level = "trusted"
+
+[projects."/home/jehad/dotfiles"]
+trust_level = "trusted"
+
+[tui]
+status_line = [
+    "model-with-reasoning",
+    "current-dir",
+    "context-used",
+    "five-hour-limit",
+    "weekly-limit",
+    "used-tokens",
+    "task-progress",
+    "approval-mode",
+    "fast-mode",
+]
+status_line_use_colors = true
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+ENABLE_TOOL_SEARCH = "true"

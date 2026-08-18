@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# AI tool configs: opencode, kilocode, claude
+# AI tool configs: opencode, kilocode, claude, codex
 # Re-used by devcontainer, ubuntu-devbox, ubuntu-server stow scripts.
 
 DOTFILES="${DOTFILES:-$HOME/dotfiles}"
@@ -26,8 +26,12 @@ ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 # claude
 mkdir -p ~/.claude
-ln -snf "$DOTFILES/.claude/settings.json" ~/.claude/settings.json
-ln -snf "$DOTFILES/.claude/statusline-command.sh" ~/.claude/statusline-command.sh
+ln -snf "$DOTFILES/claude/.claude/settings.json" ~/.claude/settings.json
+ln -snf "$DOTFILES/claude/.claude/statusline-command.sh" ~/.claude/statusline-command.sh
 mkdir -p ~/.claude/skills
 find ~/.claude/skills -maxdepth 1 -xtype l -delete
 ln -snf ~/.agents/skills/* ~/.claude/skills/
+
+# codex
+mkdir -p ~/.codex
+ln -snf "$DOTFILES/codex/.codex/config.toml" ~/.codex/config.toml
