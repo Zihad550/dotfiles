@@ -36,6 +36,9 @@ Singleton {
         adjust(-Math.abs(step));
     }
 
+    // A held key fires faster than brightnessctl can settle. Steps accumulate
+    // in pendingAdjustment rather than dropping, so runPendingAdjustment
+    // applies the latest total once the in-flight write confirms.
     function adjust(step: int): void {
         if (step === 0)
             return;
@@ -60,10 +63,6 @@ Singleton {
         writeProcess.running = true;
     }
 
-    function applyConfirmedState(result): void {
-        backlightState = Backlight.confirm(backlightState, result);
-    }
-
     function runQueuedWork(): void {
         if (refreshRequested) {
             refreshRequested = false;
@@ -83,12 +82,21 @@ Singleton {
         stderr: StdioCollector {}
 
         onExited: exitCode => {
-            if (exitCode === 0 && root.readResult) {
-                root.applyConfirmedState(root.readResult);
+            const outcome = Backlight.settleRead(root.backlightState, exitCode, root.readResult);
+            root.backlightState = outcome.state;
+            if (outcome.succeeded) {
                 root.runQueuedWork();
-            } else {
-                root.backlightState = Backlight.readFailed(root.backlightState);
-                console.warn(`dotfiles: failed to refresh backlight (brightnessctl exited ${exitCode})`);
+                return;
+            }
+            console.warn(`dotfiles: failed to refresh backlight (brightnessctl exited ${exitCode})`);
+            // Drain an explicit refresh request (one-shot, bounded) so it
+            // isn't stranded by this failure. A queued adjustment is left
+            // alone: retrying it here too would spin forever against a
+            // backlight that never comes back -- the next adjust()/refresh()
+            // call picks it up instead.
+            if (root.refreshRequested) {
+                root.refreshRequested = false;
+                root.refresh();
             }
         }
     }
@@ -103,13 +111,14 @@ Singleton {
         stderr: StdioCollector {}
 
         onExited: exitCode => {
-            if (exitCode === 0 && root.writeResult) {
-                root.applyConfirmedState(root.writeResult);
-                root.confirmed(root.percent);
+            const outcome = Backlight.settleWrite(root.backlightState, exitCode, root.writeResult);
+            root.backlightState = outcome.state;
+            if (outcome.confirmedPercent !== null) {
+                root.confirmed(outcome.confirmedPercent);
                 root.runQueuedWork();
             } else {
                 console.warn(`dotfiles: failed to set backlight (brightnessctl exited ${exitCode})`);
-                root.refreshRequested = true;
+                root.refreshRequested = outcome.refresh;
                 root.runQueuedWork();
             }
         }

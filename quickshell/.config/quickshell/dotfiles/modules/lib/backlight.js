@@ -1,3 +1,5 @@
+// brightnessctl owns the udev rule that makes the backlight writable without
+// root; --class=backlight keeps discovery off keyboard/indicator LEDs.
 function readCommand() {
     return ["brightnessctl", "--class=backlight", "--machine-readable", "info"];
 }
@@ -6,6 +8,7 @@ function writeCommand(raw) {
     return ["brightnessctl", "--class=backlight", "--machine-readable", "set", `${raw}`];
 }
 
+// --machine-readable prints `name,class,current,NN%,max`.
 function parse(line) {
     const fields = String(line).trim().split(",");
     if (fields.length < 5 || fields[1] !== "backlight")
@@ -16,7 +19,8 @@ function parse(line) {
     const current = Number.parseInt(fields[2], 10);
     const percent = Number.parseInt(fields[3], 10);
     const maximum = Number.parseInt(fields[4], 10);
-    if (!fields[0] || maximum < 1 || current > maximum || percent > 100)
+    if (!fields[0] || !Number.isSafeInteger(current) || !Number.isSafeInteger(percent)
+            || !Number.isSafeInteger(maximum) || maximum < 1 || current > maximum || percent > 100)
         return null;
 
     return { current, maximum };
@@ -37,49 +41,53 @@ function percentForRaw(current, maximum) {
 }
 
 function initialState() {
-    return { available: false, percent: 0, maximum: 0, pendingAdjustment: 0 };
+    return { available: false, percent: 0, maximum: 0, pendingAdjustment: 0, writeInFlight: false };
 }
 
 function queueAdjustment(state, step) {
-    return {
-        available: state.available,
-        percent: state.percent,
-        maximum: state.maximum,
-        pendingAdjustment: state.pendingAdjustment + step,
-    };
+    return { ...state, pendingAdjustment: state.pendingAdjustment + step };
 }
 
 function confirm(state, result) {
     return {
+        ...state,
         available: true,
         percent: percentForRaw(result.current, result.maximum),
         maximum: result.maximum,
-        pendingAdjustment: state.pendingAdjustment,
     };
 }
 
 function readFailed(state) {
-    return {
-        available: false,
-        percent: state.percent,
-        maximum: state.maximum,
-        pendingAdjustment: state.pendingAdjustment,
-    };
+    return { ...state, available: false };
 }
 
 function takeAdjustment(state) {
-    if (!state.available || state.maximum < 1 || state.pendingAdjustment === 0)
+    if (!state.available || state.maximum < 1 || state.pendingAdjustment === 0 || state.writeInFlight)
         return null;
 
     const target = Math.max(0, Math.min(100, state.percent + state.pendingAdjustment));
     return {
-        state: {
-            available: state.available,
-            percent: state.percent,
-            maximum: state.maximum,
-            pendingAdjustment: 0,
-        },
+        state: { ...state, pendingAdjustment: 0, writeInFlight: true },
         command: writeCommand(rawForPercent(target, state.maximum)),
+    };
+}
+
+function settleRead(state, exitCode, result) {
+    if (exitCode === 0 && result)
+        return { state: confirm(state, result), succeeded: true };
+    return { state: readFailed(state), succeeded: false };
+}
+
+function settleWrite(state, exitCode, result) {
+    if (exitCode === 0 && result) {
+        const confirmedState = confirm({ ...state, writeInFlight: false }, result);
+        return { state: confirmedState, confirmedPercent: confirmedState.percent, refresh: false };
+    }
+
+    return {
+        state: { ...state, writeInFlight: false },
+        confirmedPercent: null,
+        refresh: true,
     };
 }
 
@@ -95,5 +103,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         confirm,
         readFailed,
         takeAdjustment,
+        settleRead,
+        settleWrite,
     };
 }

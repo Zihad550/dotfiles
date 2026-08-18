@@ -26,6 +26,7 @@ test("backlight output identifies the selected device and confirmed state", () =
     assert.strictEqual(Backlight.parse("intel_backlight,backlight,240junk,48%,500"), null);
     assert.strictEqual(Backlight.parse("intel_backlight,backlight,240,48oops,500"), null);
     assert.strictEqual(Backlight.parse("intel_backlight,backlight,240,48%,500x"), null);
+    assert.strictEqual(Backlight.parse(`intel_backlight,backlight,1,1%,${"9".repeat(400)}`), null);
 });
 
 test("backlight state serializes repeated adjustments from confirmed values", () => {
@@ -38,10 +39,25 @@ test("backlight state serializes repeated adjustments from confirmed values", ()
 
     state = Backlight.queueAdjustment(first.state, 5);
     assert.strictEqual(state.pendingAdjustment, 5);
-    state = Backlight.confirm(state, { current: 226, maximum: 500 });
+    assert.strictEqual(Backlight.takeAdjustment(state), null, "a second write waits for confirmation");
+    state = Backlight.settleWrite(state, 0, { current: 226, maximum: 500 }).state;
 
     const second = Backlight.takeAdjustment(state);
     assert.deepStrictEqual(second.command, Backlight.writeCommand(251));
+});
+
+test("only successful write settlement confirms an OSD value", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.takeAdjustment(Backlight.queueAdjustment(state, 5)).state;
+
+    const failed = Backlight.settleWrite(state, 1, null);
+    assert.strictEqual(failed.confirmedPercent, null);
+    assert.strictEqual(failed.refresh, true);
+    assert.strictEqual(failed.state.percent, 40);
+
+    const succeeded = Backlight.settleWrite(failed.state, 0, { current: 226, maximum: 500 });
+    assert.strictEqual(succeeded.confirmedPercent, 45);
+    assert.strictEqual(succeeded.refresh, false);
 });
 
 test("backlight failures retain confirmation and a later refresh recovers", () => {
@@ -76,9 +92,24 @@ test("shared backlight singleton owns refresh, serialized writes, and confirmed 
     assert.match(service, /Backlight\.queueAdjustment/);
     assert.match(service, /if \(writeProcess\.running \|\| readProcess\.running\)/);
     assert.match(service, /Backlight\.takeAdjustment/);
-    assert.match(service, /onExited:[\s\S]*exitCode === 0[\s\S]*confirm/);
+    assert.match(service, /Backlight\.settleRead/);
+    assert.match(service, /Backlight\.settleWrite/);
+    assert.match(service, /outcome\.confirmedPercent !== null[\s\S]*root\.confirmed/);
     assert.match(service, /console\.warn/);
     assert.match(service, /Component\.onCompleted:\s*refresh\(\)/);
+});
+
+test("a failed refresh drains an explicit request but never loops on a queued adjustment", () => {
+    const service = source("BacklightService.qml");
+    const readProcessBlock = service.slice(service.indexOf("id: readProcess"), service.indexOf("id: writeProcess"));
+
+    const failureBranch = readProcessBlock.slice(readProcessBlock.indexOf("failed to refresh backlight"));
+
+    // An explicit refresh request must still be retried once after a failure...
+    assert.match(failureBranch, /if \(root\.refreshRequested\) \{[\s\S]*root\.refresh\(\);/);
+    // ...but a queued adjustment must not, or a backlight that never comes
+    // back (missing brightnessctl, no panel) would retry forever.
+    assert.doesNotMatch(failureBranch, /runQueuedWork|runPendingAdjustment/);
 });
 
 test("media-key brightness keeps IPC parsing and shows only confirmed state", () => {
