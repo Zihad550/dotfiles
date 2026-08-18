@@ -13,9 +13,8 @@ import Quickshell.Services.Pipewire
 // IPC and hypr/lua/bindings/media.lua calls `qs -c dotfiles ipc call osd ...`.
 //
 // Volume is applied through Pipewire directly rather than by shelling out, so
-// the bar's volume slider and this stay on one source of truth. Brightness
-// still goes through brightnessctl, which owns the udev rule that makes the
-// backlight writable without root.
+// the bar's volume slider and this stay on one source of truth. BacklightService
+// likewise owns brightness state and execution for every caller.
 //
 // Not replaced: swayosd's caps/num-lock indicators, which need its
 // libinput backend reading /dev/input. autostart.lua never started that.
@@ -99,25 +98,13 @@ Singleton {
         show(source.audio.muted ? "󰍭" : "󰍬", -1, source.audio.muted ? "Microphone muted" : "Microphone on");
     }
 
-    // `--brightness raise|lower|+1|-1`. brightnessctl -m prints
-    // `name,class,current,NN%,max` after setting, which is where the bar's
-    // value comes from -- no second call to read it back.
+    // `--brightness raise|lower|+1|-1`.
     function brightnessRaise(step: string): void {
-        setBrightness(`${parseStep(step)}%+`);
+        BacklightService.raise(parseStep(step));
     }
 
     function brightnessLower(step: string): void {
-        setBrightness(`${parseStep(step)}%-`);
-    }
-
-    function setBrightness(arg: string): void {
-        // A held key can outrun brightnessctl. Assigning `running` while the
-        // last run is still going is a no-op, so drop the step rather than
-        // queue it -- the next repeat applies from wherever it landed.
-        if (brightnessProc.running)
-            return;
-        brightnessProc.command = ["brightnessctl", "-m", "set", arg];
-        brightnessProc.running = true;
+        BacklightService.lower(parseStep(step));
     }
 
     // `--playerctl next|previous|play-pause`.
@@ -170,16 +157,10 @@ Singleton {
         onTriggered: root.shown = false
     }
 
-    Process {
-        id: brightnessProc
-
-        stdout: SplitParser {
-            onRead: line => {
-                // name,class,current,NN%,max
-                const percent = parseInt(line.split(",")[3], 10);
-                if (!isNaN(percent))
-                    root.show("󰃠", percent / 100, "");
-            }
+    Connections {
+        target: BacklightService
+        function onConfirmed(percent: int): void {
+            root.show("󰃠", percent / 100, "");
         }
     }
 
