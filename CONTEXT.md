@@ -69,8 +69,9 @@ of which one is highlighted. Lasts only as long as the launcher is open.
 _Avoid_: multi-select, tagging, checking
 
 **Entry Key**:
-A stable identifier for an entry that survives restarts, supplied by a provider
-only when its entries genuinely have one. Absent for entries that never recur.
+A stable identifier for an entry that survives catalog rebuilds and restarts,
+supplied by a provider only when its entries genuinely have one. Absent for
+entries that never recur.
 _Avoid_: id, uid, hash, fingerprint
 
 **Frecency**:
@@ -84,6 +85,12 @@ one the shared ranking decides — files, which lists each matched folder
 immediately followed by that folder's contents. Only ever reached through a
 prefix, since an unranked list cannot be interleaved with a ranked one.
 _Avoid_: unranked, sorted, grouped, static
+
+**Directory Index**:
+The shared set of directories offered by the Directories Provider and used by
+the Files Provider to choose folders. Its membership follows the Launcher's
+defined roots and exclusions.
+_Avoid_: directory cache, folder cache, folders list, directory corpus
 
 **Core Action**:
 One of the four actions every provider fills — primary, secondary, mark, back —
