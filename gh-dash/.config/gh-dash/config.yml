@@ -36,13 +36,14 @@ repo:
   prsRefetchIntervalSeconds: 60
 defaults:
   preview:
-    open: false # there is a issue that doesn't allow it to be false
+    open: true # there is a issue that doesn't allow it to be false
     width: 0.70
+    position: right
   prsLimit: 20
   prApproveComment: LGTM
   issuesLimit: 20
   notificationsLimit: 20
-  view: prs
+  view: issues
   layout:
     prs:
       updatedAt:
@@ -78,9 +79,9 @@ defaults:
         width: 20
         hidden: true
   refetchIntervalMinutes: 30
-  keybindings:
+keybindings:
     universal:
-      - key: g
+      - key: ctrl+g
         name: lazygit
         command: >
           cd {{.RepoPath}} && lazygit
@@ -89,6 +90,10 @@ defaults:
         command: >
           tmux new-window -n "PR-{{.PrNumber}}"
           'wt switch pr:{{.PrNumber}} -x "opencode --prompt review-pr-for-this-branch"'
+    issues:
+      - key: n
+        name: Create issue
+        command: gh issue create --repo {{.RepoName}}
       # - key: C
       #   name: code review
       #   command: >
