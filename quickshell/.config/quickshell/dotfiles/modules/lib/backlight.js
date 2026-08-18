@@ -44,21 +44,26 @@ function initialState() {
     return { available: false, percent: 0, maximum: 0, pendingAdjustment: 0, writeInFlight: false };
 }
 
+// Quickshell's JS engine rejects object-spread syntax (`{ ...state }`), so
+// state updates go through Object.assign instead.
+function withState(state, changes) {
+    return Object.assign({}, state, changes);
+}
+
 function queueAdjustment(state, step) {
-    return { ...state, pendingAdjustment: state.pendingAdjustment + step };
+    return withState(state, { pendingAdjustment: state.pendingAdjustment + step });
 }
 
 function confirm(state, result) {
-    return {
-        ...state,
+    return withState(state, {
         available: true,
         percent: percentForRaw(result.current, result.maximum),
         maximum: result.maximum,
-    };
+    });
 }
 
 function readFailed(state) {
-    return { ...state, available: false };
+    return withState(state, { available: false });
 }
 
 function takeAdjustment(state) {
@@ -67,7 +72,7 @@ function takeAdjustment(state) {
 
     const target = Math.max(0, Math.min(100, state.percent + state.pendingAdjustment));
     return {
-        state: { ...state, pendingAdjustment: 0, writeInFlight: true },
+        state: withState(state, { pendingAdjustment: 0, writeInFlight: true }),
         command: writeCommand(rawForPercent(target, state.maximum)),
     };
 }
@@ -80,12 +85,12 @@ function settleRead(state, exitCode, result) {
 
 function settleWrite(state, exitCode, result) {
     if (exitCode === 0 && result) {
-        const confirmedState = confirm({ ...state, writeInFlight: false }, result);
+        const confirmedState = confirm(withState(state, { writeInFlight: false }), result);
         return { state: confirmedState, confirmedPercent: confirmedState.percent, refresh: false };
     }
 
     return {
-        state: { ...state, writeInFlight: false },
+        state: withState(state, { writeInFlight: false }),
         confirmedPercent: null,
         refresh: true,
     };
