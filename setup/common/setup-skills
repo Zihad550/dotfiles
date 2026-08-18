@@ -30,7 +30,7 @@ skills add mattpocock/skills -g --agent cursor codex pi kilo -y
 ######## our own skills, no upstream repo — sourced from github.com/Zihad550/skills
 skills add https://github.com/Zihad550/skills \
   --skill draft-tea-command-for-issue-create gh-create-issue gh-get-issue mise simplify \
-          tea-create-issue tea-get-issue tea-plan-issue template-skill \
+          tea-create-issue tea-get-issue tea-plan-issue template-skill work-backend-qa \
   -g --agent "${AGENTS[@]}" -y
 
 ######## dormant — tried before, not currently installed. Uncomment to reinstate.
