@@ -45,6 +45,50 @@ test("publishing changed paths increments the revision while identical paths kee
     });
 });
 
+test("valid startup data is published without requesting a scan", () => {
+    assert.deepStrictEqual(Index.startup(`${HOME}\n${HOME}/dev\n`, HOME), {
+        snapshot: { paths: [HOME, `${HOME}/dev`], revision: 1 },
+        scan: false,
+        error: ""
+    });
+});
+
+test("missing, empty, and invalid startup data expose an empty snapshot and request one scan", () => {
+    for (const text of [undefined, "", "\n", `${HOME}/dev\n`, `${HOME}\n/etc\n`]) {
+        const started = Index.startup(text, HOME);
+        assert.deepStrictEqual(started.snapshot, { paths: [], revision: 0 });
+        assert.strictEqual(started.scan, true);
+        assert.notStrictEqual(started.error, "");
+    }
+});
+
+test("access starts immediately when idle without changing the published snapshot", () => {
+    const snapshot = { paths: [HOME, `${HOME}/dev`], revision: 4 };
+    const requested = Index.request(Index.idleSchedule());
+
+    assert.strictEqual(requested.scan, true);
+    assert.deepStrictEqual(snapshot, { paths: [HOME, `${HOME}/dev`], revision: 4 });
+});
+
+test("accesses during a scan coalesce into one follow-up scan", () => {
+    const first = Index.request(Index.idleSchedule());
+    const second = Index.request(first.schedule);
+    const third = Index.request(second.schedule);
+
+    assert.strictEqual(second.scan, false);
+    assert.strictEqual(third.scan, false);
+
+    const settled = Index.settle(third.schedule);
+    assert.strictEqual(settled.scan, true);
+    assert.strictEqual(Index.settle(settled.schedule).scan, false);
+});
+
+test("a queued access is retried after either a successful or failed scan", () => {
+    const queued = { running: true, pending: true };
+    assert.strictEqual(Index.settle(queued, true).scan, true);
+    assert.strictEqual(Index.settle(queued, false).scan, true);
+});
+
 test("invalid candidates retain the last published snapshot", () => {
     const initial = { paths: [HOME], revision: 2 };
     assert.strictEqual(Index.publish(initial, "", HOME), initial);
@@ -63,10 +107,11 @@ test("scan construction preserves roots, depth, hidden, exclusions, sorting, and
     assert.ok(script.includes("sort -u"));
 });
 
-test("access remains an asynchronous stale-gated command for the prefactor", () => {
-    const command = Index.accessCommand(HOME);
-    assert.deepStrictEqual(command.slice(0, 2), ["sh", "-c"]);
-    assert.ok(command[2].startsWith(`[ -e '${Index.cachePath(HOME)}.tmp' ] && exit 0;`));
-    assert.ok(command[2].includes(`-gt ${Index.STALE_SECONDS}`));
-    assert.ok(command[2].includes(`[ ! -s '${Index.cachePath(HOME)}' ]`));
+test("a settled access does not suppress the next access", () => {
+    const first = Index.request(Index.idleSchedule());
+    const settled = Index.settle(first.schedule);
+    const second = Index.request(settled.schedule);
+
+    assert.strictEqual(first.scan, true);
+    assert.strictEqual(second.scan, true);
 });

@@ -8,6 +8,7 @@ import "../lib/matching.js" as Matching
 import "../lib/highlight.js" as Highlight
 import "../lib/actions.js" as Actions
 import "../lib/routing.js" as Routing
+import "../lib/directoryaccess.js" as DirectoryAccess
 import "../lib/providerlist.js" as ProvList
 import "../lib/power.js" as Power
 
@@ -120,6 +121,21 @@ PanelWindow {
     readonly property var activePool: root.nestedProvider !== null
         ? [root.nestedProvider]
         : (root.routed.provider === null ? root.pool : (root.rankedRoutable.indexOf(root.routed.provider) >= 0 ? [root.routed.provider] : []))
+
+    property var directoryIndexProvider: null
+
+    function syncDirectoryIndexAccess(): void {
+        const changed = DirectoryAccess.transition(root.directoryIndexProvider, {
+            visible: root.visible,
+            activePool: root.activePool,
+            affectedProviders: [directories, files]
+        });
+        root.directoryIndexProvider = changed.provider;
+        if (changed.access)
+            root.directoryIndex.access();
+    }
+
+    onActivePoolChanged: root.syncDirectoryIndexAccess()
 
     // Whether the Entries render as the list-plus-preview split instead of
     // the default single-column list -- ticket 13. Gated on `activePool`
@@ -446,8 +462,6 @@ PanelWindow {
                 provider.refresh();
         });
 
-        root.directoryIndex.access();
-
         // Frecency decays with wall-clock time and this process may run for
         // weeks without restarting, so an open is what moves its clock forward.
         Frecency.refresh();
@@ -597,6 +611,7 @@ PanelWindow {
     onVisibleChanged: {
         if (!root.visible)
             root.reset();
+        root.syncDirectoryIndexAccess();
     }
 
     // Ticket 25: WlrKeyboardFocus.OnDemand alone doesn't survive a compositor

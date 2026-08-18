@@ -1,6 +1,5 @@
 var CACHE_DIR_NAME = "df-dir-picker";
 var CACHE_FILE_NAME = "folders.list";
-var STALE_SECONDS = 300;
 
 var PRUNE_NAMES = [
     ".local", "node_modules", ".git", ".obsidian-vault", ".var", "Cache",
@@ -12,6 +11,10 @@ var ROOTS = ["dotfiles", "dev"];
 
 function cachePath(home) {
     return home + "/.cache/" + CACHE_DIR_NAME + "/" + CACHE_FILE_NAME;
+}
+
+function scanPath(home) {
+    return cachePath(home) + ".scan";
 }
 
 function shellEscape(value) {
@@ -93,60 +96,106 @@ function publish(snapshot, text, home) {
     };
 }
 
+function startup(text, home) {
+    var loaded = candidate(text, home);
+    if (!loaded.ok) {
+        return {
+            snapshot: { paths: [], revision: 0 },
+            scan: true,
+            error: loaded.error
+        };
+    }
+
+    return {
+        snapshot: { paths: loaded.paths, revision: 1 },
+        scan: false,
+        error: ""
+    };
+}
+
+function idleSchedule() {
+    return { running: false, pending: false };
+}
+
+function request(schedule) {
+    if (schedule.running) {
+        return {
+            schedule: { running: true, pending: true },
+            scan: false
+        };
+    }
+
+    return {
+        schedule: { running: true, pending: false },
+        scan: true
+    };
+}
+
+function settle(schedule) {
+    if (schedule.pending) {
+        return {
+            schedule: { running: true, pending: false },
+            scan: true
+        };
+    }
+
+    return {
+        schedule: idleSchedule(),
+        scan: false
+    };
+}
+
 function buildScanScript(home) {
     var dir = home + "/.cache/" + CACHE_DIR_NAME;
-    var cache = cachePath(home);
-    var tmp = cache + ".tmp";
+    var scan = scanPath(home);
+    var raw = scan + ".raw";
+    var next = scan + ".tmp";
 
     var pruneArgs = PRUNE_NAMES.map(function (name) {
         return "-name " + shellEscape(name);
     }).join(" -o ");
 
     var homeScan = "find " + shellEscape(home) + " -mindepth 1 -maxdepth 1 "
-        + "\\( " + pruneArgs + " -o -name '.*' \\) -prune -o -type d -print";
+        + "\\( " + pruneArgs + " -o -name '.*' \\) -prune -o -type d -print >> " + shellEscape(raw);
 
-    var rootArgs = ROOTS.map(function (name) {
-        return shellEscape(home + "/" + name);
-    }).join(" ");
-    var rootScan = "find " + rootArgs + " -maxdepth 6 -type d \\( " + pruneArgs + " \\) -prune "
-        + "-o -type d -print 2>/dev/null";
+    var rootScans = ROOTS.map(function (name) {
+        var root = home + "/" + name;
+        return "{ [ ! -d " + shellEscape(root) + " ] || find " + shellEscape(root)
+            + " -maxdepth 6 -type d \\( " + pruneArgs + " \\) -prune "
+            + "-o -type d -print >> " + shellEscape(raw) + "; }";
+    }).join(" && ");
 
     return "mkdir -p " + shellEscape(dir) + " && { "
-        + "printf '%s\\n' " + shellEscape(home) + "; "
-        + homeScan + "; "
-        + rootScan + "; "
-        + "} 2>/dev/null | sort -u > " + shellEscape(tmp)
-        + " && mv " + shellEscape(tmp) + " " + shellEscape(cache);
-}
-
-function accessScript(home) {
-    var cache = cachePath(home);
-    var tmp = cache + ".tmp";
-
-    return "[ -e " + shellEscape(tmp) + " ] && exit 0; "
-        + "age=$(( $(date +%s) - $(stat -c %Y " + shellEscape(cache) + " 2>/dev/null || echo 0) )); "
-        + "if [ ! -s " + shellEscape(cache) + " ] || [ \"$age\" -gt " + STALE_SECONDS + " ]; then "
-        + buildScanScript(home) + "; fi";
+        + "printf '%s\\n' " + shellEscape(home) + " > " + shellEscape(raw) + " && "
+        + homeScan + " && "
+        + rootScans + " && "
+        + "sort -u " + shellEscape(raw) + " > " + shellEscape(next) + " && "
+        + "mv " + shellEscape(next) + " " + shellEscape(scan) + " && "
+        + "rm -f " + shellEscape(raw) + "; "
+        + "}";
 }
 
 function accessCommand(home) {
-    return ["sh", "-c", accessScript(home)];
+    return ["sh", "-c", buildScanScript(home)];
 }
 
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
-        STALE_SECONDS: STALE_SECONDS,
         PRUNE_NAMES: PRUNE_NAMES,
         ROOTS: ROOTS,
         cachePath: cachePath,
+        scanPath: scanPath,
         parse: parse,
         serialize: serialize,
         inScope: inScope,
         candidate: candidate,
         samePaths: samePaths,
         publish: publish,
+        startup: startup,
+        idleSchedule: idleSchedule,
+        request: request,
+        settle: settle,
         buildScanScript: buildScanScript,
-        accessScript: accessScript,
         accessCommand: accessCommand
     };
 }
