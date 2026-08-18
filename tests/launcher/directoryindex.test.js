@@ -25,9 +25,13 @@ test("a candidate must contain home and only paths admitted by the existing scop
     assert.strictEqual(Index.candidate(`${HOME}\n${HOME}/dev/a/b/c/d/e/f/g\n`, HOME).ok, false);
 });
 
-test("a candidate must already be sorted and deduplicated", () => {
-    assert.strictEqual(Index.candidate(`${HOME}\n${HOME}/dotfiles\n${HOME}/dev\n`, HOME).ok, false);
-    assert.strictEqual(Index.candidate(`${HOME}\n${HOME}/dev\n${HOME}/dev\n`, HOME).ok, false);
+test("a candidate accepts the persisted order produced under a different locale", () => {
+    const text = `${HOME}\n${HOME}/backgrounds\n${HOME}/Desktop\n`;
+    assert.deepStrictEqual(Index.candidate(text, HOME), {
+        ok: true,
+        paths: [HOME, `${HOME}/backgrounds`, `${HOME}/Desktop`],
+        error: ""
+    });
 });
 
 test("publishing changed paths increments the revision while identical paths keep the snapshot", () => {

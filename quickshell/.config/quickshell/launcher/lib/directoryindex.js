@@ -70,12 +70,6 @@ function candidate(text, home) {
             return { ok: false, paths: [], error: "path outside Directory Index scope: " + paths[i] };
     }
 
-    var normalized = paths.slice().sort().filter(function (path, index, sorted) {
-        return index === 0 || path !== sorted[index - 1];
-    });
-    if (!samePaths(paths, normalized))
-        return { ok: false, paths: [], error: "Directory Index is not sorted and unique" };
-
     return { ok: true, paths: paths, error: "" };
 }
 
