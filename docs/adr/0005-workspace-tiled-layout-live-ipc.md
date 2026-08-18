@@ -20,18 +20,15 @@ documentation. This repo's other tools have been burned by unverified IPC
 assumptions before — see the "VERIFY BEFORE TRUSTING" block at the top of
 `herdr/.config/herdr/config.toml`, a different tool but the same caution.
 
-**Layout membership is treated as fixed for the life of the bar's running
-session, not watched for live changes.** `bin/df-hypr-workspace-layout-toggle`
-(bound to `SUPER+ALT+L`) is the only thing that flips a workspace's layout at
-runtime. It calls `hyprctl keyword workspace $ID, layout:$LAYOUT`, and that
-rejects on this Hyprland build ("can't work with non-legacy parsers, use
-eval") — confirmed by reading the script, not by running it live against the
-user's session. Nothing on this machine can actually change a workspace's
-layout while it's running, so there is nothing today for a live-updating
-binding to be exercised against. Reading `lastIpcObject` once per natural
-refresh — the same trust `Workspaces.qml` already places in it for the
-existing empty/opacity state — was judged sufficient. This was a
-side-effect finding from the same probe, not the goal of running it.
+**Layout membership uses natural raw-IPC refreshes, not a dedicated layout
+watcher.** `bin/df-hypr-workspace-layout-toggle` (bound to `SUPER+ALT+L`) flips
+the active workspace at runtime through the Lua parser with `hyprctl -r eval`,
+then reads `activeworkspace.tiledLayout` back before announcing success. The
+script previously called the legacy-only `hyprctl keyword` interface and
+announced success even when Hyprland rejected it. The bar still reads
+`lastIpcObject` on its natural refresh path — the same trust `Workspaces.qml`
+already places in it for the existing empty/opacity state — because the
+installed Quickshell exposes no dedicated layout property or change signal.
 
 ## Consequences
 
@@ -40,8 +37,6 @@ side-effect finding from the same probe, not the goal of running it.
   `lastIpcObject`, not a named property — future edits must keep reading
   through the passthrough, not "clean up" onto a property that doesn't
   exist in Quickshell 0.3.0.
-- If `bin/df-hypr-workspace-layout-toggle` is fixed later, the arrow picks
-  up the new layout on its next natural `lastIpcObject` refresh, with no
-  dedicated live-update path needed — worth re-checking then, not before.
-- Fixing `bin/df-hypr-workspace-layout-toggle` itself is out of scope here;
-  it's a `hyprctl keyword` legacy-parser problem unrelated to the bar.
+- The layout toggle reports success only after Hyprland returns the requested
+  layout. The arrow picks up that layout on its next natural `lastIpcObject`
+  refresh; there is no dedicated QML layout-change watcher.

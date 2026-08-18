@@ -1,12 +1,35 @@
 #!/bin/bash
 
-ACTIVE_WORKSPACE=$(hyprctl activeworkspace -j | jq -r '.id')
-CURRENT_LAYOUT=$(hyprctl activeworkspace -j | jq -r '.tiledLayout')
+fail() {
+    local message="$1"
+
+    printf '%s\n' "$message" >&2
+    notify-send "Workspace layout change failed" "$message" >/dev/null 2>&1 || true
+    exit 1
+}
+
+WORKSPACE_JSON=$(hyprctl activeworkspace -j) \
+    || fail "Could not read the active workspace"
+ACTIVE_WORKSPACE=$(jq -r '.id // empty' <<<"$WORKSPACE_JSON")
+CURRENT_LAYOUT=$(jq -r '.tiledLayout // empty' <<<"$WORKSPACE_JSON")
+
+[[ "$ACTIVE_WORKSPACE" =~ ^-?[0-9]+$ ]] \
+    || fail "Hyprland returned an invalid workspace ID"
 
 case "$CURRENT_LAYOUT" in
 dwindle) NEW_LAYOUT=scrolling ;;
-*) NEW_LAYOUT=dwindle ;;
+scrolling) NEW_LAYOUT=dwindle ;;
+*) fail "Cannot toggle unsupported layout: ${CURRENT_LAYOUT:-unknown}" ;;
 esac
 
-hyprctl keyword workspace $ACTIVE_WORKSPACE, layout:$NEW_LAYOUT
+if ! HYPR_OUTPUT=$(hyprctl -r eval \
+    "hl.workspace_rule({ workspace = \"$ACTIVE_WORKSPACE\", layout = \"$NEW_LAYOUT\" })" 2>&1); then
+    fail "Hyprland rejected the $NEW_LAYOUT layout: $HYPR_OUTPUT"
+fi
+
+APPLIED_LAYOUT=$(hyprctl activeworkspace -j | jq -r '.tiledLayout // empty') \
+    || fail "Could not verify the workspace layout"
+[[ "$APPLIED_LAYOUT" == "$NEW_LAYOUT" ]] \
+    || fail "Hyprland kept the workspace in ${APPLIED_LAYOUT:-an unknown layout}"
+
 notify-send "Workspace layout set to $NEW_LAYOUT"

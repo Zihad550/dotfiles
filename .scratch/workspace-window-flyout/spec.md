@@ -86,8 +86,7 @@ it does today — nothing about the existing muscle memory changes.
     that I'm not hunting for two names for the same thing.
 20. As a future maintainer, I want the reasoning behind gating this on
     `tiledLayout` recorded somewhere, so that I don't have to re-derive from
-    scratch that the field is only knowable live, and that the runtime
-    layout-toggle script is currently broken.
+    scratch that the field is only knowable live and naturally refreshed.
 21. As someone glancing at the bar without interacting, I want a workspace
     with several windows on scrolling layout to look visually distinct (via
     the arrow) from one with a single window, so that I can tell there's
@@ -150,20 +149,17 @@ the other; the Launcher's `lib/windows.js:nameFor` stays exactly where it is,
 untouched. The duplicate is three lines and one naming rule, judged cheaper
 to keep in sync by hand than to invent cross-config module sharing for.
 
-**Layout membership is treated as fixed for the life of the bar's running
-session**, not watched for live changes. This rests on a finding surfaced
-during design, not an assumption: `bin/df-hypr-workspace-layout-toggle`
-(`SUPER+ALT+L`) currently errors on this Hyprland build (`hyprctl keyword`
-rejects it — "can't work with non-legacy parsers, use eval") — nothing on
-this machine can actually flip a workspace's layout at runtime today. If that
-script is fixed later, the widget picks up the new value on its next natural
-refresh of `lastIpcObject` rather than needing a dedicated live-update path —
-worth re-checking then, not before.
+**Layout membership uses the bar's natural raw-IPC refresh path**, not a
+dedicated layout-change watcher. The original implementation could not flip a
+workspace at runtime because `hyprctl keyword` is legacy-parser-only. The
+independently fixed `SUPER+ALT+L` script now uses `hyprctl -r eval` and verifies
+the compositor's resulting layout. The widget picks up the new value on its
+next natural refresh of `lastIpcObject`.
 
 **Docs**: an ADR records the `tiledLayout`-is-only-knowable-live constraint
-and the broken-toggle-script finding. A new `CONTEXT.md` Bar-section glossary
-term, **Flyout**, names the popup-under-a-bar-entry pattern — distinct from
-the Launcher's `Chooser` (a nested unranked list reached by a secondary
+and the toggle's natural-refresh behavior. A new `CONTEXT.md` Bar-section
+glossary term, **Flyout**, names the popup-under-a-bar-entry pattern — distinct
+from the Launcher's `Chooser` (a nested unranked list reached by a secondary
 Action) and `Page` (content that replaces Quick Settings' rows in place).
 
 ## Testing Decisions
@@ -204,12 +200,11 @@ has no test files today. This feature follows the same line:
 
 ## Out of Scope
 
-- **Fixing `bin/df-hypr-workspace-layout-toggle`.** Its breakage was
-  surfaced during design; fixing it is a separate concern from this feature.
+- **Fixing `bin/df-hypr-workspace-layout-toggle`.** Its breakage was surfaced
+  during design and remained separate from this feature; it was fixed later.
 - **Live-reacting to a workspace's layout changing while the bar is
-  running.** Deferred per the "layout membership is fixed for the session"
-  decision above — worth reopening only once the toggle script actually
-  works again.
+  running.** The bar relies on its natural `lastIpcObject` refresh rather than
+  a dedicated layout-change watcher.
 - **Reordering the window list** to anything other than Hyprland's own
   spatial order — no "most recently used" or "focused first" mode.
 - **Any keybind-driven or keyboard-only path** to this flyout. This is a
@@ -230,10 +225,9 @@ real `dotfiles`/`launcher` instances, never touching either — not assumed
 from documentation. This repo's other tools have been burned by unverified
 IPC assumptions before (see the "VERIFY BEFORE TRUSTING" block at the top of
 `herdr/.config/herdr/config.toml`, applied to a different tool but the same
-caution). The same probe surfaced, as a side effect rather than the goal,
-that the layout-toggle script is currently broken — an unrelated but
-directly relevant finding, recorded in the ADR rather than silently patched
-in passing.
+caution). The same probe surfaced, as a side effect rather than the goal, that
+the old layout-toggle script used a legacy-only command. That finding was
+recorded in the ADR and the script was fixed independently later.
 
 The decision to keep the workspace name's click behaviour identical across
 every numbered workspace, rather than have it change meaning once a
