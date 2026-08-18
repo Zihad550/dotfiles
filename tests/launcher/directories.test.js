@@ -95,7 +95,7 @@ test("a directory is matchable by its full relative path, not only by its leaf",
 
     // "monorepo" is in neither leaf ("backend", "frontend") -- only the full
     // relative path text carries it, which is what checkbox 1's "across the
-    // whole cache" is actually asking for.
+    // whole Directory Index" is actually asking for.
     const ranked = M.collapse(corpus, M.rank(corpus, "monorepo"));
     assert.strictEqual(ranked.indices.length, 2, "both directories under monorepo match; dotfiles does not");
     const names = ranked.indices.map(i => built.entries[i].name).sort();

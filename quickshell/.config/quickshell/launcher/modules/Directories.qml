@@ -62,9 +62,7 @@ QtObject {
         return mirrored && root.routingEnabled;
     }
 
-    // Never "not ready": an empty cache before the first background scan
-    // finishes is expected, not a fault -- a stale or still-building cache
-    // must never block opening.
+    // An empty, stale, or refreshing Directory Index must never block opening.
     readonly property bool ready: true
 
     readonly property var paths: root.snapshot.paths

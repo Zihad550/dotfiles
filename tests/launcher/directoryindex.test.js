@@ -16,43 +16,48 @@ test("one-path-per-line indexes round-trip without changing the existing represe
 });
 
 test("missing and empty persisted indexes are not publishable", () => {
-    assert.strictEqual(Index.candidate(undefined, HOME).ok, false);
-    assert.strictEqual(Index.candidate("", HOME).ok, false);
-    assert.strictEqual(Index.candidate("\n", HOME).ok, false);
+    assert.strictEqual(Index.validateCandidate(undefined, HOME).ok, false);
+    assert.strictEqual(Index.validateCandidate("", HOME).ok, false);
+    assert.strictEqual(Index.validateCandidate("\n", HOME).ok, false);
 });
 
 test("partial and malformed one-path-per-line candidates are not publishable", () => {
-    assert.match(Index.candidate(HOME, HOME).error, /complete/);
-    assert.match(Index.candidate(`\n${HOME}\n`, HOME).error, /parse/);
-    assert.match(Index.candidate(`${HOME}\n\n${HOME}/dev\n`, HOME).error, /parse/);
-    assert.match(Index.candidate(`${HOME}\0/dev\n`, HOME).error, /parse/);
+    assert.match(Index.validateCandidate(HOME, HOME).error, /complete/);
+    assert.match(Index.validateCandidate(`\n${HOME}\n`, HOME).error, /parse/);
+    assert.match(Index.validateCandidate(`${HOME}\n\n${HOME}/dev\n`, HOME).error, /parse/);
+    assert.match(Index.validateCandidate(`${HOME}\0/dev\n`, HOME).error, /parse/);
 });
 
 test("a candidate must contain home and only paths admitted by the existing scope", () => {
-    assert.strictEqual(Index.candidate(`${HOME}/dev\n`, HOME).ok, false, "home is the completeness sentinel");
-    assert.strictEqual(Index.candidate(`${HOME}\n/etc\n`, HOME).ok, false);
-    assert.strictEqual(Index.candidate(`${HOME}\n${HOME}/.hidden\n`, HOME).ok, false);
-    assert.strictEqual(Index.candidate(`${HOME}\n${HOME}/dev/a/b/c/d/e/f\n`, HOME).ok, true);
-    assert.strictEqual(Index.candidate(`${HOME}\n${HOME}/dev/a/b/c/d/e/f/g\n`, HOME).ok, false);
+    assert.strictEqual(Index.validateCandidate(`${HOME}/dev\n`, HOME).ok, false, "home is the completeness sentinel");
+    assert.strictEqual(Index.validateCandidate(`${HOME}\n/etc\n`, HOME).ok, false);
+    assert.strictEqual(Index.validateCandidate(`${HOME}\n${HOME}/.hidden\n`, HOME).ok, false);
+    assert.strictEqual(Index.validateCandidate(`${HOME}\n${HOME}/dev/a/b/c/d/e/f\n`, HOME).ok, true);
+    assert.strictEqual(Index.validateCandidate(`${HOME}\n${HOME}/dev/a/b/c/d/e/f/g\n`, HOME).ok, false);
 });
 
 test("a candidate accepts the persisted order produced under a different locale", () => {
     const text = `${HOME}\n${HOME}/backgrounds\n${HOME}/Desktop\n`;
-    assert.deepStrictEqual(Index.candidate(text, HOME), {
+    assert.deepStrictEqual(Index.validateCandidate(text, HOME), {
         ok: true,
         paths: [HOME, `${HOME}/backgrounds`, `${HOME}/Desktop`],
         error: ""
     });
 });
 
+test("a candidate rejects duplicate paths regardless of persisted locale order", () => {
+    const text = `${HOME}\n${HOME}/backgrounds\n${HOME}/Desktop\n${HOME}/backgrounds\n`;
+    assert.match(Index.validateCandidate(text, HOME).error, /duplicate/);
+});
+
 test("changed paths publish only after that exact content is persisted", () => {
     const initial = { paths: [HOME, `${HOME}/dev`], revision: 4 };
     const text = `${HOME}\n${HOME}/dev\n${HOME}/dotfiles\n`;
-    const prepared = Index.prepare(initial, text, HOME);
+    const prepared = Index.preparePublication(initial, text, HOME);
 
     assert.strictEqual(prepared.text, text);
-    assert.strictEqual(Index.settlePublication(initial, prepared, false), initial);
-    assert.deepStrictEqual(Index.settlePublication(initial, prepared, true), {
+    assert.strictEqual(Index.committedSnapshot(initial, prepared, false), initial);
+    assert.deepStrictEqual(Index.committedSnapshot(initial, prepared, true), {
         paths: [HOME, `${HOME}/dev`, `${HOME}/dotfiles`],
         revision: 5
     });
@@ -60,23 +65,31 @@ test("changed paths publish only after that exact content is persisted", () => {
 
 test("identical paths request no persistence and keep the snapshot", () => {
     const initial = { paths: [HOME, `${HOME}/dev`], revision: 4 };
-    const prepared = Index.prepare(initial, `${HOME}\n${HOME}/dev\n`, HOME);
+    const prepared = Index.preparePublication(initial, `${HOME}\n${HOME}/dev\n`, HOME);
 
     assert.strictEqual(prepared.changed, false);
-    assert.strictEqual(Index.settlePublication(initial, prepared, true), initial);
+    assert.strictEqual(Index.committedSnapshot(initial, prepared, true), initial);
 });
 
 test("valid startup data is published without requesting a scan", () => {
-    assert.deepStrictEqual(Index.startup(`${HOME}\n${HOME}/dev\n`, HOME), {
+    assert.deepStrictEqual(Index.loadSnapshot(`${HOME}\n${HOME}/dev\n`, HOME), {
         snapshot: { paths: [HOME, `${HOME}/dev`], revision: 1 },
         scan: false,
         error: ""
     });
 });
 
+test("access before startup load coalesces into the first post-load scan", () => {
+    const text = `${HOME}\n${HOME}/dev\n`;
+
+    assert.strictEqual(Index.loadSnapshot(text, HOME, true).scan, true);
+    assert.strictEqual(Index.loadSnapshot("", HOME, true).scan, true);
+});
+
 test("missing, empty, and invalid startup data expose an empty snapshot and request one scan", () => {
-    for (const text of [undefined, "", "\n", `${HOME}/dev\n`, `${HOME}\n/etc\n`]) {
-        const started = Index.startup(text, HOME);
+    const duplicate = `${HOME}\n${HOME}/dev\n${HOME}/dev\n`;
+    for (const text of [undefined, "", "\n", `${HOME}/dev\n`, `${HOME}\n/etc\n`, duplicate]) {
+        const started = Index.loadSnapshot(text, HOME);
         assert.deepStrictEqual(started.snapshot, { paths: [], revision: 0 });
         assert.strictEqual(started.scan, true);
         assert.notStrictEqual(started.error, "");
@@ -85,37 +98,65 @@ test("missing, empty, and invalid startup data expose an empty snapshot and requ
 
 test("access starts immediately when idle without changing the published snapshot", () => {
     const snapshot = { paths: [HOME, `${HOME}/dev`], revision: 4 };
-    const requested = Index.request(Index.idleSchedule());
+    const requested = Index.requestScan(Index.idleSchedule());
 
     assert.strictEqual(requested.scan, true);
     assert.deepStrictEqual(snapshot, { paths: [HOME, `${HOME}/dev`], revision: 4 });
 });
 
 test("accesses during a scan coalesce into one follow-up scan", () => {
-    const first = Index.request(Index.idleSchedule());
-    const second = Index.request(first.schedule);
-    const third = Index.request(second.schedule);
+    const first = Index.requestScan(Index.idleSchedule());
+    const second = Index.requestScan(first.schedule);
+    const third = Index.requestScan(second.schedule);
 
     assert.strictEqual(second.scan, false);
     assert.strictEqual(third.scan, false);
 
-    const settled = Index.settle(third.schedule);
+    const settled = Index.settleScan(third.schedule);
     assert.strictEqual(settled.scan, true);
-    assert.strictEqual(Index.settle(settled.schedule).scan, false);
+    assert.strictEqual(Index.settleScan(settled.schedule).scan, false);
 });
 
-test("a queued access is retried after either a successful or failed scan", () => {
+test("settling an attempt always drains its queued retry", () => {
     const queued = { running: true, pending: true };
-    assert.strictEqual(Index.settle(queued, true).scan, true);
-    assert.strictEqual(Index.settle(queued, false).scan, true);
+    assert.strictEqual(Index.settleScan(queued).scan, true);
+});
+
+test("attempt settlement keeps the snapshot on failure and drains one queued retry", () => {
+    const snapshot = { paths: [HOME], revision: 2 };
+    const schedule = { running: true, pending: true };
+    const invalid = Index.preparePublication(snapshot, "", HOME);
+    const unpersisted = Index.preparePublication(snapshot, `${HOME}\n${HOME}/dev\n`, HOME);
+
+    for (const prepared of [null, invalid, unpersisted]) {
+        assert.deepStrictEqual(Index.finishAttempt(schedule, snapshot, prepared, false), {
+            snapshot,
+            schedule: { running: true, pending: false },
+            scan: true
+        });
+    }
+});
+
+test("attempt settlement publishes a persisted candidate before becoming idle", () => {
+    const snapshot = { paths: [HOME], revision: 2 };
+    const prepared = Index.preparePublication(snapshot, `${HOME}\n${HOME}/dev\n`, HOME);
+
+    assert.deepStrictEqual(
+        Index.finishAttempt({ running: true, pending: false }, snapshot, prepared, true),
+        {
+            snapshot: { paths: [HOME, `${HOME}/dev`], revision: 3 },
+            schedule: { running: false, pending: false },
+            scan: false
+        }
+    );
 });
 
 test("invalid candidates retain the last published snapshot", () => {
     const initial = { paths: [HOME], revision: 2 };
     for (const text of ["", `${HOME}\nrelative/path\n`]) {
-        const prepared = Index.prepare(initial, text, HOME);
+        const prepared = Index.preparePublication(initial, text, HOME);
         assert.strictEqual(prepared.ok, false);
-        assert.strictEqual(Index.settlePublication(initial, prepared, true), initial);
+        assert.strictEqual(Index.committedSnapshot(initial, prepared, true), initial);
     }
 });
 
@@ -152,7 +193,7 @@ test("the real scan contract replaces an isolated home snapshot losslessly", t =
     for (const excluded of Index.PRUNE_NAMES)
         mkdir(`dev/${excluded}/ignored`);
 
-    const first = Index.candidate(scan(), home);
+    const first = Index.validateCandidate(scan(), home);
     assert.strictEqual(first.ok, true);
     assert.deepStrictEqual(first.paths, [...new Set(first.paths)].sort());
     assert.ok(first.paths.includes(home));
@@ -167,7 +208,7 @@ test("the real scan contract replaces an isolated home snapshot losslessly", t =
     fs.rmSync(path.join(home, "Desktop"), { recursive: true });
     mkdir("Downloads");
 
-    const second = Index.candidate(scan(), home);
+    const second = Index.validateCandidate(scan(), home);
     assert.strictEqual(second.ok, true);
     assert.ok(second.paths.includes(path.join(home, "dev/renamed")));
     assert.ok(second.paths.includes(path.join(home, "Downloads")));
@@ -176,9 +217,9 @@ test("the real scan contract replaces an isolated home snapshot losslessly", t =
 });
 
 test("a settled access does not suppress the next access", () => {
-    const first = Index.request(Index.idleSchedule());
-    const settled = Index.settle(first.schedule);
-    const second = Index.request(settled.schedule);
+    const first = Index.requestScan(Index.idleSchedule());
+    const settled = Index.settleScan(first.schedule);
+    const second = Index.requestScan(settled.schedule);
 
     assert.strictEqual(first.scan, true);
     assert.strictEqual(second.scan, true);

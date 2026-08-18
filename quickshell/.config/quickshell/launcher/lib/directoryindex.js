@@ -1,5 +1,5 @@
-var CACHE_DIR_NAME = "df-dir-picker";
-var CACHE_FILE_NAME = "folders.list";
+var INDEX_DIR_NAME = "df-dir-picker";
+var INDEX_FILE_NAME = "folders.list";
 
 var PRUNE_NAMES = [
     ".local", "node_modules", ".git", ".obsidian-vault", ".var", "Cache",
@@ -9,12 +9,12 @@ var PRUNE_NAMES = [
 
 var ROOTS = ["dotfiles", "dev"];
 
-function cachePath(home) {
-    return home + "/.cache/" + CACHE_DIR_NAME + "/" + CACHE_FILE_NAME;
+function indexPath(home) {
+    return home + "/.cache/" + INDEX_DIR_NAME + "/" + INDEX_FILE_NAME;
 }
 
 function scanPath(home) {
-    return cachePath(home) + ".scan";
+    return indexPath(home) + ".scan";
 }
 
 function shellEscape(value) {
@@ -61,7 +61,7 @@ function inScope(path, home) {
     return segments.length - 1 <= 6;
 }
 
-function candidate(text, home) {
+function validateCandidate(text, home) {
     if (typeof text !== "string" || text === "")
         return { ok: false, paths: [], error: "empty Directory Index" };
     if (text.charAt(text.length - 1) !== "\n")
@@ -74,9 +74,13 @@ function candidate(text, home) {
     if (paths.indexOf(home) < 0)
         return { ok: false, paths: [], error: "Directory Index does not contain home" };
 
+    var seen = {};
     for (var i = 0; i < paths.length; i++) {
         if (!inScope(paths[i], home))
             return { ok: false, paths: [], error: "path outside Directory Index scope: " + paths[i] };
+        if (seen[paths[i]])
+            return { ok: false, paths: [], error: "duplicate Directory Index path: " + paths[i] };
+        seen[paths[i]] = true;
     }
 
     return { ok: true, paths: paths, error: "" };
@@ -92,8 +96,8 @@ function samePaths(left, right) {
     return true;
 }
 
-function prepare(snapshot, text, home) {
-    var next = candidate(text, home);
+function preparePublication(snapshot, text, home) {
+    var next = validateCandidate(text, home);
     if (!next.ok) {
         return {
             ok: false,
@@ -124,14 +128,14 @@ function prepare(snapshot, text, home) {
     };
 }
 
-function settlePublication(snapshot, prepared, persisted) {
+function committedSnapshot(snapshot, prepared, persisted) {
     if (!persisted || !prepared || !prepared.ok || !prepared.changed)
         return snapshot;
     return prepared.snapshot;
 }
 
-function startup(text, home) {
-    var loaded = candidate(text, home);
+function loadSnapshot(text, home, accessPending) {
+    var loaded = validateCandidate(text, home);
     if (!loaded.ok) {
         return {
             snapshot: { paths: [], revision: 0 },
@@ -142,7 +146,7 @@ function startup(text, home) {
 
     return {
         snapshot: { paths: loaded.paths, revision: 1 },
-        scan: false,
+        scan: accessPending === true,
         error: ""
     };
 }
@@ -151,7 +155,7 @@ function idleSchedule() {
     return { running: false, pending: false };
 }
 
-function request(schedule) {
+function requestScan(schedule) {
     if (schedule.running) {
         return {
             schedule: { running: true, pending: true },
@@ -165,7 +169,7 @@ function request(schedule) {
     };
 }
 
-function settle(schedule) {
+function settleScan(schedule) {
     if (schedule.pending) {
         return {
             schedule: { running: true, pending: false },
@@ -179,8 +183,17 @@ function settle(schedule) {
     };
 }
 
+function finishAttempt(schedule, snapshot, prepared, persisted) {
+    var settled = settleScan(schedule);
+    return {
+        snapshot: committedSnapshot(snapshot, prepared, persisted),
+        schedule: settled.schedule,
+        scan: settled.scan
+    };
+}
+
 function buildScanScript(home) {
-    var dir = home + "/.cache/" + CACHE_DIR_NAME;
+    var dir = home + "/.cache/" + INDEX_DIR_NAME;
     var scan = scanPath(home);
     var raw = scan + ".raw";
     var next = scan + ".tmp";
@@ -217,19 +230,20 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
         PRUNE_NAMES: PRUNE_NAMES,
         ROOTS: ROOTS,
-        cachePath: cachePath,
+        indexPath: indexPath,
         scanPath: scanPath,
         parse: parse,
         serialize: serialize,
         inScope: inScope,
-        candidate: candidate,
+        validateCandidate: validateCandidate,
         samePaths: samePaths,
-        prepare: prepare,
-        settlePublication: settlePublication,
-        startup: startup,
+        preparePublication: preparePublication,
+        committedSnapshot: committedSnapshot,
+        loadSnapshot: loadSnapshot,
         idleSchedule: idleSchedule,
-        request: request,
-        settle: settle,
+        requestScan: requestScan,
+        settleScan: settleScan,
+        finishAttempt: finishAttempt,
         buildScanScript: buildScanScript,
         accessCommand: accessCommand
     };

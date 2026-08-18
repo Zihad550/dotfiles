@@ -7,11 +7,8 @@
 // with how many files exist (an earlier design that cached every file under
 // the dev roots measured 1.2s per keystroke at 340k files).
 //
-// Consumes the shared Directory Index paths rather than building a second
-// index. The duplication in Entry construction (relOf, isMirrored etc. appear
-// again here rather than being imported) is forced:
-// a JS file importing a sibling is a syntax error under node, and every file
-// here has to load under both QML and node for its tests to run.
+// Entry construction is duplicated because sibling imports cannot load under
+// both QML and Node; see the corresponding functions in directories.js.
 //
 // The listing is deliberately not scored by lib/matching.js: the order is
 // structural (each folder's children must sit directly beneath it), and

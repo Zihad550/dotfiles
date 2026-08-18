@@ -74,7 +74,7 @@ QtObject {
         return mirrored && root.routingEnabled;
     }
 
-    // Never "not ready": an empty cache before the background scan finishes
+    // Never "not ready": an empty Directory Index before the scan finishes
     // is the same "empty Query lists nothing" state, not a fault.
     readonly property bool ready: true
 
@@ -176,7 +176,7 @@ QtObject {
     // True between a request that found the finder mid-run and the run that covers it.
     property bool listingPending: false
 
-    // Called on every keystroke and every cache change. Not awaited: the
+    // Called on every keystroke and Directory Index change. Not awaited: the
     // catalog renders whatever children data already exists and this fills
     // in the rest when the find lands.
     //
