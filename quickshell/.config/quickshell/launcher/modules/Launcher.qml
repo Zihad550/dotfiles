@@ -272,8 +272,8 @@ PanelWindow {
     // currentIndex on its own. This is the intent; the view follows it.
     property int highlightIndex: -1
 
-    // The highlighted Entry itself, so it can be found again by identity
-    // after the Entries change under it, not just by position.
+    // The highlighted Entry itself, so its Provider + Entry Key (or object
+    // identity when keyless) can be followed after Entries change under it.
     property var highlightedEntry: null
 
     // The one place the highlight moves, so the view can't show one Entry

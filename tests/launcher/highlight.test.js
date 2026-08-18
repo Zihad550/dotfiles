@@ -20,6 +20,10 @@ function entry(name) {
     return { name: name };
 }
 
+function keyedEntry(name, key, provider) {
+    return { name: name, key: key, provider: provider };
+}
+
 test("an untouched highlight goes to the best match, not to the Entry it was on", () => {
     const zed = entry("Zed");
     const firefox = entry("Firefox");
@@ -45,6 +49,49 @@ test("a highlight the user placed follows its Entry when the list changes", () =
     const after = [entry("noise-4821"), entry("Zed"), wanted];
 
     assert.strictEqual(H.next(after, state), 2);
+});
+
+test("a placed keyed highlight follows a rebuilt Entry from the same Provider", () => {
+    const provider = {};
+    const wanted = keyedEntry("Obsidian", "obsidian.desktop", provider);
+    const state = { pinned: true, index: 0, entry: wanted };
+
+    const after = [
+        entry("noise-4821"),
+        keyedEntry("Obsidian", "obsidian.desktop", provider)
+    ];
+
+    assert.strictEqual(H.next(after, state), 1);
+});
+
+test("duplicate-looking Entry Keys from different Providers remain distinct", () => {
+    const applications = {};
+    const windows = {};
+    const state = {
+        pinned: true,
+        index: 1,
+        entry: keyedEntry("Zed", "dev.zed.Zed", applications)
+    };
+
+    const after = [
+        keyedEntry("Zed", "dev.zed.Zed", windows),
+        keyedEntry("Zed", "dev.zed.Zed", applications)
+    ];
+
+    assert.strictEqual(H.next(after, state), 1);
+});
+
+test("a removed keyed highlight moves to the new best match", () => {
+    const provider = {};
+    const state = {
+        pinned: true,
+        index: 2,
+        entry: keyedEntry("Obsidian", "obsidian.desktop", provider)
+    };
+
+    const after = [entry("best"), entry("second"), entry("now a different Entry")];
+
+    assert.strictEqual(H.next(after, state), 0);
 });
 
 test("a placed highlight whose Entry has gone holds its position", () => {

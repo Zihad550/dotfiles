@@ -12,17 +12,27 @@ function first(entries) {
     return entries.length > 0 ? 0 : -1;
 }
 
+function hasKey(entry) {
+    return entry !== null && entry !== undefined
+        && entry.key !== null && entry.key !== undefined;
+}
+
+function keyedIndexOf(entries, entry) {
+    if (!hasKey(entry))
+        return -1;
+
+    return entries.findIndex(candidate =>
+        candidate.provider === entry.provider && candidate.key === entry.key);
+}
+
 // Where the highlight belongs in `entries`, given where it was.
 // `state` is { pinned, index, entry }:
 //   pinned  whether the *user* put it there (an arrow key), vs. defaulting
 //   index   where it was
-//   entry   which Entry it was on, for finding it again by identity
+//   entry   which Entry it was on, for finding it again
 //
-// Unpinned, always the best match -- there's no intent to preserve.
-// Pinned, identity wins (an Entry that moved keeps the highlight, so a
-// background retitle can't yank the selection mid-arrow); if it's gone,
-// holding the position is the fallback, clamped so a shrunk list can't leave
-// Enter acting on nothing.
+// Pinned keyed Entries follow Provider + Entry Key, or reset if gone.
+// Keyless Entries retain object identity, then the clamped position.
 function next(entries, state) {
     if (entries.length === 0)
         return -1;
@@ -30,9 +40,13 @@ function next(entries, state) {
     if (!state || !state.pinned)
         return first(entries);
 
-    var found = state.entry === null || state.entry === undefined ? -1 : entries.indexOf(state.entry);
+    var found = keyedIndexOf(entries, state.entry);
+    if (found < 0)
+        found = state.entry === null || state.entry === undefined ? -1 : entries.indexOf(state.entry);
     if (found >= 0)
         return found;
+    if (hasKey(state.entry))
+        return first(entries);
 
     var held = state.index > 0 ? state.index : 0;
     return held < entries.length - 1 ? held : entries.length - 1;
