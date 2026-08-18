@@ -19,10 +19,42 @@ test("backlight commands always constrain brightnessctl to the backlight class",
 test("backlight output identifies the selected device and confirmed state", () => {
     assert.deepStrictEqual(
         Backlight.parse("intel_backlight,backlight,240,48%,500"),
-        { device: "intel_backlight", current: 240, maximum: 500, percent: 48 },
+        { current: 240, maximum: 500 },
     );
     assert.strictEqual(Backlight.parse("input3::capslock,leds,1,100%,1"), null);
     assert.strictEqual(Backlight.parse("broken output"), null);
+    assert.strictEqual(Backlight.parse("intel_backlight,backlight,240junk,48%,500"), null);
+    assert.strictEqual(Backlight.parse("intel_backlight,backlight,240,48oops,500"), null);
+    assert.strictEqual(Backlight.parse("intel_backlight,backlight,240,48%,500x"), null);
+});
+
+test("backlight state serializes repeated adjustments from confirmed values", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.queueAdjustment(state, 5);
+
+    const first = Backlight.takeAdjustment(state);
+    assert.deepStrictEqual(first.command, Backlight.writeCommand(226));
+    assert.strictEqual(first.state.pendingAdjustment, 0);
+
+    state = Backlight.queueAdjustment(first.state, 5);
+    assert.strictEqual(state.pendingAdjustment, 5);
+    state = Backlight.confirm(state, { current: 226, maximum: 500 });
+
+    const second = Backlight.takeAdjustment(state);
+    assert.deepStrictEqual(second.command, Backlight.writeCommand(251));
+});
+
+test("backlight failures retain confirmation and a later refresh recovers", () => {
+    const confirmed = Backlight.confirm(Backlight.initialState(), { current: 251, maximum: 500 });
+    const failed = Backlight.readFailed(confirmed);
+
+    assert.strictEqual(failed.available, false);
+    assert.strictEqual(failed.percent, 50);
+    assert.strictEqual(failed.maximum, 500);
+
+    const recovered = Backlight.confirm(failed, { current: 400, maximum: 500 });
+    assert.strictEqual(recovered.available, true);
+    assert.strictEqual(recovered.percent, 80);
 });
 
 test("backlight percentage maps across the nonzero hardware range", () => {
@@ -38,12 +70,12 @@ test("shared backlight singleton owns refresh, serialized writes, and confirmed 
     const service = source("BacklightService.qml");
 
     assert.match(service, /pragma Singleton/);
-    assert.match(service, /property bool available:\s*false/);
-    assert.match(service, /property int percent:\s*0/);
+    assert.match(service, /readonly property bool available:\s*backlightState\.available/);
+    assert.match(service, /readonly property int percent:\s*backlightState\.percent/);
     assert.match(service, /function refresh\(\): void/);
-    assert.match(service, /pendingAdjustment/);
+    assert.match(service, /Backlight\.queueAdjustment/);
     assert.match(service, /if \(writeProcess\.running \|\| readProcess\.running\)/);
-    assert.match(service, /Backlight\.writeCommand/);
+    assert.match(service, /Backlight\.takeAdjustment/);
     assert.match(service, /onExited:[\s\S]*exitCode === 0[\s\S]*confirm/);
     assert.match(service, /console\.warn/);
     assert.match(service, /Component\.onCompleted:\s*refresh\(\)/);

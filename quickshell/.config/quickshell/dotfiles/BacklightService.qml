@@ -8,15 +8,13 @@ import "modules/lib/backlight.js" as Backlight
 Singleton {
     id: root
 
-    property bool available: false
-    property int percent: 0
-    property int maximum: 0
-    property string device: ""
-
-    property int pendingAdjustment: 0
+    property var backlightState: Backlight.initialState()
     property bool refreshRequested: false
     property var readResult: null
     property var writeResult: null
+
+    readonly property bool available: backlightState.available
+    readonly property int percent: backlightState.percent
 
     signal confirmed(int percent)
 
@@ -41,33 +39,32 @@ Singleton {
     function adjust(step: int): void {
         if (step === 0)
             return;
-        pendingAdjustment += step;
+        backlightState = Backlight.queueAdjustment(backlightState, step);
         runPendingAdjustment();
     }
 
     function runPendingAdjustment(): void {
         if (writeProcess.running || readProcess.running)
             return;
-        if (!available || maximum < 1) {
+        if (backlightState.pendingAdjustment === 0)
+            return;
+        const adjustment = Backlight.takeAdjustment(backlightState);
+        if (!adjustment) {
             refresh();
             return;
         }
 
-        const target = Math.max(0, Math.min(100, percent + pendingAdjustment));
-        pendingAdjustment = 0;
+        backlightState = adjustment.state;
         writeResult = null;
-        writeProcess.command = Backlight.writeCommand(Backlight.rawForPercent(target, maximum));
+        writeProcess.command = adjustment.command;
         writeProcess.running = true;
     }
 
-    function accept(result): void {
-        device = result.device;
-        maximum = result.maximum;
-        percent = Backlight.percentForRaw(result.current, result.maximum);
-        available = true;
+    function applyConfirmedState(result): void {
+        backlightState = Backlight.confirm(backlightState, result);
     }
 
-    function continueWork(): void {
+    function runQueuedWork(): void {
         if (refreshRequested) {
             refreshRequested = false;
             refresh();
@@ -87,10 +84,10 @@ Singleton {
 
         onExited: exitCode => {
             if (exitCode === 0 && root.readResult) {
-                root.accept(root.readResult);
-                root.continueWork();
+                root.applyConfirmedState(root.readResult);
+                root.runQueuedWork();
             } else {
-                root.available = false;
+                root.backlightState = Backlight.readFailed(root.backlightState);
                 console.warn(`dotfiles: failed to refresh backlight (brightnessctl exited ${exitCode})`);
             }
         }
@@ -107,13 +104,13 @@ Singleton {
 
         onExited: exitCode => {
             if (exitCode === 0 && root.writeResult) {
-                root.accept(root.writeResult);
+                root.applyConfirmedState(root.writeResult);
                 root.confirmed(root.percent);
-                root.continueWork();
+                root.runQueuedWork();
             } else {
                 console.warn(`dotfiles: failed to set backlight (brightnessctl exited ${exitCode})`);
                 root.refreshRequested = true;
-                root.continueWork();
+                root.runQueuedWork();
             }
         }
     }
