@@ -1,6 +1,6 @@
 [user]
-	signingkey = 8939CB360C1DCC0B
-	email = dev.jehadhossain@gmail.com
+	signingkey = 77A2644BDAE968E2
+	email = dev.jehadhossain+devbox@gmail.com
 	name = Zihad550
 [commit]
 	gpgsign = true
