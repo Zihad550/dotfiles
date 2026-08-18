@@ -1,8 +1,3 @@
-// Tests for the directories Provider's pure half: the Entry shape, which
-// command opens a directory, and which apps the chooser offers.
-//
-//     node --test "tests/launcher/*.test.js"
-//
 const test = require("node:test");
 const assert = require("node:assert");
 

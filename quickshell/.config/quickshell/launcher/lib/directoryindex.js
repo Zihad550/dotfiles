@@ -1,7 +1,3 @@
-// Pure policy for the shared Directory Index. QML owns process and file I/O;
-// this module owns the persisted representation, scope, scan construction,
-// validation, and versioned publication decision.
-
 var CACHE_DIR_NAME = "df-dir-picker";
 var CACHE_FILE_NAME = "folders.list";
 var STALE_SECONDS = 300;

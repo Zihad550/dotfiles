@@ -3,9 +3,6 @@ import Quickshell
 import Quickshell.Io
 import "../lib/directoryindex.js" as Index
 
-// The one persistent owner of Directory Index loading, scan policy,
-// persistence observation, and versioned publication. It is shared state,
-// not a Provider: Providers consume snapshot paths and own only Entries.
 QtObject {
     id: root
 
@@ -16,7 +13,10 @@ QtObject {
     readonly property var snapshot: root._snapshot
 
     function access(): void {
-        Quickshell.execDetached(Index.accessCommand(root.home));
+        if (!accessor.running) {
+            accessor.command = Index.accessCommand(root.home);
+            accessor.running = true;
+        }
     }
 
     function adopt(text): void {
@@ -36,6 +36,12 @@ QtObject {
     }
 
     Component.onCompleted: root.access()
+
+    readonly property Process accessor: Process {
+        id: accessor
+
+        onExited: cacheView.reload()
+    }
 
     readonly property FileView cacheFile: FileView {
         id: cacheView

@@ -446,8 +446,6 @@ PanelWindow {
                 provider.refresh();
         });
 
-        // The Directory Index is shared state rather than a Provider, so its
-        // behavior-preserving stale check is requested separately.
         root.directoryIndex.access();
 
         // Frecency decays with wall-clock time and this process may run for

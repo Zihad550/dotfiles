@@ -8,9 +8,6 @@ import "../lib/files.js" as Files
 // to it first -- type a folder name, get the folders matching it each
 // followed by their immediate contents.
 //
-// Consumes the same versioned Directory Index snapshot as the directories
-// Provider. It owns neither persisted index loading nor index scans.
-//
 // The only thing read per Query is one directory level of each matching
 // folder: folders come from the cache synchronously, children come from a
 // single `find` over the top ten matches, run asynchronously (see the finder

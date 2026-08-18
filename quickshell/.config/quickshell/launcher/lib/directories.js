@@ -1,7 +1,3 @@
-// The directories Provider's pure half: the Entry shape and the commands a
-// directory can be opened with. Directory Index policy lives in
-// directoryindex.js.
-//
 // No path eliding here: the QML delegate already elides with
 // `Text.ElideRight` (Launcher.qml), so the full relative path is handed over
 // and the view does the rest.
