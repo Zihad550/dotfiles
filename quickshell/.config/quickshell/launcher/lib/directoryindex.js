@@ -62,9 +62,15 @@ function inScope(path, home) {
 }
 
 function candidate(text, home) {
-    var paths = parse(text);
-    if (paths.length === 0)
+    if (typeof text !== "string" || text === "")
         return { ok: false, paths: [], error: "empty Directory Index" };
+    if (text.charAt(text.length - 1) !== "\n")
+        return { ok: false, paths: [], error: "incomplete Directory Index record" };
+    if (text.charAt(0) === "\n" || text.indexOf("\0") >= 0
+            || text.indexOf("\r") >= 0 || text.indexOf("\n\n") >= 0)
+        return { ok: false, paths: [], error: "unparseable Directory Index data" };
+
+    var paths = parse(text);
     if (paths.indexOf(home) < 0)
         return { ok: false, paths: [], error: "Directory Index does not contain home" };
 
@@ -86,14 +92,42 @@ function samePaths(left, right) {
     return true;
 }
 
-function publish(snapshot, text, home) {
+function prepare(snapshot, text, home) {
     var next = candidate(text, home);
-    if (!next.ok || samePaths(snapshot.paths, next.paths))
-        return snapshot;
+    if (!next.ok) {
+        return {
+            ok: false,
+            changed: false,
+            text: "",
+            snapshot: snapshot,
+            error: next.error
+        };
+    }
+    if (samePaths(snapshot.paths, next.paths)) {
+        return {
+            ok: true,
+            changed: false,
+            text: "",
+            snapshot: snapshot,
+            error: ""
+        };
+    }
     return {
-        paths: next.paths,
-        revision: snapshot.revision + 1
+        ok: true,
+        changed: true,
+        text: text,
+        snapshot: {
+            paths: next.paths,
+            revision: snapshot.revision + 1
+        },
+        error: ""
     };
+}
+
+function settlePublication(snapshot, prepared, persisted) {
+    if (!persisted || !prepared || !prepared.ok || !prepared.changed)
+        return snapshot;
+    return prepared.snapshot;
 }
 
 function startup(text, home) {
@@ -190,7 +224,8 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         inScope: inScope,
         candidate: candidate,
         samePaths: samePaths,
-        publish: publish,
+        prepare: prepare,
+        settlePublication: settlePublication,
         startup: startup,
         idleSchedule: idleSchedule,
         request: request,

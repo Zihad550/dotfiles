@@ -15,7 +15,7 @@ QtObject {
     property var _schedule: Index.idleSchedule()
     property bool _initialized: false
     property string _candidatePath: ""
-    property var _pendingSnapshot: null
+    property var _pendingPublication: null
 
     function access(): void {
         const requested = Index.request(root._schedule);
@@ -53,26 +53,25 @@ QtObject {
     }
 
     function considerCandidate(text): void {
-        const checked = Index.candidate(text, root.home);
-        if (!checked.ok) {
-            console.warn("launcher: Directory Index rejected scan:", checked.error);
+        const prepared = Index.prepare(root._snapshot, text, root.home);
+        if (!prepared.ok) {
+            console.warn("launcher: Directory Index rejected scan:", prepared.error);
             root.finishAttempt();
             return;
         }
 
-        const published = Index.publish(root._snapshot, text, root.home);
-        if (published === root._snapshot) {
+        if (!prepared.changed) {
             console.log("launcher: Directory Index scan unchanged");
             root.finishAttempt();
             return;
         }
 
-        root._pendingSnapshot = published;
-        cacheView.setText(text);
+        root._pendingPublication = prepared;
+        cacheView.setText(prepared.text);
     }
 
     function finishAttempt(): void {
-        root._pendingSnapshot = null;
+        root._pendingPublication = null;
         const settled = Index.settle(root._schedule);
         root._schedule = settled.schedule;
         if (settled.scan)
@@ -112,11 +111,14 @@ QtObject {
         onLoaded: root.initialize(cacheView.text())
         onLoadFailed: root.initialize(undefined)
         onSaved: {
-            root._snapshot = root._pendingSnapshot;
+            root._snapshot = Index.settlePublication(root._snapshot,
+                root._pendingPublication, true);
             root.logPublication(root._snapshot);
             root.finishAttempt();
         }
         onSaveFailed: error => {
+            root._snapshot = Index.settlePublication(root._snapshot,
+                root._pendingPublication, false);
             console.warn("launcher: Directory Index persistence failed:", error);
             root.finishAttempt();
         }
