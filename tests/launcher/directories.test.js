@@ -1,15 +1,8 @@
-// Tests for the directories Provider's pure half: parsing the cache, the
-// Entry shape, which command opens a directory and which apps the chooser
-// offers, and the guard around the background refresh script.
+// Tests for the directories Provider's pure half: the Entry shape, which
+// command opens a directory, and which apps the chooser offers.
 //
 //     node --test "tests/launcher/*.test.js"
 //
-// The refresh script itself runs `find` and `stat`, which nothing here can
-// exercise -- these tests check its *shape*, the same limit windows.test.js
-// has for anything naming a Hyprland type. Whether it actually populates the
-// cache on the real corpus is a host claim, in the ticket's own Manual
-// verification.
-
 const test = require("node:test");
 const assert = require("node:assert");
 
@@ -25,14 +18,6 @@ const HOME = "/home/jehad";
 const catalogOf = (paths, home, provider) => C.ownedCatalog(paths,
     path => D.entryFor(path, home, provider),
     (path, entry) => D.textsFor(entry.name));
-
-test("parseCache splits on newlines and drops blank lines", () => {
-    assert.deepStrictEqual(D.parseCache(`${HOME}\n${HOME}/dev\n\n${HOME}/dotfiles\n`), [
-        HOME, `${HOME}/dev`, `${HOME}/dotfiles`
-    ]);
-    assert.deepStrictEqual(D.parseCache(""), [], "an empty cache is no directories, not a fault");
-    assert.deepStrictEqual(D.parseCache(undefined), [], "a cache that has not loaded yet is the same as an empty one");
-});
 
 test("relOf names $HOME itself \"~\" and everything else relative to it", () => {
     assert.strictEqual(D.relOf(HOME, HOME), "~");
@@ -274,36 +259,6 @@ test("chooserEntriesFor defaults to no prefix when none is given", () => {
     const entries = D.chooserEntriesFor(`${HOME}/Downloads`, false, HOME, null, null);
     const zed = entries.find(e => e.name === "Zed");
     assert.deepStrictEqual(zed.target.argv, ["zeditor", `${HOME}/Downloads`]);
-});
-
-test("refreshScript skips the scan while a build is already running", () => {
-    const script = D.refreshScript(HOME);
-    assert.ok(script.startsWith(`[ -e '${D.cachePath(HOME)}.tmp' ] && exit 0;`),
-        "the tmp file is the lock, checked before anything else runs");
-});
-
-test("refreshScript rebuilds an empty or stale cache and names STALE_SECONDS", () => {
-    const script = D.refreshScript(HOME);
-    assert.ok(script.includes(`-gt ${D.STALE_SECONDS}`));
-    assert.ok(script.includes(`[ ! -s '${D.cachePath(HOME)}' ]`), "a missing or empty cache counts as stale");
-    assert.ok(script.includes("mkdir -p"));
-    assert.ok(script.includes("sort -u"));
-});
-
-test("buildCacheScript prunes every configured name and scans both roots", () => {
-    const script = D.buildCacheScript(HOME);
-    for (const name of D.PRUNE_NAMES)
-        assert.ok(script.includes(`-name '${name}'`), `${name} should be pruned`);
-    for (const root of D.ROOTS)
-        assert.ok(script.includes(`'${HOME}/${root}'`), `${root} should be scanned`);
-});
-
-test("refreshCommand is a plain sh -c argv, safe for Quickshell.execDetached", () => {
-    const command = D.refreshCommand(HOME);
-    assert.strictEqual(command[0], "sh");
-    assert.strictEqual(command[1], "-c");
-    assert.strictEqual(command.length, 3);
-    assert.strictEqual(typeof command[2], "string");
 });
 
 // The devcontainer routing toggle (docs/adr/0002, ticket 01): `routed` is the

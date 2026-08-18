@@ -28,6 +28,7 @@ QtObject {
     // silently never closing its own chooser. Going false closes it, so
     // dismissing mid "choose app" and reopening never lands back in a stale Chooser.
     required property bool active
+    required property var snapshot
     onActiveChanged: {
         if (!root.active)
             root.openFor = null;
@@ -61,21 +62,17 @@ QtObject {
         return mirrored && root.routingEnabled;
     }
 
-    readonly property string cachePath: Dirs.cachePath(root.home)
-
     // Never "not ready": an empty cache before the first background scan
     // finishes is expected, not a fault -- a stale or still-building cache
     // must never block opening.
     readonly property bool ready: true
 
-    // A plain string, not the parsed list, so re-parsing happens only where needed.
-    property string cacheText: ""
-    readonly property var paths: Dirs.parseCache(root.cacheText)
+    readonly property var paths: root.snapshot.paths
 
     // Logged on count change rather than in a binding, so re-evaluating
     // `catalog` several times a second doesn't fill the log with noise.
     onPathsChanged: console.log("launcher: directories Provider sees", root.paths.length,
-        "path(s) in", root.cachePath)
+        "path(s) at Directory Index revision", root.snapshot.revision)
 
     // Two shapes behind one property, switched on `openFor`: the ranked
     // directory list when nothing is open, the small unranked chooser when
@@ -149,39 +146,9 @@ QtObject {
         Quickshell.execDetached(entry.target.argv);
     }
 
-    // Cheap even when there's nothing to do (a `test` and a `stat`, not a
-    // scan), so Launcher.qml calls this on every open. Fire-and-forget: the
-    // FileView below picks up whatever it produces once the file changes.
-    function refresh(): void {
-        Quickshell.execDetached(Dirs.refreshCommand(root.home));
-    }
-
-    Component.onCompleted: root.refresh()
-
-    // QtObject has no default property to nest a child into.
-    readonly property FileView cacheFile: FileView {
-        id: cacheView
-
-        path: root.cachePath
-
-        // Watched, not read once: this process is never the only writer
-        // (refresh() starts a separate background scan).
-        watchChanges: true
-        onFileChanged: cacheView.reload()
-        onLoaded: root.cacheText = cacheView.text()
-
-        // Unverified: whether a FileView watching a not-yet-existing path
-        // notices it being created. If a fresh machine never lists a
-        // directory despite refresh() having run, this is the API to
-        // re-check -- reading ~/.cache/df-dir-picker/folders.list by hand
-        // tells the two failures apart.
-    }
-
     // Existence-only: routing is off, the default, until this file appears.
     // printErrors: false because absence is the common case (default off),
-    // not a fault worth logging. Same "watching a path that may not exist
-    // yet" uncertainty as cacheFile above -- see the ticket's Manual
-    // verification for how to tell a stuck toggle from a wrong decision.
+    // not a fault worth logging.
     readonly property FileView routingToggleFile: FileView {
         id: routingToggleView
 

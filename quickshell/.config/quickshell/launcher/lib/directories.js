@@ -1,5 +1,6 @@
-// The directories Provider's pure half: cache parsing, the Entry shape, and
-// the commands a directory can be opened with.
+// The directories Provider's pure half: the Entry shape and the commands a
+// directory can be opened with. Directory Index policy lives in
+// directoryindex.js.
 //
 // No path eliding here: the QML delegate already elides with
 // `Text.ElideRight` (Launcher.qml), so the full relative path is handed over
@@ -16,42 +17,13 @@
 //
 // Free of QML types so it loads under a plain JS runtime too (tests/launcher/directories.test.js).
 
-var CACHE_DIR_NAME = "df-dir-picker";
-var CACHE_FILE_NAME = "folders.list";
-
-// How long a cache is trusted before refresh() rebuilds it in the background.
-var STALE_SECONDS = 300;
-
-var PRUNE_NAMES = [
-    ".local", "node_modules", ".git", ".obsidian-vault", ".var", "Cache",
-    "cache", ".npm", ".nuget", ".cache", "Kiro", ".kiro", ".cursor",
-    "Cypress", "cypress", "discord", "go", "obs-studio", "mpv", "transmission"
-];
-
-// Scanned deep, in addition to $HOME one level deep.
-var ROOTS = ["dotfiles", "dev"];
-
 // The devpod devcontainer bind-mounts these at the same absolute path, so a
 // remote location is just the scheme, host, and same local path.
 var SSH_HOST = "devcontainer.devpod";
 var MIRRORED = ["/dev", "/dotfiles", "/.agents"];
 
-function cachePath(home) {
-    return home + "/.cache/" + CACHE_DIR_NAME + "/" + CACHE_FILE_NAME;
-}
-
 function shellEscape(value) {
     return "'" + String(value).replace(/'/g, "'\\''") + "'";
-}
-
-// One path per line, blank lines dropped. Whatever wrote the file is
-// trusted -- this Provider only ever reads its own cache.
-function parseCache(text) {
-    if (typeof text !== "string" || text === "")
-        return [];
-    return text.split("\n").filter(function (line) {
-        return line !== "";
-    });
 }
 
 // "~" for $HOME itself, path relative to it otherwise.
@@ -234,68 +206,10 @@ function chooserEntriesFor(path, routed, home, launchPrefix, provider, host) {
     });
 }
 
-// $HOME one level deep (so plain folders like Downloads are reachable,
-// hidden entries skipped), then the dev roots six deep, pruned and
-// deduplicated. The cache path and format are inherited unchanged, so an
-// existing ~/.cache/df-dir-picker/folders.list still reads.
-//
-// A root that doesn't exist is left to `find` to fail quietly on
-// (`2>/dev/null`) rather than checked for first -- neither this module nor
-// the Provider has a synchronous way to ask, and a missing root contributing
-// nothing is the same outcome either way.
-function buildCacheScript(home) {
-    var dir = home + "/.cache/" + CACHE_DIR_NAME;
-    var cache = cachePath(home);
-    var tmp = cache + ".tmp";
-
-    var pruneArgs = PRUNE_NAMES.map(function (name) {
-        return "-name " + shellEscape(name);
-    }).join(" -o ");
-
-    var homeScan = "find " + shellEscape(home) + " -mindepth 1 -maxdepth 1 "
-        + "\\( " + pruneArgs + " -o -name '.*' \\) -prune -o -type d -print";
-
-    var rootArgs = ROOTS.map(function (name) {
-        return shellEscape(home + "/" + name);
-    }).join(" ");
-    var rootScan = "find " + rootArgs + " -maxdepth 6 -type d \\( " + pruneArgs + " \\) -prune "
-        + "-o -type d -print 2>/dev/null";
-
-    return "mkdir -p " + shellEscape(dir) + " && { "
-        + "printf '%s\\n' " + shellEscape(home) + "; "
-        + homeScan + "; "
-        + rootScan + "; "
-        + "} 2>/dev/null | sort -u > " + shellEscape(tmp)
-        + " && mv " + shellEscape(tmp) + " " + shellEscape(cache);
-}
-
-// Guarded so refresh() can be called on every Launcher open for free:
-// skipped while a build is already running (the tmp file is its own lock) or
-// while the cache is younger than STALE_SECONDS. Missing entirely counts as
-// stale, which is what builds a cache at all on a fresh machine.
-function refreshScript(home) {
-    var cache = cachePath(home);
-    var tmp = cache + ".tmp";
-
-    return "[ -e " + shellEscape(tmp) + " ] && exit 0; "
-        + "age=$(( $(date +%s) - $(stat -c %Y " + shellEscape(cache) + " 2>/dev/null || echo 0) )); "
-        + "if [ ! -s " + shellEscape(cache) + " ] || [ \"$age\" -gt " + STALE_SECONDS + " ]; then "
-        + buildCacheScript(home) + "; fi";
-}
-
-function refreshCommand(home) {
-    return ["sh", "-c", refreshScript(home)];
-}
-
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
-        STALE_SECONDS: STALE_SECONDS,
-        PRUNE_NAMES: PRUNE_NAMES,
-        ROOTS: ROOTS,
         SSH_HOST: SSH_HOST,
         MIRRORED: MIRRORED,
-        cachePath: cachePath,
-        parseCache: parseCache,
         relOf: relOf,
         isMirrored: isMirrored,
         entryFor: entryFor,
@@ -306,9 +220,6 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         defaultOpenArgv: defaultOpenArgv,
         herdrLaunchArgv: herdrLaunchArgv,
         chooserApps: chooserApps,
-        chooserEntriesFor: chooserEntriesFor,
-        buildCacheScript: buildCacheScript,
-        refreshScript: refreshScript,
-        refreshCommand: refreshCommand
+        chooserEntriesFor: chooserEntriesFor
     };
 }

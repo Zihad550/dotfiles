@@ -7,10 +7,9 @@
 // with how many files exist (an earlier design that cached every file under
 // the dev roots measured 1.2s per keystroke at 340k files).
 //
-// Shares the directories Provider's cache rather than building a second
-// index (~/.cache/df-dir-picker/folders.list, kept fresh by
-// Directories.qml's refresh()). The duplication that sharing entails (relOf,
-// isMirrored etc. appear again here rather than being imported) is forced:
+// Consumes the shared Directory Index paths rather than building a second
+// index. The duplication in Entry construction (relOf, isMirrored etc. appear
+// again here rather than being imported) is forced:
 // a JS file importing a sibling is a syntax error under node, and every file
 // here has to load under both QML and node for its tests to run.
 //

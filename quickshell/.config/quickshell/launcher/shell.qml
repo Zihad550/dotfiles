@@ -15,10 +15,16 @@ import qs.modules
 // instance only, enforced by -n/--no-duplicate on every start. To read this
 // instance's logs without starting a second one: `qs -c launcher log` (`-f` follows).
 ShellRoot {
+    DirectoryIndex {
+        id: directoryIndex
+    }
+
     // Created once at startup, never destroyed -- see Launcher.qml for why
     // it's not lazily loaded.
     Launcher {
         id: launcher
+
+        directoryIndex: directoryIndex
     }
 
     // The primary open path: registers straight with the compositor, so the

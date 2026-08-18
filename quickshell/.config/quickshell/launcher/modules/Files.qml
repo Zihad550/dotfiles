@@ -3,15 +3,13 @@ import Quickshell
 import Quickshell.Io
 import "../lib/matching.js" as Matching
 import "../lib/files.js" as Files
-import "../lib/directories.js" as Dirs
 
 // The files Provider: find a file inside a matched folder without navigating
 // to it first -- type a folder name, get the folders matching it each
 // followed by their immediate contents.
 //
-// Shares the directories Provider's cache (Dirs.cachePath) rather than
-// building a second index; Directories.qml's own refresh() keeps it fresh,
-// and this Provider doesn't repeat that scan.
+// Consumes the same versioned Directory Index snapshot as the directories
+// Provider. It owns neither persisted index loading nor index scans.
 //
 // The only thing read per Query is one directory level of each matching
 // folder: folders come from the cache synchronously, children come from a
@@ -38,6 +36,7 @@ QtObject {
     // Closes the chooser when the Launcher is dismissed, so reopening never
     // lands back inside a stale sub-menu.
     required property bool active
+    required property var snapshot
     onActiveChanged: {
         if (!root.active)
             root.openFor = null;
@@ -78,24 +77,18 @@ QtObject {
         return mirrored && root.routingEnabled;
     }
 
-    // Directories.qml's cache, not this Provider's own.
-    readonly property string cachePath: Dirs.cachePath(root.home)
-
     // Never "not ready": an empty cache before the background scan finishes
     // is the same "empty Query lists nothing" state, not a fault.
     readonly property bool ready: true
 
-    // A plain string, so re-parsing only happens in the one binding that needs it.
-    property string cacheText: ""
-    readonly property var paths: Dirs.parseCache(root.cacheText)
+    readonly property var paths: root.snapshot.paths
 
-    // Re-asked here as well as on a keystroke: this Provider doesn't own the
-    // cache, and Directories.qml's refresh() can land a scan under a Query
-    // already typed. Without this, a late-arriving cache renders folder rows
-    // with no contents until the next keystroke.
+    // Re-asked here as well as on a keystroke: a new shared snapshot can land
+    // under a Query already typed. Without this, late-arriving paths render
+    // folder rows with no contents until the next keystroke.
     onPathsChanged: {
         console.log("launcher: files Provider sees", root.paths.length,
-            "path(s) in", root.cachePath);
+            "path(s) at Directory Index revision", root.snapshot.revision);
         root.scheduleListing();
     }
 
@@ -243,18 +236,6 @@ QtObject {
                 Qt.callLater(root.scheduleListing);
             }
         }
-    }
-
-    // QtObject has no default property to nest a child into.
-    readonly property FileView cacheFile: FileView {
-        id: cacheView
-
-        // Watched, not read once: this process is never the only writer
-        // (Directories.qml's background scan is a separate process).
-        path: root.cachePath
-        watchChanges: true
-        onFileChanged: cacheView.reload()
-        onLoaded: root.cacheText = cacheView.text()
     }
 
     // Existence-only: routing is off, the default, until this file appears.

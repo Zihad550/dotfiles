@@ -26,6 +26,8 @@ import "../lib/power.js" as Power
 PanelWindow {
     id: root
 
+    required property var directoryIndex
+
     anchors {
         top: true
         bottom: true
@@ -444,6 +446,10 @@ PanelWindow {
                 provider.refresh();
         });
 
+        // The Directory Index is shared state rather than a Provider, so its
+        // behavior-preserving stale check is requested separately.
+        root.directoryIndex.access();
+
         // Frecency decays with wall-clock time and this process may run for
         // weeks without restarting, so an open is what moves its clock forward.
         Frecency.refresh();
@@ -645,6 +651,7 @@ PanelWindow {
         // Closes any open chooser the moment the Launcher is dismissed -- see
         // the note on `active` there.
         active: root.visible
+        snapshot: root.directoryIndex.snapshot
     }
 
     Files {
@@ -653,6 +660,7 @@ PanelWindow {
         // `queryText`: the Query with its prefix stripped, or "" when routed
         // elsewhere -- the catalog binds on this, so every keystroke re-selects.
         active: root.visible
+        snapshot: root.directoryIndex.snapshot
         queryText: root.routed.provider === files ? root.routed.query : ""
     }
 
