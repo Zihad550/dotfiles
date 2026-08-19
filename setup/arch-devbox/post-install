@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
 # Non-interactive post-install tasks only. This runs via run_step (stdin
 # /dev/null, stdout -> log), so it must NOT prompt. The reboot confirmation and
 # the user-facing reminders live at the end of init, after ui_done frees the
@@ -12,6 +14,9 @@ tldr --update
 # the default browser unset.
 xdg-settings set default-web-browser chromium.desktop ||
     echo "warn: could not set chromium as default browser — check 'pacman -Ql chromium | grep applications'"
+
+# setup snapper
+run_step "snapper config update" "$DOTFILES_DIR/setup/common/setup-snapper"
 
 # Test if AppArmor is correctly enabled.
 echo "Is app armor enabled: $(aa-enabled 2>/dev/null || echo 'unknown')"
