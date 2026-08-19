@@ -113,10 +113,10 @@ Settings.
 _Avoid_: gear menu, settings menu, control centre, tray
 
 Its primary surface is ordered as header actions and battery summary, the
-full-width volume control, passive Wired status when connected, then the
-reflowing Wi-Fi/Bluetooth/Tailscale/Devcontainer Tile grid. Wired is transport
-state, not a Tile; unavailable Tiles are omitted so the remaining controls
-reflow without placeholders.
+full-width volume and brightness controls, passive Wired status when connected,
+then the reflowing Wi-Fi/Bluetooth/Tailscale/Devcontainer Tile grid. Wired is
+transport state, not a Tile; unavailable controls are omitted so the remaining
+content reflows without placeholders.
 
 **Status Cluster**:
 The grouped at-a-glance indicators at the right of the bar and the mouse entry
