@@ -53,3 +53,8 @@ sudo pacman -S --noconfirm \
 # dropped — not dev
 # nautilus-image-converter \
 # gnome-font-viewer \
+
+
+# ai apps
+sudo pacman -S --noconfirm \
+    openai-codex-desktop
