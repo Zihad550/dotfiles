@@ -43,10 +43,11 @@ o.bind("SUPER + SHIFT + D", "Docker", dotfiles_bin .. "/df-launch-tui lazydocker
 --     dotfiles_bin .. [[/df-launch-special-app "^lazydocker$" "ghostty -e lazydocker" "lazydocker"]])
 
 -- Special TUI sessions
--- Fixed local-only Herdr window; its dotted identity excludes ordinary
--- Launcher-created Ghostty windows. See docs/adr/0003-tmux-to-herdr.md.
+-- Fixed Herdr window; its dotted identity excludes ordinary Launcher-created
+-- Ghostty windows. Follows Devcontainer Routing like every other call site --
+-- see docs/adr/0007-super-u-follows-devcontainer-routing.md.
 o.bind("SUPER + U", "Herdr",
-    dotfiles_bin .. [[/df-launch-special-workspace "io.github.zihad550.dotfiles.herdr" "herdr" ghostty "--class=io.github.zihad550.dotfiles.herdr" "--title=herdr" -e "]] .. dotfiles_bin .. [[/df-herdr-session" --local herdr "]] .. home .. [[/dotfiles"]])
+    dotfiles_bin .. [[/df-launch-special-workspace "io.github.zihad550.dotfiles.herdr" "herdr" ghostty "--class=io.github.zihad550.dotfiles.herdr" "--title=herdr" -e "]] .. dotfiles_bin .. [[/df-herdr-session" herdr "]] .. home .. [[/dotfiles"]])
 -- o.bind("SUPER + i", "Zellij",
 --     dotfiles_bin .. [[/df-launch-special-app 'work-zellij' 'ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit' 'work-zellij']])
 -- o.bind("SUPER + i", "Tmux work session",

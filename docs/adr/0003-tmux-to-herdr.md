@@ -74,6 +74,10 @@ entirely and always takes the local branch. Only `apps.lua`'s `SUPER+U`
 binding passes it; the Launcher's `herdrLaunchArgv` does not, so opening a
 mirrored directory from the Launcher still routes when the toggle is on.
 
+*Superseded by `docs/adr/0007-super-u-follows-devcontainer-routing.md`:*
+*`SUPER+U` now follows the toggle like every other call site, and `--local`*
+*is deleted.*
+
 ## Consequences
 
 - `bin/df-herdr-session` replaces `bin/df-tmux-session`: same allowlist/host

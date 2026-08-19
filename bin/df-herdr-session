@@ -2,21 +2,11 @@
 
 # Open a directory in herdr, routing into the devcontainer when the toggle
 # says to -- see docs/adr/0002-devcontainer-routing-toggle.md and
-# docs/adr/0003-tmux-to-herdr.md.
+# docs/adr/0007-super-u-follows-devcontainer-routing.md.
 #
-# Called by the Launcher's Herdr entry and directly by SUPER+U (ticket 03) --
-# neither hands in a routing decision, so this re-derives it itself. Args
-# are argv, never shell-words.
-#
-# --local (optional, must come first): force the local branch regardless of
-# the toggle/allowlist -- SUPER+U's fixed shortcut uses this. See
-# docs/adr/0003-tmux-to-herdr.md.
-force_local=false
-if [ "${1:-}" = "--local" ]; then
-    force_local=true
-    shift
-fi
-
+# Called by the Launcher's Herdr entry and directly by SUPER+U -- neither
+# hands in a routing decision, so this re-derives it itself. Args are argv,
+# never shell-words.
 name="$1"
 path="$2"
 
@@ -79,7 +69,7 @@ resolved_host() {
 }
 
 routed=false
-if [ "$force_local" != true ] && routing_enabled && is_mirrored "$path"; then
+if routing_enabled && is_mirrored "$path"; then
     routed=true
 fi
 

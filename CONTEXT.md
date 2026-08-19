@@ -164,3 +164,18 @@ The Hyprland desktop's application and workspace conventions.
 A named workspace normally kept out of view and summoned by a dedicated key,
 giving a recurring application a single place that can be shown or hidden.
 _Avoid_: scratchpad, special scratchpad, Special App
+
+**Devcontainer Routing**:
+The persisted, default-off switch that makes the desktop open a Mirrored
+Directory on the devcontainer host instead of locally — the Devcontainer Tile
+in Quick Settings flips it, and every call site consults it rather than
+deciding for itself. Off means the feature does not exist: nothing SSHes
+anywhere.
+_Avoid_: devcontainer mode, remote mode, SSH mode
+
+**Mirrored Directory**:
+A path under a root the devcontainer also has mounted. A second gate,
+independent of Devcontainer Routing: routing answers "am I working in the
+devcontainer right now", mirrored answers "does the devcontainer actually
+have this directory".
+_Avoid_: synced directory, shared directory
