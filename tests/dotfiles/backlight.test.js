@@ -34,16 +34,16 @@ test("backlight state serializes repeated adjustments from confirmed values", ()
     state = Backlight.queueAdjustment(state, 5);
 
     const first = Backlight.takeAdjustment(state);
-    assert.deepStrictEqual(first.command, Backlight.writeCommand(226));
+    assert.deepStrictEqual(first.command, Backlight.writeCommand(225));
     assert.strictEqual(first.state.pendingAdjustment, 0);
 
     state = Backlight.queueAdjustment(first.state, 5);
     assert.strictEqual(state.pendingAdjustment, 5);
     assert.strictEqual(Backlight.takeAdjustment(state), null, "a second write waits for confirmation");
-    state = Backlight.settleWrite(state, 0, { current: 226, maximum: 500 }).state;
+    state = Backlight.settleWrite(state, 0, { current: 225, maximum: 500 }).state;
 
     const second = Backlight.takeAdjustment(state);
-    assert.deepStrictEqual(second.command, Backlight.writeCommand(251));
+    assert.deepStrictEqual(second.command, Backlight.writeCommand(250));
 });
 
 test("only successful write settlement confirms an OSD value", () => {
@@ -75,11 +75,39 @@ test("backlight failures retain confirmation and a later refresh recovers", () =
 
 test("backlight percentage maps across the nonzero hardware range", () => {
     assert.strictEqual(Backlight.rawForPercent(0, 500), 1);
-    assert.strictEqual(Backlight.rawForPercent(50, 500), 251);
-    assert.strictEqual(Backlight.rawForPercent(100, 500), 500);
+    assert.strictEqual(Backlight.rawForPercent(50, 500), 250);
     assert.strictEqual(Backlight.percentForRaw(1, 500), 0);
     assert.strictEqual(Backlight.percentForRaw(251, 500), 50);
     assert.strictEqual(Backlight.percentForRaw(500, 500), 100);
+});
+
+test("100% never writes the literal maximum raw value (issue #86: some panels blank out at max)", () => {
+    assert.strictEqual(Backlight.rawForPercent(100, 500), 499);
+    assert.strictEqual(Backlight.rawForPercent(100, 2), 1);
+    // A single-step range has no room to cap below the maximum.
+    assert.strictEqual(Backlight.rawForPercent(100, 1), 1);
+});
+
+test("the capped write still round-trips to a displayed 100%, including on small-range panels", () => {
+    assert.strictEqual(Backlight.percentForRaw(Backlight.rawForPercent(100, 500), 500), 100);
+    assert.strictEqual(Backlight.percentForRaw(Backlight.rawForPercent(100, 100), 100), 100);
+    assert.strictEqual(Backlight.percentForRaw(Backlight.rawForPercent(100, 24), 24), 100);
+    assert.strictEqual(Backlight.percentForRaw(Backlight.rawForPercent(100, 2), 2), 100);
+});
+
+test("a brightness-down step off a capped 100% always yields a lower raw value", () => {
+    // 1% is skipped at maximum=24: that panel quantizes to ~4.2%/unit, so a
+    // single 1% press can legitimately not move (see docs/adr/0008).
+    for (const maximum of [500, 100, 24]) {
+        const atMax = Backlight.rawForPercent(100, maximum);
+        const fiveDown = Backlight.rawForPercent(95, maximum);
+        assert.ok(fiveDown < atMax, `maximum=${maximum} step=5: ${fiveDown} was not below ${atMax}`);
+    }
+    for (const maximum of [500, 100]) {
+        const atMax = Backlight.rawForPercent(100, maximum);
+        const oneDown = Backlight.rawForPercent(99, maximum);
+        assert.ok(oneDown < atMax, `maximum=${maximum} step=1: ${oneDown} was not below ${atMax}`);
+    }
 });
 
 test("shared backlight singleton owns refresh, serialized writes, and confirmed state", () => {

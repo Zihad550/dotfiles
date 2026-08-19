@@ -26,18 +26,29 @@ function parse(line) {
     return { current, maximum };
 }
 
+// Keeps the literal max raw value unreachable -- see docs/adr/0008-backlight-avoids-literal-max-raw.md.
+function safeMaximum(maximum) {
+    return maximum > 1 ? maximum - 1 : maximum;
+}
+
 function rawForPercent(percent, maximum) {
     if (!Number.isFinite(maximum) || maximum < 1)
         return 0;
     const clamped = Math.max(0, Math.min(100, percent));
-    return Math.max(1, Math.min(maximum, Math.round(1 + clamped / 100 * (maximum - 1))));
+    const safeMax = safeMaximum(maximum);
+    if (safeMax <= 1)
+        return safeMax;
+    return Math.max(1, Math.min(safeMax, Math.round(1 + clamped / 100 * (safeMax - 1))));
 }
 
 function percentForRaw(current, maximum) {
     if (!Number.isFinite(maximum) || maximum <= 1)
         return current > 0 ? 100 : 0;
-    const clamped = Math.max(1, Math.min(maximum, current));
-    return Math.round((clamped - 1) / (maximum - 1) * 100);
+    const safeMax = safeMaximum(maximum);
+    if (safeMax <= 1)
+        return current > 0 ? 100 : 0;
+    const clamped = Math.max(1, Math.min(safeMax, current));
+    return Math.round((clamped - 1) / (safeMax - 1) * 100);
 }
 
 function initialState() {
