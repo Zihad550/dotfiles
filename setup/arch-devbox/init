@@ -118,8 +118,8 @@ run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
 # targets, so its runtime dependencies are too.
 run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
 
-# Rootless, not arch-hyprland's rootful step -- this box runs AI harnesses
-# against text pulled off the internet. See setup-docker and README.md "docker".
+# Rootless -- this box runs AI harnesses against text pulled off the internet.
+# See ../common/setup-rootless-docker and README.md "docker".
 run_step "docker" "$DOTFILES_DIR/setup/common/setup-rootless-docker"
 
 # sshd before the firewall: once setup-ufw runs, port 22 over the tailnet is the

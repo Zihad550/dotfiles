@@ -1,61 +1,11 @@
 #!/usr/bin/env bash
 
-# Tailnet-only firewall. This box lives on its own VLAN and has no business
-# talking to anything else on the wire: the tailnet is the only way in, and the
-# only LAN peer it may talk to is the gateway that carries it to the internet.
+# Tailnet-only firewall, step 2 of two after ./setup-ufw-lan. Arch port of
+# ../ubuntu-devbox/setup-ufw, diverged. See "## order" and "## firewall" in
+# ./README.md for the full design and rationale.
 #
-# Step 2 of two. ./setup-ufw-lan opened a temporary ssh hole from one LAN
-# machine so the setup could be driven from your laptop; this closes it and
-# leaves the tailnet as the only way in. It asks nothing, so it is
-# non-interactive.
-#
-# Arch port of ../ubuntu-devbox/setup-ufw, diverged. There the LAN hole is the
-# permanent break-glass path, so that script both prompts for it and keeps it.
-# Here the prompt lives in ./setup-ufw-lan and the hole is scaffolding.
-#
-# ─── why the extra rules ─────────────────────────────────────────────────────
-# This machine runs AI harnesses against web projects. Assume, as the design
-# point, that something with a shell here is eventually driven by text it read
-# off the internet -- a poisoned README, an npm postinstall, a page the agent
-# was told to scrape. Ingress rules do nothing about that; the interesting
-# question is what such a process can reach. So on top of deny-all-inbound:
-#
-#   * egress to RFC1918 is dropped on the physical interface (host AND
-#     containers), leaving the gateway as the single permitted LAN peer. The
-#     VLAN is the boundary; this makes the box enforce it rather than trust it.
-#   * link-local 169.254.0.0/16 goes too -- that is where cloud/hypervisor
-#     metadata services live, a favourite SSRF target.
-#   * the box stops answering pings on the VLAN, so it is not even enumerable
-#     from there.
-#
-# Deliberately NOT done: default-deny egress with an allowlist. A web dev box
-# pulls from npm, PyPI, ghcr, Docker Hub, GitHub and a handful of model APIs,
-# all behind CDNs with rotating address space. An IP allowlist for that is
-# fiction, and one that gets `ufw allow out to any` appended at the first broken
-# build is worse than not having it. Egress control that actually holds needs a
-# filtering proxy, not ufw.
-#
-# One consequence worth flagging here rather than leaving it buried in the
-# rules below: a DNS resolver that lives on the LAN but isn't the gateway
-# itself (a pi-hole on its own box, say) loses reachability the same way any
-# other LAN peer does. ./setup-dns points this box at a public resolver
-# instead -- one whose address these egress rules never match.
-#
-# ─── order ───────────────────────────────────────────────────────────────────
-# Run AFTER ./setup-tailscale, so tailscale0 exists and tailscaled is up. For
-# the full sequence see `## order` in ./README.md -- the canonical copy, so that
-# reordering is one edit and not five.
-#
-# What this one inherits: setup-ufw-base (run by init) set the deny-all
-# baseline; ./setup-ufw-lan may have opened a LAN ssh hole in between. This
-# adds the tailnet hole and the hardening on top, and removes the LAN one.
-#
-# There is a real lockout risk in this step that step 1 does not have: after it
-# runs, the tailnet is the only remote path in. The script refuses to proceed
-# unless tailscale is actually up, and refuses to cut a LAN ssh session out from
-# under itself -- which is the likely case, since step 1 exists so you can get
-# this far over the LAN. Override either with FORCE=1 if you are at the physical
-# keyboard and mean it.
+# Real lockout risk: after this runs, the tailnet is the only remote way in.
+# See "### lockout" in ./README.md; guards and FORCE=1 override below.
 
 set -uo pipefail
 
@@ -64,10 +14,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/../common/ufw-lib"
 
 # ─── what we are on ──────────────────────────────────────────────────────────
-# The physical uplink. Every deny below is scoped to this interface by name
-# rather than by subnet, which is what keeps them from catching traffic they
-# should not: docker bridges and tailscale0 carry RFC1918 too, and blanket
-# subnet denies would break containers and any tailnet subnet route.
+# The physical uplink -- every deny below is scoped to it by name, not by
+# subnet. See "### what setup-ufw blocks..." in ./README.md for why.
 LAN_IFACE="$(ip -4 route show default | awk '{print $5; exit}')"
 GATEWAY="$(ip -4 route show default | awk '{print $3; exit}')"
 
@@ -100,12 +48,9 @@ Applying these rules now would leave no remote way in at all."
 Applying these rules now would leave no remote way in at all."
     fi
 
-    # SSH_CONNECTION is "<client ip> <client port> <server ip> <server port>".
-    # The server-side address is the exact test we want: if this session landed
-    # on the tailnet IP it arrives over tailscale0 and survives; if it landed on
-    # the LAN address, the rules below cut the branch we are sitting on.
-    # :- matters -- SSH_CONNECTION is unset at a physical console, and `set -u`
-    # would otherwise kill the script in the one case that is entirely safe.
+    # SSH_CONNECTION is "<client ip> <port> <server ip> <port>" -- the server
+    # side tells us which interface this session landed on. Unset at a
+    # physical console; `:-` keeps that safe under `set -u`.
     conn="${SSH_CONNECTION:-}"
     if [ -n "$conn" ]; then
         server_ip="$(echo "$conn" | awk '{print $3}')"
@@ -122,12 +67,8 @@ set -e
 
 ufw_bootstrap
 
-# ufw's own default, asserted rather than assumed: nothing gets routed through
-# this box unless a `ufw route` rule says so. Rootless docker (./setup-docker)
-# doesn't need a carve-out here the way rootful dockerd would: it has no root
-# to write DNAT rules with, so container traffic never bypasses ufw's chains
-# in the first place -- see the note below on why the `ufw route deny` rules
-# are now closing a gap rootless docker doesn't open.
+# ufw's own default, asserted not assumed. Rootless docker needs no carve-out
+# here -- see "## docker" in ./README.md.
 sudo ufw default deny routed
 
 # Blocked packets land in the journal at this level, which is the point: the
@@ -136,14 +77,8 @@ sudo ufw default deny routed
 sudo ufw logging low
 
 # ─── ingress: the tailnet, and nothing else ──────────────────────────────────
-# The whole tailnet, every port. This is what makes per-port dev server rules
-# unnecessary -- a new app on :3000, or a database on :5432, is reachable with
-# no firewall change. It is also why no LAN ssh rule is needed, and why
-# ./harden-ssh has no firewall work to do: sshd is reachable over the tailnet on
-# whatever port it listens on, 22 included. Tailscale SSH is not used on this box
-# (RunSSH is false), so tailscaled does not intercept 22 and sshd is the remote
-# access path rather than a fallback behind it. See `### the access model` in
-# ./README.md.
+# The whole tailnet, every port -- no per-port dev-server rules needed, and
+# nothing extra for sshd. See "### the access model" in ./README.md.
 sudo ufw allow in on tailscale0 comment 'tailnet'
 
 # The point of step 2: setup-ufw-lan's temporary hole goes away. Added after
@@ -155,15 +90,9 @@ delete_rules_matching 'lan break-glass'
 # below has to be added before the denies that would otherwise swallow it.
 
 if [ -n "$GATEWAY" ]; then
-    # The one LAN peer that stays reachable. Scoped to the single host, not the
-    # subnet: it is the router, so DNS/NTP/DHCP served by it keep working while
-    # every other address on the VLAN stays dark. Traffic to the internet is
-    # unaffected either way -- those packets carry a public destination and only
-    # pass through the gateway at layer 2.
-    #
-    # This only covers a resolver running ON the gateway. One on its own LAN box
-    # (a pi-hole, say) is a different address and gets caught by the isolation
-    # denies below same as anything else -- see ./setup-dns.
+    # The one LAN peer that stays reachable -- scoped to the host, not the
+    # subnet. A resolver elsewhere on the LAN (pi-hole, say) is still blocked;
+    # see "### what setup-ufw blocks" in ./README.md.
     sudo ufw allow out on "$LAN_IFACE" to "$GATEWAY" comment 'vlan gateway'
     sudo ufw route allow out on "$LAN_IFACE" to "$GATEWAY" comment 'vlan gateway (containers)'
 else
@@ -175,21 +104,10 @@ fi
 # never reach the filter table -- this rule is for anything that does not.
 sudo ufw allow out on "$LAN_IFACE" proto udp to 255.255.255.255 port 67 comment 'dhcp'
 
-# The isolation itself. `out on $LAN_IFACE` is the whole trick: an identical
-# destination reached over tailscale0 (a tailnet subnet route) does not match
-# these rules and keeps working. Rootless docker (./setup-docker) has no
-# interface on this list at all -- its networking lives inside a detached
-# netns invisible to `ip link` on the host, see ./README.md's docker section.
-#
-# Each range is applied twice. `ufw ... out` is the OUTPUT chain -- processes on
-# the host. `ufw route ... out` is the FORWARD chain, which is where a rootful
-# dockerd's container traffic would go; an agent that escaped into `docker run`
-# would otherwise walk straight past the host rules. Rootless docker
-# (./setup-docker) never puts container egress on FORWARD at all -- it's
-# NAT'd inside the user's own network namespace and emerges as ordinary
-# process traffic, so the OUTPUT half above already covers it. The route half
-# is now dead weight rather than a gap-closer, kept for the day this box goes
-# back to rootful. See ./README.md's docker section for detail.
+# `out on $LAN_IFACE` is the whole trick -- an identical destination reached
+# over tailscale0 keeps working. `ufw route ...` (FORWARD chain) is dead
+# weight for rootless docker, kept for a future rootful box -- see "## docker"
+# in ./README.md.
 for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4; do
     sudo ufw deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation'
     sudo ufw route deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation (containers)'
@@ -283,11 +201,8 @@ net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
 
-# net.ipv4.ip_forward is deliberately absent, not just left at its default:
-# rootful docker turns it on itself, and a rule pinning it to 0 would fight
-# that on the day this box goes back to rootful. Rootless docker (this box's
-# current setup) doesn't need it -- container networking is userspace TAP
-# traffic, not kernel routing, and this stays at the Arch default of 0.
+# ip_forward is deliberately absent, not left at default -- rootful docker
+# turns it on itself; see "## docker" in ./README.md.
 EOF
 sudo sysctl --system >/dev/null
 
@@ -309,21 +224,10 @@ elif [ ! -f /etc/ssh/sshd_config.d/00-harden.conf ]; then
     echo "        $HERE/harden-ssh"
 fi
 
-# The one way to defeat everything above, checked rather than just documented:
-# forwarding tailnet traffic onward puts tailscaled's ts-forward chain (FORWARD
-# position 1, above both DOCKER-USER and ufw) in charge, and it accepts anything
-# arriving on tailscale0 unconditionally. See `#### the one rule ufw cannot
-# enforce` in ./README.md. No ufw rule can prevent it, so all this can do is
-# notice.
-#
-# Three prefs turn forwarding on, and --advertise-exit-node is not a fourth: it
-# is 0.0.0.0/0 and ::/0 inside AdvertiseRoutes. An app connector is easy to miss
-# because it advertises its routes dynamically, as it resolves the domains it
-# fronts -- AdvertiseRoutes can still read null at the moment we look.
-#
-# Flattened first, so the tests survive the pretty-printed JSON. Note unset
-# prints `null`, not `[]`, so the empty-list arm is for tailscaled versions that
-# print one rather than for the ordinary case.
+# The one way to defeat everything above: forwarding tailnet traffic onward
+# hands it to tailscaled's ts-forward chain, ahead of ufw entirely. No rule
+# here can prevent it, only notice -- see "#### the one rule ufw cannot
+# enforce" in ./README.md.
 warn_forwarding() {
     echo
     echo "WARNING: $1"
@@ -335,6 +239,8 @@ warn_forwarding() {
     echo "           sudo tailscale up --app-connector=false"
 }
 
+# Flattened first so tests survive pretty-printed JSON; unset prints `null`,
+# not `[]`, hence both arms below.
 prefs="$(tailscale debug prefs 2>/dev/null | tr -d '[:space:]')"
 case "$prefs" in
 *'"AdvertiseRoutes":[]'* | *'"AdvertiseRoutes":null'*) ;;

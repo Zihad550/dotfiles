@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
 
-# Non-interactive firewall baseline, run from init.
-#
-# Deny everything in, allow everything out. Everything a remote machine could
-# use comes from setup-ufw-lan (a temporary LAN ssh hole) and setup-ufw (the
-# tailnet), both of which have to be run by hand afterwards: one is
-# interactive, the other needs tailscale0 to already exist.
-#
-# There is no lockout risk in enabling this during init: you are at the physical
-# keyboard, and nothing is being allowed in that was open a moment ago.
-#
-# Replaces ../arch-hyprland/setup-packages/setup-ufw, which opens the syncthing
-# profile and does `ufw deny SSH` — the opposite of what this box wants.
-#
-# No ufw-docker here, and no docker0 DNS rule -- both were for rootful
-# dockerd's DNAT rules and host-visible bridge. ./setup-docker installs
-# rootless docker instead, which publishes ports as an ordinary userspace
-# listener that ufw already governs. See README.md "docker".
+# Non-interactive firewall baseline, run from init: deny-all-in, allow-all-out.
+# setup-ufw-lan and setup-ufw layer the real holes on top, run by hand after.
+# See "## order" and "## firewall" in ./README.md for the full design.
 
 set -e
 

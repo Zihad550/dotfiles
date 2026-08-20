@@ -67,7 +67,7 @@ so a fix there lands on both targets.
 | `hypridle.conf` | devbox idle rules — lock and DPMS-off, no suspend |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
-| `setup-docker` | rootless docker instead of arch-hyprland's rootful step — an AI harness box shouldn't hand a compromised container a root-owned daemon |
+| `docker` | rootless docker via [`../common/setup-rootless-docker`](../common/setup-rootless-docker), called directly (no local wrapper) — an AI harness box shouldn't hand a compromised container a root-owned daemon |
 | `setup-ufw-base` | non-interactive deny-all baseline, run by `init` |
 | `setup-ufw-lan` | step 1: a temporary ssh hole from one LAN machine, so the rest can be driven remotely |
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
@@ -309,9 +309,10 @@ handshake or an HTTP status. Strip those three lines back out afterwards.
 
 ## docker
 
-Rootless, via [`setup-docker`](setup-docker) — `curl -fsSL
-https://get.docker.com/rootless | sh` — not
-`../arch-hyprland/setup-packages/setup-docker`'s plain `pacman -S docker`.
+Rootless, via [`setup-rootless-docker`](../common/setup-rootless-docker) — `curl
+-fsSL https://get.docker.com/rootless | sh` — not the plain `pacman -S docker`
+of `../common/setup-docker` (formerly arch-hyprland's own rootful step; see
+#95 for its own move to rootless).
 This box runs AI harnesses against text pulled off the internet (see
 [firewall](#firewall)); a compromised container landing on a root-owned
 daemon is a worse outcome than the same container landing on a daemon that
