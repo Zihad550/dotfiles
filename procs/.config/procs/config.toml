@@ -131,7 +131,7 @@ column = 0
 order = "Ascending"
 
 [docker]
-path = "unix:///var/run/docker.sock"
+path = "unix:///run/user/1000/docker.sock"
 
 [pager]
 mode = "Auto"

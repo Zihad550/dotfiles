@@ -47,8 +47,8 @@ remote path — there is no Tailscale SSH behind it. See
 [the access model](#the-access-model-real-sshd-over-the-tailnet).
 
 `init` leaves the firewall at **deny-all incoming** in the meantime, so the box
-is never unprotected between steps. The one allow rule it writes is container
-DNS, scoped to `docker0` — nothing off this machine can match it.
+is never unprotected between steps — `setup-ufw-base` writes no allow rules at
+all, just the default-deny policy.
 
 ## what this directory actually contains
 
@@ -67,7 +67,8 @@ so a fix there lands on both targets.
 | `hypridle.conf` | devbox idle rules — lock and DPMS-off, no suspend |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
-| `setup-ufw-base` | non-interactive deny-all baseline + `ufw-docker`, run by `init` |
+| `setup-docker` | rootless docker instead of arch-hyprland's rootful step — an AI harness box shouldn't hand a compromised container a root-owned daemon |
+| `setup-ufw-base` | non-interactive deny-all baseline, run by `init` |
 | `setup-ufw-lan` | step 1: a temporary ssh hole from one LAN machine, so the rest can be driven remotely |
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-ufw` | step 2: allow the tailnet, delete the LAN hole, cut the box off from the rest of the VLAN |
@@ -75,7 +76,8 @@ so a fix there lands on both targets.
 Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
 `gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos`, `packages/go-packages`,
 `packages/pacman-base`, `packages/quickshell-packages`
-and all of `setup-packages/`.
+and `setup-packages/` — except `setup-packages/setup-docker`, which installs
+rootful docker and is overridden by this directory's own `setup-docker`.
 
 Hardware detection is the exception: it used to be `../arch-hyprland/utils/hw-detect`
 and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
@@ -160,6 +162,12 @@ starts shelling out to something new.
 are installed with plain `pacman -S` but are not in the official Arch repos —
 they come from the omarchy repo. Dropping `setup-omarchy-repos` as "not
 minimal" breaks half of `pacman-base` plus the Hyprland steps.
+
+`ufw-docker` in particular is installed here only to be removed a few steps
+later — `packages/pacman-base` is shared with arch-hyprland, which still runs
+rootful docker and needs the package, so it isn't dropped from that shared
+list; `./setup-docker` removes it again on this box once `pacman base` has
+run. See [docker](#docker).
 
 ### flatpak is off by default
 
@@ -299,6 +307,149 @@ basic` and `log-file /tmp/dirmngr.log` to `~/.gnupg/dirmngr.conf`, `gpgconf
 --kill dirmngr`, retry, and read the log — it names resolution failure, TLS
 handshake or an HTTP status. Strip those three lines back out afterwards.
 
+## docker
+
+Rootless, via [`setup-docker`](setup-docker) — `curl -fsSL
+https://get.docker.com/rootless | sh` — not
+`../arch-hyprland/setup-packages/setup-docker`'s plain `pacman -S docker`.
+This box runs AI harnesses against text pulled off the internet (see
+[firewall](#firewall)); a compromised container landing on a root-owned
+daemon is a worse outcome than the same container landing on a daemon that
+runs as `$USER` and can be torn down by killing a user session.
+
+The consequence that matters elsewhere in this file: rootful dockerd
+publishes ports with its own iptables DNAT rules, which bypass ufw's INPUT
+chain entirely — that's what `ufw-docker` exists to plug, and it's why
+arch-hyprland's `setup-ufw` and this box's old baseline both installed it.
+Rootless dockerd has no root to write host iptables with. RootlessKit's
+builtin port driver publishes a container port as an ordinary userspace
+listener owned by this user instead, so ufw's normal rules already govern it
+— no `docker0` exception, no `DOCKER-USER` chain, no `ufw-docker` package.
+`setup-ufw-base` reflects that: it installs nothing beyond the deny-all
+policy. See [databases over tailscale](#databases-over-tailscale) for the
+consequence from the other side (a container's *published* port), and
+[the `ufw route` rules were written for rootful docker](#the-ufw-route-rules-were-written-for-rootful-docker)
+for the egress side.
+
+### what `setup-docker` does, and why each step is there
+
+`get.docker.com/rootless` is a **bootstrap wrapper**, not the setuptool
+itself — it gates on its own requirements first, extracts the binaries, and
+only then execs `dockerd-rootless-setuptool.sh install` (a separate, longer
+script) to actually configure and start the daemon. That distinction matters
+for the first bullet below: reading the wrong one of the two scripts is what
+had this section briefly, and wrongly, arguing to remove the modprobe step
+entirely.
+
+- `sudo modprobe ip_tables`, persisted via
+  `/etc/modules-load.d/arch-devbox-docker.conf`. The wrapper hardcodes an
+  `lsmod | grep ip_tables` gate before it will extract anything —
+  unconditionally, regardless of whether the box actually runs legacy
+  iptables or iptables-nft:
+  ```sh
+  # ip_tables module dependency check
+  if [ -z "$SKIP_IPTABLES" ] && ! lsmod | grep ip_tables >/dev/null 2>&1 && ...; then
+      INSTRUCTIONS="${INSTRUCTIONS}
+  modprobe ip_tables"
+  fi
+  ```
+  This box is on iptables-nft (`iptables --version` reports `(nf_tables)`,
+  and normal container networking never touches `ip_tables` — confirmed
+  empirically, a published port works fine with the module unloaded). So this
+  modprobe exists purely to satisfy the wrapper's one-time gate, not because
+  dockerd needs the module at runtime — which is also why it's safe to load
+  unconditionally: it does nothing for the box's actual traffic path, it just
+  needs to be *present* for `lsmod` to see it. It's the exact fix for the
+  literal error this box hit on its first `curl | sh`:
+  ```
+  # ip_tables module dependency check
+  # Missing system requirements. ...
+  cat <<EOF | sudo sh -x
+  modprobe ip_tables
+  EOF
+  ```
+  Persisted rather than one-shot so a future re-run of the installer (a
+  docker version bump, say) doesn't hit the same gate again after a reboot.
+
+  The setuptool the wrapper execs *afterward* has its own, smarter version of
+  this same idea — it reads `iptables --version` and picks `nf_tables` or
+  legacy `ip_tables` accordingly, printing its own `sudo sh -eux <<EOF ...`
+  block if that one's missing. It's a different check on a different script,
+  reached only once the wrapper's cruder gate above has already passed; on
+  this box it never fires, since `nf_tables` is already loaded by the time
+  the wrapper gets there.
+- Disables and removes any rootful `docker` package first — a stale rootful
+  daemon would fight the rootless one over the docker group and iptables
+  state. `docker.service` and `docker.socket` are checked and stopped
+  independently, not with one `disable --now` for both — either unit can
+  exist without the other, and `disable --now` on a unit that isn't there
+  aborts the script under `set -e`.
+- Removes `ufw-docker` too, if `packages/pacman-base` installed it (that list
+  is shared with arch-hyprland, which still needs the package — see
+  [the omarchy repo is required](#the-omarchy-repo-is-required)). `pacman
+  -Rn`, not `-Rns`: no `--recursive`, so a shared dependency like `ufw` itself
+  can't be pulled out by accident along with it.
+  No local `/etc/subuid`/`/etc/subgid` check either. It's validated by the
+  same `checks()` gate as `ip_tables` above (and again, independently, by
+  `dockerd-rootless-setuptool.sh` if run standalone later), printing its own
+  fix — `echo "$USER:100000:65536" >> /etc/subgid` — if it's missing. Unlike
+  `ip_tables`, this one was never actually observed to block anything on this
+  box: Arch's `useradd` allocates these by default since 2019, and the
+  entries were already there before any of this ever ran. Kept unguarded on
+  that basis rather than mirrored like the modprobe step — cheap to add back
+  if a future box proves that assumption wrong.
+- `loginctl enable-linger $USER` — without it, dockerd dies the moment the
+  last session for this user ends: closing the one ssh session, or logging
+  out of the graphical session. That defeats the point of a box meant to stay
+  reachable over the tailnet when nobody is at the keyboard.
+- Runs the installer only if `~/.config/systemd/user/docker.service` is
+  missing — **not** whether `~/bin/dockerd` exists. The wrapper's `checks()`
+  (`ip_tables` included) all run *before* it extracts anything, so a gate
+  failure like this box's first attempt leaves no binary behind either way —
+  both guards would have worked for the exact failures this box hit. The
+  case that actually matters is a run that got past extraction and then
+  failed *inside* the setuptool step: the wrapper's own "already installed"
+  check short-circuits any later `curl | sh` to printing manual `rm -f
+  ~/bin/dockerd` instructions and exiting 0, without retrying setup. Guarding
+  on the binary would silently no-op through that message and then crash
+  this script's own `systemctl --user enable` a few lines down against a
+  unit that was never created — so the script clears the binary first
+  whenever it's about to retry.
+- Writes `~/.config/docker/daemon.json` with the same log-size cap
+  arch-hyprland's rootful `setup-docker` writes to `/etc/docker/daemon.json`
+  — rootless dockerd reads its own config in the user's `$DOCKER_CONFIG`
+  (`zsh/.zshenv`), not the system one, so carrying the cap over verbatim
+  would otherwise silently lose it.
+- Enables and starts the `docker.service` **systemd user unit** the
+  installer writes to `~/.config/systemd/user/` — not the system unit
+  arch-hyprland's step enables.
+- Installs `docker-compose` and `docker-buildx` from pacman regardless — they
+  are CLI plugins that work fine against a rootless `DOCKER_HOST` and don't
+  pull the rootful `docker` package back in as a dependency, so there's no
+  reason to hand-roll them into `~/.docker/cli-plugins` instead. Confirmed
+  with `docker compose version` and `docker buildx version` against the
+  static `~/bin/docker`.
+
+### network driver
+
+RootlessKit picks `slirp4netns` if it's installed, else `pasta`, else falls
+back to the bundled `gvisor-tap-vsock` — no separate package needed for the
+last one, it's linked into the `rootlesskit` binary the installer drops in
+`~/bin`. Nothing in `setup-docker` pins one, so a fresh install gets
+whichever of those three is available; check what's actually running with:
+
+```bash
+ps -o args= -C rootlesskit
+```
+
+### env
+
+`zsh/.zshenv` sets `DOCKER_HOST=unix:///run/user/$UID/docker.sock` and
+`DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"`, and puts `~/bin` — where the
+installer drops `docker`, `dockerd`, `dockerd-rootless.sh` and friends — on
+`PATH`. All three are what make `docker` and `lazydocker` (already in
+`packages/pacman-base`) work as this user without `sudo` or a `docker` group.
+
 ## firewall
 
 Tailnet-only. Everything you actually use arrives on `tailscale0`; the LAN gets
@@ -308,12 +459,12 @@ boundary rather than trusting it.
 It is split across three files because only the first can run during `init`:
 
 - **`setup-ufw-base`** (run by `init`, non-interactive) — `default deny
-  incoming`, `default allow outgoing`, `ufw-docker install`, plus one
-  `allow in on docker0 ... port 53` rule for containers whose `resolv.conf`
-  names the bridge address instead of Docker's embedded forwarder. No rule
-  reachable from any network, so there is no lockout risk in enabling it
-  mid-install. That DNS rule survives `setup-ufw` — "tailnet-only" is about
-  what a *remote* machine can reach, and `docker0` is not one.
+  incoming`, `default allow outgoing`, no allow rules at all. No `ufw-docker
+  install` and no docker0 DNS rule: this box's docker (`../setup-docker`) is
+  rootless, has no host-visible bridge, and publishes ports as an ordinary
+  userspace listener rather than DNAT rules that bypass ufw — see
+  [databases over tailscale](#databases-over-tailscale). No rule reachable
+  from any network, so there is no lockout risk in enabling it mid-install.
 - **`setup-ufw-lan`** (run by hand, optional) — `setup-sshd`, then one
   `allow from <src> to any port 22` rule, commented `lan break-glass`.
 - **`setup-ufw`** (run by hand, after `setup-tailscale`) — `allow in on
@@ -377,9 +528,11 @@ internet. Inbound rules do nothing about that; what matters is reach.
 | `/etc/sysctl.d/99-arch-devbox-net.conf` | no redirects, no source routing, loose `rp_filter`, `log_martians` |
 
 Scoping the denies to the uplink interface rather than to the subnets is what
-keeps them from catching traffic that should pass: `docker0` and `tailscale0`
-carry RFC1918 too, and a blanket subnet deny would break containers and any
-tailnet subnet route. `rp_filter` is `2` (loose) rather than `1` for the same
+keeps them from catching traffic that should pass: `tailscale0` carries
+RFC1918 too, and a blanket subnet deny would break any tailnet subnet route.
+(Rootless docker has no host-visible `docker0` to worry about here — see
+[docker](#docker) — but the same logic would apply to one if this box ever
+went back to rootful.) `rp_filter` is `2` (loose) rather than `1` for the same
 reason — strict mode breaks exit nodes and subnet routes.
 
 Denied egress is logged; `journalctl -kg '\[UFW BLOCK\]' -f` is the thing to
@@ -440,11 +593,15 @@ tables above cover `FORWARD` only. If you want it settled rather than inferred:
 sudo iptables -S INPUT | head; sudo iptables -S ts-input
 ```
 
-#### why the `ufw route` rules aren't redundant with ufw-docker
+#### the `ufw route` rules were written for rootful docker
+
+This box now runs rootless docker (`../setup-docker`), which changes what
+this section is about. Kept for reference — the reasoning still applies the
+day this box goes back to rootful, and the ICMP note below builds on it.
 
 `ufw-docker install` writes a `DOCKER-USER` chain that looks like it already
-covers this. It doesn't — the source-based `RETURN` rules sit *above* the
-destination-based denies:
+covers container→LAN. It doesn't — the source-based `RETURN` rules sit
+*above* the destination-based denies:
 
 ```
 -A DOCKER-USER -j ufw-user-forward          <- first, which is what saves us
@@ -457,32 +614,52 @@ A container's own source address short-circuits to `RETURN` long before the
 `-d <rfc1918>` denies, which exist for the reverse direction (outside → container).
 `RETURN` leaves the chain rather than accepting, so the precise claim is that
 container→LAN is **not denied** by ufw-docker, not that ufw-docker permits it.
-Either way nothing stops it, and what closes it is `-j ufw-user-forward` being
-DOCKER-USER's first rule.
+Under rootful docker, what actually closes it is `-j ufw-user-forward` being
+DOCKER-USER's first rule — which is what the `ufw route deny` rules above feed
+into.
+
+**Rootless docker sidesteps this chain entirely, which is a stronger position,
+not a weaker one.** RootlessKit's networking runs inside this user's own
+network namespace: a container's packets are NAT'd there and re-emerge on the
+host as ordinary process traffic from `rootlesskit`/`dockerd-rootless.sh`, not
+as a forwarded packet on `FORWARD` at all. The OUTPUT-chain `ufw deny out`
+rules above already cover that the same as any other process — no
+`DOCKER-USER` chain needed, and none of the `RETURN`-before-deny ordering
+above to reason about. The `ufw route deny` half of each pair is inert for
+Docker on this box now; it stays in the script rather than being deleted so it
+is there again if this box ever goes back to rootful.
 
 ##### the residual gap: forwarded ICMP
 
 `before.rules` carries the blanket echo-request accept **twice** — once in
 `ufw-before-input` (line 37) and once in `ufw-before-forward` (line 43).
 `setup-ufw` patches only the first. So forwarded pings are governed by chain
-order, not by a rule of ours:
+order, not by a rule of ours — for whatever traffic actually reaches
+`FORWARD` in the first place.
 
-- **Docker traffic is covered**, because `DOCKER-USER` is at `FORWARD` position 2
-  and `ufw-before-forward` at position 5 — the isolation rules are reached first.
-- **That ordering is runtime state, not a guarantee.** Docker re-inserts
-  `DOCKER-USER` at the head of `FORWARD` when the daemon starts, ufw inserts its
-  chains on reload. The observed order has Docker above ufw, and Docker only ever
-  re-inserts *higher*, so it is stable in practice — but nothing asserts it.
-- **Non-Docker forwarding paths are not covered at all.** Anything forwarded that
-  doesn't traverse `DOCKER-USER` hits the blanket accept at position 5 before
-  `ufw-user-forward` is consulted, and can ping the VLAN.
+- **Rootless docker isn't a factor here**, for the same reason as above:
+  container traffic never reaches `FORWARD`, so there's no `DOCKER-USER`
+  ordering to reason about and no need to verify container pings the way the
+  rootful case below used to require.
+- Under rootful docker + ufw-docker, Docker traffic *was* covered, because
+  `DOCKER-USER` sits at `FORWARD` position 2 and `ufw-before-forward` at
+  position 5 — the isolation rules are reached first. That ordering is
+  runtime state, not a guarantee: Docker re-inserts `DOCKER-USER` at the head
+  of `FORWARD` when the daemon starts, and ufw inserts its chains on reload.
+  The observed order has Docker above ufw, and Docker only ever re-inserts
+  *higher*, so it was stable in practice — but nothing asserted it.
+- **Non-Docker forwarding paths are still not covered at all.** Anything
+  forwarded through this box that doesn't traverse a chain positioned ahead of
+  `ufw-before-forward` hits the blanket accept at position 5 before
+  `ufw-user-forward` is consulted, and can ping the VLAN. This box currently
+  has no such path — nothing else routes through it — so it is a latent gap,
+  not an active one.
 
 Closing it properly means interface- and destination-scoped DROP rules written
-into `before.rules` with `$LAN_IFACE` interpolated — five rules, in a static file,
-to cover a path this box doesn't currently have. Left open deliberately. Only
-ICMP echo is affected; `ufw-before-forward` pre-accepts nothing else, so TCP and
-UDP from any forwarding path still land on the `ufw route deny` rules. Verify
-with `docker run --rm alpine ping -c1 -W2 <a VLAN host>` — it should fail.
+into `before.rules` with `$LAN_IFACE` interpolated — five rules, in a static
+file, to cover a path this box doesn't currently have. Left open deliberately.
+Only ICMP echo is affected; `ufw-before-forward` pre-accepts nothing else, so
+TCP and UDP from any forwarding path still land on the `ufw route deny` rules.
 
 **Not done: default-deny egress with an allowlist.** npm, PyPI, ghcr, Docker Hub,
 GitHub and the model APIs all sit behind CDNs with rotating address space. An IP
@@ -801,25 +978,25 @@ nothing:
 | PostgreSQL | `listen_addresses` (`postgresql.conf`) | `'*'`, plus a `pg_hba.conf` line for `100.64.0.0/10` |
 | MySQL/MariaDB | `bind-address` | `0.0.0.0` |
 
-**If the database runs in Docker, the tailnet-is-open rule does not apply.**
-This is the part that costs people an afternoon, so be precise about why:
+**If the database runs in Docker, the tailnet-is-open rule applies the same as
+anything else — no extra grant needed.** This is the opposite of what it would
+be under rootful docker, and worth being precise about why, since it's easy to
+carry the wrong assumption over from another box:
 
-- Docker publishes ports by writing its own iptables DNAT rules. Left alone,
-  those **bypass ufw's INPUT chain** — a container is reachable on every
-  interface no matter what `ufw status` says.
-- `ufw-docker install` (run by `setup-ufw-base`) closes that hole by filtering
-  container traffic in the `DOCKER-USER` chain instead. But `ufw allow in on
-  tailscale0` is an **INPUT** rule, and it does not govern `DOCKER-USER`.
+- Rootful dockerd publishes ports by writing its own iptables DNAT rules,
+  which **bypass ufw's INPUT chain** — a container would be reachable on every
+  interface no matter what `ufw status` says, and would need `ufw-docker
+  allow` (or a DOCKER-USER-level grant) to be scoped back down to the tailnet.
+- This box's docker (`./setup-docker`) is **rootless**. RootlessKit's builtin
+  port driver publishes a container port as an ordinary userspace listener
+  owned by this user, not a DNAT rule — the same way a plain `pnpm dev` opens
+  a port. `ufw allow in on tailscale0` is an INPUT rule, and INPUT is exactly
+  what governs an ordinary listener. `setup-ufw-base` doesn't install
+  ufw-docker at all (see [firewall](#firewall)), so there is no DOCKER-USER
+  chain and nothing to grant.
 
-So for containers, expect to need an explicit grant:
-
-```bash
-sudo ufw-docker allow <container-name> <port>
-sudo ufw reload
-```
-
-Find out in ten seconds rather than guessing — from the laptop, against a
-throwaway container on the box:
+Find out in ten seconds rather than trusting the paragraph above — from the
+laptop, against a throwaway container on the box:
 
 ```bash
 # on arch-devbox
@@ -828,17 +1005,18 @@ docker run -d --name pgtest -p 5432:5432 -e POSTGRES_PASSWORD=x postgres
 nc -vz devbox 5432
 ```
 
-If that refuses, `ufw-docker allow` is required, not optional — and the same
-applies to every containerized dev server, not just databases. Publishing on the
-tailnet address is worth doing regardless, as defense in depth rather than as a
-substitute for the grant:
+That should succeed with no firewall change on either side. If it refuses,
+check `docker info | grep -i rootless` first — a box that somehow reverted to
+rootful docker is back to needing the `ufw-docker allow` grant described
+above. Publishing on the tailnet address specifically is still worth doing as
+defense in depth, not because it's required here:
 
 ```bash
 docker run -p "$(tailscale ip -4):5432:5432" postgres
 ```
 
-A **host** process — `pnpm dev`, or a database installed from pacman — is not
-affected by any of this; the `tailscale0` rule covers it directly.
+A **host** process — `pnpm dev`, or a database installed from pacman — needs
+no grant either way; the `tailscale0` rule has always covered it directly.
 
 **Why not the apps' built-in SSH tunnel?** `tailscale up --ssh` makes
 `tailscaled` the listener on port 22 of the tailnet IP, so a tunnel aimed at

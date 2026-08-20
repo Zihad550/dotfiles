@@ -60,6 +60,7 @@ Cmnd_Alias ARCH_SETUP_CLEANUP = /usr/bin/rm -f /etc/sudoers.d/arch-setup-first-r
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl
 $USER ALL=(ALL) NOPASSWD: /usr/bin/ufw
 $USER ALL=(ALL) NOPASSWD: /usr/bin/snapper
+$USER ALL=(ALL) NOPASSWD: /usr/bin/modprobe
 $USER ALL=(ALL) NOPASSWD: ARCH_SETUP_CLEANUP
 EOF
 sudo chmod 440 /etc/sudoers.d/arch-setup-first-run
@@ -117,14 +118,16 @@ run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
 # targets, so its runtime dependencies are too.
 run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
 
-run_step "docker" "$ARCH_HYPR_DIR/setup-packages/setup-docker"
+# Rootless, not arch-hyprland's rootful step -- this box runs AI harnesses
+# against text pulled off the internet. See setup-docker and README.md "docker".
+run_step "docker" "$ARCH_DEVBOX_DIR/setup-docker"
 
 # sshd before the firewall: once setup-ufw runs, port 22 over the tailnet is the
 # fallback for a broken Tailscale SSH ACL — and Arch does not enable sshd itself.
 run_step "sshd" "$ARCH_DEVBOX_DIR/setup-sshd"
 
-# Deny-all baseline + ufw-docker only. The tailnet hole and the VLAN-isolation
-# rules come from ./setup-tailscale and ./setup-ufw, which must be run by hand
+# Deny-all baseline only. The tailnet hole and the VLAN-isolation rules come
+# from ./setup-tailscale and ./setup-ufw, which must be run by hand
 # after this — setup-tailscale is interactive (a login URL) and run_step gives
 # steps stdin /dev/null, and setup-ufw needs tailscale0 to already exist.
 # NOT ../arch-hyprland/setup-packages/setup-ufw: that one opens the syncthing

@@ -46,10 +46,9 @@
 # the full sequence see `## order` in ./README.md -- the canonical copy, so that
 # reordering is one edit and not five.
 #
-# What this one inherits: setup-ufw-base (run by init) set the deny-all baseline
-# and installed ufw-docker; ./setup-ufw-lan may have opened a LAN ssh hole in
-# between. This adds the tailnet hole and the hardening on top, and removes the
-# LAN one.
+# What this one inherits: setup-ufw-base (run by init) set the deny-all
+# baseline; ./setup-ufw-lan may have opened a LAN ssh hole in between. This
+# adds the tailnet hole and the hardening on top, and removes the LAN one.
 #
 # There is a real lockout risk in this step that step 1 does not have: after it
 # runs, the tailnet is the only remote path in. The script refuses to proceed
@@ -124,9 +123,11 @@ set -e
 ufw_bootstrap
 
 # ufw's own default, asserted rather than assumed: nothing gets routed through
-# this box unless a `ufw route` rule says so. Docker keeps working because
-# ufw-docker (installed by setup-ufw-base) hands container traffic to ufw's
-# forward chain instead of letting Docker's DNAT rules bypass it.
+# this box unless a `ufw route` rule says so. Rootless docker (./setup-docker)
+# doesn't need a carve-out here the way rootful dockerd would: it has no root
+# to write DNAT rules with, so container traffic never bypasses ufw's chains
+# in the first place -- see the note below on why the `ufw route deny` rules
+# are now closing a gap rootless docker doesn't open.
 sudo ufw default deny routed
 
 # Blocked packets land in the journal at this level, which is the point: the
@@ -174,19 +175,21 @@ fi
 # never reach the filter table -- this rule is for anything that does not.
 sudo ufw allow out on "$LAN_IFACE" proto udp to 255.255.255.255 port 67 comment 'dhcp'
 
-# The isolation itself. `out on $LAN_IFACE` is the whole trick: identical
-# destinations reached over tailscale0 (a tailnet subnet route) or docker0 (a
-# container network) do not match these rules and keep working.
+# The isolation itself. `out on $LAN_IFACE` is the whole trick: an identical
+# destination reached over tailscale0 (a tailnet subnet route) does not match
+# these rules and keeps working. Rootless docker (./setup-docker) has no
+# interface on this list at all -- its networking lives inside a detached
+# netns invisible to `ip link` on the host, see ./README.md's docker section.
 #
 # Each range is applied twice. `ufw ... out` is the OUTPUT chain -- processes on
-# the host. `ufw route ... out` is the FORWARD chain, which is where container
-# traffic goes; an agent that escapes into `docker run` would otherwise walk
-# straight past the host rules.
-#
-# The route half looks redundant with ufw-docker and is not -- DOCKER-USER does
-# not deny container->LAN. Chain ordering and the observed rules are in
-# ./README.md under `#### why the ufw route rules aren't redundant with
-# ufw-docker`; do not delete these two lines without reading it.
+# the host. `ufw route ... out` is the FORWARD chain, which is where a rootful
+# dockerd's container traffic would go; an agent that escaped into `docker run`
+# would otherwise walk straight past the host rules. Rootless docker
+# (./setup-docker) never puts container egress on FORWARD at all -- it's
+# NAT'd inside the user's own network namespace and emerges as ordinary
+# process traffic, so the OUTPUT half above already covers it. The route half
+# is now dead weight rather than a gap-closer, kept for the day this box goes
+# back to rootful. See ./README.md's docker section for detail.
 for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4; do
     sudo ufw deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation'
     sudo ufw route deny out on "$LAN_IFACE" log to "$net" comment 'vlan isolation (containers)'
@@ -280,7 +283,11 @@ net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
 
-# net.ipv4.ip_forward is deliberately absent: Docker needs it on, and sets it.
+# net.ipv4.ip_forward is deliberately absent, not just left at its default:
+# rootful docker turns it on itself, and a rule pinning it to 0 would fight
+# that on the day this box goes back to rootful. Rootless docker (this box's
+# current setup) doesn't need it -- container networking is userspace TAP
+# traffic, not kernel routing, and this stays at the Arch default of 0.
 EOF
 sudo sysctl --system >/dev/null
 

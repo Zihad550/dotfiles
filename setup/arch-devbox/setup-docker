@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# Rootless docker. NOT ../arch-hyprland/setup-packages/setup-docker (rootful).
+# See README.md "docker" for why. Idempotent, run by init.
+
+set -e
+
+sudo modprobe ip_tables
+
+# A stale rootful daemon would fight the rootless one over the docker group
+for unit in docker.service docker.socket; do
+    if systemctl is-enabled "$unit" &>/dev/null || systemctl is-active "$unit" &>/dev/null; then
+        sudo systemctl disable --now "$unit"
+    fi
+done
+if pacman -Qq docker &>/dev/null; then
+    sudo pacman -Rns --noconfirm docker
+    sudo rm -f /var/run/docker.sock # not guaranteed to still exist
+fi
+# pacman-base installs ufw-docker for arch-hyprland's sake; `-Rn` so `ufw`
+# itself can't get pulled out as a shared dependency.
+if pacman -Qq ufw-docker &>/dev/null; then
+    sudo pacman -Rn --noconfirm ufw-docker
+fi
+
+loginctl enable-linger "$USER"
+
+# ~/.config/systemd/user/docker.service is what a successful run leaves
+if [[ ! -f "$HOME/.config/systemd/user/docker.service" ]]; then
+    [[ -x "$HOME/bin/dockerd" ]] && rm -f "$HOME/bin/dockerd"
+    curl -fsSL https://get.docker.com/rootless | sh
+fi
+
+# Rootless dockerd reads $DOCKER_CONFIG (zsh/.zshenv), not /etc/docker/.
+mkdir -p "$HOME/.config/docker"
+if [[ ! -f "$HOME/.config/docker/daemon.json" ]]; then
+    echo '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"5"}}' >"$HOME/.config/docker/daemon.json"
+fi
+
+systemctl --user enable docker.service
+systemctl --user start docker.service
+
+# CLI plugins, not the daemon -- work fine against a rootless DOCKER_HOST.
+sudo pacman -S --noconfirm --needed docker-compose docker-buildx
+
+echo "rootless docker: $(systemctl --user is-active docker.service)"
