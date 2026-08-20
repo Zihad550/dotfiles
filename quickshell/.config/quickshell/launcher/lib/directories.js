@@ -47,17 +47,20 @@ function isMirrored(path, home) {
 // relative path, never just the leaf: a bare leaf is ambiguous the moment
 // two projects share a directory name, regardless of which corpus text
 // (textsFor below) actually matched.
-function entryFor(path, home, provider) {
+//
+// `host` marks a remote-provenance directory (ticket 90): key gets a
+// `host:` prefix so it can't collide with a local Entry of the same relative
+// path, and `mirrored` is omitted -- isMirrored answers for this machine's
+// bind mounts, not the remote host's filesystem.
+function entryFor(path, home, provider, host) {
+    var target = host ? { path: path, host: host } : { path: path, mirrored: isMirrored(path, home) };
     return {
         name: relOf(path, home),
         subtext: path,
         icon: "folder",
-        key: path,
+        key: host ? host + ":" + path : path,
         provider: provider,
-        target: {
-            path: path,
-            mirrored: isMirrored(path, home)
-        }
+        target: target
     };
 }
 
@@ -137,15 +140,20 @@ function herdrLaunchArgv(path, home) {
 // client, so it can die with the launcher without taking the (server-side,
 // persistent) session down with it -- not true for an editor, which is why
 // Files keeps the launch prefix instead.
-function chooserApps(path, routed, home, host) {
-    var target = routed ? sshUrlFor(path, host) : path;
+//
+// `remote` marks a remote-provenance directory (entryFor's `host` case, not
+// distinguishable from a routed-mirrored one by `routed`+`host` alone): it
+// forces host-targeted argv and drops the Files row (ticket 90, story 10).
+function chooserApps(path, routed, home, host, remote) {
+    var toHost = routed || remote;
+    var target = toHost ? sshUrlFor(path, host) : path;
     var sshHost = host || SSH_HOST;
 
-    function pick(local, remote) {
-        return routed && remote ? remote : local;
+    function pick(local, remoteArgv) {
+        return toHost && remoteArgv ? remoteArgv : local;
     }
 
-    return [
+    var apps = [
         {
             // `target` is the session name, not the path the other rows show
             // -- it's what the row attaches you to and what appears in
@@ -177,21 +185,27 @@ function chooserApps(path, routed, home, host) {
                 // break silently.
                 ["ghostty", "-e", "ssh", "-t", sshHost, "cd " + shellEscape(path) + " && exec nvim"]
             )
-        },
-        {
-            // No remote command at all -- Files is always local.
+        }
+    ];
+
+    // No remote command at all -- Files is always local, so a
+    // remote-provenance directory (no local path to open) omits it entirely.
+    if (!remote) {
+        apps.push({
             name: "Files", icon: "folder",
             target: path,
             argv: ["nautilus", path]
-        }
-    ];
+        });
+    }
+
+    return apps;
 }
 
 // No `key`: these don't recur the way a directory does -- the directory
 // itself already recorded a choice on the secondary Action that opened this.
-function chooserEntriesFor(path, routed, home, launchPrefix, provider, host) {
+function chooserEntriesFor(path, routed, home, launchPrefix, provider, host, remote) {
     var prefix = launchPrefix || [];
-    return chooserApps(path, routed, home, host).map(function (app) {
+    return chooserApps(path, routed, home, host, remote).map(function (app) {
         return {
             name: app.name,
             subtext: app.target,

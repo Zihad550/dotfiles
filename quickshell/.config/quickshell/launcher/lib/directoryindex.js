@@ -226,6 +226,13 @@ function accessCommand(home) {
     return ["sh", "-c", buildScanScript(home)];
 }
 
+// Same scan script as accessCommand, over ssh instead of a local shell, with
+// the scan file tailed to stdout -- this machine can't read it off the
+// remote host's disk the way accessCommand reads its own local file (ticket 91).
+function remoteAccessCommand(home, host) {
+    return ["ssh", host, buildScanScript(home) + " && cat " + shellEscape(scanPath(home))];
+}
+
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
         PRUNE_NAMES: PRUNE_NAMES,
@@ -245,6 +252,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         settleScan: settleScan,
         finishAttempt: finishAttempt,
         buildScanScript: buildScanScript,
-        accessCommand: accessCommand
+        accessCommand: accessCommand,
+        remoteAccessCommand: remoteAccessCommand
     };
 }

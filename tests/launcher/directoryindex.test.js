@@ -172,6 +172,28 @@ test("scan construction preserves roots, depth, hidden, exclusions, sorting, and
     assert.ok(script.includes("sort -u"));
 });
 
+test("remoteAccessCommand wraps the same scan script in ssh, same roots and prunes as the local script", () => {
+    const command = Index.remoteAccessCommand(HOME, "arch-devbox");
+    assert.deepStrictEqual(command.slice(0, 2), ["ssh", "arch-devbox"]);
+    assert.strictEqual(command.length, 3, "the whole script is one argument -- ssh hands it whole to the remote login shell to re-parse");
+
+    const script = command[2];
+    for (const name of Index.PRUNE_NAMES)
+        assert.ok(script.includes(`-name '${name}'`), `${name} should be pruned`);
+    for (const root of Index.ROOTS)
+        assert.ok(script.includes(`'${HOME}/${root}'`), `${root} should be scanned`);
+    assert.ok(script.startsWith(Index.buildScanScript(HOME)), "reuses buildScanScript verbatim rather than re-deriving it");
+});
+
+test("remoteAccessCommand tails the scan file to stdout, unlike the local script which only writes it", () => {
+    const local = Index.buildScanScript(HOME);
+    assert.ok(!local.includes("cat "), "the local script has no reader -- DirectoryIndex.qml reads the file back itself");
+
+    const command = Index.remoteAccessCommand(HOME, "arch-devbox");
+    assert.ok(command[2].endsWith(" && cat '" + Index.scanPath(HOME) + "'"),
+        "this machine can't reach the remote box's ~/.cache, so the command must print the scan result itself");
+});
+
 test("the real scan contract replaces an isolated home snapshot losslessly", t => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "directory-index-"));
     t.after(() => fs.rmSync(home, { recursive: true, force: true }));

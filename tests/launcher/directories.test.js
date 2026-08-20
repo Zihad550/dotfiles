@@ -41,6 +41,34 @@ test("entryFor carries the absolute path as both the Entry Key and the subtext",
     assert.strictEqual(entry.target.mirrored, true);
 });
 
+test("entryFor with no host is byte-identical to today -- no regression for local directories", () => {
+    const provider = {};
+    const path = `${HOME}/dev/backend`;
+    assert.deepStrictEqual(D.entryFor(path, HOME, provider), {
+        name: "dev/backend",
+        subtext: path,
+        icon: "folder",
+        key: path,
+        provider: provider,
+        target: { path: path, mirrored: true }
+    });
+});
+
+test("entryFor with a host keys and targets the entry by host, distinct from any local entry of the same path", () => {
+    const provider = {};
+    const path = `${HOME}/dev/backend`;
+    const entry = D.entryFor(path, HOME, provider, "arch-devbox");
+
+    assert.strictEqual(entry.key, `arch-devbox:${path}`);
+    assert.notStrictEqual(entry.key, D.entryFor(path, HOME, provider).key,
+        "a remote entry's key must never collide with the local entry for the same relative path");
+    assert.strictEqual(entry.name, "dev/backend");
+    assert.strictEqual(entry.target.path, path);
+    assert.strictEqual(entry.target.host, "arch-devbox");
+    assert.strictEqual(entry.target.mirrored, undefined,
+        "isMirrored describes this machine's bind mounts -- meaningless, and sometimes wrong, for a path that only exists on the remote host");
+});
+
 test("an Entry's own target.mirrored is what the primary and secondary Actions read, not a second isMirrored call", () => {
     const entry = D.entryFor(`${HOME}/dotfiles`, HOME, null);
     assert.deepStrictEqual(
@@ -308,4 +336,56 @@ test("chooserEntriesFor threads the resolved host through to the mapped Entries"
     const entries = D.chooserEntriesFor(`${HOME}/dotfiles`, true, HOME, ["uwsm-app", "--"], null, "my-other-box");
     const zed = entries.find(e => e.name === "Zed");
     assert.ok(zed.target.argv.join(" ").includes("ssh://my-other-box"));
+});
+
+// A remote-provenance directory (entryFor's `host` case, ticket 90 story 10).
+
+test("a remote-provenance entry's primary action opens Zed over ssh at the exact path", () => {
+    const entry = D.entryFor(`${HOME}/dev/backend`, HOME, null, "arch-devbox");
+    assert.deepStrictEqual(
+        D.defaultOpenArgv(entry.target.path, true, [], entry.target.host),
+        ["zeditor", `ssh://arch-devbox${HOME}/dev/backend`]
+    );
+});
+
+test("chooserApps omits Files and forces host-targeted argv for a remote-provenance entry, even with routed=false", () => {
+    const path = `${HOME}/dev/backend`;
+    const host = "arch-devbox";
+    const apps = D.chooserApps(path, false, HOME, host, true);
+    const byName = Object.fromEntries(apps.map(a => [a.name, a]));
+
+    assert.deepStrictEqual(Object.keys(byName), ["Herdr", "Zed", "VSCode", "Cursor", "Neovim"],
+        "no Files row for a directory this machine doesn't have");
+
+    assert.deepStrictEqual(byName.Zed.argv, ["zeditor", `ssh://${host}${path}`]);
+    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${host}`, path]);
+    assert.deepStrictEqual(byName.Cursor.argv, ["cursor", "--remote", `ssh-remote+${host}`, path]);
+    assert.strictEqual(byName.Neovim.argv[4], host);
+
+    // Herdr re-resolves routing itself, same as the mirrored case.
+    assert.strictEqual(byName.Herdr.argv[0], "ghostty");
+    assert.ok(!byName.Herdr.argv.join(" ").includes(host));
+});
+
+test("chooserApps distinguishes a remote-provenance entry from a local mirrored directory routed to the same custom host", () => {
+    const path = `${HOME}/dotfiles`;
+    const host = "arch-devbox";
+
+    const mirroredLocal = D.chooserApps(path, true, HOME, host).map(a => a.name);
+    const remoteProvenance = D.chooserApps(path, true, HOME, host, true).map(a => a.name);
+
+    assert.ok(mirroredLocal.includes("Files"), "a local mirrored directory still has an actual local path for nautilus");
+    assert.ok(!remoteProvenance.includes("Files"), "a remote-provenance directory has no local path at all");
+});
+
+test("chooserEntriesFor threads the remote flag through to chooserApps", () => {
+    const path = `${HOME}/dev/backend`;
+    const entries = D.chooserEntriesFor(path, false, HOME, ["uwsm-app", "--"], null, "arch-devbox", true);
+
+    assert.strictEqual(entries.length, 5, "Files is dropped for a remote-provenance entry");
+    assert.ok(!entries.some(e => e.name === "Files"));
+
+    const zed = entries.find(e => e.name === "Zed");
+    assert.ok(zed.target.argv.join(" ").includes("ssh://arch-devbox"),
+        "host-targeted even though routed is false -- remote forces it");
 });
