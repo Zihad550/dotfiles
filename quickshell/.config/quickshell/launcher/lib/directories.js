@@ -42,6 +42,13 @@ function isMirrored(path, home) {
     return false;
 }
 
+// `subtext`'s host suffix is what lets a local and a remote directory of the
+// same relative path be told apart at a glance, not just by key (ticket 91,
+// story 6) -- same "· "-joined shape as windows.js's own subtextFor.
+function subtextFor(path, host) {
+    return host ? path + " · " + host : path;
+}
+
 // `key` is the absolute path -- stable across restarts, so Frecency
 // accumulates against it. `name` (the display text) is always the full
 // relative path, never just the leaf: a bare leaf is ambiguous the moment
@@ -56,7 +63,7 @@ function entryFor(path, home, provider, host) {
     var target = host ? { path: path, host: host } : { path: path, mirrored: isMirrored(path, home) };
     return {
         name: relOf(path, home),
-        subtext: path,
+        subtext: subtextFor(path, host),
         icon: "folder",
         key: host ? host + ":" + path : path,
         provider: provider,
@@ -222,6 +229,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         MIRRORED: MIRRORED,
         relOf: relOf,
         isMirrored: isMirrored,
+        subtextFor: subtextFor,
         entryFor: entryFor,
         leafOf: leafOf,
         textsFor: textsFor,

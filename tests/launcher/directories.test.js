@@ -69,6 +69,28 @@ test("entryFor with a host keys and targets the entry by host, distinct from any
         "isMirrored describes this machine's bind mounts -- meaningless, and sometimes wrong, for a path that only exists on the remote host");
 });
 
+test("subtextFor marks a remote entry with its host; a local one stays a bare path", () => {
+    const path = `${HOME}/dev/backend`;
+    assert.strictEqual(D.subtextFor(path, undefined), path);
+    assert.strictEqual(D.subtextFor(path, "arch-devbox"), `${path} · arch-devbox`);
+});
+
+test("entryFor's subtext is the one place a same-named local and remote directory read differently at a glance", () => {
+    // The key alone (ticket 90) already keeps these two distinct in
+    // Frecency/catalog terms -- this is the visible half of that, the
+    // reason a person can tell them apart before opening either (ticket 91
+    // story 6: "I want the remote one clearly marked with its host").
+    const provider = {};
+    const path = `${HOME}/dotfiles`;
+    const local = D.entryFor(path, HOME, provider);
+    const remote = D.entryFor(path, HOME, provider, "arch-devbox");
+
+    assert.strictEqual(local.name, remote.name, "both list under the same relative path");
+    assert.notStrictEqual(local.subtext, remote.subtext, "but their sub-line must read differently");
+    assert.strictEqual(local.subtext, path);
+    assert.strictEqual(remote.subtext, `${path} · arch-devbox`);
+});
+
 test("an Entry's own target.mirrored is what the primary and secondary Actions read, not a second isMirrored call", () => {
     const entry = D.entryFor(`${HOME}/dotfiles`, HOME, null);
     assert.deepStrictEqual(
