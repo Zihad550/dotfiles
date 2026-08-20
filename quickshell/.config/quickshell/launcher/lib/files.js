@@ -33,15 +33,6 @@ var MAX_EXPAND = 10;
 // = 40 + 160 = 200, so every matched folder always survives.
 var MAX_CHILDREN = 16;
 
-// The devpod devcontainer bind-mounts these at the same absolute path, so a
-// remote location is just the scheme + host + local path. Kept in sync with directories.js.
-var SSH_HOST = "devcontainer.devpod";
-var MIRRORED = ["/dev", "/dotfiles", "/.agents"];
-
-function shellEscape(value) {
-    return "'" + String(value).replace(/'/g, "'\\''") + "'";
-}
-
 // "~" for $HOME itself, path relative to it otherwise. Same contract as
 // directories.js's own relOf -- duplicated, see the header.
 function relOf(path, home) {
@@ -55,15 +46,6 @@ function relOf(path, home) {
 function leafOf(rel) {
     var at = rel.lastIndexOf("/");
     return at < 0 ? rel : rel.slice(at + 1);
-}
-
-function isMirrored(path, home) {
-    for (var i = 0; i < MIRRORED.length; i++) {
-        var root = home + MIRRORED[i];
-        if (path === root || path.indexOf(root + "/") === 0)
-            return true;
-    }
-    return false;
 }
 
 // The parent directory of a path, "." for a path with no "/" at all. File
@@ -187,22 +169,10 @@ function parseChildren(text) {
     return out;
 }
 
-// `host` is the resolved custom host, or falsy to mean "use the default" --
-// the fallback the devcontainer-host state file's contract promises (blank
-// or missing = default). SSH_HOST is that shared default; bin/df-herdr-session
-// (ticket 02) and the Quick Settings row (ticket 03) must honor the same rule.
-function sshUrlFor(path, host) {
-    return "ssh://" + (host || SSH_HOST) + path;
-}
-
-// `routed` is the caller's already-resolved decision -- isMirrored(path,
-// home) AND the routing toggle -- not isMirrored's raw answer. The toggle
-// overrides isMirrored rather than layering on top of it, so this function
-// never sees "mirrored but routing is off": the caller has already collapsed
-// that to false before calling.
-function defaultOpenArgv(path, routed, launchPrefix, host) {
-    var target = routed ? sshUrlFor(path, host) : path;
-    return (launchPrefix || []).concat(["zeditor", target]);
+// The Files Provider is local-only (#92, docs/adr/0010): no routing decision
+// reaches this function, unlike directories.js's own defaultOpenArgv.
+function defaultOpenArgv(path, launchPrefix) {
+    return (launchPrefix || []).concat(["zeditor", path]);
 }
 
 // The secondary Action's chooser. Two differences from the directories
@@ -212,44 +182,32 @@ function defaultOpenArgv(path, routed, launchPrefix, host) {
 //   it and nautilus falling back to the default handler (the xdg-open
 //   behaviour this menu exists to avoid).
 // - The last entry is "Reveal in Files": `nautilus --select` reveals the
-//   file in its folder rather than opening it, and has no remote command at
-//   all, so a mirrored path still reveals locally.
-function chooserApps(path, routed, host) {
-    var target = routed ? sshUrlFor(path, host) : path;
+//   file in its folder rather than opening it.
+//
+// Every row here is local-only (#92, docs/adr/0010) -- Files carries no
+// Herdr row (directories.js's own chooserApps does), so there's nothing left
+// that could ever route.
+function chooserApps(path) {
     var dir = parentOf(path);
-    var sshHost = host || SSH_HOST;
-
-    function pick(local, remote) {
-        return routed && remote ? remote : local;
-    }
 
     return [
         {
-            name: "Zed", icon: "zed", target: target,
-            argv: pick(["zeditor", path], ["zeditor", target])
+            name: "Zed", icon: "zed", target: path,
+            argv: ["zeditor", path]
         },
         {
-            name: "VSCode", icon: "vscode", target: target,
-            argv: pick(["code", path], ["code", "--remote", "ssh-remote+" + sshHost, path])
+            name: "VSCode", icon: "vscode", target: path,
+            argv: ["code", path]
         },
         {
-            name: "Cursor", icon: "cursor", target: target,
-            argv: pick(["cursor", path], ["cursor", "--remote", "ssh-remote+" + sshHost, path])
+            name: "Cursor", icon: "cursor", target: path,
+            argv: ["cursor", path]
         },
         {
-            name: "Neovim", icon: "nvim", target: target,
-            argv: pick(
-                ["ghostty", "--working-directory=" + dir, "-e", "nvim", path],
-                // Escaped, unlike the other four: this argument isn't run
-                // locally -- it's handed whole to `ssh`, parsed by a shell on
-                // the *other* end, so a path with a space would otherwise
-                // break silently. Both the cd directory and the file are escaped.
-                ["ghostty", "-e", "ssh", "-t", sshHost,
-                    "cd " + shellEscape(dir) + " && exec nvim " + shellEscape(path)]
-            )
+            name: "Neovim", icon: "nvim", target: path,
+            argv: ["ghostty", "--working-directory=" + dir, "-e", "nvim", path]
         },
         {
-            // No remote command at all -- revealing is always local.
             name: "Reveal in Files", icon: "folder",
             target: path,
             argv: ["nautilus", "--select", path]
@@ -259,9 +217,9 @@ function chooserApps(path, routed, host) {
 
 // No `key`: these don't recur the way a path does -- the path itself already
 // recorded a choice on the secondary Action that opened this.
-function chooserEntriesFor(path, routed, launchPrefix, provider, host) {
+function chooserEntriesFor(path, launchPrefix, provider) {
     var prefix = launchPrefix || [];
-    return chooserApps(path, routed, host).map(function (app) {
+    return chooserApps(path).map(function (app) {
         return {
             name: app.name,
             subtext: app.target,
@@ -305,10 +263,7 @@ function entriesFor(paths, home, query, childrenMap, provider) {
             subtext: path,
             icon: isdir ? "folder" : "text-x-generic",
             provider: provider,
-            target: {
-                path: path,
-                mirrored: isMirrored(path, home)
-            }
+            target: { path: path }
         });
     }
 
@@ -339,7 +294,6 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         MAX_DIRS: MAX_DIRS,
         MAX_EXPAND: MAX_EXPAND,
         MAX_CHILDREN: MAX_CHILDREN,
-        SSH_HOST: SSH_HOST,
         matchFolders: matchFolders,
         expandPaths: expandPaths,
         childrenCommand: childrenCommand,

@@ -43,38 +43,16 @@ QtObject {
     // binds on this, so every keystroke re-selects the folders.
     required property string queryText
 
-    // null while showing the listing; `{ path, mirrored }` (lifted from the
-    // highlighted Entry's own `target`) while showing the chooser for it --
-    // the local shape Directories.qml's own `openFor` also has. Files stays
-    // local-only, so it never sees the `{ path, host }` remote-provenance
-    // shape Directories' `openFor` can now carry.
+    // null while showing the listing; `{ path }` (lifted from the
+    // highlighted Entry's own `target`) while showing the chooser for it.
+    // Files is local-only (#92, docs/adr/0010), so it never sees the
+    // `{ path, host }` remote-provenance shape Directories' `openFor` can carry.
     property var openFor: null
     readonly property bool nested: root.openFor !== null
 
     readonly property string home: Quickshell.env("HOME")
 
     readonly property var launchPrefix: ["uwsm-app", "--"]
-
-    // The devcontainer routing toggle (docs/adr/0002): presence of the state
-    // file is the signal, not its content -- absent means off, the default.
-    // Read independently of Directories.qml's own copy -- see the header on
-    // why this module duplicates rather than imports.
-    readonly property string routingTogglePath: root.home + "/.local/state/dotfiles/toggles/devcontainer-routing"
-    property bool routingEnabled: false
-
-    // Single trimmed line; blank or missing falls back to Files.SSH_HOST --
-    // Files.defaultOpenArgv/chooserApps already know that fallback, so "" is
-    // handed down unresolved.
-    readonly property string hostFilePath: root.home + "/.local/state/dotfiles/devcontainer-host"
-    property string devcontainerHost: ""
-
-    // Collapses isMirrored's structural answer with the toggle -- the
-    // override, not layered on top, this ticket exists for. Every call site
-    // below routes through this rather than reading `routingEnabled` itself,
-    // so there is exactly one place that combines them.
-    function routedFor(mirrored): bool {
-        return mirrored && root.routingEnabled;
-    }
 
     // Never "not ready": an empty Directory Index before the scan finishes
     // is the same "empty Query lists nothing" state, not a fault.
@@ -111,8 +89,7 @@ QtObject {
     //    (the only branch that's `ordered`).
     readonly property var catalog: {
         if (root.openFor !== null) {
-            const routed = root.routedFor(root.openFor.mirrored);
-            const chooser = Files.chooserEntriesFor(root.openFor.path, routed, root.launchPrefix, root, root.devcontainerHost);
+            const chooser = Files.chooserEntriesFor(root.openFor.path, root.launchPrefix, root);
             return {
                 entries: chooser,
                 corpus: Matching.prepare(chooser.map(entry => entry.name), null)
@@ -159,8 +136,7 @@ QtObject {
         })
 
     function openDefault(entry): void {
-        const routed = root.routedFor(entry.target.mirrored);
-        Quickshell.execDetached(Files.defaultOpenArgv(entry.target.path, routed, root.launchPrefix, root.devcontainerHost));
+        Quickshell.execDetached(Files.defaultOpenArgv(entry.target.path, root.launchPrefix));
     }
 
     function enterChooser(entry): void {
@@ -235,32 +211,5 @@ QtObject {
                 Qt.callLater(root.scheduleListing);
             }
         }
-    }
-
-    // Existence-only: routing is off, the default, until this file appears.
-    // printErrors: false because absence is the common case (default off),
-    // not a fault worth logging.
-    readonly property FileView routingToggleFile: FileView {
-        id: routingToggleView
-
-        path: root.routingTogglePath
-        watchChanges: true
-        printErrors: false
-        onFileChanged: routingToggleView.reload()
-        onLoaded: root.routingEnabled = true
-        onLoadFailed: root.routingEnabled = false
-    }
-
-    // Single trimmed line; missing, unreadable, or blank all resolve to ""
-    // here, and Files.sshUrlFor/chooserApps fall back to SSH_HOST for that.
-    readonly property FileView hostFile: FileView {
-        id: hostView
-
-        path: root.hostFilePath
-        watchChanges: true
-        printErrors: false
-        onFileChanged: hostView.reload()
-        onLoaded: root.devcontainerHost = hostView.text().trim()
-        onLoadFailed: root.devcontainerHost = ""
     }
 }

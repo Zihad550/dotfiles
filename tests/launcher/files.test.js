@@ -8,6 +8,10 @@
 // these tests check its *shape* as argv, the same limit directories.test.js
 // has for the refresh script. Whether the listing matches on the real corpus
 // is a host claim, in the ticket's own Manual verification.
+//
+// The Files Provider is local-only (ticket 92, docs/adr/0010): no directory
+// here is ever routed over ssh, so unlike directories.test.js there is no
+// `routed`/`host` axis left to exercise.
 
 const test = require("node:test");
 const assert = require("node:assert");
@@ -271,7 +275,7 @@ test("entriesFor caps one folder's contents at MAX_CHILDREN, keeping every folde
     assert.strictEqual(kept[0].name, "dev/folder-0/file-000", "the first by path, not an arbitrary slice");
 });
 
-test("an Entry carries the absolute path as subtext, no Key, and its own mirrored target", () => {
+test("an Entry carries the absolute path as subtext, no Key, and a target with no mirrored field (#92)", () => {
     const children = {
         [`${HOME}/dotfiles`]: [{ kind: "f", path: `${HOME}/dotfiles/README.md` }]
     };
@@ -282,7 +286,7 @@ test("an Entry carries the absolute path as subtext, no Key, and its own mirrore
     assert.strictEqual(folder.subtext, `${HOME}/dotfiles`);
     assert.strictEqual(folder.icon, "folder");
     assert.strictEqual(folder.key, undefined, "files accumulate no Frecency -- no checkbox asks for it");
-    assert.deepStrictEqual(folder.target, { path: `${HOME}/dotfiles`, mirrored: true });
+    assert.deepStrictEqual(folder.target, { path: `${HOME}/dotfiles` });
 
     const file = entries[1];
     // A child's name is its full relative path, not its leaf -- the lua's
@@ -291,143 +295,69 @@ test("an Entry carries the absolute path as subtext, no Key, and its own mirrore
     assert.strictEqual(file.name, "dotfiles/README.md");
     assert.strictEqual(file.icon, "text-x-generic");
     assert.strictEqual(file.subtext, `${HOME}/dotfiles/README.md`);
-    assert.deepStrictEqual(file.target, { path: `${HOME}/dotfiles/README.md`, mirrored: true });
+    assert.deepStrictEqual(file.target, { path: `${HOME}/dotfiles/README.md` });
 });
 
-test("a non-mirrored path carries mirrored: false down to its Entries", () => {
-    const children = {
-        [`${HOME}/Downloads`]: [{ kind: "f", path: `${HOME}/Downloads/file.pdf` }]
-    };
-    const entries = F.entriesFor(PATHS, HOME, "Download", children, null);
-    assert.deepStrictEqual(entries[1].target, { path: `${HOME}/Downloads/file.pdf`, mirrored: false });
-});
-
-test("defaultOpenArgv opens a mirrored path over ssh and everything else locally", () => {
+test("defaultOpenArgv always builds a local argv -- the Files Provider never routes (#92)", () => {
     const prefix = ["uwsm-app", "--"];
     assert.deepStrictEqual(
-        F.defaultOpenArgv(`${HOME}/dotfiles/README.md`, true, prefix),
-        ["uwsm-app", "--", "zeditor", `ssh://${F.SSH_HOST}${HOME}/dotfiles/README.md`]
+        F.defaultOpenArgv(`${HOME}/dotfiles/README.md`, prefix),
+        ["uwsm-app", "--", "zeditor", `${HOME}/dotfiles/README.md`]
     );
     assert.deepStrictEqual(
-        F.defaultOpenArgv(`${HOME}/Downloads/file.pdf`, false, prefix),
+        F.defaultOpenArgv(`${HOME}/Downloads/file.pdf`, prefix),
         ["uwsm-app", "--", "zeditor", `${HOME}/Downloads/file.pdf`]
     );
 });
 
-test("chooserApps offers the same five apps regardless of mirroring", () => {
-    const local = F.chooserApps(`${HOME}/Downloads/file.pdf`, false).map(a => a.name);
-    const mirrored = F.chooserApps(`${HOME}/dotfiles/README.md`, true).map(a => a.name);
-    assert.deepStrictEqual(local, ["Zed", "VSCode", "Cursor", "Neovim", "Reveal in Files"]);
-    assert.deepStrictEqual(mirrored, ["Zed", "VSCode", "Cursor", "Neovim", "Reveal in Files"]);
+test("chooserApps offers the same five apps, none of them ever over ssh", () => {
+    const apps = F.chooserApps(`${HOME}/dotfiles/README.md`);
+    assert.deepStrictEqual(apps.map(a => a.name), ["Zed", "VSCode", "Cursor", "Neovim", "Reveal in Files"]);
+    for (const app of apps)
+        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} must stay local -- Files never routes`);
 });
 
-test("chooserApps sends every app but Reveal over ssh for a mirrored path", () => {
-    const apps = F.chooserApps(`${HOME}/dotfiles/README.md`, true);
-    const byName = Object.fromEntries(apps.map(a => [a.name, a]));
+test("chooserApps builds a plain local argv for each app", () => {
+    const path = `${HOME}/dotfiles/README.md`;
+    const byName = Object.fromEntries(F.chooserApps(path).map(a => [a.name, a]));
 
-    assert.ok(byName.Zed.argv.join(" ").includes("ssh://"));
-    assert.ok(byName.VSCode.argv.includes("--remote"));
-    assert.ok(byName.Cursor.argv.includes("--remote"));
-    assert.ok(byName.Neovim.argv.includes("ssh"));
+    assert.deepStrictEqual(byName.Zed.argv, ["zeditor", path]);
+    assert.deepStrictEqual(byName.VSCode.argv, ["code", path]);
+    assert.deepStrictEqual(byName.Cursor.argv, ["cursor", path]);
+    assert.strictEqual(byName.Zed.target, path);
 
     // Reveal has no remote command at all -- ported from
     // dotfiles_file_opener.lua's APPS table, where it is the one entry with
     // no `remote` field.
-    assert.deepStrictEqual(byName["Reveal in Files"].argv, ["nautilus", "--select", `${HOME}/dotfiles/README.md`]);
-    assert.strictEqual(byName["Reveal in Files"].target, `${HOME}/dotfiles/README.md`);
-});
-
-test("chooserApps stays local for every app when the path is not mirrored", () => {
-    const apps = F.chooserApps(`${HOME}/Downloads/file.pdf`, false);
-    for (const app of apps) {
-        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} should not go over ssh for a host-only path`);
-        assert.strictEqual(app.target, `${HOME}/Downloads/file.pdf`);
-    }
+    assert.deepStrictEqual(byName["Reveal in Files"].argv, ["nautilus", "--select", path]);
+    assert.strictEqual(byName["Reveal in Files"].target, path);
 });
 
 test("chooserApps opens the file's parent with the file, not the file alone", () => {
-    const apps = F.chooserApps(`${HOME}/dev/backend/index.ts`, false);
+    const apps = F.chooserApps(`${HOME}/dev/backend/index.ts`);
     const byName = Object.fromEntries(apps.map(a => [a.name, a]));
 
     assert.deepStrictEqual(byName.Neovim.argv, ["ghostty", `--working-directory=${HOME}/dev/backend`, "-e", "nvim", `${HOME}/dev/backend/index.ts`]);
     assert.deepStrictEqual(byName["Reveal in Files"].argv, ["nautilus", "--select", `${HOME}/dev/backend/index.ts`]);
 });
 
-test("the remote nvim command escapes both the directory and the file for the remote shell", () => {
-    const apps = F.chooserApps(`${HOME}/dev/my folder/index.ts`, true);
-    const nvim = apps.find(a => a.name === "Neovim");
-    assert.ok(nvim.argv.join(" ").includes("cd '/home/jehad/dev/my folder' && exec nvim '/home/jehad/dev/my folder/index.ts'"));
-});
-
 test("chooserEntriesFor applies the launch prefix and carries no Entry Key", () => {
     const provider = {};
-    const entries = F.chooserEntriesFor(`${HOME}/dotfiles/README.md`, true, ["uwsm-app", "--"], provider);
+    const entries = F.chooserEntriesFor(`${HOME}/dotfiles/README.md`, ["uwsm-app", "--"], provider);
 
     assert.strictEqual(entries.length, 5);
     for (const entry of entries) {
         assert.strictEqual(entry.key, undefined, "a chooser Entry accumulates no Frecency of its own");
         assert.strictEqual(entry.provider, provider);
         assert.deepStrictEqual(entry.target.argv.slice(0, 2), ["uwsm-app", "--"]);
+        assert.ok(!entry.target.argv.join(" ").includes("ssh"), `${entry.name} must stay local`);
     }
 
     const zed = entries.find(e => e.name === "Zed");
-    assert.ok(zed.target.argv.join(" ").includes("ssh://"));
-    assert.strictEqual(zed.subtext, `ssh://${F.SSH_HOST}${HOME}/dotfiles/README.md`);
+    assert.strictEqual(zed.subtext, `${HOME}/dotfiles/README.md`);
 });
 
 test("chooserEntriesFor defaults to no prefix when none is given", () => {
-    const entries = F.chooserEntriesFor(`${HOME}/Downloads/file.pdf`, false, null, null);
+    const entries = F.chooserEntriesFor(`${HOME}/Downloads/file.pdf`, null, null);
     assert.deepStrictEqual(entries[0].target.argv, ["zeditor", `${HOME}/Downloads/file.pdf`]);
-});
-
-// The devcontainer routing toggle (docs/adr/0002, ticket 01): `routed` is the
-// caller's already-resolved decision (isMirrored && the toggle), not
-// isMirrored's raw answer, and `host` is the resolved custom host or falsy
-// for "use SSH_HOST".
-
-test("routing disabled sends a mirrored file local, overriding entriesFor's own mirrored:true", () => {
-    const children = {
-        [`${HOME}/dotfiles`]: [{ kind: "f", path: `${HOME}/dotfiles/README.md` }]
-    };
-    const file = F.entriesFor(PATHS, HOME, "dotfiles", children, null)[1];
-    assert.strictEqual(file.target.mirrored, true, "entriesFor's own isMirrored answer is untouched by routing state");
-
-    const prefix = ["uwsm-app", "--"];
-    assert.deepStrictEqual(F.defaultOpenArgv(file.target.path, false, prefix),
-        ["uwsm-app", "--", "zeditor", file.target.path],
-        "routed=false wins over the Entry's own mirrored:true -- the toggle overrides, it doesn't layer");
-
-    for (const app of F.chooserApps(file.target.path, false))
-        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} must stay local when routing is off`);
-});
-
-test("routing enabled with no custom host matches today's hardcoded SSH_HOST behavior byte-for-byte", () => {
-    const path = `${HOME}/dotfiles/README.md`;
-    const prefix = ["uwsm-app", "--"];
-
-    assert.deepStrictEqual(F.defaultOpenArgv(path, true, prefix),
-        ["uwsm-app", "--", "zeditor", `ssh://${F.SSH_HOST}${path}`]);
-    assert.deepStrictEqual(F.defaultOpenArgv(path, true, prefix, ""), F.defaultOpenArgv(path, true, prefix),
-        "a blank host string falls back the same as an omitted one");
-
-    const byName = Object.fromEntries(F.chooserApps(path, true).map(a => [a.name, a]));
-    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${F.SSH_HOST}`, path]);
-});
-
-test("routing enabled with a custom host reaches every ssh surface", () => {
-    const path = `${HOME}/dotfiles/README.md`;
-    const host = "my-other-box";
-    const byName = Object.fromEntries(F.chooserApps(path, true, host).map(a => [a.name, a]));
-
-    assert.deepStrictEqual(F.defaultOpenArgv(path, true, [], host), ["zeditor", `ssh://${host}${path}`]);
-    assert.deepStrictEqual(byName.Zed.argv, ["zeditor", `ssh://${host}${path}`]);
-    assert.deepStrictEqual(byName.VSCode.argv, ["code", "--remote", `ssh-remote+${host}`, path]);
-    assert.deepStrictEqual(byName.Cursor.argv, ["cursor", "--remote", `ssh-remote+${host}`, path]);
-    assert.strictEqual(byName.Neovim.argv[4], host, "the ssh -t target is the custom host, not the default");
-});
-
-test("chooserEntriesFor threads the resolved host through to the mapped Entries", () => {
-    const entries = F.chooserEntriesFor(`${HOME}/dotfiles/README.md`, true, ["uwsm-app", "--"], null, "my-other-box");
-    const zed = entries.find(e => e.name === "Zed");
-    assert.ok(zed.target.argv.join(" ").includes("ssh://my-other-box"));
 });

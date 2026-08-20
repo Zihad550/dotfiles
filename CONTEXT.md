@@ -168,16 +168,21 @@ giving a recurring application a single place that can be shown or hidden.
 _Avoid_: scratchpad, special scratchpad, Special App
 
 **Devcontainer Routing**:
-The persisted, default-off switch that makes the desktop open a Mirrored
-Directory on the devcontainer host instead of locally — the Devcontainer Tile
-in Quick Settings flips it, and every call site consults it rather than
-deciding for itself. Off means the feature does not exist: nothing SSHes
-anywhere.
+The persisted, default-off switch that makes Herdr (`SUPER+U` and the
+Launcher's own Herdr chooser row) open a Mirrored Directory on the
+devcontainer host instead of locally, and gates whether the Directories
+Provider's remote Directory Index exists at all. Every other Launcher
+action — opening or choosing an app for a local-provenance directory or file
+in Zed, VSCode, Cursor, Neovim, or Files — ignores it: those always open
+where the files actually are, mirrored or not. The Devcontainer Tile in
+Quick Settings flips it. Off means neither Herdr nor the remote scan does
+anything: nothing SSHes anywhere.
 _Avoid_: devcontainer mode, remote mode, SSH mode
 
 **Mirrored Directory**:
-A path under a root the devcontainer also has mounted. A second gate,
-independent of Devcontainer Routing: routing answers "am I working in the
-devcontainer right now", mirrored answers "does the devcontainer actually
-have this directory".
+A path under a root the devcontainer also has mounted. The gate
+`bin/df-herdr-session` combines with Devcontainer Routing to decide whether
+Herdr opens on the devcontainer host or locally — its only remaining
+consumer. Every other Launcher action treats a local-provenance directory as
+always-local regardless of whether it's mirrored.
 _Avoid_: synced directory, shared directory

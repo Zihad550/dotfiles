@@ -38,10 +38,9 @@ test("entryFor carries the absolute path as both the Entry Key and the subtext",
     assert.strictEqual(entry.icon, "folder");
     assert.strictEqual(entry.provider, provider);
     assert.strictEqual(entry.target.path, `${HOME}/dev/backend`);
-    assert.strictEqual(entry.target.mirrored, true);
 });
 
-test("entryFor with no host is byte-identical to today -- no regression for local directories", () => {
+test("entryFor's local branch carries no mirrored field -- routing follows provenance, not mirroring (#92)", () => {
     const provider = {};
     const path = `${HOME}/dev/backend`;
     assert.deepStrictEqual(D.entryFor(path, HOME, provider), {
@@ -50,7 +49,7 @@ test("entryFor with no host is byte-identical to today -- no regression for loca
         icon: "folder",
         key: path,
         provider: provider,
-        target: { path: path, mirrored: true }
+        target: { path: path }
     });
 });
 
@@ -65,8 +64,7 @@ test("entryFor with a host keys and targets the entry by host, distinct from any
     assert.strictEqual(entry.name, "dev/backend");
     assert.strictEqual(entry.target.path, path);
     assert.strictEqual(entry.target.host, "arch-devbox");
-    assert.strictEqual(entry.target.mirrored, undefined,
-        "isMirrored describes this machine's bind mounts -- meaningless, and sometimes wrong, for a path that only exists on the remote host");
+    assert.strictEqual(entry.target.mirrored, undefined, "neither entryFor branch carries mirrored any more");
 });
 
 test("subtextFor marks a remote entry with its host; a local one stays a bare path", () => {
@@ -91,12 +89,9 @@ test("entryFor's subtext is the one place a same-named local and remote director
     assert.strictEqual(remote.subtext, `${path} · arch-devbox`);
 });
 
-test("an Entry's own target.mirrored is what the primary and secondary Actions read, not a second isMirrored call", () => {
+test("an Entry's own target carries just the path -- nothing on it decides routing any more (#92)", () => {
     const entry = D.entryFor(`${HOME}/dotfiles`, HOME, null);
-    assert.deepStrictEqual(
-        D.defaultOpenArgv(entry.target.path, entry.target.mirrored, []),
-        ["zeditor", `ssh://${D.SSH_HOST}${HOME}/dotfiles`]
-    );
+    assert.deepStrictEqual(entry.target, { path: `${HOME}/dotfiles` });
 });
 
 test("leafOf takes the last path segment, and the whole string when there is only one", () => {
@@ -205,7 +200,7 @@ test("herdrLaunchArgv passes a hostile path through as one argument, unescaped",
     assert.strictEqual(argv[4], `dev-it's "fine"`);
 });
 
-test("defaultOpenArgv opens a mirrored directory over ssh and everything else locally", () => {
+test("defaultOpenArgv builds a local argv when routed=false, an ssh argv when routed=true", () => {
     const prefix = ["uwsm-app", "--"];
     assert.deepStrictEqual(
         D.defaultOpenArgv(`${HOME}/dotfiles`, true, prefix),
@@ -214,6 +209,16 @@ test("defaultOpenArgv opens a mirrored directory over ssh and everything else lo
     assert.deepStrictEqual(
         D.defaultOpenArgv(`${HOME}/Downloads`, false, prefix),
         ["uwsm-app", "--", "zeditor", `${HOME}/Downloads`]
+    );
+});
+
+test("defaultOpenArgv stays local for a mirrored directory when routed=false -- mirroring alone no longer implies routing (#92)", () => {
+    const prefix = ["uwsm-app", "--"];
+    assert.ok(D.isMirrored(`${HOME}/dotfiles`, HOME), "isMirrored itself still says mirrored");
+    assert.deepStrictEqual(
+        D.defaultOpenArgv(`${HOME}/dotfiles`, false, prefix),
+        ["uwsm-app", "--", "zeditor", `${HOME}/dotfiles`],
+        "a local-provenance directory always opens locally, mirrored or not -- Directories.qml now hardcodes routed: false for every local call"
     );
 });
 
@@ -267,6 +272,40 @@ test("chooserApps builds Herdr's argv from the directory's session name and path
     ]);
 });
 
+// The Herdr row's `· <host>` marker (ticket 92, docs/adr/0010): Herdr is the
+// one row left that can still route (bin/df-herdr-session re-resolves
+// `routingEnabled && isMirrored` itself), so its target/subtext carries the
+// same host suffix subtextFor already uses for remote-provenance entries,
+// whenever it would actually route.
+
+test("chooserApps marks the Herdr row with · <host> when routing is enabled for a mirrored directory", () => {
+    const apps = D.chooserApps(`${HOME}/dotfiles`, false, HOME, undefined, false, true);
+    const herdr = apps.find(a => a.name === "Herdr");
+    assert.strictEqual(herdr.target, `dotfiles · ${D.SSH_HOST}`);
+});
+
+test("chooserApps marks the Herdr row with the custom host when one is set", () => {
+    const apps = D.chooserApps(`${HOME}/dotfiles`, false, HOME, "arch-devbox", false, true);
+    const herdr = apps.find(a => a.name === "Herdr");
+    assert.strictEqual(herdr.target, "dotfiles · arch-devbox");
+});
+
+test("chooserApps carries no Herdr marker when routing is enabled but the directory is not mirrored", () => {
+    const apps = D.chooserApps(`${HOME}/Downloads`, false, HOME, undefined, false, true);
+    const herdr = apps.find(a => a.name === "Herdr");
+    assert.strictEqual(herdr.target, "Downloads", "not mirrored, so Herdr won't actually route -- no marker");
+});
+
+test("chooserApps carries no Herdr marker when routing is disabled, even for a mirrored directory", () => {
+    const apps = D.chooserApps(`${HOME}/dotfiles`, false, HOME, undefined, false, false);
+    const herdr = apps.find(a => a.name === "Herdr");
+    assert.strictEqual(herdr.target, "dotfiles", "routing off means Herdr stays local too -- no marker");
+
+    // Omitting the argument entirely is the same as passing false.
+    const withoutArg = D.chooserApps(`${HOME}/dotfiles`, false, HOME).find(a => a.name === "Herdr");
+    assert.strictEqual(withoutArg.target, "dotfiles");
+});
+
 test("chooserEntriesFor applies the launch prefix to every Entry but Herdr, and carries no Entry Key", () => {
     const provider = {};
     const entries = D.chooserEntriesFor(`${HOME}/dotfiles`, true, HOME, ["uwsm-app", "--"], provider);
@@ -306,21 +345,17 @@ test("chooserEntriesFor defaults to no prefix when none is given", () => {
     assert.deepStrictEqual(zed.target.argv, ["zeditor", `${HOME}/Downloads`]);
 });
 
-// The devcontainer routing toggle (docs/adr/0002, ticket 01): `routed` is the
-// caller's already-resolved decision (isMirrored && the toggle), not
-// isMirrored's raw answer, and `host` is the resolved custom host or falsy
-// for "use SSH_HOST".
+// `routed`/`host` are the caller's own already-resolved decision, not derived
+// from isMirrored internally (#92: Directories.qml hardcodes routed: false
+// for every local call now; only a remote-provenance entry passes true).
+// `host` is the resolved custom host or falsy for "use SSH_HOST".
 
-test("routing disabled sends a mirrored directory local, overriding isMirrored's own true answer", () => {
+test("chooserApps stays fully local for a mirrored directory when routed=false", () => {
     const path = `${HOME}/dotfiles`;
-    const prefix = ["uwsm-app", "--"];
     assert.ok(D.isMirrored(path, HOME), "isMirrored itself still says mirrored -- untouched by routing state");
 
-    assert.deepStrictEqual(D.defaultOpenArgv(path, false, prefix), ["uwsm-app", "--", "zeditor", path],
-        "routed=false wins over isMirrored's own true answer -- the toggle overrides, it doesn't layer");
-
     for (const app of D.chooserApps(path, false, HOME))
-        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} must stay local when routing is off`);
+        assert.ok(!app.argv.join(" ").includes("ssh"), `${app.name} must stay local when routed=false`);
 });
 
 test("routing enabled with no custom host matches today's hardcoded SSH_HOST behavior byte-for-byte", () => {
@@ -387,6 +422,20 @@ test("chooserApps omits Files and forces host-targeted argv for a remote-provena
     // Herdr re-resolves routing itself, same as the mirrored case.
     assert.strictEqual(byName.Herdr.argv[0], "ghostty");
     assert.ok(!byName.Herdr.argv.join(" ").includes(host));
+});
+
+test("chooserApps never marks the Herdr row for a remote-provenance entry, even when routingEnabled is true and the path looks mirrored", () => {
+    // isMirrored answers for this machine's bind mounts, not a remote-only
+    // path (entryFor's own comment) -- and every row already routes for a
+    // remote-provenance entry, so the "one row that still differs" story the
+    // marker exists for (docs/adr/0010) doesn't apply here.
+    const path = `${HOME}/dev/backend`;
+    const host = "arch-devbox";
+    assert.ok(D.isMirrored(path, HOME), "the path itself does look mirrored by name");
+
+    const apps = D.chooserApps(path, false, HOME, host, true, true);
+    const herdr = apps.find(a => a.name === "Herdr");
+    assert.strictEqual(herdr.target, "dev-backend", "no · <host> suffix, unlike the local-mirrored case");
 });
 
 test("chooserApps distinguishes a remote-provenance entry from a local mirrored directory routed to the same custom host", () => {

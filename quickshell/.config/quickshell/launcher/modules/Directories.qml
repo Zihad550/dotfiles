@@ -37,9 +37,9 @@ QtObject {
             root.openFor = null;
     }
 
-    // null while showing the directory list; `{ path, mirrored }` for a
-    // local Entry, or `{ path, host }` for a remote-provenance one -- both
-    // lifted from the Entry's own `target` -- while showing the chooser for it.
+    // null while showing the directory list; `{ path }` for a local Entry,
+    // or `{ path, host }` for a remote-provenance one -- both lifted from
+    // the Entry's own `target` -- while showing the chooser for it.
     property var openFor: null
     readonly property bool nested: root.openFor !== null
     // `host` (never `mirrored`) is entryFor's own signal for remote provenance.
@@ -62,14 +62,6 @@ QtObject {
     // handed down unresolved.
     readonly property string hostFilePath: root.home + "/.local/state/dotfiles/devcontainer-host"
     property string devcontainerHost: ""
-
-    // Collapses isMirrored's structural answer with the toggle -- the
-    // override, not layered on top, this ticket exists for. Every call site
-    // below routes through this rather than reading `routingEnabled` itself,
-    // so there is exactly one place that combines them.
-    function routedFor(mirrored): bool {
-        return mirrored && root.routingEnabled;
-    }
 
     // An empty, stale, or refreshing Directory Index must never block opening.
     readonly property bool ready: true
@@ -105,11 +97,15 @@ QtObject {
     readonly property var catalog: {
         if (root.openFor !== null) {
             // A remote-provenance entry always routes, to the host it was
-            // scanned from -- there's no local path to fall back to.
-            const routed = root.openForRemote ? true : root.routedFor(root.openFor.mirrored);
+            // scanned from -- there's no local path to fall back to. A
+            // local entry never does (#92, docs/adr/0010): routing follows
+            // provenance now, not the toggle. `root.routingEnabled` still
+            // reaches the chooser -- only the Herdr row reads it, to mark
+            // itself as the one row that can still route.
+            const routed = root.openForRemote;
             const host = root.openForRemote ? root.openFor.host : root.devcontainerHost;
             const entries = Dirs.chooserEntriesFor(root.openFor.path, routed, root.home,
-                root.launchPrefix, root, host, root.openForRemote);
+                root.launchPrefix, root, host, root.openForRemote, root.routingEnabled);
             return {
                 entries: entries,
                 corpus: Matching.prepare(entries.map(entry => entry.name), null)
@@ -166,11 +162,10 @@ QtObject {
 
     function openDefault(entry): void {
         // Same distinction as catalog's chooser branch: a remote-provenance
-        // target always routes, to its own host.
+        // target always routes, to its own host; a local one never does (#92).
         const remote = root.isRemoteTarget(entry.target);
-        const routed = remote ? true : root.routedFor(entry.target.mirrored);
         const host = remote ? entry.target.host : root.devcontainerHost;
-        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, routed, root.launchPrefix, host));
+        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, remote, root.launchPrefix, host));
     }
 
     function enterChooser(entry): void {

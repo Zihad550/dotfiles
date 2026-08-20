@@ -57,10 +57,10 @@ function subtextFor(path, host) {
 //
 // `host` marks a remote-provenance directory (ticket 90): key gets a
 // `host:` prefix so it can't collide with a local Entry of the same relative
-// path, and `mirrored` is omitted -- isMirrored answers for this machine's
-// bind mounts, not the remote host's filesystem.
+// path. Neither branch carries `mirrored` -- routing now follows provenance,
+// not mirroring, so nothing downstream needs it on the Entry itself (#92).
 function entryFor(path, home, provider, host) {
-    var target = host ? { path: path, host: host } : { path: path, mirrored: isMirrored(path, home) };
+    var target = host ? { path: path, host: host } : { path: path };
     return {
         name: relOf(path, home),
         subtext: subtextFor(path, host),
@@ -151,10 +151,19 @@ function herdrLaunchArgv(path, home) {
 // `remote` marks a remote-provenance directory (entryFor's `host` case, not
 // distinguishable from a routed-mirrored one by `routed`+`host` alone): it
 // forces host-targeted argv and drops the Files row (ticket 90, story 10).
-function chooserApps(path, routed, home, host, remote) {
+//
+// `routingEnabled` is only consulted for the Herdr row's marker (ticket 92,
+// docs/adr/0010): Herdr is the one row left that can still route, since
+// bin/df-herdr-session re-resolves `routingEnabled && isMirrored` itself
+// rather than trusting `routed`. Every other row below ignores it. Gated on
+// `!remote` too -- isMirrored answers for this machine's bind mounts, not a
+// remote-provenance path (entryFor's own comment), and every row already
+// routes there, so the "one row that still differs" story doesn't apply.
+function chooserApps(path, routed, home, host, remote, routingEnabled) {
     var toHost = routed || remote;
     var target = toHost ? sshUrlFor(path, host) : path;
     var sshHost = host || SSH_HOST;
+    var herdrRoutes = !remote && !!routingEnabled && isMirrored(path, home);
 
     function pick(local, remoteArgv) {
         return toHost && remoteArgv ? remoteArgv : local;
@@ -164,9 +173,11 @@ function chooserApps(path, routed, home, host, remote) {
         {
             // `target` is the session name, not the path the other rows show
             // -- it's what the row attaches you to and what appears in
-            // `herdr session list`.
+            // `herdr session list` -- with a `· <host>` suffix (subtextFor's
+            // own shape) whenever Herdr would actually route, so the one row
+            // that can still SSH is visibly marked as such.
             name: "Herdr", icon: "utilities-terminal",
-            target: sessionNameOf(path, home),
+            target: subtextFor(sessionNameOf(path, home), herdrRoutes ? sshHost : undefined),
             scoped: false,
             argv: herdrLaunchArgv(path, home)
         },
@@ -210,9 +221,9 @@ function chooserApps(path, routed, home, host, remote) {
 
 // No `key`: these don't recur the way a directory does -- the directory
 // itself already recorded a choice on the secondary Action that opened this.
-function chooserEntriesFor(path, routed, home, launchPrefix, provider, host, remote) {
+function chooserEntriesFor(path, routed, home, launchPrefix, provider, host, remote, routingEnabled) {
     var prefix = launchPrefix || [];
-    return chooserApps(path, routed, home, host, remote).map(function (app) {
+    return chooserApps(path, routed, home, host, remote, routingEnabled).map(function (app) {
         return {
             name: app.name,
             subtext: app.target,
