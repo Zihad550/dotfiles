@@ -19,12 +19,18 @@ ShellRoot {
         id: directoryIndex
     }
 
+    // The custom-host counterpart -- gates and scans itself.
+    RemoteDirectoryIndex {
+        id: remoteDirectoryIndex
+    }
+
     // Created once at startup, never destroyed -- see Launcher.qml for why
     // it's not lazily loaded.
     Launcher {
         id: launcher
 
         directoryIndex: directoryIndex
+        remoteDirectoryIndex: remoteDirectoryIndex
     }
 
     // The primary open path: registers straight with the compositor, so the

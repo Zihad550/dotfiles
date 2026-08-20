@@ -194,6 +194,23 @@ test("remoteAccessCommand tails the scan file to stdout, unlike the local script
         "this machine can't reach the remote box's ~/.cache, so the command must print the scan result itself");
 });
 
+test("remoteIndexPath is host-scoped and distinct from the local index's own file", () => {
+    const local = Index.indexPath(HOME);
+    const archbox = Index.remoteIndexPath(HOME, "arch-devbox");
+    const ubuntubox = Index.remoteIndexPath(HOME, "ubuntu-devbox");
+
+    assert.notStrictEqual(archbox, local, "a remote cache must never collide with the local index's file");
+    assert.notStrictEqual(archbox, ubuntubox, "switching custom hosts must never collide caches (ticket 91, story 20)");
+    assert.ok(archbox.startsWith(HOME + "/.cache/df-dir-picker/"), "lives alongside the local index, not a second cache root");
+    assert.ok(archbox.endsWith("remote-arch-devbox.list"));
+});
+
+test("slugHost neutralizes characters unsafe in a filename, same acceptance as sessionNameOf", () => {
+    assert.strictEqual(Index.slugHost("arch-devbox"), "arch-devbox", "a plain alias round-trips unchanged");
+    assert.strictEqual(Index.slugHost("my box"), "my_box");
+    assert.strictEqual(Index.slugHost("box/../etc"), "box_.._etc", "a path separator can never escape the cache directory");
+});
+
 test("the real scan contract replaces an isolated home snapshot losslessly", t => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "directory-index-"));
     t.after(() => fs.rmSync(home, { recursive: true, force: true }));

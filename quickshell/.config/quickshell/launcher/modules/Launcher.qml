@@ -28,6 +28,9 @@ PanelWindow {
     id: root
 
     required property var directoryIndex
+    // The Devcontainer Routing custom-host counterpart -- gated/scanned
+    // entirely by itself, the same shape as directoryIndex above.
+    required property var remoteDirectoryIndex
 
     anchors {
         top: true
@@ -131,8 +134,11 @@ PanelWindow {
             affectedProviders: [directories, files]
         });
         root.directoryIndexProvider = changed.provider;
-        if (changed.access)
+        if (changed.access) {
             root.directoryIndex.access();
+            // No-ops on its own when routing is off or no custom host is set.
+            root.remoteDirectoryIndex.access();
+        }
     }
 
     onActivePoolChanged: root.syncDirectoryIndexAccess()
@@ -665,6 +671,7 @@ PanelWindow {
         // the note on `active` there.
         active: root.visible
         snapshot: root.directoryIndex.snapshot
+        remoteSnapshot: root.remoteDirectoryIndex.snapshot
     }
 
     Files {

@@ -13,6 +13,15 @@ function indexPath(home) {
     return home + "/.cache/" + INDEX_DIR_NAME + "/" + INDEX_FILE_NAME;
 }
 
+// Not injective -- same acceptance as directories.js's sessionNameOf.
+function slugHost(host) {
+    return String(host).replace(/[^A-Za-z0-9_.-]/g, "_");
+}
+
+function remoteIndexPath(home, host) {
+    return home + "/.cache/" + INDEX_DIR_NAME + "/remote-" + slugHost(host) + ".list";
+}
+
 function scanPath(home) {
     return indexPath(home) + ".scan";
 }
@@ -238,6 +247,8 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         PRUNE_NAMES: PRUNE_NAMES,
         ROOTS: ROOTS,
         indexPath: indexPath,
+        slugHost: slugHost,
+        remoteIndexPath: remoteIndexPath,
         scanPath: scanPath,
         parse: parse,
         serialize: serialize,

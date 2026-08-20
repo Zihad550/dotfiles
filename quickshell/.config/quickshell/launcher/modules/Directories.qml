@@ -29,15 +29,24 @@ QtObject {
     // dismissing mid "choose app" and reopening never lands back in a stale Chooser.
     required property bool active
     required property var snapshot
+    // RemoteDirectoryIndex's own snapshot -- gated by remoteReady below,
+    // unlike `snapshot` above, which is always this machine's own filesystem.
+    required property var remoteSnapshot
     onActiveChanged: {
         if (!root.active)
             root.openFor = null;
     }
 
-    // null while showing the directory list; `{ path, mirrored }` (lifted
-    // from the Entry's own `target`) while showing the chooser for it.
+    // null while showing the directory list; `{ path, mirrored }` for a
+    // local Entry, or `{ path, host }` for a remote-provenance one -- both
+    // lifted from the Entry's own `target` -- while showing the chooser for it.
     property var openFor: null
     readonly property bool nested: root.openFor !== null
+    // `host` (never `mirrored`) is entryFor's own signal for remote provenance.
+    function isRemoteTarget(target): bool {
+        return target.host !== undefined;
+    }
+    readonly property bool openForRemote: root.openFor !== null && root.isRemoteTarget(root.openFor)
 
     readonly property string home: Quickshell.env("HOME")
 
@@ -67,10 +76,27 @@ QtObject {
 
     readonly property var paths: root.snapshot.paths
 
+    // Gated here rather than by clearing RemoteDirectoryIndex's own
+    // snapshot: "off" must hide remote entries immediately even with a
+    // cached scan sitting there.
+    readonly property bool remoteReady: root.routingEnabled && root.devcontainerHost !== ""
+    readonly property var remotePaths: root.remoteReady ? root.remoteSnapshot.paths : []
+
+    // A remote-provenance chooser has no local fallback -- routing turning
+    // off from under it must close it too, not just the list behind it
+    // (docs/adr/0002's "off means off").
+    onRemoteReadyChanged: {
+        if (!root.remoteReady && root.openForRemote)
+            root.leaveChooser();
+    }
+
     // Logged on count change rather than in a binding, so re-evaluating
     // `catalog` several times a second doesn't fill the log with noise.
     onPathsChanged: console.log("launcher: directories Provider sees", root.paths.length,
         "path(s) at Directory Index revision", root.snapshot.revision)
+    onRemotePathsChanged: console.log("launcher: directories Provider sees", root.remotePaths.length,
+        "remote path(s) at Directory Index revision", root.remoteReady ? root.remoteSnapshot.revision : 0,
+        "for host", root.devcontainerHost)
 
     // Two shapes behind one property, switched on `openFor`: the ranked
     // directory list when nothing is open, the small unranked chooser when
@@ -78,20 +104,31 @@ QtObject {
     // itself already recorded Frecency, on the secondary Action that opened it.
     readonly property var catalog: {
         if (root.openFor !== null) {
-            const routed = root.routedFor(root.openFor.mirrored);
-            const entries = Dirs.chooserEntriesFor(root.openFor.path, routed, root.home, root.launchPrefix, root, root.devcontainerHost);
+            // A remote-provenance entry always routes, to the host it was
+            // scanned from -- there's no local path to fall back to.
+            const routed = root.openForRemote ? true : root.routedFor(root.openFor.mirrored);
+            const host = root.openForRemote ? root.openFor.host : root.devcontainerHost;
+            const entries = Dirs.chooserEntriesFor(root.openFor.path, routed, root.home,
+                root.launchPrefix, root, host, root.openForRemote);
             return {
                 entries: entries,
                 corpus: Matching.prepare(entries.map(entry => entry.name), null)
             };
         }
 
+        // Local paths, plus remote ones when routing is on with a custom
+        // host set, merged into one pool -- entryFor's own `host` argument
+        // keeps a remote key from colliding with a local one of the same
+        // relative path.
+        //
         // Two corpus texts per directory (leaf, then full relative path), so
         // the corpus carries `owners` -- see lib/directories.js's header for
         // the misranking one text alone produced.
-        const built = Catalog.ownedCatalog(root.paths,
-            path => Dirs.entryFor(path, root.home, root),
-            (path, entry) => Dirs.textsFor(entry.name));
+        const items = root.paths.map(path => ({ path: path, host: undefined }))
+            .concat(root.remotePaths.map(path => ({ path: path, host: root.devcontainerHost })));
+        const built = Catalog.ownedCatalog(items,
+            item => Dirs.entryFor(item.path, root.home, root, item.host),
+            (item, entry) => Dirs.textsFor(entry.name));
         return {
             entries: built.entries,
             corpus: Matching.prepare(built.texts, built.keys, built.owners)
@@ -128,8 +165,12 @@ QtObject {
         })
 
     function openDefault(entry): void {
-        const routed = root.routedFor(entry.target.mirrored);
-        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, routed, root.launchPrefix, root.devcontainerHost));
+        // Same distinction as catalog's chooser branch: a remote-provenance
+        // target always routes, to its own host.
+        const remote = root.isRemoteTarget(entry.target);
+        const routed = remote ? true : root.routedFor(entry.target.mirrored);
+        const host = remote ? entry.target.host : root.devcontainerHost;
+        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, routed, root.launchPrefix, host));
     }
 
     function enterChooser(entry): void {

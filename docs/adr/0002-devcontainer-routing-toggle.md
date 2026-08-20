@@ -56,3 +56,8 @@ a strictly worse failure than opening it locally.
 - Zed's `ssh_connections` entry in `zed/settings.json` is deliberately left
   out of this — it's a manually invoked saved profile, not automatic routing,
   so it doesn't read the toggle.
+- The Directories Provider's remote scan (ticket 91,
+  `modules/RemoteDirectoryIndex.qml`) reads the same toggle and custom host
+  this ADR defined: off, or no custom host set, means no SSH call and no
+  remote directories, the same "off means off" promise every other call site
+  above already keeps.

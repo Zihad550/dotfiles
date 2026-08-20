@@ -45,7 +45,9 @@ QtObject {
 
     // null while showing the listing; `{ path, mirrored }` (lifted from the
     // highlighted Entry's own `target`) while showing the chooser for it --
-    // the same shape as Directories.qml's own `openFor`.
+    // the local shape Directories.qml's own `openFor` also has. Files stays
+    // local-only, so it never sees the `{ path, host }` remote-provenance
+    // shape Directories' `openFor` can now carry.
     property var openFor: null
     readonly property bool nested: root.openFor !== null
 

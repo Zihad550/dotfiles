@@ -89,7 +89,9 @@ _Avoid_: unranked, sorted, grouped, static
 **Directory Index**:
 The shared set of directories offered by the Directories Provider and used by
 the Files Provider to choose folders. Its membership follows the Launcher's
-defined roots and exclusions.
+defined roots and exclusions. With Devcontainer Routing on and a custom host
+set, the Directories Provider also merges in a remote Directory Index scanned
+from that host over SSH — the Files Provider stays local-only.
 _Avoid_: directory cache, folder cache, folders list, directory corpus
 
 **Core Action**:
