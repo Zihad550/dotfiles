@@ -120,7 +120,7 @@ run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
 
 # Rootless, not arch-hyprland's rootful step -- this box runs AI harnesses
 # against text pulled off the internet. See setup-docker and README.md "docker".
-run_step "docker" "$ARCH_DEVBOX_DIR/setup-docker"
+run_step "docker" "$DOTFILES_DIR/setup/common/setup-rootless-docker"
 
 # sshd before the firewall: once setup-ufw runs, port 22 over the tailnet is the
 # fallback for a broken Tailscale SSH ACL — and Arch does not enable sshd itself.

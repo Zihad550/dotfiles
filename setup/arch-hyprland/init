@@ -85,7 +85,7 @@ run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
 # with arch-devbox.
 run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
 
-run_step "docker" "$ARCH_HYPR_DIR/setup-packages/setup-docker"
+run_step "docker" "$DOTFILES_DIR/setup/common/setup-rootless-docker"
 run_step "syncthing" "$ARCH_HYPR_DIR/setup-packages/setup-syncthing"
 run_step "ufw" "$ARCH_HYPR_DIR/setup-packages/setup-ufw"
 
