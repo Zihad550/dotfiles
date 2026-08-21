@@ -11,7 +11,9 @@ Tile {
     signal pageRequested(bool keyboard)
 
     icon: "󰡨"
-    label: "Devcontainer"
+    label: root.routingState.routingEnabled && root.routingState.customHost
+        ? root.routingState.customHost
+        : "Devcontainer"
     active: root.routingState.routingEnabled
     busy: root.routingState.busy
     chevronVisible: true

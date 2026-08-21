@@ -175,8 +175,10 @@ Provider's remote Directory Index exists at all. Every other Launcher
 action — opening or choosing an app for a local-provenance directory or file
 in Zed, VSCode, Cursor, Neovim, or Files — ignores it: those always open
 where the files actually are, mirrored or not. The Devcontainer Tile in
-Quick Settings flips it. Off means neither Herdr nor the remote scan does
-anything: nothing SSHes anywhere.
+Quick Settings flips it, and while on, its label shows the custom host in
+place of the generic name — off, or with no custom host set, it reads
+"Devcontainer". Off means neither Herdr nor the remote scan does anything:
+nothing SSHes anywhere.
 _Avoid_: devcontainer mode, remote mode, SSH mode
 
 **Mirrored Directory**:
