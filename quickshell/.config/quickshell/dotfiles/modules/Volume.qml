@@ -42,10 +42,10 @@ Item {
         id: track
 
         anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.right: percentLabel.left
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: 48
-        anchors.rightMargin: 48
+        anchors.rightMargin: Theme.edgeMargin
         height: 12
 
         Rectangle {
@@ -77,8 +77,14 @@ Item {
         }
 
         MouseArea {
+            id: trackMouse
+
+            // No `enabled: root.available` gate: setVolume() is already a
+            // no-op without a sink, and disabling the MouseArea outright
+            // would also suppress hover, leaving the Tooltip unreachable
+            // over the slider's own hit area while unavailable.
             anchors.fill: parent
-            enabled: root.available
+            hoverEnabled: true
             preventStealing: true
 
             onPressed: event => root.setVolumeFromX(event.x)
@@ -116,6 +122,41 @@ Item {
         }
     }
 
+    // Fixed width, like the OSD's own percentage text, so the row does not
+    // resize as the number goes 9% -> 10% -> 100%.
+    Text {
+        id: percentLabel
+
+        anchors.right: pageTarget.left
+        anchors.verticalCenter: parent.verticalCenter
+        width: 44
+
+        visible: root.available
+        text: `${Math.max(0, Math.min(100, root.volume))}%`
+        color: Theme.foreground
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.fontSize
+        textFormat: Text.PlainText
+        horizontalAlignment: Text.AlignRight
+    }
+
+    // Kept separate from percentLabel, which hides while unavailable: this
+    // hit area stays live regardless, so hover doesn't drop the Tooltip
+    // crossing the gap between the track and the chevron.
+    Item {
+        anchors.right: pageTarget.left
+        anchors.verticalCenter: parent.verticalCenter
+        width: 44
+        height: track.height
+
+        MouseArea {
+            id: percentMouse
+
+            anchors.fill: parent
+            hoverEnabled: true
+        }
+    }
+
     Item {
         id: muteTarget
 
@@ -142,7 +183,10 @@ Item {
         }
 
         MouseArea {
+            id: muteMouse
+
             anchors.fill: parent
+            hoverEnabled: true
             onPressed: {
                 muteTarget.forceActiveFocus();
                 root.muteFocusVisible = false;
@@ -186,6 +230,8 @@ Item {
         }
 
         MouseArea {
+            id: pageMouse
+
             anchors.fill: parent
             hoverEnabled: true
             onPressed: {
@@ -208,7 +254,7 @@ Item {
     Tooltip {
         target: root
         text: root.available ? `Volume ${root.volume}%${root.muted ? " (muted)" : ""}` : "Volume unavailable"
-        shown: root.muteFocusVisible || root.sliderFocusVisible || root.pageFocusVisible
+        shown: root.muteFocusVisible || muteMouse.containsMouse || root.sliderFocusVisible || trackMouse.containsMouse || percentMouse.containsMouse || root.pageFocusVisible || pageMouse.containsMouse
     }
 
     PwObjectTracker {

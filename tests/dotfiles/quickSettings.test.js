@@ -86,6 +86,28 @@ test("Audio Page is native, availability-aware, and keeps advanced settings as a
     assert.match(audioPage, /Quickshell\.execDetached\(\["pavucontrol"\]\)/);
 });
 
+test("Volume shows a persistent percentage and its Tooltip responds to hover", () => {
+    const volume = source("modules/Volume.qml");
+
+    const percentLabelMatch = volume.match(/id:\s*percentLabel[\s\S]*?\n {4}\}/);
+    assert.ok(percentLabelMatch, "expected a percentLabel block to extract");
+    const percentLabelBlock = percentLabelMatch[0];
+    assert.match(percentLabelBlock, /width:\s*44/);
+    assert.match(percentLabelBlock, /text:\s*`\$\{Math\.max\(0, Math\.min\(100, root\.volume\)\)\}%`/);
+    assert.doesNotMatch(percentLabelBlock, /muted/);
+
+    assert.match(volume, /id:\s*trackMouse[\s\S]*?hoverEnabled:\s*true/);
+    assert.match(volume, /id:\s*muteMouse[\s\S]*?hoverEnabled:\s*true/);
+    assert.match(volume, /id:\s*pageMouse[\s\S]*?hoverEnabled:\s*true/);
+    assert.match(volume, /id:\s*percentMouse[\s\S]*?hoverEnabled:\s*true/);
+
+    assert.match(
+        volume,
+        /shown:\s*root\.muteFocusVisible \|\| muteMouse\.containsMouse \|\| root\.sliderFocusVisible \|\| trackMouse\.containsMouse \|\| percentMouse\.containsMouse \|\| root\.pageFocusVisible \|\| pageMouse\.containsMouse/,
+    );
+    assert.match(volume, /text:\s*root\.available \? `Volume \$\{root\.volume\}%\$\{root\.muted \? " \(muted\)" : ""\}` : "Volume unavailable"/);
+});
+
 test("Devcontainer routing uses a Tile and a dedicated Page", () => {
     const quickSettings = source("modules/QuickSettings.qml");
     const tile = source("modules/DevcontainerRoutingTile.qml");
