@@ -1,5 +1,5 @@
 model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "low"
 approvals_reviewer = "auto_review"
 service_tier = "default"
 
@@ -9,22 +9,35 @@ trust_level = "trusted"
 [projects."/home/jehad/dotfiles"]
 trust_level = "trusted"
 
+[projects."/home/jehad/.agents"]
+trust_level = "trusted"
+
+[projects."/home/jehad/dev/work/mamacrm/backend"]
+trust_level = "trusted"
+
 [tui]
-status_line = [
-    "model-with-reasoning",
-    "current-dir",
-    "context-used",
-    "five-hour-limit",
-    "weekly-limit",
-    "used-tokens",
-    "task-progress",
-    "approval-mode",
-    "fast-mode",
-]
+status_line = ["model-with-reasoning", "current-dir", "context-used", "used-tokens", "five-hour-limit", "weekly-limit", "task-progress", "approval-mode", "fast-mode", "context-window-size"]
 status_line_use_colors = true
+
+[tui.model_availability_nux]
+"gpt-5.6-sol" = 1
 
 [shell_environment_policy]
 inherit = "core"
 
 [shell_environment_policy.set]
 ENABLE_TOOL_SEARCH = "true"
+
+[hooks.state]
+
+[hooks.state."/home/jehad/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:136d9b2ba570f995724979404d6a180b3aec9527f6fb1868dd0728cc9042e192"
+
+[hooks.state."/home/jehad/.codex/hooks.json:session_start:1:0"]
+trusted_hash = "sha256:02bfcccca4a4cb756bc2a10b220caa651b6b235c816118f036eb41bf8034a756"
+
+[features]
+hooks = true
+
+[notice.model_migrations]
+"gpt-5.4-mini" = "gpt-5.6-luna"
