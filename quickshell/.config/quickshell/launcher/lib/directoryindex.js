@@ -7,7 +7,7 @@ var PRUNE_NAMES = [
     "Cypress", "cypress", "discord", "go", "obs-studio", "mpv", "transmission"
 ];
 
-var ROOTS = ["dotfiles", "dev"];
+var ROOTS = ["dotfiles", "dev", ".agents"];
 
 function indexPath(home) {
     return home + "/.cache/" + INDEX_DIR_NAME + "/" + INDEX_FILE_NAME;
@@ -63,7 +63,7 @@ function inScope(path, home) {
 
     var segments = relative.split("/");
     if (segments.length === 1)
-        return segments[0].charAt(0) !== ".";
+        return segments[0].charAt(0) !== "." || ROOTS.indexOf(segments[0]) >= 0;
 
     if (ROOTS.indexOf(segments[0]) < 0)
         return false;

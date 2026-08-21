@@ -36,6 +36,11 @@ test("a candidate must contain home and only paths admitted by the existing scop
     assert.strictEqual(Index.validateCandidate(`${HOME}\n${HOME}/dev/a/b/c/d/e/f/g\n`, HOME).ok, false);
 });
 
+test("a dot-prefixed root is in scope; a dot-directory not on the whitelist is not", () => {
+    assert.strictEqual(Index.inScope(`${HOME}/.agents`, HOME), true);
+    assert.strictEqual(Index.inScope(`${HOME}/.notaroot`, HOME), false);
+});
+
 test("a candidate accepts the persisted order produced under a different locale", () => {
     const text = `${HOME}\n${HOME}/backgrounds\n${HOME}/Desktop\n`;
     assert.deepStrictEqual(Index.validateCandidate(text, HOME), {
@@ -224,6 +229,7 @@ test("the real scan contract replaces an isolated home snapshot losslessly", t =
 
     mkdir("Desktop");
     mkdir(".hidden");
+    mkdir(".agents/skills");
     mkdir("dev/project/src");
     mkdir("dev/project/.generated");
     mkdir("dev/a/b/c/d/e/f");
@@ -238,7 +244,9 @@ test("the real scan contract replaces an isolated home snapshot losslessly", t =
     assert.ok(first.paths.includes(home));
     assert.ok(first.paths.includes(path.join(home, "Desktop")));
     assert.ok(first.paths.includes(path.join(home, "dev/project/.generated")));
-    assert.ok(!first.paths.includes(path.join(home, ".hidden")));
+    assert.ok(first.paths.includes(path.join(home, ".agents")), "a whitelisted dot-root is a leaf entry, not just its contents");
+    assert.ok(first.paths.includes(path.join(home, ".agents/skills")));
+    assert.ok(!first.paths.includes(path.join(home, ".hidden")), "a dot-directory off the whitelist stays excluded");
     assert.ok(!first.paths.includes(path.join(home, "dev/a/b/c/d/e/f/too-deep")));
     for (const excluded of Index.PRUNE_NAMES)
         assert.ok(!first.paths.includes(path.join(home, "dev", excluded)));
