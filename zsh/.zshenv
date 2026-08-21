@@ -86,7 +86,7 @@ AICHAT_MODEL="gemini:gemini-3-flash-preview" # aichat
 export OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
 
 # docker
-# export DOCKER_HOST=unix:///run/user/1000/docker.sock
+export DOCKER_HOST=unix:///run/user/1000/docker.sock
 
 # PATH Configuration
-export PATH="$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"
+export PATH="$HOME/bin:$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"
