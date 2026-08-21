@@ -168,7 +168,7 @@ mouse_capture = true
 copy_on_select = true
 
 # Start with the sidebar collapsed (takes effect on next launch).
-sidebar_start_collapsed = true
+sidebar_start_collapsed = false
 
 # tmux's new-window never asked for a name either -- skip herdr's prompt and
 # take the generated one.
