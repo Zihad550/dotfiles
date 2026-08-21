@@ -6,6 +6,7 @@
 set -e
 
 AGENTS=(claude-code cursor codex pi kilo)
+AGENTS_WITHOUT_PLUGIN=(cursor codex pi kilo)
 
 mise use -g npm:skills
 eval "$(mise activate bash)"
@@ -18,10 +19,21 @@ skills add herdrdev/herdr --skill herdr -g --agent "${AGENTS[@]}" -y
 skills add giuseppe-trisciuoglio/developer-kit --skill shadcn-ui -g --agent "${AGENTS[@]}" -y
 skills add anthropics/skills --skill webapp-testing -g --agent "${AGENTS[@]}" -y
 skills add max-sixty/worktrunk --skill worktrunk -g --agent "${AGENTS[@]}" -y
-skills add mattpocock/skills -g --agent cursor codex pi kilo -y
+skills add mattpocock/skills -g --agent "${AGENTS_WITHOUT_PLUGIN[@]}" -y
+
+# cursor skills
+skills add https://github.com/cursor/plugins --skill unslop  -g --agent "${AGENTS_WITHOUT_PLUGIN[@]}" -y
+skills add https://github.com/cursor/plugins --skill deslop typescript-best-practices -g --agent "${AGENTS[@]}" -y
+# how -> learn something about codebase, "how does X work?"
+skills add https://github.com/cursor/plugins --skill how -g --agent "${AGENTS[@]}" -y
+# why -> Companion to the how skill. how answers what the code does and how it works. why answers what forces led to its shape.
+skills add https://github.com/cursor/plugins --skill why -g --agent "${AGENTS[@]}" -y
+# blast-radius -> Companion to how and why. how tells you what the code does. why tells you why it's shaped that way. Blast radius tells you what it breaks somewhere else.
+skills add https://github.com/cursor/plugins --skill blast-radius -g --agent "${AGENTS[@]}" -y
+
 
 ######## our own skills, no upstream repo — sourced from github.com/Zihad550/skills
-skills add https://github.com/Zihad550/skills \
+skills add Zihad550/skills \
   --skill draft-tea-command-for-issue-create gh-create-issue gh-get-issue mise simplify \
           tea-create-issue tea-get-issue tea-plan-issue template-skill work-backend-qa \
   -g --agent "${AGENTS[@]}" -y
