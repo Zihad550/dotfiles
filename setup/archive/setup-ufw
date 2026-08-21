@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# Rootful counterpart of ../arch-hyprland/setup-packages/setup-ufw, retired
+# (#95). See docs/adr/0011 and ./README.md.
+#
+# sudo ufw app list -> displays all apps
+# sudo ufw limit SSH  -> instead of using sudo ufw allow SSH
+
+set -e
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/ufw-lib
+. "$HERE/../common/ufw-lib"
+
+ufw_bootstrap
+
+# Allow nothing in, everything out
+sudo ufw deny SSH
+# The syncthing app profile only exists once syncthing is installed, and
+# arch-devbox drops it — opening a profile that isn't there just errors.
+if sudo ufw app info syncthing &>/dev/null; then
+    sudo ufw allow syncthing
+fi
+
+# Allow Docker containers to use DNS on host -- rootful only; rootless docker
+# has no host-visible docker0 bridge.
+sudo ufw allow in proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment 'allow-docker-dns'
+
+ufw_commit
+
+# Turn on Docker protections -- rootful only, needs the ufw-docker package.
+sudo ufw-docker install
+sudo ufw reload

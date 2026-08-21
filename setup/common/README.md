@@ -36,11 +36,6 @@ here when the explanation does not belong beside the command it protects.
 - [`packages/mise-dev-packages`](packages/mise-dev-packages) is an executable
   package-command list, not a Shared Setup Script.
 
-### Available but not currently invoked
-
-[`setup-docker`](setup-docker) installs rootful Docker. No current setup entry
-point calls it. The active Arch setup uses `setup-rootless-docker` instead.
-
 ## SSH hardening
 
 Both Box Wrappers set the contract documented at the top of

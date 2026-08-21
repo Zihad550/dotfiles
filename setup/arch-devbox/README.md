@@ -76,8 +76,10 @@ so a fix there lands on both targets.
 Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
 `gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos`, `packages/go-packages`,
 `packages/pacman-base`, `packages/quickshell-packages`
-and `setup-packages/` — except `setup-packages/setup-docker`, which installs
-rootful docker and is overridden by this directory's own `setup-docker`.
+and `setup-packages/` — except `setup-packages/setup-ufw`, which does `ufw
+deny SSH` and opens the syncthing profile (see [firewall](#firewall)).
+Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
+directly on both boxes, not from `setup-packages/` at all.
 
 Hardware detection is the exception: it used to be `../arch-hyprland/utils/hw-detect`
 and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
@@ -158,16 +160,10 @@ starts shelling out to something new.
 
 ### the omarchy repo is required
 
-`worktrunk`, `opencode`, `claude-code`, `tea`, `ufw-docker` and `quickshell`
-are installed with plain `pacman -S` but are not in the official Arch repos —
-they come from the omarchy repo. Dropping `setup-omarchy-repos` as "not
-minimal" breaks half of `pacman-base` plus the Hyprland steps.
-
-`ufw-docker` in particular is installed here only to be removed a few steps
-later — `packages/pacman-base` is shared with arch-hyprland, which still runs
-rootful docker and needs the package, so it isn't dropped from that shared
-list; `./setup-docker` removes it again on this box once `pacman base` has
-run. See [docker](#docker).
+`worktrunk`, `opencode`, `claude-code`, `tea` and `quickshell` are installed
+with plain `pacman -S` but are not in the official Arch repos — they come
+from the omarchy repo. Dropping `setup-omarchy-repos` as "not minimal" breaks
+half of `pacman-base` plus the Hyprland steps.
 
 ### flatpak is off by default
 
@@ -311,8 +307,8 @@ handshake or an HTTP status. Strip those three lines back out afterwards.
 
 Rootless, via [`setup-rootless-docker`](../common/setup-rootless-docker) — `curl
 -fsSL https://get.docker.com/rootless | sh` — not the plain `pacman -S docker`
-of `../common/setup-docker` (formerly arch-hyprland's own rootful step; see
-#95 for its own move to rootless).
+of [`../archive/setup-docker`](../archive/setup-docker), retired when
+arch-hyprland finished its own move to rootless (#95).
 This box runs AI harnesses against text pulled off the internet (see
 [firewall](#firewall)); a compromised container landing on a root-owned
 daemon is a worse outcome than the same container landing on a daemon that
@@ -321,8 +317,9 @@ runs as `$USER` and can be torn down by killing a user session.
 The consequence that matters elsewhere in this file: rootful dockerd
 publishes ports with its own iptables DNAT rules, which bypass ufw's INPUT
 chain entirely — that's what `ufw-docker` exists to plug, and it's why
-arch-hyprland's `setup-ufw` and this box's old baseline both installed it.
-Rootless dockerd has no root to write host iptables with. RootlessKit's
+arch-hyprland's `setup-ufw` and this box's old baseline both installed it,
+back when both boxes still ran rootful docker. Rootless dockerd has no root
+to write host iptables with. RootlessKit's
 builtin port driver publishes a container port as an ordinary userspace
 listener owned by this user instead, so ufw's normal rules already govern it
 — no `docker0` exception, no `DOCKER-USER` chain, no `ufw-docker` package.
@@ -332,7 +329,7 @@ consequence from the other side (a container's *published* port), and
 [the `ufw route` rules were written for rootful docker](#the-ufw-route-rules-were-written-for-rootful-docker)
 for the egress side.
 
-### what `setup-docker` does, and why each step is there
+### what `setup-rootless-docker` does, and why each step is there
 
 `get.docker.com/rootless` is a **bootstrap wrapper**, not the setuptool
 itself — it gates on its own requirements first, extracts the binaries, and
@@ -385,12 +382,7 @@ entirely.
   independently, not with one `disable --now` for both — either unit can
   exist without the other, and `disable --now` on a unit that isn't there
   aborts the script under `set -e`.
-- Removes `ufw-docker` too, if `packages/pacman-base` installed it (that list
-  is shared with arch-hyprland, which still needs the package — see
-  [the omarchy repo is required](#the-omarchy-repo-is-required)). `pacman
-  -Rn`, not `-Rns`: no `--recursive`, so a shared dependency like `ufw` itself
-  can't be pulled out by accident along with it.
-  No local `/etc/subuid`/`/etc/subgid` check either. It's validated by the
+- No local `/etc/subuid`/`/etc/subgid` check. It's validated by the
   same `checks()` gate as `ip_tables` above (and again, independently, by
   `dockerd-rootless-setuptool.sh` if run standalone later), printing its own
   fix — `echo "$USER:100000:65536" >> /etc/subgid` — if it's missing. Unlike
@@ -417,13 +409,14 @@ entirely.
   unit that was never created — so the script clears the binary first
   whenever it's about to retry.
 - Writes `~/.config/docker/daemon.json` with the same log-size cap
-  arch-hyprland's rootful `setup-docker` writes to `/etc/docker/daemon.json`
-  — rootless dockerd reads its own config in the user's `$DOCKER_CONFIG`
-  (`zsh/.zshenv`), not the system one, so carrying the cap over verbatim
-  would otherwise silently lose it.
+  [`../archive/setup-docker`](../archive/setup-docker) used to write to
+  `/etc/docker/daemon.json` back when arch-hyprland ran it — rootless dockerd
+  reads its own config in the user's `$DOCKER_CONFIG` (`zsh/.zshenv`), not
+  the system one, so carrying the cap over verbatim would otherwise silently
+  lose it.
 - Enables and starts the `docker.service` **systemd user unit** the
-  installer writes to `~/.config/systemd/user/` — not the system unit
-  arch-hyprland's step enables.
+  installer writes to `~/.config/systemd/user/` — not the system unit the
+  old rootful step enabled.
 - Installs `docker-compose` and `docker-buildx` from pacman regardless — they
   are CLI plugins that work fine against a rootless `DOCKER_HOST` and don't
   pull the rootful `docker` package back in as a dependency, so there's no
@@ -436,7 +429,7 @@ entirely.
 RootlessKit picks `slirp4netns` if it's installed, else `pasta`, else falls
 back to the bundled `gvisor-tap-vsock` — no separate package needed for the
 last one, it's linked into the `rootlesskit` binary the installer drops in
-`~/bin`. Nothing in `setup-docker` pins one, so a fresh install gets
+`~/bin`. Nothing in `setup-rootless-docker` pins one, so a fresh install gets
 whichever of those three is available; check what's actually running with:
 
 ```bash
@@ -461,8 +454,9 @@ It is split across three files because only the first can run during `init`:
 
 - **`setup-ufw-base`** (run by `init`, non-interactive) — `default deny
   incoming`, `default allow outgoing`, no allow rules at all. No `ufw-docker
-  install` and no docker0 DNS rule: this box's docker (`../setup-docker`) is
-  rootless, has no host-visible bridge, and publishes ports as an ordinary
+  install` and no docker0 DNS rule: this box's docker
+  (`../common/setup-rootless-docker`) is rootless, has no host-visible
+  bridge, and publishes ports as an ordinary
   userspace listener rather than DNAT rules that bypass ufw — see
   [databases over tailscale](#databases-over-tailscale). No rule reachable
   from any network, so there is no lockout risk in enabling it mid-install.
@@ -596,9 +590,10 @@ sudo iptables -S INPUT | head; sudo iptables -S ts-input
 
 #### the `ufw route` rules were written for rootful docker
 
-This box now runs rootless docker (`../setup-docker`), which changes what
-this section is about. Kept for reference — the reasoning still applies the
-day this box goes back to rootful, and the ICMP note below builds on it.
+This box now runs rootless docker (`../common/setup-rootless-docker`), which
+changes what this section is about. Kept for reference — the reasoning still
+applies the day this box goes back to rootful, and the ICMP note below builds
+on it.
 
 `ufw-docker install` writes a `DOCKER-USER` chain that looks like it already
 covers container→LAN. It doesn't — the source-based `RETURN` rules sit
@@ -920,8 +915,9 @@ carry the wrong assumption over from another box:
   which **bypass ufw's INPUT chain** — a container would be reachable on every
   interface no matter what `ufw status` says, and would need `ufw-docker
   allow` (or a DOCKER-USER-level grant) to be scoped back down to the tailnet.
-- This box's docker (`./setup-docker`) is **rootless**. RootlessKit's builtin
-  port driver publishes a container port as an ordinary userspace listener
+- This box's docker (`../common/setup-rootless-docker`) is **rootless**.
+  RootlessKit's builtin port driver publishes a container port as an ordinary
+  userspace listener
   owned by this user, not a DNAT rule — the same way a plain `pnpm dev` opens
   a port. `ufw allow in on tailscale0` is an INPUT rule, and INPUT is exactly
   what governs an ordinary listener. `setup-ufw-base` doesn't install

@@ -88,7 +88,7 @@ run_step "theme" "$ARCH_HYPR_DIR/theme"
 run_step "gnome-theme" "$ARCH_HYPR_DIR/gnome-theme"
 
 # The omarchy repo is required, not optional: worktrunk, opencode, claude-code,
-# tea, ufw-docker and quickshell all come from it.
+# tea and quickshell all come from it.
 run_step "omarchy repos" "$ARCH_HYPR_DIR/setup-omarchy-repos"
 run_step "mise" "$ARCH_HYPR_DIR/setup-packages/setup-mise"
 run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"

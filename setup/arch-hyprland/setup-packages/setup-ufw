@@ -2,10 +2,17 @@
 
 # sudo ufw app list -> displays all apps
 # sudo ufw limit SSH  -> instead of using sudo ufw allow SSH
-sudo pacman -S --noconfirm ufw
+# Rootless docker (../../common/setup-rootless-docker, run earlier by init)
+# needs no docker0/ufw-docker carve-out here -- see ../../archive/setup-ufw
+# for the rootful counterpart this replaced (#95).
 
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
+set -e
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../common/ufw-lib
+. "$HERE/../../common/ufw-lib"
+
+ufw_bootstrap
 
 # Allow nothing in, everything out
 sudo ufw deny SSH
@@ -15,12 +22,4 @@ if sudo ufw app info syncthing &>/dev/null; then
     sudo ufw allow syncthing
 fi
 
-# Allow Docker containers to use DNS on host
-sudo ufw allow in proto udp from 172.16.0.0/12 to 172.17.0.1 port 53 comment 'allow-docker-dns'
-
-sudo ufw --force enable
-sudo systemctl enable ufw.service
-
-# Turn on Docker protections
-sudo ufw-docker install
-sudo ufw reload
+ufw_commit

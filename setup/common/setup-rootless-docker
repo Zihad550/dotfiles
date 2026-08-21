@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Rootless docker. NOT ../arch-hyprland/setup-packages/setup-docker (rootful).
+# Rootless docker. NOT ../archive/setup-docker (rootful, retired -- #95).
 # See README.md and ../arch-devbox/README.md "Docker". Idempotent, run by init.
 
 set -e
@@ -16,11 +16,6 @@ done
 if pacman -Qq docker &>/dev/null; then
     sudo pacman -Rns --noconfirm docker
     sudo rm -f /var/run/docker.sock # not guaranteed to still exist
-fi
-# pacman-base installs ufw-docker for arch-hyprland's sake; `-Rn` so `ufw`
-# itself can't get pulled out as a shared dependency.
-if pacman -Qq ufw-docker &>/dev/null; then
-    sudo pacman -Rn --noconfirm ufw-docker
 fi
 
 loginctl enable-linger "$USER"

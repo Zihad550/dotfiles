@@ -10,8 +10,8 @@
 # already drifted (setup/ubuntu-devbox/packages, a third copy of the same
 # toolkit, dropped aichat/worktrunk/lazydocker while both arch lists kept them).
 #
-# NOTE: opencode, ufw-docker, worktrunk, tea and claude-code come from the
-# omarchy repo, not official Arch. `setup-omarchy-repos` must run before this.
+# NOTE: opencode, worktrunk, tea and claude-code come from the omarchy repo,
+# not official Arch. `setup-omarchy-repos` must run before this.
 
 #  core
 # gum - shell script UI, also drives the installer
@@ -44,7 +44,6 @@ sudo pacman -S --noconfirm \
     github-cli \
     shellcheck shfmt \
     opencode \
-    ufw-docker \
     worktrunk \
     tea \
     rsync \
