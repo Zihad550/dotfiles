@@ -48,9 +48,42 @@ Both Box Wrappers set the contract documented at the top of
 a LAN break-glass path and must mirror the new sshd port into UFW. Arch permits
 traffic arriving on `tailscale0`, so a port change needs no new firewall rule.
 
-The two-phase rollout and port-choice rationale are still documented in the
-script pending issue #96. That issue owns removing the duplicated prose; this
-README is its destination.
+### two phases
+
+A config that locks you out is indistinguishable from a working one until you
+try it. So the port change is a Phase rollout. Phase 1 leaves sshd listening on
+**both** 22 and the new port, and your current session survives whatever
+happens. Phase 2 (`--finalize`) drops 22 — run it from a session you opened on
+the new port. `--revert` removes the drop-ins entirely.
+
+An interactive run offers Phase 2 once you confirm the new port works. A
+non-interactive one never does. `HARDEN_SSH_ASSUME_YES=1` forces it, and that is
+the one way this script can strand a headless box.
+
+### why move the port
+
+The auth and crypto hardening is always wanted. The port move is not, and what
+it buys depends on `HARDEN_NET`.
+
+With a LAN Break-glass path (`lan`) it is the ordinary reason: fewer unattended
+login attempts from whatever else is on the wire. It is not a security boundary
+— the firewall already decides what can reach sshd at all — and the cost is that
+the port becomes something you have to know.
+
+On a tailnet-only box (`tailnet`) there is no scanner to hide from, so whether
+the move does anything at all turns on one Tailscale pref:
+
+| | effect |
+| --- | --- |
+| `RunSSH true` | `tailscaled` intercepts port 22 on the tailnet IP, in userspace, before the packet reaches the host stack. sshd on 22 is unreachable from the only network the box answers on, so moving off 22 is what makes sshd reachable — not optional. |
+| `RunSSH false` | Nothing intercepts 22 and sshd already answers there. The move buys nothing, which is why `SSH_PORT=keep` exists. |
+
+Both boxes run `RunSSH false`. The two states are indistinguishable until one
+breaks, so `harden-ssh` detects it rather than assuming, and treats undetectable
+as `false` — the direction that warns harder.
+
+Tailscale SSH is unaffected either way: `tailscaled` is its own ssh server for
+tailnet traffic and never reads `sshd_config`.
 
 ## DNS and MagicDNS
 

@@ -4,20 +4,8 @@
 #
 #   ./setup-root-autounlock [luks-device]
 #
-# Without this, an encrypted root stops at the initramfs passphrase prompt on
-# every reboot. Tailscale is not up that early, so a headless box reached over
-# the tailnet is simply unreachable until someone walks over and types it.
-#
-# The tradeoff, stated plainly: the disk now unlocks itself. That protects a
-# drive pulled out of the machine, or the machine sold/RMA'd. It does not
-# protect a machine stolen intact -- it will happily boot for the thief. PCR 7
-# ties the seal to the secure boot policy, so disabling secure boot or booting
-# other media does break it.
-#
-# RUN THIS WHILE YOU STILL HAVE A KEYBOARD ON THE MACHINE, and reboot to verify
-# before you rely on it. The passphrase keyslot is never removed -- it stays as
-# the way back in when TPM state changes (firmware update, secure boot toggle,
-# board swap).
+# What sealing to the TPM protects against and what it does not: see
+# "## headless boot" in README.md.
 
 set -euo pipefail
 

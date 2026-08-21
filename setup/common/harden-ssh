@@ -5,7 +5,7 @@
 # only once you have confirmed you can log in with a key.
 #
 # Shared by setup/ubuntu-devbox and setup/arch-devbox. Do not run this file
-# directly; run the wrapper in the target's own directory, which sets the four
+# directly; run the Box Wrapper in the box's own directory, which sets the four
 # variables below and execs this:
 #
 #   ./harden-ssh                 # interactive; picks a random port
@@ -31,47 +31,8 @@
 #   HARDEN_SSH_SELF    absolute path of the wrapper, for messages and the
 #                      drop-in's "managed by" line.
 #
-# ─── two phases ──────────────────────────────────────────────────────────────
-# Because a config that locks you out looks identical to one that works until
-# you try it:
-#
-#   phase 1 (this run)  sshd listens on BOTH 22 and the new port. Your current
-#                       session survives no matter what.
-#   phase 2 (--finalize) 22 is dropped. Only run it from a session you opened on
-#                       the NEW port.
-#
-# The interactive run offers to do phase 2 for you once you say a new-port login
-# worked. Non-interactive runs never do -- see HARDEN_SSH_ASSUME_YES.
-#
-# ─── why move the port ───────────────────────────────────────────────────────
-# The auth and crypto hardening below is always wanted. The port move is not,
-# and whether it buys anything depends on HARDEN_NET and on one tailscale pref.
-#
-# On a box with a LAN hole (`lan`), it is the ordinary reason: fewer unattended
-# login attempts from whatever else is on the wire.
-#
-# On a tailnet-only box (`tailnet`) it is not obscurity -- the firewall already
-# drops everything that does not arrive on tailscale0, so there is no scanner to
-# hide from. Whether it is anything at all depends on Tailscale SSH:
-#
-#   RunSSH true   `tailscale up --ssh` makes tailscaled intercept port 22 *on
-#                 the tailnet IP*, in userspace, before the packet reaches the
-#                 host stack. sshd on 22 is unreachable from the only network
-#                 the box answers on. Moving off 22 is what makes sshd reachable
-#                 at all -- not optional.
-#
-#   RunSSH false  Nothing intercepts 22, sshd already answers there over the
-#                 tailnet, and sshd is the access path rather than a fallback
-#                 behind Tailscale SSH. The move buys nothing. SSH_PORT=keep is
-#                 the reasonable choice, and is why it exists.
-#
-# These boxes run RunSSH false -- ./setup-tailscale defaults TS_SSH=0. Check
-# rather than assume, since the two are indistinguishable until one breaks:
-#
-#   tailscale debug prefs | grep RunSSH
-#
-# Tailscale SSH is unaffected by any of this either way: tailscaled is its own
-# ssh server for tailnet traffic and never consults sshd_config.
+# Two-phase rollout, and whether the port move buys anything at all: see
+# README.md "two phases" and "why move the port".
 
 set -euo pipefail
 

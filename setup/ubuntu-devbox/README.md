@@ -284,22 +284,19 @@ tailnet and the LAN. Test the new port before finalizing phase 2.
 
 ### two phases
 
-A config that locks you out is indistinguishable from one that works until you
-try it. So phase 1 leaves sshd listening on **both** 22 and the new port, with
-ufw rules for both, and your current session survives whatever happens. Phase 2
-(`--finalize`) removes 22 from sshd and deletes the port-22 ufw rules — run it
-from a session you opened on the new port.
-
-An interactive run offers phase 2 once you confirm the new port works. A
-non-interactive one never does; `HARDEN_SSH_ASSUME_YES=1` forces it, and that is
-the one way this script can strand a headless box.
+The rollout itself is documented once in
+[`../common/README.md`](../common/README.md#two-phases). What is specific to this
+box is the firewall half, which follows from `HARDEN_FIREWALL=ufw-lan`: phase 1
+adds ufw rules for the new port alongside the existing port-22 ones, and phase 2
+deletes the port-22 rules as it drops the port.
 
 ### what the random port is and isn't
 
-It is not a security boundary — ufw already denies everything except the tailnet
-and one LAN source, so nothing on the internet can reach any port. What it buys
-is quiet: no credential-stuffing noise in the journal from whatever else is on
-the LAN, and no `22/tcp open` on a casual scan.
+What the move does and does not buy on a box with a LAN Break-glass path is in
+[`../common/README.md`](../common/README.md#why-move-the-port); here that means
+ufw already denies everything except the tailnet and one LAN source, so the port
+is never a security boundary, and what it buys is quiet — no credential-stuffing
+noise in the journal from the rest of the LAN, no `22/tcp open` on a casual scan.
 
 The cost is that the port is now something you have to know. `harden-ssh` prints
 the `~/.ssh/config` block to paste on the laptop; `awk '$1=="Port"'

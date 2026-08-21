@@ -708,21 +708,12 @@ shared access-model rationale and the effects of opting into Tailscale SSH.
 auth, and a modern-crypto-only kex/cipher/MAC list. That part is wanted
 regardless.
 
-Its **port move off 22 is optional here.** With `--ssh` enabled tailscaled owns
-22 on the tailnet IP and sshd must move elsewhere to be reachable at all; with
-`RunSSH: false` nothing intercepts 22 and sshd already answers there. The move is
-not obscurity either way — ufw drops everything that isn't `tailscale0`, so there
-is no scanner to hide from; it just isn't buying anything.
-
-`SSH_PORT=keep` therefore hardens auth and crypto while staying on 22, and on
-this box that is the **reasonable** choice, not the weaker one. `harden-ssh`
-detects `RunSSH` at runtime and adjusts what it tells you, treating undetectable
-as off — the direction that warns harder.
-
-Two phases, because a config that locks you out looks identical to a working one
-until you try it. Phase 1 listens on **both** 22 and the new port; phase 2
-(`--finalize`, offered interactively once you confirm a login worked) drops 22.
-`--revert` removes both drop-ins.
+Its **port move off 22 is optional here**. Both that reasoning and the
+two-phase rollout performing it are documented once in
+[`../common/README.md`](../common/README.md#why-move-the-port). The verdict for
+this box: with `RunSSH: false` and ufw dropping everything that isn't
+`tailscale0`, the move buys nothing, so `SSH_PORT=keep` — auth and crypto
+hardened, still on 22 — is the **reasonable** choice here, not the weaker one.
 
 ### sshd hardening is shared
 

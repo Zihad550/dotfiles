@@ -3,83 +3,25 @@
 # Point gpg's dirmngr at the system resolver, so key imports survive this box's
 # DNS path.
 #
-# dirmngr does not use glibc's resolver. It links its own (libdns) and reads
-# /etc/resolv.conf itself, which means it sees the *file* but not the policy
-# behind it — systemd-resolved's split-horizon routing, MagicDNS's per-domain
-# rules, a pi-hole upstream. On a box where /etc/resolv.conf is resolved's stub
-# (127.0.0.53) that private resolver is talking to a forwarder whose answers
-# depend on routing it does not implement, and lookups fail in the vaguest way
-# gpg has:
+# Two separate faults sit behind gpg's one vague error, and the second is why
+# the default keyserver below is plaintext hkp on port 80 rather than hkps. See
+# "gpg key imports: two faults behind one message" in ../arch-devbox/README.md,
+# the only box that runs this.
 #
-#   gpg: keyserver receive failed: Server indicated a failure
+# Not interchangeable with ../arch-devbox/setup-dns: that changes which resolver
+# answers, this changes who asks. Either can be why gpg fails.
 #
-# `standard-resolver` turns libdns off and hands resolution back to
-# getaddrinfo(3) — the same path curl, pacman and everything else on the box
-# already uses successfully. That is the whole fix.
+# Note the default here is a real override, not an assertion: Arch's gnupg
+# already defaults to hkps://keyserver.ubuntu.com -- the broken one. In
+# `gpgconf --list-options dirmngr | grep '^keyserver'`, field 8 is that
+# compiled-in default and field 10 is what is actually in effect.
 #
-# That is necessary but not sufficient. With the resolver fixed the error only
-# changes:
+# hkps://keys.openpgp.org is the worse fallback, for an unrelated reason: it
+# serves keys whose owner never verified their email with no user IDs at all,
+# and gpg rejects those outright -- "no user ID", 0 imported.
 #
-#   gpg: keyserver receive failed: Try again later
-#
-# after a flat 20s stall. That is fault two: dirmngr's TLS. Measured on this box,
-# same daemon, same hosts, same minute:
-#
-#   hkp://keyserver.ubuntu.com:80    imports in under a second
-#   hkps://keyserver.ubuntu.com      stalls 20s, EAGAIN
-#   hkps:// via curl                 full key body in 0.76s
-#   hkps://keys.openpgp.org          stalls the same way — not one server's fault
-#
-# So TCP, DNS, routing, MTU and egress are all fine; what fails is TLS inside
-# dirmngr, which uses its own stack rather than the OpenSSL curl links. Cause not
-# identified. Not IPv6 either — `disable-ipv6` was tried here and changed nothing.
-#
-# Hence the default keyserver below is **plaintext hkp on port 80**, which is a
-# deliberate trade and not a lazy one:
-#
-#   - It costs no key-integrity guarantee. `gpg --recv-keys <fingerprint>` and
-#     makepkg's `validpgpkeys` both match on the full fingerprint, so a MITM
-#     cannot substitute a key: forging one that collides with a given
-#     fingerprint is the thing OpenPGP fingerprints exist to prevent. Plaintext
-#     HKP moves no secret and grants no trust that TLS was providing.
-#   - What it does cost is confidentiality of *which* keys this box fetches, to
-#     anyone on the path, and it lets that party deny the fetch. Both are already
-#     true of every unencrypted lookup this box makes, and neither blocks a
-#     build.
-#
-# Override with DIRMNGR_KEYSERVER if you would rather have hkps and handle the
-# stall, or once the TLS fault is understood:
-#
+#   ./setup-dirmngr                                             # default keyserver
 #   DIRMNGR_KEYSERVER=hkps://keyserver.ubuntu.com ./setup-dirmngr
-#
-# Note this is a real change rather than an assertion of the default: Arch's
-# gnupg already defaults to hkps://keyserver.ubuntu.com — the *broken* one here.
-# (Upstream GnuPG defaults to hkps://keys.openpgp.org, which is worse for this
-# job for an unrelated reason: it serves keys whose owner never verified their
-# email without user IDs, and gpg rejects those outright, "no user ID",
-# 0 imported.)
-#
-#   gpgconf --list-options dirmngr | grep '^keyserver'   # field 10 = the default
-#
-# What needs this here: makepkg verifies AUR source signatures against the
-# PKGBUILD's `validpgpkeys`, and fetches any key it does not have with
-# `gpg --recv-keys`. So a broken dirmngr does not look like a DNS problem — it
-# looks like `yay -S helium-browser-bin` failing at the verify step, during the
-# "yay packages" run_step, on a box where every other network operation works.
-# That is why this runs in init rather than being opt-in like ./setup-dns.
-#
-# It also touches /etc/pacman.d/gnupg, which is a *separate* keyring with a
-# separate dirmngr.conf — `pacman-key --refresh-keys` hits the identical bug.
-# Nothing in this repo fetches pacman keys over the network (omarchy ships
-# omarchy-keyring, and pacman-key --populate reads local files), so that half is
-# purely so the manual command works when you reach for it.
-#
-# Related but not the same thing: ../arch-devbox/setup-dns changes *which*
-# resolver answers. This changes *who asks*. Either can be the reason gpg fails
-# and neither substitutes for the other.
-#
-#   ./setup-dirmngr                                          # default keyserver
-#   DIRMNGR_KEYSERVER=hkps://keys.openpgp.org ./setup-dirmngr
 
 set -euo pipefail
 

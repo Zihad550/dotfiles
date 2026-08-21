@@ -206,3 +206,18 @@ rationale while delegating shared behavior to a Shared Setup Script. Its
 configuration, rather than prose documentation, defines the box's chosen
 defaults.
 _Avoid_: shared script, implementation
+
+**Step**:
+One named unit of a box's `init` run, announced and retried as a whole.
+_Avoid_: stage, task, phase, job
+
+**Phase**:
+One half of a change rolled out in two parts, so the first half is survivable
+and the second is taken only once the first is confirmed working.
+_Avoid_: stage, step, pass, round
+
+**Break-glass**:
+The access path deliberately left open so a change that locks you out stays
+recoverable: a temporary LAN ssh hole, a retained passphrase keyslot, the
+physical console.
+_Avoid_: fallback, escape hatch, backdoor, recovery path
