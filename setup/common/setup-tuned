@@ -1,18 +1,12 @@
 #!/usr/bin/env bash
 
-# Power management for an always-on bare-metal devbox. Shared implementation;
-# per-box wrappers set the variables below and exec this.
-# See ../arch-devbox/README.md "power management" for why the profile is
-# standalone rather than include=powersave, and what each setting is for.
-#
+# Power management for an always-on bare-metal devbox.
+# See README.md "Power management" for the profile boundary.
 #   TUNED_PROFILE_NAME=<name>   required
-#   TUNED_SUMMARY=<text>        optional
+#   TUNED_SUMMARY=<text>        profile description; default "Always-on devbox:
+#                               power savings that never touch the ssh path"
 #   TUNED_ON_TLP=fail|skip      what to do when tlp is installed; default fail.
-#                               init passes skip so a tlp box does not abort a
-#                               run that has already installed half a system.
-#
-# Not for VM guests: a guest owns no cpufreq, no SATA link power and no USB, so
-# every section below is a no-op and `virtual-guest` is the right profile.
+#                               `skip` warns and exits successfully.
 
 set -euo pipefail
 

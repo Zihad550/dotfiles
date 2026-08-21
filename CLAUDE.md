@@ -4,10 +4,13 @@
   "why", an invariant, or a gotcha a future reader would trip over. Never
   restate what the code already shows.
 - Keep them short — a line or two. A comment turning into a paragraph of
-  design history or rationale belongs in `docs/<feature>-spec.md`, an ADR
-  (`docs/adr/`), or `CONTEXT.md` instead — leave a one-line pointer in the
-  code (e.g. `// see ticket 12`, `// see docs/launcher-spec.md`), not the
-  story itself.
+  design history or rationale belongs in the nearest owning `README.md`,
+  `docs/<feature>-spec.md`, an ADR (`docs/adr/`), or `CONTEXT.md` instead.
+  Leave a one-line pointer in the code (e.g. `// see ticket 12`,
+  `// see docs/launcher-spec.md`), not the story itself.
+- A script header may list its caller-controlled variables, their defaults,
+  and their effects. Keep history, alternatives, and extended rationale in
+  the owning documentation.
 - When doing git **commit** or **stage** ignore claude/.claude/settings.json and git/.config/git/config, Unless the user explicitly asked to.
 
 ### Issue tracker

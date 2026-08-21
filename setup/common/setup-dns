@@ -1,23 +1,17 @@
 #!/usr/bin/env bash
 
 # Point systemd-resolved at explicit upstream DNS servers via a drop-in.
-# Shared implementation; per-box wrappers set the variables below and exec
-# this.
+# Box Wrappers set the variables below and execute this Shared Setup Script.
 #
 #   DNS_SERVERS=<space-separated>   required, e.g. "1.1.1.1 1.0.0.1"
-#   DNS_DOMAINS=<value>             optional; default "~." (route every lookup
-#                                    through DNS_SERVERS). See the comment
-#                                    below before changing it.
+#   DNS_DOMAINS=<value>             domains routed through DNS_SERVERS;
+#                                    default "~." (every lookup)
 #   DNS_DROPIN_NAME=<name>          optional; default "10-dns-override".
 #                                    Becomes /etc/systemd/resolved.conf.d/<name>.conf
-#   DNS_REASON=<text>               optional; goes in the file's header comment
-#   DNS_FORCE=1                     optional; write the drop-in even when the
-#                                    preflight below says it will break MagicDNS
+#   DNS_REASON=<text>               drop-in header comment; default empty
+#   DNS_FORCE=0|1                   bypass the MagicDNS guard; default 0
 #
-# Why a drop-in and not editing resolved.conf directly: same reasoning as the
-# sysctl.d and logind.conf.d files elsewhere in this repo — one file per
-# concern, safe to remove without hand-editing a shared config, and immune to
-# a package update overwriting it.
+# See README.md "DNS and MagicDNS" for the drop-in and preflight rationale.
 
 set -euo pipefail
 
@@ -33,34 +27,8 @@ if ! systemctl cat systemd-resolved.service &>/dev/null; then
     exit 1
 fi
 
-# ─── preflight: who actually answers a lookup on this box ────────────────────
-# Two independent things decide that, and this script is only correct when they
-# agree:
-#
-#   * /etc/nsswitch.conf. With `resolve` on the `hosts:` line, glibc calls
-#     systemd-resolved over D-Bus and /etc/resolv.conf is never read.
-#   * /etc/resolv.conf. Everything that does not use glibc's resolver — Go
-#     binaries, containers, tailscaled's own probe — reads this file.
-#
-# The failure this refuses to walk into is the state where they disagree:
-# resolved is in the nsswitch path (so the drop-in below is what answers glibc
-# lookups) while /etc/resolv.conf is owned by something else. tailscaled probes
-# that file, concludes resolved is not in charge, and falls back to "direct"
-# mode -- it overwrites /etc/resolv.conf with 100.100.100.100 and registers
-# nothing with resolved. Look for `dns: using "direct" mode` in
-# `journalctl -u tailscaled`.
-#
-# Nothing then routes the tailnet suffix to MagicDNS, and `Domains=~.` below
-# hands *.ts.net to DNS_SERVERS, which has never heard of your tailnet. Tailnet
-# IPs keep working, tailnet names stop, and no error is printed anywhere. On a
-# box reached over the tailnet that is a bad way to find out.
-#
-# The fix is to make resolved own /etc/resolv.conf too, which is also what
-# makes tailscaled pick its resolved manager and register 100.100.100.100 on
-# the tailscale0 link. Split-DNS then resolves this correctly on its own:
-# resolved routes by most-specific match, so `~pumpkinseed-cat.ts.net` on
-# tailscale0 beats the `~.` written below and both resolvers get what they
-# want.
+# Refuse a split resolver path that silently breaks MagicDNS. See README.md
+# "DNS and MagicDNS".
 resolv_target="$(readlink -f /etc/resolv.conf 2>/dev/null || true)"
 resolv_is_stub=0
 [[ "$resolv_target" == /run/systemd/resolve/stub-resolv.conf ]] && resolv_is_stub=1

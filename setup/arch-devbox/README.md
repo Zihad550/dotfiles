@@ -685,35 +685,21 @@ path — see below.
 
 ### the access model: real sshd, over the tailnet
 
-**Tailscale SSH is not used on these machines.** `RunSSH` is always `false`;
-`tailscale up --ssh` is not how you get in. Remote access is the ordinary
-OpenSSH daemon, reached over the tailnet:
+This wrapper leaves `TS_SSH=0`, so remote access is the ordinary OpenSSH daemon
+over the tailnet:
 
 ```bash
 ssh user@<tailnet-ip>          # or: ssh user@<magicdns-name>
 ```
 
-This is worth stating explicitly because the opposite assumption changes almost
-every conclusion below it, and the two setups look identical until something
-breaks:
-
-| | Tailscale SSH on (`--ssh`) | **this setup** (`RunSSH: false`) |
-|---|---|---|
-| who answers port 22 on the tailnet IP | `tailscaled`, in userspace, before the host stack | sshd |
-| what authenticates you | tailnet identity + the tailnet ACL's `ssh` block | `~/.ssh/authorized_keys` |
-| is sshd reachable over the tailnet on 22 | no — tailscaled intercepts first | **yes** |
-| effect of a broken tailnet ACL | locked out | none; there is no ssh ACL in play |
-
-So there is no "Tailscale SSH ACL" to break here, and sshd is not a fallback
-behind it — it is the path. `ufw allow in on tailscale0` opens every port, which
-is what makes it reachable.
-
-`setup-tailscale` defaults `TS_SSH=0` accordingly. Check the assumption rather
-than trusting this table, if it matters:
+`ufw allow in on tailscale0` makes sshd reachable. Check the runtime state with:
 
 ```bash
 tailscale debug prefs | grep RunSSH      # expect false
 ```
+
+See [`../common/README.md`](../common/README.md#tailscale-and-sshd) for the
+shared access-model rationale and the effects of opting into Tailscale SSH.
 
 ### what `harden-ssh` is for, given the above
 
@@ -747,7 +733,7 @@ lines of auth and crypto settings were byte-identical between the two boxes, and
 a `KexAlgorithms` line that has to be edited twice is the same drift bug as
 `git-delta` being listed twice — with worse consequences.
 
-The wrapper sets three things and execs the shared script:
+The Box Wrapper sets three things and executes the Shared Setup Script:
 
 | | arch-devbox | ubuntu-devbox |
 |---|---|---|
@@ -758,7 +744,7 @@ The wrapper sets three things and execs the shared script:
 Everything else is common, including one trap that only bites here: Arch's stock
 `sshd_config` has no `Include /etc/ssh/sshd_config.d/*.conf` line, so a drop-in
 written there is read by nobody — `sshd -t` passes, sshd restarts, every setting
-is silently ignored. The shared script inserts the Include at line 1
+is silently ignored. The Shared Setup Script inserts the Include at line 1
 (first-match-wins) and backs the original up to `/etc/ssh/sshd_config.orig`. It
 is unconditional because it is a no-op wherever the line already exists, which
 is everywhere else.
@@ -775,25 +761,10 @@ but is commented out in `init` — see
 [idle behavior without masking sleep](#idle-behavior-without-masking-sleep)
 for why `init` runs the lighter `setup-hypridle-no-suspend` instead.
 
-Four separate things can suspend this machine:
-
-| source | what it does |
-|---|---|
-| **hypridle** | `hypridle.conf` has a listener at `timeout = 1860` → `systemctl suspend` |
-| **logind lid switch** | `HandleLidSwitch=suspend` is the default |
-| **logind `IdleAction`** | defaults to `ignore` on Arch, but worth pinning |
-| **gdm's greeter** | GNOME's power plugin suspends on idle at the login screen — which is where a devbox sits most of the time |
-
-All four funnel through `sleep.target`, so masking it neutralises every one at
-once without depending on any tool's config format. Everything else the script
-does — the logind drop-in, the gdm gsettings — is about making the intent
-explicit and keeping the journal quiet, not about correctness.
-
-**Detaching the monitor is probably the lid switch, not an idle timer.** With an
-external display attached a laptop counts as *docked*, so a closed lid follows
-`HandleLidSwitchDocked` (ignore). Unplug the monitor and it is no longer docked,
-so the lid follows `HandleLidSwitch` (suspend) — instant sleep on detach, no
-timer involved. The drop-in sets all three lid settings to `ignore`.
+The four suspend paths and why systemd's sleep targets are the boundary live in
+[`../common/README.md`](../common/README.md#staying-awake). On this box,
+hypridle and gdm are present, and a detached monitor can change which logind lid
+policy applies.
 
 Confirm it took:
 
@@ -908,49 +879,19 @@ and activates it.
 
 ### why the profile does not inherit `powersave`
 
-Inheriting the stock profile is the obvious move and it is wrong here. Read
-`/usr/lib/tuned/profiles/powersave/` and it does four things this box would then
-have to undo — one of which an override cannot undo at all:
-
-| stock `powersave` | why not here |
-|---|---|
-| `script.sh` calls `enable_wifi_powersave` **unconditionally** | exactly the failure documented above — continuous uptime, dead tailnet. A child profile cannot cancel an inherited `[script]`; undoing it needs `[script] replace=1` plus a second script calling `disable_wifi_powersave` |
-| `boost=0` | turbo off. Fine on a battery, a straight tax on every compile |
-| `governor=schedutil\|conservative\|powersave` | fine, and **kept verbatim** — see below |
-| `vm.laptop_mode=5` | batches writeback for disks that spin down. This box's never do; it only widens the loss window on a power cut |
-
-So the profile is standalone. Values that were simply right — `alpm=med_power_with_dipm`,
-the governor list, `audio timeout=10` — were copied from `powersave` rather than
-reinvented; everything else is there on purpose.
-
-Two details worth knowing before editing it:
-
-- **`|` is a fallback list, not a preference.** tuned applies the first value the
-  running system actually offers. `governor=schedutil|conservative|powersave`
-  lands on `powersave` under active-mode pstate (which offers nothing else) and
-  on `schedutil` under `acpi-cpufreq` — which is why hardcoding plain
-  `powersave` is a downgrade, not a tightening: on the acpi-cpufreq path it pins
-  the minimum frequency.
-- **`[usb] autosuspend=0` disables autosuspend**, it is not a zero-second delay.
-  The plugin writes a boolean, not a timeout. It is belt-and-braces here —
-  nothing in the profile enables autosuspend, and stock `powersave` only does so
-  when `USB_AUTOSUSPEND=1`.
-
-**The governor is usually not the lever people expect.** On `intel_pstate` or
-`amd-pstate-epp` in active mode the only two governors that exist are
-`powersave` and `performance`, and `powersave` is already the default — setting
-it changes nothing. The knob that actually varies power there is the
-energy-performance preference. Check which world you are in first:
+The profile body and its choice not to inherit the stock `powersave` profile
+are shared. See
+[`../common/README.md`](../common/README.md#power-management). Check the active
+driver and whether tuned applied every setting:
 
 ```bash
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver   # intel_pstate / amd-pstate-epp = active mode
 sudo tuned-adm verify                                     # reports anything tuned could not apply
 ```
 
-Bigger wins than any of this, if idle draw is what you care about: enable
-package C-states and ASPM in the UEFI (commonly shipped disabled on desktop
-boards, and worth more than every userspace setting combined), and don't run a
-graphical session on a box you only ever reach over ssh.
+For this desktop, package C-states and ASPM in UEFI can matter more than the
+userspace profile. A headless box also avoids the graphical session's idle
+draw.
 
 ## databases over tailscale
 
@@ -1019,10 +960,9 @@ docker run -p "$(tailscale ip -4):5432:5432" postgres
 A **host** process — `pnpm dev`, or a database installed from pacman — needs
 no grant either way; the `tailscale0` rule has always covered it directly.
 
-**Why not the apps' built-in SSH tunnel?** `tailscale up --ssh` makes
-`tailscaled` the listener on port 22 of the tailnet IP, so a tunnel aimed at
-`devbox:22` reaches tailscaled rather than sshd. It's avoidable friction for
-something the tailnet already gives you directly.
+**Why not the apps' built-in SSH tunnel?** The database already listens on the
+tailnet address, so an SSH tunnel adds another connection and authentication
+layer without narrowing exposure.
 
 ## relation to ubuntu-devbox
 
@@ -1053,7 +993,7 @@ auto-unlock here, that directory is the reference, but the Arch equivalents
 would need `sd-encrypt` in `mkinitcpio.conf` rather than
 `cryptsetup-initramfs`, so it is a real port rather than a path swap.
 
-Its `README.md` is also worth reading for the tailnet ACL snippet that
-`tailscale up --ssh` needs, the reasoning behind keeping sshd as a LAN-only
-recovery path, and the Vite `host`/`allowedHosts` settings for reaching dev
-servers over the tailnet — all of which apply here unchanged.
+Its `README.md` also covers the Ubuntu-specific LAN recovery path and the Vite
+`host`/`allowedHosts` settings for reaching dev servers over the tailnet. Shared
+Tailscale and sshd rationale now lives in
+[`../common/README.md`](../common/README.md#tailscale-and-sshd).

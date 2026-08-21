@@ -2,9 +2,9 @@
 
 # Key-only sshd, no root, a random high port, modern crypto only.
 # Run LAST -- after setup-tailscale and setup-ufw, and only once you have
-# confirmed you can log in with a key. See ../common/harden-ssh for the flags,
-# the two-phase rollout and the reasoning; this file only says what is true
-# about *this* box.
+# confirmed you can log in with a key. See ../common/harden-ssh for the flags
+# and ../common/README.md for shared rationale. This file only says what is
+# true about this box.
 #
 #   ./harden-ssh                 # interactive; picks a random port
 #   SSH_PORT=48222 ./harden-ssh  # pin the port
@@ -12,10 +12,8 @@
 #   ./harden-ssh --finalize      # phase 2: stop listening on 22
 #   ./harden-ssh --revert        # back to the distro config
 #
-# Tailscale SSH is unaffected by any of this. tailscaled is its own ssh server
-# for tailnet traffic and never consults sshd_config, so `ssh devbox` over the
-# tailnet keeps working on port 22 whatever we do here. That is also why this
-# script is not the thing that locks you out: sshd is the *break-glass* path.
+# Tailscale SSH is off. sshd is the tailnet access path, with a LAN rule as the
+# break-glass path. See ../common/README.md "Tailscale and sshd".
 
 set -euo pipefail
 

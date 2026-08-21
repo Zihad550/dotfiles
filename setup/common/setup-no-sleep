@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 
-# Keep the box awake and reachable. Shared implementation; per-box wrappers set
-# the variables below and exec this.
-# See ../arch-devbox/README.md "staying awake" for the four things that can
-# suspend a machine and why masking the sleep targets covers all of them.
-#
-# Want only the hypridle idle behavior, with manual suspend (a keybind,
-# `systemctl suspend`) left working? Sleep targets stay masked here — that's
-# what makes this script unsuitable for that. Use ./setup-hypridle-no-suspend
-# directly instead.
-#
-#   NO_SLEEP_HYPRIDLE_CONF=<path>   optional; Hyprland boxes only
+# Keep the box awake and reachable. See README.md "Staying awake".
+#   NO_SLEEP_HYPRIDLE_CONF=<path>   apply the no-suspend config; default empty
 
 set -euo pipefail
 

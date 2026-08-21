@@ -14,6 +14,8 @@
 #   ./harden-ssh --finalize      # phase 2 only: stop listening on 22
 #   ./harden-ssh --revert        # remove the hardening drop-ins, back to stock
 #
+# See README.md "SSH hardening" for shared ownership and box differences.
+#
 # ─── what the wrapper configures ─────────────────────────────────────────────
 #   SSH_UNIT           systemd unit basename: `ssh` on Debian/Ubuntu, `sshd` on
 #                      Arch. Auto-detected if unset.

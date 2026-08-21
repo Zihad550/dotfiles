@@ -186,3 +186,23 @@ Herdr opens on the devcontainer host or locally — its only remaining
 consumer. Every other Launcher action treats a local-provenance directory as
 always-local regardless of whether it's mirrored.
 _Avoid_: synced directory, shared directory
+
+# Setup
+
+The scripts and documentation that configure a development box.
+
+## Language
+
+**Shared Setup Script**:
+A setup component under `setup/common/` that owns behavior, interfaces, and
+rationale meant to be reusable across boxes, regardless of how many boxes
+currently use it. Its executable contract is authoritative for supported
+inputs and defaults.
+_Avoid_: common helper, box script
+
+**Box Wrapper**:
+A box-specific setup component that owns local configuration, ordering, and
+rationale while delegating shared behavior to a Shared Setup Script. Its
+configuration, rather than prose documentation, defines the box's chosen
+defaults.
+_Avoid_: shared script, implementation

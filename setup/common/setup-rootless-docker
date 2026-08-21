@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Rootless docker. NOT ../arch-hyprland/setup-packages/setup-docker (rootful).
-# See README.md "docker" for why. Idempotent, run by init.
+# See README.md and ../arch-devbox/README.md "Docker". Idempotent, run by init.
 
 set -e
 

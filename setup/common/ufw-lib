@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
 
-# Sourced, not run. Shared by arch-devbox/setup-ufw-base, arch-devbox/setup-ufw-lan,
-# arch-devbox/setup-ufw, ubuntu-devbox/setup-ufw and common/harden-ssh -- the same
-# address validation, subnet detection, ufw rule-deletion walk and enable/reload
-# dance lived in all of them, and a fix to any one had to be made five times.
-#
-# Bash and `ip` only, no python: Arch's base has no python, and setup-ufw-lan
-# can be the first thing run after init. Ubuntu has bash and iproute2 too, so
-# the portable implementation is the one that survives.
+# Shared firewall functions. Source this file; do not execute it.
+# See README.md "Firewall library" for its callers and portability constraint.
 
 # An IPv4 address or CIDR, in the form ufw will accept.
 valid_src() {

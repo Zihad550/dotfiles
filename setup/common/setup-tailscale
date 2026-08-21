@@ -14,21 +14,13 @@
 # Hostname on the tailnet defaults to the machine hostname; override with
 #   TS_HOSTNAME=devbox ./setup-tailscale
 #
-# ─── what the wrapper configures ─────────────────────────────────────────────
-#   TS_TAILNET_UFW_RULE  `1`  open `in on tailscale0` here, because the target's
-#                             firewall is deny-all by the time this runs and the
-#                             tailnet rule does not exist yet.
-#                        `0`  the target's setup-ufw runs BEFORE this and has
-#                             already written that rule. It can do that before
-#                             tailscaled exists because the rule names the
-#                             interface -- it starts matching once tailscale0
-#                             appears.
-#   TS_NEXT              what to print at the end: which script to run next on
-#                        this box, and any warning that belongs with it.
-#
-# The install itself is not configured here, it is simply done by the wrapper
-# before it execs this -- `pacman -S tailscale` and the curl installer have
-# nothing in common to parameterise.
+# Caller contract:
+#   TS_AUTHKEY=<key>          authenticate unattended; default empty
+#   TS_HOSTNAME=<name>        tailnet node name; default system hostname
+#   TS_SSH=0|1                opt into Tailscale SSH; default 0
+#   TS_TAILNET_UFW_RULE=0|1   add the tailscale0 rule here; default 0
+#   TS_NEXT=<text>            final Box Wrapper instruction; default empty
+# See README.md "Tailscale and sshd" for wrapper ownership and access rationale.
 
 set -euo pipefail
 
@@ -43,18 +35,8 @@ TS_HOSTNAME="${TS_HOSTNAME:-$(hostnamectl --static 2>/dev/null ||
 TS_HOSTNAME="${TS_HOSTNAME%%.*}"
 TS_AUTHKEY="${TS_AUTHKEY:-}"
 
-# Tailscale SSH: tailnet identity + ACLs replace ~/.ssh/authorized_keys for
-# connections arriving over the tailnet.
-#
-# Off by default, deliberately. These boxes reach sshd directly over the tailnet
-# (`ssh user@<tailnet-ip>`), and ufw's `allow in on tailscale0` is what makes
-# that work. Turning --ssh on changes who answers port 22 of the tailnet IP:
-# tailscaled takes it in userspace, before the host stack, and sshd is shadowed
-# there. That is a different access model with a different failure mode -- a
-# tailnet ACL with no `ssh` section locks you out -- not an addition to this one.
-#
-# TS_SSH=1 opts in. If you do, note ./harden-ssh's port move stops being
-# optional: sshd has to listen somewhere other than 22 to be reachable at all.
+# TS_SSH=1 opts into Tailscale SSH; current Box Wrappers use the default, 0.
+# See README.md "Tailscale and sshd" before changing the access model.
 TS_SSH="${TS_SSH:-0}"
 
 sudo systemctl enable --now tailscaled

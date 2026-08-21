@@ -2,19 +2,17 @@
 
 # Key-only sshd, no root, off port 22, modern crypto only.
 # Run LAST -- after setup-tailscale and setup-ufw, and after ssh-copy-id from
-# the laptop. See ../common/harden-ssh for the flags, the two-phase rollout and
-# the reasoning; this file only says what is true about *this* box.
+# the laptop. See ../common/harden-ssh for the flags and ../common/README.md for
+# shared rationale. This file only says what is true about this box.
 #
 #   ./harden-ssh                 # interactive; picks a random port
 #   SSH_PORT=48222 ./harden-ssh  # pin the port
 #   ./harden-ssh --finalize      # phase 2: stop listening on 22
 #   ./harden-ssh --revert        # back to the distro config
 #
-# The port move is not obscurity here. setup-ufw drops everything that does not
-# arrive on tailscale0, so there is no scanner to hide from -- but `tailscale up
-# --ssh` makes tailscaled intercept port 22 on the tailnet IP, which means sshd
-# on 22 is unreachable from the only network this box answers on. Moving it is
-# what makes sshd usable as the fallback for a broken Tailscale SSH ACL.
+# setup-ufw drops everything that does not arrive on tailscale0. Tailscale SSH
+# is off, so sshd is the remote access path and moving it away from 22 is
+# optional. See ../common/README.md "Tailscale and sshd".
 
 set -euo pipefail
 

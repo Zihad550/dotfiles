@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 
-# Point hypridle at a config with no suspend listener, via a systemd user
-# drop-in — the idle-behavior half of ./setup-no-sleep, split out so a box can
-# take it without masking sleep.target. Use this alone when you want manual
-# suspend (a keybind, `systemctl suspend`) to keep working while idle timeouts
-# no longer trigger it; use setup-no-sleep when you also want the box to stay
-# reachable (masked targets, ignored lid, gdm greeter).
-#
+# Remove hypridle's suspend listener without blocking manual suspend.
+# See README.md "Staying awake" for its boundary with setup-no-sleep.
 # Usage: setup-hypridle-no-suspend <path-to-hypridle.conf>
 
 set -euo pipefail

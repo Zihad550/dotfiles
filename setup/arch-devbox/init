@@ -122,8 +122,8 @@ run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
 # See ../common/setup-rootless-docker and README.md "docker".
 run_step "docker" "$DOTFILES_DIR/setup/common/setup-rootless-docker"
 
-# sshd before the firewall: once setup-ufw runs, port 22 over the tailnet is the
-# fallback for a broken Tailscale SSH ACL — and Arch does not enable sshd itself.
+# sshd before the firewall: once setup-ufw runs, sshd over the tailnet is the
+# only remote access path, and Arch does not enable sshd itself.
 run_step "sshd" "$ARCH_DEVBOX_DIR/setup-sshd"
 
 # Deny-all baseline only. The tailnet hole and the VLAN-isolation rules come
@@ -239,8 +239,8 @@ echo "      since afterwards the tailnet is the only remote way in. If you got"
 echo "      here over the LAN, reconnect over the tailnet before running it)"
 echo "  3. $ARCH_DEVBOX_DIR/harden-ssh        # key-only sshd, off port 22"
 echo "     (after ssh-copy-id from the laptop — it refuses without a key."
-echo "      tailscaled owns port 22 on the tailnet IP, so this is what makes"
-echo "      sshd usable as the fallback for a broken Tailscale SSH ACL)"
+echo "      Tailscale SSH is off; sshd is the tailnet access path. The port"
+echo "      move is optional, so SSH_PORT=keep is valid.)"
 echo
 echo "Then:"
 echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-hypr-post-install"

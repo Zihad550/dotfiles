@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-# Installs every agent skill via the `skills` CLI (vercel-labs/skills), for all
-# agents, on any machine. Replaces manually cloning github.com/Zihad550/.agents:
-# the CLI owns ~/.agents as its global skill store, this file is the only thing
-# that needs to live in dotfiles. See docs/adr/ for the ADR, if one exists.
-#
-# Idempotent: re-running re-syncs the same skills. To add a skill, add a line
-# here. To add a custom skill with no upstream repo, add it under
-# skills/<name>/SKILL.md in github.com/Zihad550/skills and list it in the
-# "our own skills" block below.
+# Synchronize agent skills through the `skills` CLI on every target.
+# See README.md "Agent skills" for ownership and contribution rules.
 
 set -e
 

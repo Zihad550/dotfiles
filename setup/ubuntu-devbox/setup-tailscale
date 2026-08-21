@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Join the tailnet. See ../common/setup-tailscale for what this does and why;
-# this file only says what is true about *this* box.
+# Join the tailnet. See ../common/setup-tailscale for its contract and
+# ../common/README.md for shared rationale. This file owns Ubuntu differences.
 #
 #   TS_AUTHKEY=tskey-auth-...  ./setup-tailscale     # unattended
 #   ./setup-tailscale                                # prints a URL to open
