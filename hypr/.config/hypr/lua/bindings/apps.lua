@@ -28,12 +28,14 @@ o.bind("SUPER + E", "Zed", terminal .. [[ -e zsh -i -c "zed_open_dir"]])
 -- Special / "or-focus" launches
 -- o.bind("SUPER + ALT + B", "Zen Browser 008",
 --     dotfiles_bin .. [[/df-launch-zen "zen008" "uwsm-app -- flatpak run app.zen_browser.zen -P 008"]])
+-- initialClass must match hyprctl clients -j's .initialClass exactly (verify
+-- with a live client, don't assume the bare binary name — see issue #81).
 o.bind("SUPER + O", "Obsidian",
-    dotfiles_bin .. [[/df-launch-special-workspace "obsidian" "note" obsidian -disable-gpu --enable-wayland-ime]])
+    dotfiles_bin .. [[/df-launch-special-workspace "md.obsidian.Obsidian" "note" obsidian -disable-gpu --enable-wayland-ime]])
 o.bind("SUPER + SHIFT + W", "Helium (work)",
     dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" --workspace-owned helium-browser --profile-directory='Profile 2']])
 o.bind("SUPER + M", "Thunderbird",
-    dotfiles_bin .. [[/df-launch-special-workspace "thunderbird" "thunderbird" thunderbird]])
+    dotfiles_bin .. [[/df-launch-special-workspace "org.mozilla.Thunderbird" "thunderbird" thunderbird]])
 
 -- TUI apps
 o.bind("SUPER + SHIFT + T", "Bottom", dotfiles_bin .. "/df-launch-tui btm")

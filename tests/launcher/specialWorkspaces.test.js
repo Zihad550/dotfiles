@@ -11,7 +11,7 @@ const INITIAL_CLASS = "io.github.zihad550.dotfiles.herdr";
 const NATIVE_APPLICATIONS = [
     {
         keys: "SUPER + O",
-        initialClass: "obsidian",
+        initialClass: "md.obsidian.Obsidian",
         workspace: "note",
         launch: "obsidian -disable-gpu --enable-wayland-ime"
     },
@@ -23,11 +23,15 @@ const NATIVE_APPLICATIONS = [
     },
     {
         keys: "SUPER + M",
-        initialClass: "thunderbird",
+        initialClass: "org.mozilla.Thunderbird",
         workspace: "thunderbird",
         launch: "thunderbird"
     }
 ];
+
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function client(address, initialClass, workspace, extra = {}) {
     return {
@@ -354,8 +358,8 @@ test("native application bindings declare their exact initial classes", () => {
             `o\\.bind\\("${keys.replaceAll("+", "\\+")}\\"[\\s\\S]*?\\n\\s*dotfiles_bin[^\\n]+\\)`
         ))[0];
         assert.match(binding, /df-launch-special-workspace/);
-        assert.match(binding, new RegExp(`"${initialClass}" "${workspace}"`));
-        assert.match(binding, new RegExp(launch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+        assert.match(binding, new RegExp(`"${escapeRegExp(initialClass)}" "${escapeRegExp(workspace)}"`));
+        assert.match(binding, new RegExp(escapeRegExp(launch)));
         assert.doesNotMatch(binding, /df-launch-special-app/);
         if (initialClass === "helium")
             assert.match(binding, /--workspace-owned/);
@@ -379,7 +383,7 @@ test("each native identity ignores titles and focuses its sole exact client wher
         assert.strictEqual(result.status, 0, result.stderr);
         const focuses = dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus");
         assert.strictEqual(focuses.length, 1);
-        assert.match(focuses[0].join(" "), new RegExp(`address:0xexact-${initialClass}`));
+        assert.match(focuses[0].join(" "), new RegExp(`address:0xexact-${escapeRegExp(initialClass)}`));
         assert.strictEqual(dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length, 0);
     }
 });
