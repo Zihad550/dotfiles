@@ -33,17 +33,20 @@ test("backlight state serializes repeated adjustments from confirmed values", ()
     let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
     state = Backlight.queueAdjustment(state, 5);
 
+    const firstTargetRaw = Backlight.rawForPercent(state.percent + 5, 500);
     const first = Backlight.takeAdjustment(state);
-    assert.deepStrictEqual(first.command, Backlight.writeCommand(225));
+    assert.deepStrictEqual(first.command, Backlight.writeCommand(firstTargetRaw));
     assert.strictEqual(first.state.pendingAdjustment, 0);
 
     state = Backlight.queueAdjustment(first.state, 5);
     assert.strictEqual(state.pendingAdjustment, 5);
     assert.strictEqual(Backlight.takeAdjustment(state), null, "a second write waits for confirmation");
-    state = Backlight.settleWrite(state, 0, { current: 225, maximum: 500 }).state;
+    // The device echoes back exactly the raw value the first write asked for.
+    state = Backlight.settleWrite(state, 0, { current: firstTargetRaw, maximum: 500 }).state;
 
+    const secondTargetRaw = Backlight.rawForPercent(state.percent + 5, 500);
     const second = Backlight.takeAdjustment(state);
-    assert.deepStrictEqual(second.command, Backlight.writeCommand(250));
+    assert.deepStrictEqual(second.command, Backlight.writeCommand(secondTargetRaw));
 });
 
 test("the slider's absolute target collapses rapid requests to the latest value", () => {
@@ -81,7 +84,8 @@ test("a successful slider write reconciles the optimistic value with the confirm
     let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
     state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
 
-    const settled = Backlight.settleWrite(state, 0, { current: 350, maximum: 500 });
+    // The device echoes back exactly the raw value the write asked for.
+    const settled = Backlight.settleWrite(state, 0, { current: Backlight.rawForPercent(70, 500), maximum: 500 });
     assert.strictEqual(settled.state.percent, 70);
     assert.strictEqual(settled.state.requested, 70);
 });
@@ -91,7 +95,7 @@ test("a confirmation does not overwrite a newer slider target still queued", () 
     state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
     state = Backlight.queueTarget(state, 85); // the drag continues while write #1 is in flight
 
-    const settled = Backlight.settleWrite(state, 0, { current: 350, maximum: 500 });
+    const settled = Backlight.settleWrite(state, 0, { current: Backlight.rawForPercent(70, 500), maximum: 500 });
     assert.strictEqual(settled.state.percent, 70);
     assert.strictEqual(settled.state.requested, 85, "the thumb must not snap back mid-drag");
 
@@ -110,27 +114,29 @@ test("a failed write does not roll back over a newer slider target still queued"
 });
 
 test("a failed slider write restores the last confirmed value", () => {
+    const initialPercent = Backlight.percentForRaw(200, 500);
     let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
     state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
 
     const failed = Backlight.settleWrite(state, 1, null);
     assert.strictEqual(failed.confirmedPercent, null);
     assert.strictEqual(failed.refresh, true, "rediscovery is deferred to the next Quick Settings open");
-    assert.strictEqual(failed.state.percent, 40, "the confirmed value is untouched by the failure");
-    assert.strictEqual(failed.state.requested, 40, "the optimistic value rolls back to the last confirmed one");
+    assert.strictEqual(failed.state.percent, initialPercent, "the confirmed value is untouched by the failure");
+    assert.strictEqual(failed.state.requested, initialPercent, "the optimistic value rolls back to the last confirmed one");
 });
 
 test("only successful write settlement confirms an OSD value", () => {
+    const initialPercent = Backlight.percentForRaw(200, 500);
     let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
     state = Backlight.takeAdjustment(Backlight.queueAdjustment(state, 5)).state;
 
     const failed = Backlight.settleWrite(state, 1, null);
     assert.strictEqual(failed.confirmedPercent, null);
     assert.strictEqual(failed.refresh, true);
-    assert.strictEqual(failed.state.percent, 40);
+    assert.strictEqual(failed.state.percent, initialPercent);
 
     const succeeded = Backlight.settleWrite(failed.state, 0, { current: 226, maximum: 500 });
-    assert.strictEqual(succeeded.confirmedPercent, 45);
+    assert.strictEqual(succeeded.confirmedPercent, Backlight.percentForRaw(226, 500));
     assert.strictEqual(succeeded.refresh, false);
 });
 
@@ -139,27 +145,38 @@ test("backlight failures retain confirmation and a later refresh recovers", () =
     const failed = Backlight.readFailed(confirmed);
 
     assert.strictEqual(failed.available, false);
-    assert.strictEqual(failed.percent, 50);
+    assert.strictEqual(failed.percent, Backlight.percentForRaw(251, 500));
     assert.strictEqual(failed.maximum, 500);
 
     const recovered = Backlight.confirm(failed, { current: 400, maximum: 500 });
     assert.strictEqual(recovered.available, true);
-    assert.strictEqual(recovered.percent, 80);
+    assert.strictEqual(recovered.percent, Backlight.percentForRaw(400, 500));
 });
 
 test("backlight percentage maps across the nonzero hardware range", () => {
     assert.strictEqual(Backlight.rawForPercent(0, 500), 1);
-    assert.strictEqual(Backlight.rawForPercent(50, 500), 250);
+    assert.strictEqual(Backlight.rawForPercent(50, 500), 243);
     assert.strictEqual(Backlight.percentForRaw(1, 500), 0);
-    assert.strictEqual(Backlight.percentForRaw(251, 500), 50);
+    assert.strictEqual(Backlight.percentForRaw(251, 500), 52);
     assert.strictEqual(Backlight.percentForRaw(500, 500), 100);
 });
 
 test("100% never writes the literal maximum raw value (issue #86: some panels blank out at max)", () => {
-    assert.strictEqual(Backlight.rawForPercent(100, 500), 499);
+    assert.strictEqual(Backlight.rawForPercent(100, 500), 485);
     assert.strictEqual(Backlight.rawForPercent(100, 2), 1);
     // A single-step range has no room to cap below the maximum.
     assert.strictEqual(Backlight.rawForPercent(100, 1), 1);
+});
+
+test("100% clears the wider dead zone found on amdgpu_bl1, not just the literal maximum (issue #79)", () => {
+    // Host-verified on a 65535-raw amdgpu_bl1 panel: the old 1-unit cap put
+    // 100% at raw 65534 and 99% at raw 64879 -- both blanked the screen. 98%
+    // (raw 64223, under the old cap) was the last confirmed-safe value. The
+    // new margin must land 100% strictly below that.
+    assert.ok(
+        Backlight.rawForPercent(100, 65535) < 64223,
+        "100%'s raw value must stay below the last raw value confirmed safe on real hardware",
+    );
 });
 
 test("the capped write still round-trips to a displayed 100%, including on small-range panels", () => {

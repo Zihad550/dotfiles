@@ -26,9 +26,17 @@ function parse(line) {
     return { current, maximum };
 }
 
-// Keeps the literal max raw value unreachable -- see docs/adr/0008-backlight-avoids-literal-max-raw.md.
+// Keeps the near-max raw range unreachable -- see
+// docs/adr/0008-backlight-avoids-literal-max-raw.md. Host-verified on
+// amdgpu_bl1 (issue #79): a single reserved raw unit wasn't enough -- that
+// panel blanks across roughly the top 2% of its range, not just the literal
+// maximum. A percentage margin scales with the panel instead of a fixed
+// offset; the 1-unit floor keeps small ranges (2-24 raw levels) protected.
 function safeMaximum(maximum) {
-    return maximum > 1 ? maximum - 1 : maximum;
+    if (maximum <= 1)
+        return maximum;
+    const margin = Math.max(1, Math.round(maximum * 0.03));
+    return Math.max(1, maximum - margin);
 }
 
 function rawForPercent(percent, maximum) {

@@ -8,6 +8,14 @@ hardware (`brightnessctl` finds no backlight device in the container this fix
 was written in), so treat the cause as a hypothesis pending host
 verification, not a confirmed diagnosis.
 
+**Update (issue #79 host verification):** confirmed on real hardware, and
+wider than a single raw unit. On an `amdgpu_bl1` panel (raw max 65535), 98%
+(raw 64223 under the original 1-unit cap) displayed fine; 99% (raw 64879) and
+100% (raw 65534) both blanked the screen — reproduced with both the media
+keys and the Quick Settings slider, so it's the shared mapping, not a
+caller-specific bug. A single reserved raw unit isn't enough on this panel;
+see the revised `safeMaximum` below.
+
 ## Why
 
 **Cap the achievable raw range at `maximum - 1`, not just the 100% write.**
@@ -33,15 +41,32 @@ two-level backlight has no room to reserve a raw unit for the cap; those
 cases fall through to the pre-existing "always return the one valid raw
 value" behavior.
 
+**The margin is a percentage of the range, not a fixed raw unit.** The
+original fix reserved exactly one raw unit below `maximum`. Host testing
+(#79) showed that undersells the dead zone on panels where it scales with
+the range instead of being a fixed few units — `amdgpu_bl1`'s blank zone
+covers roughly the top 2% of its 65535-value range. `safeMaximum` now
+reserves `round(maximum * 0.03)` raw units (minimum 1, so tiny ranges keep
+their original single-unit protection), landing comfortably below the
+confirmed-safe boundary with headroom. This is a project-wide constant, not
+per-device configuration — see #77's decision against a device chooser — so
+it necessarily trades a little top-end range on panels without this quirk
+for safety on panels that have it.
+
 ## Consequences
 
 - `modules/lib/backlight.js`: `rawForPercent` and `percentForRaw` both route
-  through a shared `safeMaximum(maximum)` helper (`maximum - 1`, or
-  `maximum` itself when `maximum <= 1`).
+  through a shared `safeMaximum(maximum)` helper (`maximum` minus a 3%
+  margin, floored at 1 raw unit, or `maximum` itself when `maximum <= 1`).
 - `backlight.test.js` covers the cap, the round-trip to a displayed 100% on
-  small-range panels, and that a brightness-down step off 100% always
-  produces a lower raw value (at realistic panel resolutions).
+  small-range panels, that a brightness-down step off 100% always produces a
+  lower raw value (at realistic panel resolutions), and a regression test
+  pinned to the amdgpu_bl1 numbers above.
 - #79's Quick Settings slider inherits this for free: `End` (select maximum)
   goes through the same `rawForPercent`.
-- Still open: host verification that this actually fixes the reported
-  blanking (issue #86's acceptance is pending real hardware confirmation).
+- The *reproduction* is host-verified (both the media keys and the Quick
+  Settings slider blanked on real hardware). The 3% margin is not: it's
+  sized from a single confirmed-safe point (98%) and a single confirmed-bad
+  point (99%) on one panel, with no host confirmation yet that it clears the
+  dead zone without giving up more usable range than necessary. Still
+  pending real-hardware confirmation, same as #86 originally was.
