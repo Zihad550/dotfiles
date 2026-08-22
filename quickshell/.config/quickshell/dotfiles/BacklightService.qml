@@ -31,6 +31,7 @@ Singleton {
             refreshRequested = true;
             return;
         }
+        refreshRequested = false;
         readResult = null;
         readProcess.command = Backlight.readCommand();
         readProcess.running = true;
@@ -158,7 +159,6 @@ Singleton {
             } else {
                 console.warn(`dotfiles: failed to set backlight (brightnessctl exited ${exitCode})`);
                 root.refreshRequested = outcome.refresh;
-                root.runQueuedWork();
             }
         }
     }

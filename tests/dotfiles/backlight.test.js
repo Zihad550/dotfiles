@@ -169,10 +169,7 @@ test("100% never writes the literal maximum raw value (issue #86: some panels bl
 });
 
 test("100% clears the wider dead zone found on amdgpu_bl1, not just the literal maximum (issue #79)", () => {
-    // Host-verified on a 65535-raw amdgpu_bl1 panel: the old 1-unit cap put
-    // 100% at raw 65534 and 99% at raw 64879 -- both blanked the screen. 98%
-    // (raw 64223, under the old cap) was the last confirmed-safe value. The
-    // new margin must land 100% strictly below that.
+    // See docs/adr/0008-backlight-avoids-literal-max-raw.md.
     assert.ok(
         Backlight.rawForPercent(100, 65535) < 64223,
         "100%'s raw value must stay below the last raw value confirmed safe on real hardware",
@@ -241,6 +238,17 @@ test("a failed refresh drains an explicit request but never loops on a queued ad
     // ...but a queued adjustment must not, or a backlight that never comes
     // back (missing brightnessctl, no panel) would retry forever.
     assert.doesNotMatch(failureBranch, /runQueuedWork|runPendingAdjustment/);
+});
+
+test("a failed write defers rediscovery until the next explicit refresh", () => {
+    const service = source("BacklightService.qml");
+    const refreshBlock = service.slice(service.indexOf("function refresh()"), service.indexOf("function raise("));
+    const writeProcessBlock = service.slice(service.indexOf("id: writeProcess"), service.indexOf("Component.onCompleted"));
+    const failureBranch = writeProcessBlock.slice(writeProcessBlock.indexOf("failed to set backlight"));
+
+    assert.match(failureBranch, /root\.refreshRequested = outcome\.refresh/);
+    assert.doesNotMatch(failureBranch, /root\.runQueuedWork\(\)/);
+    assert.match(refreshBlock, /refreshRequested = false[\s\S]*readProcess\.running = true/);
 });
 
 test("media-key brightness keeps IPC parsing and shows only confirmed state", () => {

@@ -26,12 +26,8 @@ function parse(line) {
     return { current, maximum };
 }
 
-// Keeps the near-max raw range unreachable -- see
-// docs/adr/0008-backlight-avoids-literal-max-raw.md. Host-verified on
-// amdgpu_bl1 (issue #79): a single reserved raw unit wasn't enough -- that
-// panel blanks across roughly the top 2% of its range, not just the literal
-// maximum. A percentage margin scales with the panel instead of a fixed
-// offset; the 1-unit floor keeps small ranges (2-24 raw levels) protected.
+// Keep the host-confirmed near-max dead zone unreachable; see
+// docs/adr/0008-backlight-avoids-literal-max-raw.md.
 function safeMaximum(maximum) {
     if (maximum <= 1)
         return maximum;
@@ -69,12 +65,7 @@ function withState(state, changes) {
     return Object.assign({}, state, changes);
 }
 
-// Relative steps (media keys) accumulate rather than replace, so a burst of
-// key presses is not dropped. An absolute target (the slider) supersedes any
-// accumulated step instead: it already reflects the pointer's latest intent.
-// A key press likewise abandons any pending slider target -- `requested`
-// resets to the last confirmed percent rather than keeping the now-stale
-// target on screen while a relative step is what actually runs next.
+// The newest input mode wins: steps accumulate, while absolute targets replace.
 function queueAdjustment(state, step) {
     return withState(state, { pendingAdjustment: state.pendingAdjustment + step, pendingTarget: null, requested: state.percent });
 }
@@ -138,10 +129,7 @@ function settleWrite(state, exitCode, result) {
         return { state: confirmedState, confirmedPercent: confirmedState.percent, refresh: false };
     }
 
-    // Roll `requested` back to the last confirmed percent: an unapplied
-    // optimistic slider value must not linger after a failed write. Skip the
-    // rollback if a newer target is already queued -- that write is still
-    // coming, and snapping back first would flash the stale value.
+    // Preserve a newer queued target; otherwise roll back to confirmation.
     return {
         state: withState(state, { writeInFlight: false, requested: state.pendingTarget === null ? state.percent : state.requested }),
         confirmedPercent: null,

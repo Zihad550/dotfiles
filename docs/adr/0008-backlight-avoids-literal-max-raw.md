@@ -18,23 +18,22 @@ see the revised `safeMaximum` below.
 
 ## Why
 
-**Cap the achievable raw range at `maximum - 1`, not just the 100% write.**
-`rawForPercent` is the only path that writes brightness (media keys via
-`BacklightService.adjust`, and eventually the Quick Settings slider in #79),
-so capping its output keeps the literal max raw value unreachable regardless
-of caller.
+**Cap the achievable raw range below the panel's near-max dead zone, not just
+the 100% write.** `rawForPercent` is the only path that writes brightness
+(media keys via `BacklightService.adjust` and the Quick Settings slider), so
+capping its output keeps the unsafe range unreachable regardless of caller.
 
-**`percentForRaw` shares the same capped basis, not `maximum - 1`.** An
-earlier version of this fix capped only `rawForPercent` and left
-`percentForRaw` dividing by `maximum - 1`. That mismatch collapses the top of
-the percent scale onto one raw value on any panel with a small `maximum`
-(e.g. 100 or 24): a capped write reads back as 99% or less instead of 100%,
-and a brightness-down step recomputes the same capped raw value forever —
-dead at the top. Both functions now use `maximum - 1` as their 100% raw
-value, so a write always round-trips to the percent that requested it, and a
-step down from 100% always lands on a strictly lower raw value (down to the
-resolution of the panel — see `backlight.test.js`'s quantization note for the
-inherent limit on very coarse panels).
+**`percentForRaw` shares the same capped basis.** An earlier version capped
+only `rawForPercent` and left `percentForRaw` dividing by `maximum - 1`. That
+mismatch collapses the top of the percent scale onto one raw value on any
+panel with a small `maximum` (e.g. 100 or 24): a capped write reads back as
+99% or less instead of 100%, and a brightness-down step recomputes the same
+capped raw value forever — dead at the top. Both functions now use
+`safeMaximum(maximum)` as their 100% raw value, so a write round-trips to the
+percent that requested it, and a step down from 100% lands on a strictly
+lower raw value (down to the resolution of the panel — see
+`backlight.test.js`'s quantization note for the inherent limit on very coarse
+panels).
 
 **Degenerate `maximum` (0, 1, 2) still returns something usable.** A one- or
 two-level backlight has no room to reserve a raw unit for the cap; those
