@@ -12,9 +12,17 @@ Singleton {
     property bool refreshRequested: false
     property var readResult: null
     property var writeResult: null
+    // Set for the duration of the in-flight write only; distinguishes a
+    // slider's absolute request from a media key's relative one so the OSD
+    // fires for the latter alone.
+    property string writeOrigin: ""
 
     readonly property bool available: backlightState.available
     readonly property int percent: backlightState.percent
+    // The optimistic value Quick Settings displays: the slider's latest
+    // requested target ahead of hardware confirmation, or `percent` once
+    // reconciled.
+    readonly property int requested: backlightState.requested
 
     signal confirmed(int percent)
 
@@ -37,18 +45,43 @@ Singleton {
     }
 
     // A held key fires faster than brightnessctl can settle. Steps accumulate
-    // in pendingAdjustment rather than dropping, so runPendingAdjustment
-    // applies the latest total once the in-flight write confirms.
+    // in pendingAdjustment rather than dropping, so runPendingWrite applies
+    // the latest total once the in-flight write confirms.
     function adjust(step: int): void {
         if (step === 0)
             return;
         backlightState = Backlight.queueAdjustment(backlightState, step);
-        runPendingAdjustment();
+        runPendingWrite();
     }
 
-    function runPendingAdjustment(): void {
+    // The Quick Settings slider's absolute counterpart to adjust(): a rapid
+    // drag only ever produces one more write, and the final requested
+    // position always wins.
+    function setAbsolute(percent: int): void {
+        if (!backlightState.available)
+            return;
+        backlightState = Backlight.queueTarget(backlightState, percent);
+        runPendingWrite();
+    }
+
+    function runPendingWrite(): void {
         if (writeProcess.running || readProcess.running)
             return;
+
+        if (backlightState.pendingTarget !== null) {
+            const absolute = Backlight.takeAbsolute(backlightState);
+            if (!absolute) {
+                refresh();
+                return;
+            }
+            backlightState = absolute.state;
+            writeOrigin = "slider";
+            writeResult = null;
+            writeProcess.command = absolute.command;
+            writeProcess.running = true;
+            return;
+        }
+
         if (backlightState.pendingAdjustment === 0)
             return;
         const adjustment = Backlight.takeAdjustment(backlightState);
@@ -58,6 +91,7 @@ Singleton {
         }
 
         backlightState = adjustment.state;
+        writeOrigin = "key";
         writeResult = null;
         writeProcess.command = adjustment.command;
         writeProcess.running = true;
@@ -68,7 +102,7 @@ Singleton {
             refreshRequested = false;
             refresh();
         } else {
-            runPendingAdjustment();
+            runPendingWrite();
         }
     }
 
@@ -112,9 +146,14 @@ Singleton {
 
         onExited: exitCode => {
             const outcome = Backlight.settleWrite(root.backlightState, exitCode, root.writeResult);
+            const origin = root.writeOrigin;
+            root.writeOrigin = "";
             root.backlightState = outcome.state;
             if (outcome.confirmedPercent !== null) {
-                root.confirmed(outcome.confirmedPercent);
+                // Slider changes stay visible in the panel only -- raising
+                // the OSD too would be a second, redundant feedback surface.
+                if (origin === "key")
+                    root.confirmed(outcome.confirmedPercent);
                 root.runQueuedWork();
             } else {
                 console.warn(`dotfiles: failed to set backlight (brightnessctl exited ${exitCode})`);

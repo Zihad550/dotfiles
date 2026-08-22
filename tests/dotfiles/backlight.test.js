@@ -46,6 +46,80 @@ test("backlight state serializes repeated adjustments from confirmed values", ()
     assert.deepStrictEqual(second.command, Backlight.writeCommand(250));
 });
 
+test("the slider's absolute target collapses rapid requests to the latest value", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.queueTarget(state, 60);
+    state = Backlight.queueTarget(state, 65);
+    state = Backlight.queueTarget(state, 70);
+
+    assert.strictEqual(state.requested, 70, "the thumb tracks the latest requested value immediately");
+
+    const write = Backlight.takeAbsolute(state);
+    assert.deepStrictEqual(write.command, Backlight.writeCommand(Backlight.rawForPercent(70, 500)));
+    assert.strictEqual(write.state.pendingTarget, null);
+    assert.strictEqual(Backlight.takeAbsolute(write.state), null, "a second write waits for confirmation");
+});
+
+test("an absolute target and a relative step never both queue -- the newest request wins", () => {
+    const confirmed = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+
+    const afterTarget = Backlight.queueTarget(Backlight.queueAdjustment(confirmed, 5), 80);
+    assert.strictEqual(afterTarget.pendingAdjustment, 0);
+    assert.strictEqual(afterTarget.pendingTarget, 80);
+
+    const afterAdjustment = Backlight.queueAdjustment(Backlight.queueTarget(confirmed, 80), 5);
+    assert.strictEqual(afterAdjustment.pendingTarget, null);
+    assert.strictEqual(afterAdjustment.pendingAdjustment, 5);
+    assert.strictEqual(
+        afterAdjustment.requested,
+        confirmed.percent,
+        "a key press abandons the slider's target -- the panel must not keep showing it",
+    );
+});
+
+test("a successful slider write reconciles the optimistic value with the confirmed percent", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
+
+    const settled = Backlight.settleWrite(state, 0, { current: 350, maximum: 500 });
+    assert.strictEqual(settled.state.percent, 70);
+    assert.strictEqual(settled.state.requested, 70);
+});
+
+test("a confirmation does not overwrite a newer slider target still queued", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
+    state = Backlight.queueTarget(state, 85); // the drag continues while write #1 is in flight
+
+    const settled = Backlight.settleWrite(state, 0, { current: 350, maximum: 500 });
+    assert.strictEqual(settled.state.percent, 70);
+    assert.strictEqual(settled.state.requested, 85, "the thumb must not snap back mid-drag");
+
+    const next = Backlight.takeAbsolute(settled.state);
+    assert.deepStrictEqual(next.command, Backlight.writeCommand(Backlight.rawForPercent(85, 500)));
+});
+
+test("a failed write does not roll back over a newer slider target still queued", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
+    state = Backlight.queueTarget(state, 85);
+
+    const failed = Backlight.settleWrite(state, 1, null);
+    assert.strictEqual(failed.state.requested, 85, "the queued target survives the unrelated write's failure");
+    assert.strictEqual(failed.state.pendingTarget, 85);
+});
+
+test("a failed slider write restores the last confirmed value", () => {
+    let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
+    state = Backlight.takeAbsolute(Backlight.queueTarget(state, 70)).state;
+
+    const failed = Backlight.settleWrite(state, 1, null);
+    assert.strictEqual(failed.confirmedPercent, null);
+    assert.strictEqual(failed.refresh, true, "rediscovery is deferred to the next Quick Settings open");
+    assert.strictEqual(failed.state.percent, 40, "the confirmed value is untouched by the failure");
+    assert.strictEqual(failed.state.requested, 40, "the optimistic value rolls back to the last confirmed one");
+});
+
 test("only successful write settlement confirms an OSD value", () => {
     let state = Backlight.confirm(Backlight.initialState(), { current: 200, maximum: 500 });
     state = Backlight.takeAdjustment(Backlight.queueAdjustment(state, 5)).state;
@@ -125,6 +199,18 @@ test("shared backlight singleton owns refresh, serialized writes, and confirmed 
     assert.match(service, /outcome\.confirmedPercent !== null[\s\S]*root\.confirmed/);
     assert.match(service, /console\.warn/);
     assert.match(service, /Component\.onCompleted:\s*refresh\(\)/);
+});
+
+test("the slider's absolute writes are serialized alongside media-key writes, and only the latter raise the OSD", () => {
+    const service = source("BacklightService.qml");
+
+    assert.match(service, /readonly property int requested:\s*backlightState\.requested/);
+    assert.match(service, /function setAbsolute\(percent: int\): void/);
+    assert.match(service, /Backlight\.queueTarget/);
+    assert.match(service, /Backlight\.takeAbsolute/);
+    assert.match(service, /writeOrigin = "slider"/);
+    assert.match(service, /writeOrigin = "key"/);
+    assert.match(service, /if \(origin === "key"\)[\s\S]*?root\.confirmed/);
 });
 
 test("a failed refresh drains an explicit request but never loops on a queued adjustment", () => {

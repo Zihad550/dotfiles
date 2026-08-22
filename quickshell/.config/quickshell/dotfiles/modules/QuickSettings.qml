@@ -182,10 +182,14 @@ PopupWindow {
     }
 
     onShownChanged: {
-        if (!root.shown)
+        if (!root.shown) {
             root.currentPage = QuickSettings.Primary;
-        else
+        } else {
+            // The shared module never polls; opening is the deliberate
+            // moment to pick up brightness changed while the panel was closed.
+            BacklightService.refresh();
             Qt.callLater(() => root.focusCurrentSurface());
+        }
     }
 
     onCurrentPageChanged: Qt.callLater(() => root.focusCurrentSurface())
@@ -406,6 +410,10 @@ PopupWindow {
 
                             width: primaryContent.width
                             onPageRequested: keyboard => root.navigate(QuickSettings.Audio, keyboard)
+                        }
+
+                        Brightness {
+                            width: parent.width
                         }
 
                         WiredStatus {

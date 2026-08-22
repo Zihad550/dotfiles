@@ -108,6 +108,31 @@ test("Volume shows a persistent percentage and its Tooltip responds to hover", (
     assert.match(volume, /text:\s*root\.available \? `Volume \$\{root\.volume\}%\$\{root\.muted \? " \(muted\)" : ""\}` : "Volume unavailable"/);
 });
 
+test("Brightness sits between Volume and Wired, refreshes on open, and never raises the OSD itself", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const brightness = source("modules/Brightness.qml");
+
+    assert.ok(
+        quickSettings.indexOf("Volume {") < quickSettings.indexOf("Brightness {")
+            && quickSettings.indexOf("Brightness {") < quickSettings.indexOf("WiredStatus {"),
+        "Brightness belongs immediately after Volume and before Wired status",
+    );
+    assert.match(quickSettings, /onShownChanged:[\s\S]*BacklightService\.refresh\(\)/);
+
+    assert.match(brightness, /readonly property bool available:\s*BacklightService\.available/);
+    assert.match(brightness, /readonly property int percent:\s*BacklightService\.requested/);
+    assert.match(brightness, /visible:\s*root\.available/);
+    assert.doesNotMatch(brightness, /Tile\s*{|QuickSettingsPage|chevron|StatusCluster/i);
+
+    assert.match(brightness, /BacklightService\.setAbsolute/);
+    assert.match(brightness, /Key_Left \|\| event\.key === Qt\.Key_Down[\s\S]*root\.setBrightness\(root\.percent - 5\)/);
+    assert.match(brightness, /Key_Right \|\| event\.key === Qt\.Key_Up[\s\S]*root\.setBrightness\(root\.percent \+ 5\)/);
+    assert.match(brightness, /Key_Home[\s\S]*root\.setBrightness\(0\)/);
+    assert.match(brightness, /Key_End[\s\S]*root\.setBrightness\(100\)/);
+    assert.match(brightness, /onWheel:[\s\S]*root\.setBrightness\(root\.percent \+ 5\)[\s\S]*root\.setBrightness\(root\.percent - 5\)/);
+    assert.match(brightness, /activeFocusOnTab:\s*root\.available && root\.visible/);
+});
+
 test("Devcontainer routing uses a Tile and a dedicated Page", () => {
     const quickSettings = source("modules/QuickSettings.qml");
     const tile = source("modules/DevcontainerRoutingTile.qml");
