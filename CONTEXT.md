@@ -167,6 +167,21 @@ A named workspace normally kept out of view and summoned by a dedicated key,
 giving a recurring application a single place that can be shown or hidden.
 _Avoid_: scratchpad, special scratchpad, Special App
 
+**Workspace Name**:
+The string Hyprland itself holds for a workspace — bare `3` until something
+renames it, `3-(dev)` once the Launcher's rename Action has. The only one the
+compositor, `hyprctl` and the Launcher's workspaces Provider know about.
+_Avoid_: workspace title, label, workspace id
+
+**Workspace Label**:
+What the Bar displays for a workspace, derived from the windows on it rather
+than stored anywhere — the focused window's application, or the directory it
+sits in when one can be resolved. Falls back to the Workspace Name whenever
+that Name is anything other than the bare id, so a manual rename always wins.
+Never written back to the compositor; see
+`docs/adr/0013-workspace-labels-derived-in-bar.md`.
+_Avoid_: workspace name, display name, derived name, caption
+
 **Devcontainer Routing**:
 The persisted, default-off switch that makes Herdr (`SUPER+U` and the
 Launcher's own Herdr chooser row) open a Mirrored Directory on the

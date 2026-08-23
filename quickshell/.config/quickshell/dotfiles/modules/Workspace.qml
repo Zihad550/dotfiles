@@ -1,13 +1,18 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import qs
 import "lib/windowNaming.js" as WindowNaming
+import "lib/workspaceLabel.js" as WorkspaceLabel
 
 // A numbered workspace's bar entry: the name, always click-to-switch
 // regardless of layout or window count, plus an arrow that appears only on
 // scrolling layout with 2+ windows and opens a Flyout of that workspace's
 // windows. See .scratch/workspace-window-flyout/spec.md.
+//
+// The text is a Workspace Label derived from the windows on the workspace,
+// never a compositor rename -- see docs/adr/0013-workspace-labels-derived-in-bar.md.
 Item {
     id: root
 
@@ -16,6 +21,21 @@ Item {
     readonly property int windowCount: root.modelData.toplevels.values.length
     readonly property bool isActive: root.modelData.active
     readonly property bool empty: root.windowCount === 0
+
+    // The window whose identity this entry describes, its application, and
+    // where that application sits. The path resolves out of band (one
+    // readlink per representative change), so a label may briefly trail a
+    // `cd` in an already-focused terminal -- accepted by the ADR.
+    readonly property var rep: WorkspaceLabel.representativeOf(root.modelData.toplevels.values, Hyprland.activeToplevel)
+    readonly property string repAddress: root.rep?.address ?? ""
+    readonly property string repKey: root.repAddress + ":" + String(root.rep?.lastIpcObject?.pid ?? "")
+    readonly property string repApp: WorkspaceLabel.shortAppName(WorkspaceLabel.appIdOf(root.rep))
+    property string repPath: ""
+    readonly property string label: WorkspaceLabel.labelFor(root.modelData.id, root.modelData.name, root.repApp, root.repPath)
+
+    // A deep project path must not push this entry into the clock; degrade
+    // to eliding the middle of the label rather than growing forever.
+    readonly property int maxLabelWidth: 360
 
     // Not a named HyprlandWorkspace property in the installed Quickshell
     // build -- only reachable through the raw IPC passthrough. See
@@ -30,6 +50,48 @@ Item {
             flyout.shown = false;
     }
 
+    // repKey, not repAddress: a pid can arrive from the IPC fetch after the
+    // window itself does, and that too is worth one re-resolve.
+    Component.onCompleted: root.resolveCwd()
+    onRepKeyChanged: root.resolveCwd()
+
+    function resolveCwd(): void {
+        root.repPath = "";
+        // A readlink still exiting means its result is for an older
+        // representative; onExited re-runs for whatever repKey wants then.
+        if (cwdProc.running)
+            return;
+        const pid = root.rep?.lastIpcObject?.pid;
+        cwdProc.requestedFor = root.repKey;
+        if (!pid)
+            return;
+        cwdProc.command = WorkspaceLabel.cwdCommand(pid);
+        cwdProc.running = true;
+    }
+
+    Process {
+        id: cwdProc
+
+        // What the in-flight readlink was asked for. Output is only applied
+        // while the request still matches the representative -- otherwise a
+        // slow readlink for a window that stopped being described could
+        // stamp its directory onto another workspace's label.
+        property string requestedFor: ""
+
+        stdout: SplitParser {
+            onRead: line => {
+                if (root.repKey !== cwdProc.requestedFor)
+                    return;
+                root.repPath = WorkspaceLabel.renderPath(line.trim(), Quickshell.env("HOME"));
+            }
+        }
+
+        onExited: {
+            if (root.repKey !== requestedFor)
+                root.resolveCwd();
+        }
+    }
+
     implicitWidth: Math.max(content.implicitWidth, 9) + 12 // padding: 0 6px
     implicitHeight: Theme.barHeight
 
@@ -42,8 +104,10 @@ Item {
         Text {
             id: name
 
+            width: Math.min(implicitWidth, root.maxLabelWidth)
             anchors.verticalCenter: parent.verticalCenter
-            text: root.modelData.name
+            text: root.label
+            elide: Text.ElideMiddle
             color: Theme.foreground
             opacity: root.isActive ? 1.0 : (root.empty ? 0.5 : 0.75)
             font.family: Theme.fontFamily
@@ -85,7 +149,7 @@ Item {
         delegate: MenuRow {
             required property var modelData
 
-            readonly property string appId: modelData.wayland?.appId ?? modelData.lastIpcObject?.class ?? ""
+            readonly property string appId: WorkspaceLabel.appIdOf(modelData)
 
             width: parent.width
             icon: modelData === Hyprland.activeToplevel ? "•" : " "
