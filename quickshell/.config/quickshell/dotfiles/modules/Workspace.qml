@@ -22,16 +22,25 @@ Item {
     readonly property bool isActive: root.modelData.active
     readonly property bool empty: root.windowCount === 0
 
-    // The window whose identity this entry describes, its application, and
-    // where that application sits. The path resolves out of band (one
-    // readlink per representative change), so a label may briefly trail a
-    // `cd` in an already-focused terminal -- accepted by the ADR.
+    // The window whose identity this entry describes, and where that
+    // application sits -- from a source that application actually exposes
+    // (issue #102): a Zed window's Project Root comes off its live title, a
+    // Ghostty window's directory out of /proc, every other application is
+    // asked for nothing. The path resolves out of band, so a label may
+    // briefly trail a `cd` in an already-focused terminal -- accepted by the
+    // ADR.
     readonly property var rep: WorkspaceLabel.representativeOf(root.modelData.toplevels.values, Hyprland.activeToplevel)
+    readonly property string repAppId: WorkspaceLabel.appIdOf(root.rep)
     readonly property string repAddress: root.rep?.address ?? ""
     readonly property string repKey: root.repAddress + ":" + String(root.rep?.lastIpcObject?.pid ?? "")
-    readonly property string repApp: WorkspaceLabel.shortAppName(WorkspaceLabel.appIdOf(root.rep))
+    readonly property string repApp: WorkspaceLabel.shortAppName(root.repAppId)
+    // Reading the toplevel's own title keeps this reactive: Zed retitles on
+    // project switches and the label follows with no focus change or polling.
+    readonly property string repTitle: root.rep?.title ?? ""
+    readonly property string repRoot: WorkspaceLabel.isZed(root.repAppId) ? WorkspaceLabel.projectRootFromTitle(root.repTitle) : ""
     property string repPath: ""
-    readonly property string label: WorkspaceLabel.labelFor(root.modelData.id, root.modelData.name, root.repApp, root.repPath)
+    readonly property string repDir: root.repRoot || (WorkspaceLabel.isGhostty(root.repAppId) ? root.repPath : "")
+    readonly property string label: WorkspaceLabel.labelFor(root.modelData.id, root.modelData.name, root.repApp, root.repDir)
 
     // A deep project path must not push this entry into the clock; degrade
     // to eliding the middle of the label rather than growing forever.
@@ -57,6 +66,10 @@ Item {
 
     function resolveCwd(): void {
         root.repPath = "";
+        // The process cwd is Ghostty's source alone; other applications are
+        // never probed, and a Zed window's root comes from its title above.
+        if (!WorkspaceLabel.isGhostty(root.repAppId))
+            return;
         // A readlink still exiting means its result is for an older
         // representative; onExited re-runs for whatever repKey wants then.
         if (cwdProc.running)
@@ -82,7 +95,7 @@ Item {
             onRead: line => {
                 if (root.repKey !== cwdProc.requestedFor)
                     return;
-                root.repPath = WorkspaceLabel.renderPath(line.trim(), Quickshell.env("HOME"));
+                root.repPath = WorkspaceLabel.basenameOf(line.trim());
             }
         }
 

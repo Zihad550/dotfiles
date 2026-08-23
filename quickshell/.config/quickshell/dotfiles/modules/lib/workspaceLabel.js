@@ -56,34 +56,63 @@ function shortAppName(appId) {
 // once the Launcher's rename Action has. Anything other than the bare id is
 // manual and wins untouched; only a bare id gets derived over.
 //
-// The path is appended only when there is an application to attach it to --
-// "2(/home/jehad)" names nothing.
-// `path` arrives already rendered through renderPath() -- the caller owns
-// the home substitution, since only it knows $HOME.
-function labelFor(id, name, app, path) {
+// `dir` arrives already reduced to a basename -- the caller owns that
+// reduction, since Zed's comes from its title and Ghostty's from /proc.
+function labelFor(id, name, app, dir) {
     if (typeof name === "string" && name !== "" && name !== String(id))
         return name;
     if (!app)
         return String(id);
-    return id + "-" + app + (path ? "(" + path + ")" : "");
+    // Folded so both Ghostty identities read alike in the bar.
+    return id + "-" + app.toLowerCase() + (dir ? "(" + dir + ")" : "");
 }
 
-// $HOME collapses so a project path stays readable at bar font size.
-// Anchored on the slash so "/home/jehad2" never matches home "/home/jehad".
-function renderPath(path, homeDir) {
-    if (!homeDir)
-        return path;
-    if (path === homeDir)
-        return "~";
-    if (path.startsWith(homeDir + "/"))
-        return "~" + path.slice(homeDir.length);
-    return path;
+// The trailing segment of a path, whatever its provenance -- local, remote,
+// or a bare name already. A lone "/" names nothing.
+function basenameOf(p) {
+    const trimmed = String(p ?? "").replace(/\/+$/, "");
+    const at = trimmed.lastIndexOf("/");
+    const base = at < 0 ? trimmed : trimmed.slice(at + 1);
+    return base === "/" ? "" : base;
+}
+
+// Issue #102: the two identities the desktop actually reports for these
+// applications. Zed parses titles only under its exact configured id; a
+// lookalike class ("zed", "Zed") must not. Ghostty answers to both its
+// desktop id and the bare compatibility one this repo's scripts use.
+const ZED_APP_ID = "dev.zed.Zed";
+const GHOSTTY_DESKTOP_ID = "com.mitchellh.Ghostty";
+const GHOSTTY_COMPAT_ID = "ghostty";
+
+function isZed(appId) {
+    return appId === ZED_APP_ID;
+}
+
+function isGhostty(appId) {
+    return appId === GHOSTTY_DESKTOP_ID || appId === GHOSTTY_COMPAT_ID;
+}
+
+// The Project Root basename of a Zed window, read out of its live title:
+// "{active item} — {root}", em dash, as Zed writes it. A root qualifies only
+// when exactly one follows the separator; multi-root ("~/a, ~/b"), empty,
+// and malformed titles yield "" so no stale or guessed root is ever shown.
+function projectRootFromTitle(title) {
+    const sep = " \u2014 ";
+    const parts = String(title ?? "").split(sep);
+    if (parts.length !== 2)
+        return "";
+    const entry = parts[1].trim();
+    if (!entry || entry.includes(", "))
+        return "";
+    if (entry === "." || entry === "..")
+        return "";
+    return basenameOf(entry);
 }
 
 // One-shot readlink of the process cwd -- the out-of-band read the ADR
-// describes, resolved on window open and focus change. Plain readlink (no
-// -f): the symlink target already is the absolute cwd, and a dead pid just
-// exits nonzero with empty output.
+// describes, resolved on window open and focus change, and only ever for a
+// Ghostty representative. Plain readlink (no -f): the symlink target already
+// is the absolute cwd, and a dead pid just exits nonzero with empty output.
 function cwdCommand(pid) {
     return ["readlink", "/proc/" + pid + "/cwd"];
 }
@@ -94,7 +123,10 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         appIdOf: appIdOf,
         shortAppName: shortAppName,
         labelFor: labelFor,
-        renderPath: renderPath,
+        basenameOf: basenameOf,
+        isZed: isZed,
+        isGhostty: isGhostty,
+        projectRootFromTitle: projectRootFromTitle,
         cwdCommand: cwdCommand
     };
 }

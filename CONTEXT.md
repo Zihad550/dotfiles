@@ -175,12 +175,21 @@ _Avoid_: workspace title, label, workspace id
 
 **Workspace Label**:
 What the Bar displays for a workspace, derived from the windows on it rather
-than stored anywhere — the focused window's application, or the directory it
-sits in when one can be resolved. Falls back to the Workspace Name whenever
-that Name is anything other than the bare id, so a manual rename always wins.
-Never written back to the compositor; see
+than stored anywhere. For a Zed window, it may include the basename of that
+window's single Project Root; this is not Zed's process working directory.
+For a Ghostty window, it may instead include the basename of that terminal's
+process working directory. Other applications have no directory suffix.
+Falls back to the Workspace Name whenever that Name is anything other than the
+bare id, so a manual rename always wins. Never written back to the compositor;
+see
 `docs/adr/0013-workspace-labels-derived-in-bar.md`.
 _Avoid_: workspace name, display name, derived name, caption
+
+**Project Root**:
+The one local or remote project or worktree root open in a Zed window, whose
+basename may appear in its Workspace Label. A multi-root, untitled, or
+unresolved Zed window has no Project Root for labeling purposes.
+_Avoid_: cwd, project directory, process directory, active file directory, launch directory
 
 **Devcontainer Routing**:
 The persisted, default-off switch that makes Herdr (`SUPER+U` and the
