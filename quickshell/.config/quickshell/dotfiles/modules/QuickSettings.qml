@@ -491,7 +491,7 @@ PopupWindow {
                                 navigationContainer: tileGrid
 
                                 icon: TailscaleService.icon
-                                label: "Tailscale"
+                                label: TailscaleService.tailnet || "Tailscale"
                                 active: TailscaleService.connected
                                 busy: TailscaleService.busy
                                 chevronVisible: false

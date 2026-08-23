@@ -23,33 +23,41 @@ WATCH_CMD=(tailscale debug watch-ipn)
 POLL_INTERVAL=10
 
 build_status() {
+    # `tailnet` must be present on every exit path: TailscaleService.qml assigns
+    # each parsed field unconditionally, so an object without it would leave the
+    # previous name standing while the tile renders inactive.
     if ! command -v tailscale &>/dev/null; then
-        echo '{"class": "not-installed", "tooltip": "Tailscale not installed"}'
+        echo '{"class": "not-installed", "tooltip": "Tailscale not installed", "tailnet": ""}'
         return
     fi
 
     local status
     if ! status=$(tailscale status --json 2>/dev/null); then
-        echo '{"class": "disconnected", "tooltip": "Tailscale: Unavailable"}'
+        echo '{"class": "disconnected", "tooltip": "Tailscale: Unavailable", "tailnet": ""}'
         return
     fi
 
     local backend
     if ! backend=$(jq -r '.BackendState // "Unknown"' <<<"$status" 2>/dev/null); then
-        echo '{"class": "disconnected", "tooltip": "Tailscale: Unavailable"}'
+        echo '{"class": "disconnected", "tooltip": "Tailscale: Unavailable", "tailnet": ""}'
         return
     fi
 
     if [[ $backend != Running ]]; then
-        jq -cn --arg tooltip "Tailscale: $backend" '{class: "disconnected", tooltip: $tooltip}'
+        jq -cn --arg tooltip "Tailscale: $backend" '{class: "disconnected", tailnet: "", tooltip: $tooltip}'
         return
     fi
 
-    local ip
+    local ip tailnet tooltip="Tailscale: Running"
     ip=$(jq -r '.TailscaleIPs[0] // "N/A"' <<<"$status")
+    tailnet=$(jq -r '.CurrentTailnet.Name // ""' <<<"$status")
 
-    jq -cn --arg tooltip "Tailscale: Running
-IP: $ip" '{class: "connected", tooltip: $tooltip}'
+    if [[ -n $tailnet ]]; then
+        tooltip+=$'\nTailnet: '"$tailnet"
+    fi
+    tooltip+=$'\nIP: '"$ip"
+
+    jq -cn --arg tailnet "$tailnet" --arg tooltip "$tooltip" '{class: "connected", tailnet: $tailnet, tooltip: $tooltip}'
 }
 
 # The IPN bus is chatty and most events do not change what we display, so only

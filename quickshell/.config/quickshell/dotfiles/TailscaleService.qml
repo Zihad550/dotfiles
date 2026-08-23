@@ -16,6 +16,11 @@ Singleton {
     property string statusClass: ""
     property string tooltip: ""
 
+    // Account-level tailnet name (e.g. "mamacrm.com"); "" when not connected.
+    // Assigned unconditionally from every status line so a disconnect cannot
+    // leave a stale name standing next to an inactive tile.
+    property string tailnet: ""
+
     readonly property bool connected: statusClass === "connected"
     readonly property bool installed: statusClass !== "not-installed"
 
@@ -45,6 +50,7 @@ Singleton {
                     const status = JSON.parse(line);
                     root.statusClass = status.class ?? "";
                     root.tooltip = status.tooltip ?? "";
+                    root.tailnet = status.tailnet ?? "";
                 } catch (e) {
                     // Ignore partial or non-JSON lines.
                 }
