@@ -81,7 +81,7 @@ function basenameOf(p) {
 // lookalike class ("zed", "Zed") must not. Ghostty answers to both its
 // desktop id and the bare compatibility one this repo's scripts use.
 const ZED_APP_ID = "dev.zed.Zed";
-const GHOSTTY_DESKTOP_ID = "com.mitchellh.Ghostty";
+const GHOSTTY_DESKTOP_ID = "com.mitchellh.ghostty";
 const GHOSTTY_COMPAT_ID = "ghostty";
 
 function isZed(appId) {
@@ -93,16 +93,21 @@ function isGhostty(appId) {
 }
 
 // The Project Root basename of a Zed window, read out of its live title:
-// "{active item} — {root}", em dash, as Zed writes it. A root qualifies only
-// when exactly one follows the separator; multi-root ("~/a, ~/b"), empty,
-// and malformed titles yield "" so no stale or guessed root is ever shown.
+// "{root} — {active item}", em dash, as Zed writes it. With no active item,
+// the title is the root alone. A root qualifies only when the title names one;
+// multi-root ("~/a, ~/b"), empty, and malformed titles yield "" so no stale
+// or guessed root is ever shown.
 function projectRootFromTitle(title) {
     const sep = " \u2014 ";
     const parts = String(title ?? "").split(sep);
-    if (parts.length !== 2)
+    if (parts.length > 2)
         return "";
-    const entry = parts[1].trim();
+    if (parts.length === 2 && !parts[1].trim())
+        return "";
+    const entry = parts[0].trim();
     if (!entry || entry.includes(", "))
+        return "";
+    if (entry === "empty project")
         return "";
     if (entry === "." || entry === "..")
         return "";

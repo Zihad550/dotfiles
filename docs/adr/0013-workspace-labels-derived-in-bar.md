@@ -35,7 +35,7 @@ isn't the bare id is displayed as-is and nothing is derived over it.
   rule for itself and another for its neighbours.
 - Directory context comes only from a source the application itself exposes,
   which today means exactly two applications (#102). A Zed window's Project
-  Root is parsed out of its live title (`{active item} — {root}`, em dash) —
+  Root is parsed out of its live title (`{root} — {active item}`, em dash) —
   reactive on the toplevel's own title property, so a project switch in the
   same window refreshes the label with no focus change and no polling; local
   and remote roots present identically. A Ghostty window's directory is read

@@ -98,7 +98,7 @@ test("only the trailing segment of a path survives into the label", () => {
 });
 
 // Issue #102: a Zed window's Project Root comes from its live window title
-// -- "{active item} — {root}", the em-dash form Zed itself writes. Only one
+// -- "{root} — {active item}", the em-dash form Zed itself writes. Only one
 // unambiguous root may produce a suffix; everything else falls back to the
 // bare application label.
 
@@ -110,43 +110,45 @@ test("zed is recognized only by its exact desktop application identity", () => {
 });
 
 test("both ghostty identities are recognized", () => {
-    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.Ghostty"), true);
+    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.ghostty"), true);
     assert.strictEqual(WorkspaceLabel.isGhostty("ghostty"), true, "bare compatibility identity");
-    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.Ghostty.extra"), false);
+    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.ghostty.extra"), false);
+    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.Ghostty"), false, "desktop ids are case-sensitive");
     assert.strictEqual(WorkspaceLabel.isGhostty("Ghostty"), false);
     assert.strictEqual(WorkspaceLabel.isGhostty(""), false);
     assert.strictEqual(WorkspaceLabel.isGhostty("kitty"), false);
 });
 
 test("a single-root zed title yields the root's basename", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("main.rs — ~/dev/dotfiles"), "dotfiles");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("channel.rs — app"), "app");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("lib.rs — /srv/http/site/"), "site");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("~/dev/dotfiles — main.rs"), "dotfiles");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("app — channel.rs"), "app");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("/srv/http/site/ — index.html"), "site");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("dotfiles"), "dotfiles", "a root with no active file has no separator");
 });
 
 test("remote and local single roots present the same way", () => {
     assert.strictEqual(
-        WorkspaceLabel.projectRootFromTitle("index.php — srv0133:/var/www/vhost/site"),
-        WorkspaceLabel.projectRootFromTitle("index.php — /var/www/vhost/site"),
+        WorkspaceLabel.projectRootFromTitle("srv0133:/var/www/vhost/site — index.php"),
+        WorkspaceLabel.projectRootFromTitle("/var/www/vhost/site — index.php"),
         "remote provenance changes nothing about presentation",
     );
 });
 
 test("a multi-root or otherwise ambiguous title yields nothing", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("main.rs — ~/a, ~/b"), "");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("~/a, ~/b — main.rs"), "");
 });
 
 test("an empty, untitled, or malformed zed title yields nothing", () => {
     assert.strictEqual(WorkspaceLabel.projectRootFromTitle(""), "");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("Zed"), "", "no separator means no root");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("main.rs — "), "", "nothing after the separator");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("main.rs —   "), "", "whitespace is not a root");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("empty project"), "");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(" — main.rs"), "", "nothing before the separator");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("   — main.rs"), "", "whitespace is not a root");
     assert.strictEqual(WorkspaceLabel.projectRootFromTitle("a — b — c"), "", "more than one separator is malformed");
 });
 
 test("a dotted dot-segment never becomes a root name", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("x — ."), "");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("x — .."), "");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(". — x"), "");
+    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(".. — x"), "");
 });
 
 test("the directory comes from one readlink of the window's process cwd", () => {
