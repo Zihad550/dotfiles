@@ -17,7 +17,7 @@ skills add JuliusBrussee/caveman --skill caveman-commit -g --agent "${AGENTS[@]}
 skills add vercel-labs/skills --skill find-skills -g --agent "${AGENTS[@]}" -y
 skills add herdrdev/herdr --skill herdr -g --agent "${AGENTS[@]}" -y
 skills add giuseppe-trisciuoglio/developer-kit --skill shadcn-ui -g --agent "${AGENTS[@]}" -y
-skills add anthropics/skills --skill webapp-testing -g --agent "${AGENTS[@]}" -y
+skills add microsoft/playwright-cli --skill playwright-cli -g --agent "${AGENTS[@]}" -y
 skills add max-sixty/worktrunk --skill worktrunk -g --agent "${AGENTS[@]}" -y
 skills add mattpocock/skills -g --agent "${AGENTS_WITHOUT_PLUGIN[@]}" -y
 

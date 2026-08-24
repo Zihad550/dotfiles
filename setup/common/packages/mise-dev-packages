@@ -3,7 +3,7 @@
 
 mise use -g node@24 node go pnpm uv
 mise use -g claude opencode npm:@kilocode/cli gemini oh-my-pi
-mise use -g npm:skills aichat
+mise use -g npm:skills npm:@playwright/cli aichat
 
 
 # crush by bubble tea
