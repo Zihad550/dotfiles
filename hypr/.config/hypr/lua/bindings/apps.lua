@@ -66,7 +66,7 @@ o.bind("SUPER + U", "Herdr",
 -- o.bind("SUPER + A", "ChatGPT",
 --     dotfiles_bin .. [[/df-launch-special-webapp "chatgpt" "https://chatgpt.com" "ai"]])
 o.bind("SUPER + A", "Claude",
-    dotfiles_bin .. [[/df-launch-special-webapp "chrome-claude.ai__chat-Profile_2" "https://claude.ai/chat" "ai"]])
+    dotfiles_bin .. "/df-launch-claude")
 -- o.bind("SUPER + M", "Gmail",
 --     dotfiles_bin .. [[/df-launch-special-webapp "gmail" "https://mail.google.com/mail/u/0" "gmail"]])
 o.bind("SUPER + SHIFT + C", "Calendar",

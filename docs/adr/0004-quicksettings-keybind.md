@@ -7,7 +7,7 @@ equivalent here.
 
 ## Why
 
-**`SUPER+CTRL+A`, not `SUPER+A`.** `SUPER+A` already opens the Claude webapp
+**`SUPER+CTRL+A`, not `SUPER+A`.** `SUPER+A` already opens Claude
 (`bindings/apps.lua`) — reassigning it would be a second, unrelated change
 riding on this one. `SUPER+COMMA` was also free but was rejected: it,
 `SUPER+SHIFT+COMMA` and `SUPER+CTRL+COMMA` are a self-contained

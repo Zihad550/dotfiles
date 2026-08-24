@@ -9,7 +9,6 @@ const ROOT = path.resolve(__dirname, "../..");
 const LAUNCHER = path.join(ROOT, "bin/df-launch-special-webapp");
 const SHARED_LAUNCHER = path.join(ROOT, "bin/df-launch-special-workspace");
 const WEB_APPS = [
-    ["Claude", "chrome-claude.ai__chat-Profile_2", "https://claude.ai/chat", "ai"],
     ["Calendar", "chrome-calendar.google.com__calendar-Profile_2", "https://calendar.google.com/calendar", "calendar"],
     ["Meet", "chrome-meet.google.com__-Profile_2", "https://meet.google.com", "meet"],
     ["Zulip", "chrome-mamacrm.zulipchat.com__-Profile_2", "https://mamacrm.zulipchat.com", "zulip"],
@@ -91,7 +90,7 @@ test("all web-app bindings declare their URL-derived identity", () => {
     }
 });
 
-test("all eight web apps cross the adapter boundary with their declared configuration", t => {
+test("all seven web apps cross the adapter boundary with their declared configuration", t => {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), "special-webapps-"));
     const adapter = path.join(temp, "df-launch-special-webapp");
     const delegate = path.join(temp, "df-launch-special-workspace");
@@ -133,7 +132,7 @@ else if (args[0] === "clients") {
     const call = Number(fs.readFileSync(file, "utf8"));
     fs.writeFileSync(file, String(call + 1));
     const client = { address: "0xnew", initialClass: process.env.INITIAL_CLASS,
-        workspace: { name: call < 3 ? "3" : "special:ai" } };
+        workspace: { name: call < 3 ? "3" : "special:" + process.env.WORKSPACE } };
     process.stdout.write(JSON.stringify(call < 2 ? [] : [client]));
 } else if (args[0] === "dispatch") {
     fs.appendFileSync(path.join(state, "dispatches"), JSON.stringify(args.slice(1)) + "\\n");
@@ -145,12 +144,13 @@ else if (args[0] === "clients") {
     const [identity, url, workspace] = WEB_APPS[0].slice(1);
     const result = childProcess.spawnSync(LAUNCHER, [identity, url, workspace], {
         env: { ...process.env, PATH: `${temp}:${process.env.PATH}`, TEST_STATE: state,
-            INITIAL_CLASS: identity, XDG_RUNTIME_DIR: temp, DF_SPECIAL_WORKSPACE_POLL_INTERVAL: "0.01" },
+            INITIAL_CLASS: identity, WORKSPACE: workspace, XDG_RUNTIME_DIR: temp,
+            DF_SPECIAL_WORKSPACE_POLL_INTERVAL: "0.01" },
         encoding: "utf8"
     });
 
     assert.strictEqual(result.status, 0, result.stderr);
     const dispatches = fs.readFileSync(path.join(state, "dispatches"), "utf8");
     assert.match(dispatches, /address:0xnew/);
-    assert.match(dispatches, /special:ai/);
+    assert.match(dispatches, new RegExp(`special:${workspace}`));
 });
