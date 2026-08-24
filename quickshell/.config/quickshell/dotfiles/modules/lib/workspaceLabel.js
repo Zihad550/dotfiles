@@ -37,13 +37,23 @@ function appIdOf(toplevel) {
     return toplevel?.wayland?.appId ?? toplevel?.lastIpcObject?.class ?? "";
 }
 
-// "firefox" from "org.mozilla.firefox". Empty when there's nothing to show.
 // Deliberately near-duplicated from launcher/lib/windows.js:shortIdOf, like
 // windowNaming.js -- but it keeps a bare id ("kitty") rather than dropping
 // it, so the two cannot share one body.
 function shortAppName(appId) {
     if (!appId)
         return "";
+
+    if (appId.indexOf("chrome-") === 0) {
+        const hostEnd = appId.indexOf("__", 7);
+        if (hostEnd > 7) {
+            const hostParts = appId.slice(7, hostEnd).split(".");
+            if (hostParts[0] === "www")
+                hostParts.shift();
+            return hostParts[0] ?? "";
+        }
+    }
+
     const at = appId.lastIndexOf(".");
     if (at < 0)
         return appId;

@@ -64,6 +64,12 @@ test("a reverse-DNS application id is shown by its last segment", () => {
     assert.strictEqual(WorkspaceLabel.shortAppName("trailing."), "", "an empty segment names nothing");
 });
 
+test("a Chromium webapp id is shown by its first meaningful hostname segment", () => {
+    assert.strictEqual(WorkspaceLabel.shortAppName("chrome-linkedin.com__-Profile_2"), "linkedin");
+    assert.strictEqual(WorkspaceLabel.shortAppName("chrome-calendar.google.com__calendar-Profile_2"), "calendar");
+    assert.strictEqual(WorkspaceLabel.shortAppName("chrome-www.figma.com__-Profile_2"), "figma");
+});
+
 test("a bare id plus application reads as id-application", () => {
     assert.strictEqual(WorkspaceLabel.labelFor(3, "3", "firefox"), "3-firefox");
 });
