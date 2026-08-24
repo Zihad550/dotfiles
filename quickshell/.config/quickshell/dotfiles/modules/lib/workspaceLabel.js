@@ -56,70 +56,12 @@ function shortAppName(appId) {
 // once the Launcher's rename Action has. Anything other than the bare id is
 // manual and wins untouched; only a bare id gets derived over.
 //
-// `dir` arrives already reduced to a basename -- the caller owns that
-// reduction, since Zed's comes from its title and Ghostty's from /proc.
-function labelFor(id, name, app, dir) {
+function labelFor(id, name, app) {
     if (typeof name === "string" && name !== "" && name !== String(id))
         return name;
     if (!app)
         return String(id);
-    // Folded so both Ghostty identities read alike in the bar.
-    return id + "-" + app.toLowerCase() + (dir ? "(" + dir + ")" : "");
-}
-
-// The trailing segment of a path, whatever its provenance -- local, remote,
-// or a bare name already. A lone "/" names nothing.
-function basenameOf(p) {
-    const trimmed = String(p ?? "").replace(/\/+$/, "");
-    const at = trimmed.lastIndexOf("/");
-    const base = at < 0 ? trimmed : trimmed.slice(at + 1);
-    return base === "/" ? "" : base;
-}
-
-// Issue #102: the two identities the desktop actually reports for these
-// applications. Zed parses titles only under its exact configured id; a
-// lookalike class ("zed", "Zed") must not. Ghostty answers to both its
-// desktop id and the bare compatibility one this repo's scripts use.
-const ZED_APP_ID = "dev.zed.Zed";
-const GHOSTTY_DESKTOP_ID = "com.mitchellh.ghostty";
-const GHOSTTY_COMPAT_ID = "ghostty";
-
-function isZed(appId) {
-    return appId === ZED_APP_ID;
-}
-
-function isGhostty(appId) {
-    return appId === GHOSTTY_DESKTOP_ID || appId === GHOSTTY_COMPAT_ID;
-}
-
-// The Project Root basename of a Zed window, read out of its live title:
-// "{root} — {active item}", em dash, as Zed writes it. With no active item,
-// the title is the root alone. A root qualifies only when the title names one;
-// multi-root ("~/a, ~/b"), empty, and malformed titles yield "" so no stale
-// or guessed root is ever shown.
-function projectRootFromTitle(title) {
-    const sep = " \u2014 ";
-    const parts = String(title ?? "").split(sep);
-    if (parts.length > 2)
-        return "";
-    if (parts.length === 2 && !parts[1].trim())
-        return "";
-    const entry = parts[0].trim();
-    if (!entry || entry.includes(", "))
-        return "";
-    if (entry === "empty project")
-        return "";
-    if (entry === "." || entry === "..")
-        return "";
-    return basenameOf(entry);
-}
-
-// One-shot readlink of the process cwd -- the out-of-band read the ADR
-// describes, resolved on window open and focus change, and only ever for a
-// Ghostty representative. Plain readlink (no -f): the symlink target already
-// is the absolute cwd, and a dead pid just exits nonzero with empty output.
-function cwdCommand(pid) {
-    return ["readlink", "/proc/" + pid + "/cwd"];
+    return id + "-" + app.toLowerCase();
 }
 
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
@@ -127,11 +69,6 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         representativeOf: representativeOf,
         appIdOf: appIdOf,
         shortAppName: shortAppName,
-        labelFor: labelFor,
-        basenameOf: basenameOf,
-        isZed: isZed,
-        isGhostty: isGhostty,
-        projectRootFromTitle: projectRootFromTitle,
-        cwdCommand: cwdCommand
+        labelFor: labelFor
     };
 }

@@ -1,9 +1,7 @@
 // Issue #98: the bar derives what it shows for a numbered workspace from the
 // windows on it -- see docs/adr/0013-workspace-labels-derived-in-bar.md.
-// These cover the pure half of that: which window a label describes, how its
-// application and directory are rendered, and the rule that a manual rename
-// always wins. The QML half (live toplevels, /proc/<pid>/cwd) is asserted by
-// source below, since none of it can run without a compositor.
+// These cover which window a label describes, how its application is
+// rendered, and the rule that a manual rename always wins.
 //
 //     node --test "tests/dotfiles/*.test.js"
 
@@ -67,92 +65,15 @@ test("a reverse-DNS application id is shown by its last segment", () => {
 });
 
 test("a bare id plus application reads as id-application", () => {
-    assert.strictEqual(WorkspaceLabel.labelFor(3, "3", "firefox", ""), "3-firefox");
+    assert.strictEqual(WorkspaceLabel.labelFor(3, "3", "firefox"), "3-firefox");
 });
 
-test("the application label is folded to lowercase so both identities read alike", () => {
-    // Ghostty reports "com.mitchellh.Ghostty" on Wayland but bare "ghostty"
-    // through its compatibility identity; the bar shows one spelling.
-    assert.strictEqual(WorkspaceLabel.labelFor(4, "4", "Ghostty", "backend"), "4-ghostty(backend)");
-});
-
-test("a directory suffix is appended in parentheses", () => {
-    assert.strictEqual(WorkspaceLabel.labelFor(4, "4", "ghostty", "backend"), "4-ghostty(backend)");
-    assert.strictEqual(WorkspaceLabel.labelFor(5, "5", "zed", "dotfiles"), "5-zed(dotfiles)");
-});
-
-test("a suffix without an application is dropped rather than left dangling", () => {
-    assert.strictEqual(WorkspaceLabel.labelFor(2, "2", "", "backend"), "2");
+test("the application label is folded to lowercase", () => {
+    assert.strictEqual(WorkspaceLabel.labelFor(4, "4", "Ghostty"), "4-ghostty");
 });
 
 test("a manual rename wins over anything derived", () => {
-    assert.strictEqual(WorkspaceLabel.labelFor(7, "7-(dev)", "kitty", "jehad"), "7-(dev)");
-});
-
-test("only the trailing segment of a path survives into the label", () => {
-    assert.strictEqual(WorkspaceLabel.basenameOf("/home/jehad/dev/work/mamacrm/backend"), "backend");
-    assert.strictEqual(WorkspaceLabel.basenameOf("~/dev/dotfiles/"), "dotfiles");
-    assert.strictEqual(WorkspaceLabel.basenameOf("dotfiles"), "dotfiles");
-    assert.strictEqual(WorkspaceLabel.basenameOf(""), "");
-    assert.strictEqual(WorkspaceLabel.basenameOf("/"), "", "the filesystem root names nothing");
-});
-
-// Issue #102: a Zed window's Project Root comes from its live window title
-// -- "{root} — {active item}", the em-dash form Zed itself writes. Only one
-// unambiguous root may produce a suffix; everything else falls back to the
-// bare application label.
-
-test("zed is recognized only by its exact desktop application identity", () => {
-    assert.strictEqual(WorkspaceLabel.isZed("dev.zed.Zed"), true);
-    assert.strictEqual(WorkspaceLabel.isZed("zed"), false, "a lookalike class must not parse titles");
-    assert.strictEqual(WorkspaceLabel.isZed("Zed"), false);
-    assert.strictEqual(WorkspaceLabel.isZed(""), false);
-});
-
-test("both ghostty identities are recognized", () => {
-    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.ghostty"), true);
-    assert.strictEqual(WorkspaceLabel.isGhostty("ghostty"), true, "bare compatibility identity");
-    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.ghostty.extra"), false);
-    assert.strictEqual(WorkspaceLabel.isGhostty("com.mitchellh.Ghostty"), false, "desktop ids are case-sensitive");
-    assert.strictEqual(WorkspaceLabel.isGhostty("Ghostty"), false);
-    assert.strictEqual(WorkspaceLabel.isGhostty(""), false);
-    assert.strictEqual(WorkspaceLabel.isGhostty("kitty"), false);
-});
-
-test("a single-root zed title yields the root's basename", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("~/dev/dotfiles — main.rs"), "dotfiles");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("app — channel.rs"), "app");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("/srv/http/site/ — index.html"), "site");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("dotfiles"), "dotfiles", "a root with no active file has no separator");
-});
-
-test("remote and local single roots present the same way", () => {
-    assert.strictEqual(
-        WorkspaceLabel.projectRootFromTitle("srv0133:/var/www/vhost/site — index.php"),
-        WorkspaceLabel.projectRootFromTitle("/var/www/vhost/site — index.php"),
-        "remote provenance changes nothing about presentation",
-    );
-});
-
-test("a multi-root or otherwise ambiguous title yields nothing", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("~/a, ~/b — main.rs"), "");
-});
-
-test("an empty, untitled, or malformed zed title yields nothing", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(""), "");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("empty project"), "");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(" — main.rs"), "", "nothing before the separator");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("   — main.rs"), "", "whitespace is not a root");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle("a — b — c"), "", "more than one separator is malformed");
-});
-
-test("a dotted dot-segment never becomes a root name", () => {
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(". — x"), "");
-    assert.strictEqual(WorkspaceLabel.projectRootFromTitle(".. — x"), "");
-});
-
-test("the directory comes from one readlink of the window's process cwd", () => {
-    assert.deepStrictEqual(WorkspaceLabel.cwdCommand(1234), ["readlink", "/proc/1234/cwd"]);
+    assert.strictEqual(WorkspaceLabel.labelFor(7, "7-(dev)", "kitty"), "7-(dev)");
 });
 
 test("the bar entry derives its text instead of showing the raw name", () => {
@@ -162,53 +83,4 @@ test("the bar entry derives its text instead of showing the raw name", () => {
     assert.match(ws, /WorkspaceLabel\.representativeOf/);
     assert.match(ws, /text:\s*root\.label/, "display must go through the derived label");
     assert.doesNotMatch(ws, /text:\s*root\.modelData\.name/, "the compositor name is no longer shown directly");
-});
-
-test("a resolved directory cannot outlive the window it was resolved for", () => {
-    const ws = source("modules/Workspace.qml");
-
-    // The request is keyed on the representative it was made for (address
-    // and pid); a readlink returning after the representative changed must
-    // be dropped, or workspace 4 shows where workspace 6's terminal sits.
-    assert.match(ws, /property string requestedFor/);
-    assert.match(ws, /repKey: root\.repAddress \+ ":" \+/);
-    assert.match(ws, /if \(root\.repKey !== cwdProc\.requestedFor\)\s*\n\s*return;/);
-
-    // Resolving starts by forgetting whatever path stood before.
-    const resolveBlock = ws.slice(ws.indexOf("function resolveCwd"));
-    assert.match(resolveBlock, /^\s+root\.repPath = "";/m);
-
-    // A readlink still exiting must not swallow the newest request: the
-    // exit re-runs resolution whenever what is current differs from what
-    // ran, or the label loses its path until some later focus change.
-    assert.match(resolveBlock, /if \(cwdProc\.running\)\s*\n\s*return;/);
-    assert.match(ws.slice(ws.indexOf("id: cwdProc")), /onExited:\s*\{[\s\S]*?repKey !== requestedFor[\s\S]*?resolveCwd/);
-});
-
-// Issue #102: directory context comes only from a truthful source -- Zed's
-// live window title, Ghostty's process cwd -- and nothing else.
-
-test("the bar consumes the representative's title reactively for zed roots", () => {
-    const ws = source("modules/Workspace.qml");
-
-    // The toplevel's own title property is a notified Quickshell property:
-    // binding to it means a retitle refreshes the label with no focus
-    // change and no polling.
-    assert.match(ws, /property string repTitle: root\.rep\?\.title \?\? ""/);
-    // Parsing happens under the exact Zed identity and feeds the label.
-    assert.match(ws, /WorkspaceLabel\.isZed\(root\.repAppId\)[^\n]*WorkspaceLabel\.projectRootFromTitle\(root\.repTitle\)/);
-    assert.match(ws, /labelFor\(root\.modelData\.id, root\.modelData\.name, root\.repApp, root\.repDir\)/);
-});
-
-test("process-cwd lookup runs only for a ghostty representative", () => {
-    const ws = source("modules/Workspace.qml");
-    const resolveBlock = ws.slice(ws.indexOf("function resolveCwd"));
-
-    // The gate stands before anything touches cwdProc or the pid.
-    assert.match(resolveBlock, /if \(!WorkspaceLabel\.isGhostty\(root\.repAppId\)\)\s*\n\s*return;/);
-    const afterGate = resolveBlock.slice(resolveBlock.indexOf("isGhostty"));
-    assert.ok(afterGate.indexOf("cwdProc") > -1, "resolution work must sit behind the ghostty gate");
-
-    // And what readlink returned is reduced to a basename, not shown whole.
-    assert.match(ws, /root\.repPath = WorkspaceLabel\.basenameOf\(line\.trim\(\)\);/);
 });

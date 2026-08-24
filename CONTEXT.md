@@ -135,8 +135,10 @@ _Avoid_: item, entry, tile, option
 **Tile**:
 A pill-shaped control on the primary Quick Settings surface, paired in a
 two-column grid. Its main segment changes state; an optional trailing chevron
-opens the control's Page.
-_Avoid_: row, item, entry, button, card
+opens the control's Page. Its label names whatever the control is currently
+attached to, falling back to the control's own name when there is nothing to
+name.
+_Avoid_: row, item, entry, button, card, pill
 
 **Page**:
 Content that replaces the primary Quick Settings surface in the same window,
@@ -155,6 +157,13 @@ anchored under the entry that opened it. Not a Chooser: a Chooser is a
 Launcher concept, replacing entries in the query window rather than opening
 one of its own.
 _Avoid_: dropdown, submenu, menu, popup, page
+
+**Tailnet**:
+The named Tailscale network this machine is currently a member of, as a person
+would name it — the account-level name, not the machine's address on it and not
+the MagicDNS suffix that addresses resolve under. Each of those three is a
+different string, so say which one is meant.
+_Avoid_: tailscale network, magicdns suffix, node name, hostname
 
 # Desktop
 
@@ -175,21 +184,12 @@ _Avoid_: workspace title, label, workspace id
 
 **Workspace Label**:
 What the Bar displays for a workspace, derived from the windows on it rather
-than stored anywhere. For a Zed window, it may include the basename of that
-window's single Project Root; this is not Zed's process working directory.
-For a Ghostty window, it may instead include the basename of that terminal's
-process working directory. Other applications have no directory suffix.
-Falls back to the Workspace Name whenever that Name is anything other than the
-bare id, so a manual rename always wins. Never written back to the compositor;
-see
+than stored anywhere. It contains the representative window's application,
+with no directory suffix. Falls back to the Workspace Name whenever that Name
+is anything other than the bare id, so a manual rename always wins. Never
+written back to the compositor; see
 `docs/adr/0013-workspace-labels-derived-in-bar.md`.
 _Avoid_: workspace name, display name, derived name, caption
-
-**Project Root**:
-The one local or remote project or worktree root open in a Zed window, whose
-basename may appear in its Workspace Label. A multi-root, untitled, or
-unresolved Zed window has no Project Root for labeling purposes.
-_Avoid_: cwd, project directory, process directory, active file directory, launch directory
 
 **Devcontainer Routing**:
 The persisted, default-off switch that makes Herdr (`SUPER+U` and the
