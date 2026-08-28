@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
-# Apply the current theme color to Chromium-family browsers (Chromium, Helium,
-# Brave) via managed-policy color.json. Helium shares Chromium's policy dir
-# (/etc/chromium/policies). No sudo: the policy dirs are made world-writable
-# once at setup (see setup/arch-hyprland/theme), so this can run from rofi.
+# Apply the current theme color through managed browser policies. No sudo: setup
+# makes the policy directories writable so this can run from rofi.
 
 CHROMIUM_THEME=~/.config/theme/chromium.theme
 
@@ -32,16 +30,21 @@ set_browser_policy() {
 }
 
 refresh_running() {
-   local proc="$1" cmd="$2"
-   if df-cmd-present "$cmd" && pgrep -x "$proc" >/dev/null; then
+   local proc="$1" cmd="$2" pgrep_args="${3:--x}"
+   if df-cmd-present "$cmd" && pgrep "$pgrep_args" "$proc" >/dev/null; then
       "$cmd" --refresh-platform-policy --no-startup-window &>/dev/null
    fi
 }
 
-# Helium + Chromium share /etc/chromium policy dir
 set_browser_policy /etc/chromium/policies/managed
 refresh_running chromium chromium
-refresh_running helium helium-browser
+
+set_browser_policy /etc/opt/chrome/policies/managed
+refresh_running chrome google-chrome-stable || refresh_running chrome google-chrome
+
+set_browser_policy /etc/opt/edge/policies/managed
+refresh_running msedge microsoft-edge-stable
 
 set_browser_policy /etc/brave/policies/managed
 refresh_running brave brave
+refresh_running /opt/brave-origin-bin/ brave-origin -f

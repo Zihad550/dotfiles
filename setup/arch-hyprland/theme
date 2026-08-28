@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
-# Make Chromium-family policy dirs world-writable so df-theme-set-browser can
-# write color.json without sudo (Helium shares Chromium's dir).
+# Make browser policy dirs writable so df-theme-set-browser can update them.
 sudo mkdir -p /etc/chromium/policies/managed
 sudo chmod a+rw /etc/chromium/policies/managed
-if command -v brave &>/dev/null; then
+if command -v google-chrome-stable &>/dev/null || command -v google-chrome &>/dev/null; then
+   sudo mkdir -p /etc/opt/chrome/policies/managed
+   sudo chmod a+rw /etc/opt/chrome/policies/managed
+fi
+if command -v microsoft-edge-stable &>/dev/null; then
+   sudo mkdir -p /etc/opt/edge/policies/managed
+   sudo chmod a+rw /etc/opt/edge/policies/managed
+fi
+if command -v brave &>/dev/null || command -v brave-origin &>/dev/null; then
    sudo mkdir -p /etc/brave/policies/managed
    sudo chmod a+rw /etc/brave/policies/managed
 fi
