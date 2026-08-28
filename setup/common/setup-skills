@@ -34,7 +34,7 @@ skills add https://github.com/cursor/plugins --skill blast-radius -g --agent "${
 
 ######## our own skills, no upstream repo — sourced from github.com/Zihad550/skills
 skills add Zihad550/skills \
-  --skill create-skill draft-tea-command-for-issue-create gh-create-issue gh-get-issue mise ralph-loop ralph-loop-implement \
+  --skill convex-clerk-project-setup create-skill draft-tea-command-for-issue-create gh-create-issue gh-get-issue mise ralph-loop ralph-loop-implement \
           simplify tea-create-issue tea-get-issue tea-plan-issue template-skill \
           work-backend-qa \
   -g --agent "${AGENTS[@]}" -y
