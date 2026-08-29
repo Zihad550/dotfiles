@@ -37,7 +37,8 @@ test("submitting moves to authenticating, which refuses further input", () => {
     const state = Lock.begin(Lock.edit(Lock.initial(), "hunter2"));
 
     assert.strictEqual(state.phase, Lock.AUTHENTICATING);
-    assert.strictEqual(state.password, "hunter2", "the password is still needed to answer PAM's prompt");
+    assert.strictEqual(state.password, "", "the field empties so the check can say so where the dots were");
+    assert.strictEqual(state.pending, "hunter2", "still needed to answer PAM's prompt");
     assert.strictEqual(Lock.acceptsInput(state), false);
     assert.strictEqual(Lock.canSubmit(state), false, "a second Return must not start a second conversation");
     assert.strictEqual(Lock.statusText(state), "Checking…");
@@ -54,6 +55,7 @@ test("a rejected password is reported, counted, and clears the field", () => {
 
     assert.strictEqual(state.phase, Lock.IDLE, "a rejection returns the field, it does not wedge it");
     assert.strictEqual(state.password, "");
+    assert.strictEqual(state.pending, "", "a verdict is in, so the password has no reason to still be held");
     assert.strictEqual(state.failures, 1);
     assert.strictEqual(Lock.statusText(state), "Authentication failed (1)");
 
@@ -82,6 +84,7 @@ test("a PAM error reads differently from a wrong password", () => {
 
     assert.strictEqual(state.phase, Lock.IDLE);
     assert.strictEqual(state.password, "");
+    assert.strictEqual(state.pending, "");
     assert.strictEqual(Lock.statusText(state), "Authentication unavailable",
         "a broken PAM stack is not a wrong password, and saying so is the difference "
         + "between retyping and reaching for the runbook");
@@ -94,6 +97,7 @@ test("a correct password unlocks and leaves nothing behind", () => {
 
     assert.strictEqual(state.phase, Lock.UNLOCKED);
     assert.strictEqual(state.password, "");
+    assert.strictEqual(state.pending, "");
     assert.strictEqual(state.failures, 0);
     assert.strictEqual(state.message, "");
     assert.strictEqual(Lock.acceptsInput(state), false, "an unlocked surface is on its way out");

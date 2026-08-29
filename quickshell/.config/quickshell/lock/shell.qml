@@ -52,6 +52,10 @@ ShellRoot {
         if (next === root.session)
             return;
 
+        // Fresh: the previous lock's failure count and message must not come
+        // up on the screen with this one.
+        lockAuth.reset();
+
         root.session = next;
         sessionLock.locked = true;
 
@@ -106,6 +110,15 @@ ShellRoot {
             hint ? "true" : "false"]);
     }
 
+    // One conversation for the whole lock, not one per screen -- see
+    // LockAuth.qml. It outlives the surfaces, which the protocol creates and
+    // destroys with each lock.
+    LockAuth {
+        id: lockAuth
+
+        onUnlocked: root.unlock()
+    }
+
     WlSessionLock {
         id: sessionLock
 
@@ -125,12 +138,12 @@ ShellRoot {
             LockSurface {
                 anchors.fill: parent
 
+                auth: lockAuth
+
                 // Not while merely requested: keystrokes before the compositor
                 // calls the surface Secure are not guaranteed to be exclusive
                 // to it, and the first one would be the start of a password.
                 inputEnabled: sessionLock.secure
-
-                onUnlocked: root.unlock()
             }
         }
     }

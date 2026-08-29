@@ -13,7 +13,9 @@
 // The phases:
 //   idle           the field is live and waiting.
 //   authenticating a PAM conversation is in flight; the field is frozen so a
-//                  second Return cannot start a second conversation.
+//                  second Return cannot start a second conversation, and the
+//                  submitted password moves to `pending` so the field can empty
+//                  and say "Checking…" where the dots were.
 //   unlocked       terminal. The surface is on its way out.
 
 var IDLE = "idle";
@@ -27,7 +29,7 @@ var CHECKING = "Checking…";
 var UNAVAILABLE = "Authentication unavailable";
 
 function initial() {
-    return { phase: IDLE, password: "", failures: 0, message: "" };
+    return { phase: IDLE, password: "", pending: "", failures: 0, message: "" };
 }
 
 // Deliberately not `initial()` under another name at the call site: re-locking
@@ -53,6 +55,7 @@ function edit(state, text) {
     return {
         phase: state.phase,
         password: String(text),
+        pending: "",
         failures: state.failures,
         // The count survives; only the message goes. Clearing it on the first
         // keystroke is what makes a retype feel like a retype -- but the field
@@ -65,9 +68,13 @@ function begin(state) {
     if (!canSubmit(state))
         return state;
 
+    // The password leaves the field and is held for PAM's prompt instead: what
+    // is drawn is `password`, and an emptied field is what lets the status line
+    // say "Checking…" where the dots were.
     return {
         phase: AUTHENTICATING,
-        password: state.password,
+        password: "",
+        pending: state.password,
         failures: state.failures,
         message: ""
     };
@@ -81,6 +88,7 @@ function fail(state) {
     return {
         phase: IDLE,
         password: "",
+        pending: "",
         failures: failures,
         message: "Authentication failed (" + failures + ")"
     };
@@ -95,6 +103,7 @@ function errored(state) {
     return {
         phase: IDLE,
         password: "",
+        pending: "",
         failures: state.failures,
         message: UNAVAILABLE
     };
@@ -104,7 +113,7 @@ function succeed(state) {
     if (state.phase !== AUTHENTICATING)
         return state;
 
-    return { phase: UNLOCKED, password: "", failures: 0, message: "" };
+    return { phase: UNLOCKED, password: "", pending: "", failures: 0, message: "" };
 }
 
 function statusText(state) {

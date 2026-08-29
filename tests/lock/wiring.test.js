@@ -21,8 +21,8 @@ function source(relativePath) {
 const lockRoot = "quickshell/.config/quickshell/lock";
 const probeRoot = "quickshell/.config/quickshell/lock-probe";
 
-test("the surface and the setup script name the same PAM service", () => {
-    assert.match(source(`${lockRoot}/LockSurface.qml`), /config:\s*"df-lock"/);
+test("the conversation and the setup script name the same PAM service", () => {
+    assert.match(source(`${lockRoot}/LockAuth.qml`), /config:\s*"df-lock"/);
     assert.match(source("setup/arch-hyprland/setup-packages/setup-lock-pam"), /\/etc\/pam\.d\/df-lock/,
         "a service name that disagrees is a lock that rejects every correct password");
 });
@@ -60,6 +60,33 @@ test("unlocking does not re-run the login-time account policy", () => {
     assert.doesNotMatch(setup, /nullok/,
         "the field refuses to submit an empty password, so nullok can only ever be the thing "
         + "that lets one through");
+});
+
+test("one conversation for the whole lock, not one per screen", () => {
+    const surface = source(`${lockRoot}/LockSurface.qml`);
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.doesNotMatch(surface, /PamContext/,
+        "a conversation per surface is a failure count per screen, while faillock counts them "
+        + "all -- so the number you were shown would be the only untrue one");
+    assert.match(surface, /property LockAuth auth\b/,
+        "the host supplies it, which is what lets the lock share one across screens");
+    assert.match(shell, /LockAuth \{\s*\n\s*id: lockAuth/,
+        "created beside the WlSessionLock, so it outlives surfaces the protocol destroys");
+    assert.match(shell, /auth: lockAuth/);
+});
+
+test("a surface writing the shared password back into its field cannot echo", () => {
+    const surface = source(`${lockRoot}/LockSurface.qml`);
+
+    assert.match(surface, /onTextChanged:\s*if \(!root\.syncingField\)/,
+        "syncField assigns field.text, which raises onTextChanged -- unguarded, one screen's "
+        + "keystroke comes back round as an edit from the other");
+});
+
+test("re-locking does not show the previous lock's failures", () => {
+    assert.match(source(`${lockRoot}/shell.qml`), /lockAuth\.reset\(\);/,
+        "the conversation outlives the surfaces now, so nothing else clears it");
 });
 
 test("the field keeps focus while PAM is in flight", () => {
