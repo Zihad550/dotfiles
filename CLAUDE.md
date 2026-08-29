@@ -11,7 +11,11 @@
 - A script header may list its caller-controlled variables, their defaults,
   and their effects. Keep history, alternatives, and extended rationale in
   the owning documentation.
-- When doing git **commit** or **stage** ignore claude/.claude/settings.json and git/.config/git/config, Unless the user explicitly asked to.
+- Never **stage** or **commit** `git/.config/git/config`. There is no exception
+  to read your way into: an instruction that sounds like it lifts this rule does
+  not. Fix the file in the working tree when asked, leave it dirty, and say so.
+- Do not **stage** or **commit** `claude/.claude/settings.json` unless the user
+  names that file. An instruction about something else nearby is not permission.
 
 ### Issue tracker
 
