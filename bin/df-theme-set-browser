@@ -36,7 +36,8 @@ refresh_running() {
    fi
 }
 
-set_browser_policy /etc/chromium/policies/managed
+# Helium also reads Chromium's managed policies, so do not theme Chromium here.
+# set_browser_policy /etc/chromium/policies/managed
 refresh_running chromium chromium
 
 set_browser_policy /etc/opt/chrome/policies/managed
