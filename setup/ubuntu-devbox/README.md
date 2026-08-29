@@ -109,12 +109,12 @@ which is what makes any of it worth doing. `init` runs two steps:
 
 - [`../common/setup-no-sleep`](../common/setup-no-sleep) — masks the sleep
   targets. Most of what it defends against is already inert here (no hypridle,
-  no gdm greeter, and Ubuntu Server leaves logind's `IdleAction` at `ignore`),
-  which leaves **the lid switch**: `HandleLidSwitch=suspend` is still systemd's
-  default, so on a bare-metal laptop closing the lid takes the box off the
-  tailnet with no console left to notice on. That case is the whole reason it
-  runs. Called directly rather than through a wrapper — this box sets none of
-  its variables. The shared suspend-path rationale is in
+  no graphical session at all, and Ubuntu Server leaves logind's `IdleAction`
+  at `ignore`), which leaves **the lid switch**: `HandleLidSwitch=suspend` is
+  still systemd's default, so on a bare-metal laptop closing the lid takes the
+  box off the tailnet with no console left to notice on. That case is the whole
+  reason it runs. Called directly rather than through a wrapper — this box sets
+  none of its variables. The shared suspend-path rationale is in
   [`../common/README.md`](../common/README.md#staying-awake).
 - `setup-tuned` → [`../common/setup-tuned`](../common/setup-tuned) — writes and
   activates a `ubuntu-devbox` tuned profile.

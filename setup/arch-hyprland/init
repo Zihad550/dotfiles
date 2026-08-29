@@ -146,16 +146,7 @@ fi
 CURRENT_STEP="useful directories"
 mkdir -p ~/dev ~/.obsidian-vault
 
-# gdm: install is idempotent via --needed; enable only if not enabled.
-CURRENT_STEP="gdm"
-# Output goes to the log only — direct terminal writes would corrupt the live
-# log panel that the background viewer is redrawing.
-sudo pacman -S --noconfirm --needed gdm >>"$LOG_FILE" 2>&1
-if systemctl is-enabled gdm.service &>/dev/null; then
-    ui_skip "gdm.service already enabled"
-else
-    sudo systemctl enable gdm.service >>"$LOG_FILE" 2>&1
-fi
+run_step "greeter" "$DOTFILES_DIR/setup/common/setup-greeter"
 
 run_step "post-install" "$ARCH_HYPR_DIR/post-install"
 

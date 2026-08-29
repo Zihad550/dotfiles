@@ -20,19 +20,6 @@ EOF
 # the masking above is what actually protects us.
 echo "logind drop-in written; lid settings apply after the next reboot"
 
-# gdm's greeter runs its own GNOME session with its own power settings. Masked
-# sleep.target already blocks it; this only stops it retrying every 20 minutes.
-if id gdm &>/dev/null && command -v gsettings &>/dev/null; then
-    if ! (
-        sudo -u gdm dbus-run-session -- gsettings set \
-            org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing' &&
-            sudo -u gdm dbus-run-session -- gsettings set \
-                org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
-    ) 2>/dev/null; then
-        echo "note: could not set gdm greeter power policy — harmless, sleep.target is masked"
-    fi
-fi
-
 if [[ -n "${NO_SLEEP_HYPRIDLE_CONF:-}" ]]; then
     "$(dirname "${BASH_SOURCE[0]}")/setup-hypridle-no-suspend" "$NO_SLEEP_HYPRIDLE_CONF"
 fi

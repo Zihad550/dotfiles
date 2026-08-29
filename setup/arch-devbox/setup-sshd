@@ -25,9 +25,9 @@ else
 fi
 
 # Not fatal: init runs this under `set -e`, and abandoning the whole install
-# before gdm over a recoverable sshd failure is the wrong trade. Callers who do
-# care re-check is-active afterwards — setup-ufw-lan before it opens the hole,
-# setup-ufw at the end of its run.
+# before the Greeter over a recoverable sshd failure is the wrong trade. Callers
+# who do care re-check is-active afterwards — setup-ufw-lan before it opens the
+# hole, setup-ufw at the end of its run.
 sudo systemctl start sshd.service ||
     echo "warn: sshd failed to start — the LAN break-glass rule would have no listener"
 

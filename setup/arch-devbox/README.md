@@ -148,8 +148,8 @@ with arch-hyprland and so deliberately not edited:
 **Kept even though it isn't "web dev":** the whole Hyprland layer (uwsm,
 quickshell, hyprlock, hypridle, hyprpolkitagent, the portal,
 hyprsunset, swaybg, brightnessctl, pavucontrol, nwg-look), ghostty, fonts,
-screenshots (swappy/slurp/grim), nautilus, gnome-disk-utility, and
-gdm. The desktop is unusable without them.
+screenshots (swappy/slurp/grim), nautilus, gnome-disk-utility, and the
+Greeter. The desktop is unusable without them.
 
 quickshell's own runtime dependencies (`ttf-fira-code`, `libqalculate`,
 `cliphist`, `wl-clipboard`, `libnotify`, `playerctl`) are **not** in any
@@ -759,10 +759,10 @@ but is commented out in `init` — see
 [idle behavior without masking sleep](#idle-behavior-without-masking-sleep)
 for why `init` runs the lighter `setup-hypridle-no-suspend` instead.
 
-The four suspend paths and why systemd's sleep targets are the boundary live in
+The three suspend paths and why systemd's sleep targets are the boundary live in
 [`../common/README.md`](../common/README.md#staying-awake). On this box,
-hypridle and gdm are present, and a detached monitor can change which logind lid
-policy applies.
+hypridle is present, and a detached monitor can change which logind lid policy
+applies.
 
 Confirm it took:
 
@@ -770,7 +770,7 @@ Confirm it took:
 systemctl suspend    # must fail: "Unit suspend.target is masked"
 ```
 
-That one command proves all four sources are dead. Masking is immediate;
+That one command proves all three sources are dead. Masking is immediate;
 the lid settings need a reboot, which `init` offers when it finishes.
 
 ### hypridle gets its own config
@@ -827,8 +827,7 @@ sleep on its own after ~31 minutes idle.
 
 To get the no-suspend idle behavior (lock, DPMS-off) while leaving manual
 suspend alone, run `setup-hypridle-no-suspend` instead — it's just the
-drop-in from the previous section, without the masking, logind drop-in, or
-gdm gsettings:
+drop-in from the previous section, without the masking or the logind drop-in:
 
 ```bash
 setup/arch-devbox/setup-hypridle-no-suspend

@@ -165,7 +165,7 @@ test("the runbook states the TTY escape", () => {
     assert.match(runbook, /Ctrl\+Alt\+F3/,
         "the runbook is useless if it does not say how to get a shell in front of a lock");
     assert.doesNotMatch(runbook, /\*\*`Ctrl\+Alt\+F2`\*\*/,
-        "F2 is the graphical session's own console under GDM -- switching to it is the lock again");
+        "F2 is the graphical session's own console under SDDM -- switching to it is the lock again");
 });
 
 test("the runbook names the unit to re-enable and the daemons to reinstall", () => {

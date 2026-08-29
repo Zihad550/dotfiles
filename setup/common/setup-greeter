@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Install the Greeter — SDDM — and retire the GDM this repo used to install.
+# See README.md "Greeter".
+
+set -euo pipefail
+
+sudo pacman -S --noconfirm --needed sddm
+
+if systemctl is-enabled gdm.service &>/dev/null; then
+    sudo systemctl disable gdm.service
+fi
+
+# --force because the display-manager.service alias may still point at gdm —
+# including at a gdm unit an interrupted run already removed, which plain
+# `enable` refuses to replace and which no re-run could then repair. Enabling
+# is idempotent, so there is nothing to guard.
+sudo systemctl enable --force sddm.service
+
+# Not fatal: the Greeter is already switched by this point, and aborting the
+# whole install over a package pacman declines to remove is the wrong trade.
+if pacman -Qq gdm &>/dev/null; then
+    sudo pacman -Rs --noconfirm gdm ||
+        echo "warn: gdm not removed — sddm is enabled, so remove it by hand"
+fi

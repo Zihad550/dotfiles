@@ -20,6 +20,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override without breaking MagicDNS. | Arch wrapper |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Hyprland, Arch devbox |
+| [`setup-greeter`](setup-greeter) | Installs and enables the Greeter, retiring the display manager it replaces. | Arch Hyprland, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox |
 | [`setup-hypridle-no-suspend`](setup-hypridle-no-suspend) | Removes idle-triggered suspend while leaving manual suspend available. | Arch wrapper |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
@@ -197,21 +198,35 @@ the question.
 
 ## Staying awake
 
-Four independent mechanisms can suspend a graphical box: systemd sleep
-targets, logind lid handling, the display manager's power policy, and
-Hyprland's idle daemon. `setup-no-sleep` blocks all four because an always-on
-devbox must remain reachable.
+Three independent mechanisms can suspend a graphical box: systemd sleep
+targets, logind lid handling, and Hyprland's idle daemon. `setup-no-sleep`
+blocks all three because an always-on devbox must remain reachable.
+
+A fourth used to be counted here — the Greeter's own power policy, which under
+GDM meant a GNOME settings daemon running before login. SDDM's greeter runs no
+such daemon, so the path no longer exists to block.
 
 They all converge on systemd's sleep targets. Masking those targets is the
-actual safety boundary; the logind drop-in and display-manager settings make
-the policy explicit and stop repeated failed suspend attempts. A detached
-monitor can expose the lid path: a closed laptop changes from docked to
-undocked, then follows `HandleLidSwitch` instead of
-`HandleLidSwitchDocked`.
+actual safety boundary; the logind drop-in makes the policy explicit and stops
+repeated failed suspend attempts. A detached monitor can expose the lid path: a
+closed laptop changes from docked to undocked, then follows `HandleLidSwitch`
+instead of `HandleLidSwitchDocked`.
 
 `setup-hypridle-no-suspend` is deliberately narrower. It removes the idle
 suspend listener but leaves manual suspend available. Use it alone when a
 desktop should still honor a keybind or `systemctl suspend`.
+
+## Greeter
+
+`setup-greeter` installs SDDM and removes the GDM these boxes used to run. The
+order inside it is load-bearing: both units claim the `display-manager.service`
+alias, so gdm is disabled before sddm is enabled — and sddm is enabled before
+gdm is removed, so a failure in between leaves a box that still boots. The
+enable is forced and the removal is non-fatal for the same reason: every state
+a half-finished run can leave behind has to be repairable by running it again.
+
+The Greeter is left on its stock theme, deliberately —
+[ADR 0020](../../docs/adr/0020-greeter-stays-stock-themed.md).
 
 ## Power management
 

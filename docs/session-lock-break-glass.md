@@ -40,7 +40,7 @@ surface is up, because the lock holds the Wayland session, not the console.
 
 `F3` rather than `F2` because the graphical session already occupies a console
 of its own and switching to it gets you the lock screen again. Which one it
-holds depends on the greeter — under GDM it is `tty2`, with the greeter on
+holds depends on the greeter — under SDDM it is `tty2`, with the greeter on
 `tty1` — so do not memorise a number, read it:
 
     loginctl list-sessions          # the TTY column of your `user` session
