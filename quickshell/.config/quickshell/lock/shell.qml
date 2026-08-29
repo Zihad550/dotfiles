@@ -15,7 +15,9 @@ import "lib/session.js" as Session
 //
 // Restart with `df-qs-restart lock`; read this instance's log with
 // `qs -c lock log` (`-f` follows). Lock it with
-// `qs -c lock ipc call lock lock`.
+// `qs -c lock ipc call lock lock` -- from a shell that has WAYLAND_DISPLAY,
+// since `qs -c` matches on the display too and says `No running instances`
+// without it. The runbook's TTY section covers that.
 //
 // The appearance and the PAM conversation live in LockSurface.qml, which is
 // also what the `lock-probe` config renders (`df-qs-test lock-probe`) in an

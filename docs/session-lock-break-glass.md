@@ -48,13 +48,24 @@ holds depends on the greeter — under SDDM it is `tty2`, with the greeter on
 `Ctrl+Alt+F<n>` for that `n` goes back to the graphical session. `F4`–`F6` are
 free consoles too if `F3` is occupied.
 
-Two things bite immediately in that shell:
+Three things bite immediately in that shell:
 
 - **`hyprctl` will not talk to the compositor** — the console shell is not the
   graphical session, so it has no `HYPRLAND_INSTANCE_SIGNATURE`. Export one:
 
       export HYPRLAND_INSTANCE_SIGNATURE=$(ls -t /run/user/$UID/hypr | head -1)
       hyprctl monitors
+
+- **`qs -c <config> …` will claim there is nothing running.** Every
+  instance-addressing subcommand — `kill`, `ipc`, `log` — matches on the display
+  connection as well as the config, so with no `WAYLAND_DISPLAY` it prints
+  `No running instances` while the instance is alive and untouched. That is a
+  silent no-op, not an answer. Export one:
+
+      export WAYLAND_DISPLAY=$(ls /run/user/$UID/wayland-* | grep -v '\.lock$' | head -1 | xargs basename)
+
+  `qs list --all` is the exception: it enumerates every instance regardless, so
+  use it to see the truth and to confirm a `kill` actually took.
 
 - **`systemctl --user` works as-is.** The user manager is shared with the
   graphical session, so units enable and restart from here normally.
@@ -65,7 +76,10 @@ Two things bite immediately in that shell:
     qs -c lock kill
 
 `qs -c lock kill` prints `No running instances` and exits 0 when there is
-nothing to kill, so it is safe to run first and ask questions after.
+nothing to kill, so it is safe to run first and ask questions after — but read
+the `WAYLAND_DISPLAY` note above before believing it, because an unset one
+prints exactly the same thing over a live instance. `qs list --all` is what
+confirms the kill took.
 
 What the lock last published about itself — and, once its call site moves, what
 `df-power` reads (`docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md`):
