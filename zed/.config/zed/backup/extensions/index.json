@@ -68,9 +68,9 @@
       "manifest": {
         "id": "dockerfile",
         "name": "Dockerfile",
-        "version": "0.2.1",
+        "version": "0.3.0",
         "schema_version": 1,
-        "description": "Dockerfile support.",
+        "description": "Dockerfile and Docker Compose support.",
         "repository": "https://github.com/zed-extensions/dockerfile",
         "authors": [
           "d1y <chenhonzho@gmail.com>",
@@ -83,12 +83,18 @@
         "themes": [],
         "icon_themes": [],
         "languages": [
+          "languages/docker-compose",
           "languages/dockerfile"
         ],
         "grammars": {
           "dockerfile": {
             "repository": "https://github.com/camdencheek/tree-sitter-dockerfile",
             "rev": "868e44ce378deb68aac902a9db68ff82d2299dd0",
+            "path": null
+          },
+          "yaml": {
+            "repository": "https://github.com/zed-industries/tree-sitter-yaml",
+            "rev": "baff0b51c64ef6a1fb1f8390f3ad6015b83ec13a",
             "path": null
           }
         },
@@ -101,7 +107,7 @@
             ],
             "language_ids": {
               "Dockerfile": "dockerfile",
-              "Docker Compose": "docker-compose"
+              "Docker Compose": "dockercompose"
             },
             "code_action_kinds": null
           },
@@ -128,7 +134,7 @@
       "manifest": {
         "id": "emmet",
         "name": "Emmet",
-        "version": "0.0.13",
+        "version": "0.0.14",
         "schema_version": 1,
         "description": "Emmet support",
         "repository": "https://github.com/zed-extensions/emmet",
@@ -165,6 +171,7 @@
               "SCSS",
               "Statamic Antlers",
               "TSX",
+              "Twig",
               "Vue.js"
             ],
             "language_ids": {
@@ -181,6 +188,7 @@
               "TSX": "typescriptreact",
               "Django": "html",
               "Jinja2": "html",
+              "Twig": "twig",
               "Statamic Antlers": "html",
               "JavaScript": "javascriptreact",
               "Elixir": "elixir",
@@ -998,6 +1006,22 @@
       },
       "hidden": false,
       "grammar": "caddyfile"
+    },
+    "Docker Compose": {
+      "extension": "dockerfile",
+      "path": "languages/docker-compose",
+      "matcher": {
+        "path_suffixes": [
+          "docker-compose.yml",
+          "docker-compose.yaml",
+          "compose.yaml",
+          "compose.yml"
+        ],
+        "first_line_pattern": null,
+        "modeline_aliases": []
+      },
+      "hidden": false,
+      "grammar": "yaml"
     },
     "Dockerfile": {
       "extension": "dockerfile",
