@@ -260,6 +260,13 @@ The toggle that suspends the Idle Ladder entirely, leaving manual locking and
 manual suspend untouched.
 _Avoid_: caffeine, inhibit, no-idle, presentation mode
 
+**Probe**:
+The Session Lock's surface rendered in an ordinary window, authenticating for
+real but holding nothing, so its appearance and its password field can be
+worked on with no possibility of lockout. Its own Quickshell config
+(`quickshell/.config/quickshell/lock-probe/`), run with `df-qs-test lock-probe`.
+_Avoid_: preview, mock, test lock, dry run
+
 # Setup
 
 The scripts and documentation that configure a development box.

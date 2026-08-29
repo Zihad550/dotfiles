@@ -28,11 +28,13 @@ for arg in "$@"; do
    esac
 done
 
-# Both of these are long-running instances that autostart.lua owns. Running one
-# here would kill the live one and replace it with a foreground copy that dies
-# with this terminal.
+# These are long-running instances that autostart.lua owns. Running one here
+# would kill the live one and replace it with a foreground copy that dies with
+# this terminal -- and for "lock", dying with the terminal is a dropped lock.
+# The Session Lock's surface is meant to be run here as "lock-probe", which
+# takes no session lock.
 case "$CONFIG" in
-   dotfiles | launcher)
+   dotfiles | launcher | lock)
       echo "Refusing to run the $CONFIG config as a scratch instance; use df-qs-restart $CONFIG." >&2
       exit 1
       ;;

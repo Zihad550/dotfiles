@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# The Session Lock's own PAM service. Without /etc/pam.d/df-lock the lock's
+# password field rejects every password, so this runs on every box that runs
+# the Hyprland session.
+#
+# Password only: no box this repo configures has fingerprint hardware, so the
+# upstream's optional fingerprint service is not ported
+# (docs/session-lifecycle-spec.md).
+#
+# Ported from Omarchy's bin/omarchy-apply-lock, read at revision
+# 83881e979b35468c3e7d60b171e319ede61a88fd. Three deliberate changes:
+#
+#   dir=  — the lock counts its failed attempts in its own faillock tally
+#           rather than the system-wide one under /run/faillock. Sharing that
+#           directory is what makes fat-fingering a password at the lock screen
+#           degrade sudo's remaining tries; a separate directory is the whole
+#           reason this service exists rather than an `include system-auth`.
+#           setup-sudo-tries governs sudo, and only sudo.
+#
+#   deny/unlock_time are written here rather than left to
+#           /etc/security/faillock.conf, so the lock's lockout policy is stated
+#           in the lock's own file and does not move when sudo's does.
+#
+#   account — `pam_unix` alone rather than the upstream's
+#           `include system-local-login`. That stack pulls in pam_nologin,
+#           which denies every non-root account while /run/nologin exists —
+#           systemd writes it during a scheduled shutdown. Under it a correct
+#           password reads as "Authentication failed" and the session cannot be
+#           unlocked. Unlocking a session that already exists has no business
+#           re-running the login-time account policy.
+
+FAILLOCK_DIR=/var/lib/df-lock/faillock
+
+# pam_faillock refuses to authenticate at all if it cannot reach its tally, so
+# both the directory and the user's file in it must exist before the service
+# does. Persistent rather than under /run: a tally that resets on reboot is not
+# a lockout.
+sudo install -d -o root -g root -m 0755 "$FAILLOCK_DIR"
+
+# A tally file per human account, not just the one running setup. They have to
+# be writable by the process doing the authenticating, and the Session Lock runs
+# as the user, not as root -- this is the same arrangement login leaves behind
+# under /run/faillock (root-owned directory, user-owned files), reproduced here
+# because nothing privileged ever runs against this directory to create them.
+# An account with no file cannot pass the `authsucc` line, so its *correct*
+# password is rejected; the existence guard is equally deliberate, since
+# recreating the file would clear a live lockout.
+while IFS=: read -r name _ uid _ _ _ shell; do
+    (( uid >= 1000 && uid < 65534 )) || continue
+    if [[ $shell == */nologin || $shell == */false ]]; then
+        continue
+    fi
+    if sudo test -e "$FAILLOCK_DIR/$name"; then
+        continue
+    fi
+
+    sudo install -o "$name" -g root -m 0660 /dev/null "$FAILLOCK_DIR/$name"
+done < <(getent passwd)
+
+sudo tee /etc/pam.d/df-lock >/dev/null <<PAM
+#%PAM-1.0
+# The Session Lock (quickshell/.config/quickshell/lock). Written by
+# setup/arch-hyprland/setup-packages/setup-lock-pam — edit that, not this.
+auth       required                    pam_faillock.so preauth silent deny=10 unlock_time=120 dir=$FAILLOCK_DIR
+-auth      [success=2 default=ignore]  pam_systemd_home.so
+auth       [success=1 default=bad]     pam_unix.so
+auth       [default=die]               pam_faillock.so authfail deny=10 unlock_time=120 dir=$FAILLOCK_DIR
+auth       optional                    pam_permit.so
+auth       required                    pam_env.so
+auth       required                    pam_faillock.so authsucc dir=$FAILLOCK_DIR
+account    required                    pam_unix.so
+PAM
+
+sudo chmod 644 /etc/pam.d/df-lock
+
+echo "Session Lock PAM service written to /etc/pam.d/df-lock"
+echo "Verify before relying on it: df-qs-test lock-probe, then type your password."

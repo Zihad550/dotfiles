@@ -18,8 +18,8 @@
 # quickshell comes from the omarchy repo, not official Arch: setup-omarchy-repos
 # must have run before this.
 
-# quickshell - the bar, notification daemon, OSD and launcher
-#     (dotfiles/shell.qml and launcher/shell.qml)
+# quickshell - the bar, notification daemon, OSD, launcher and Session Lock
+#     (dotfiles/shell.qml, launcher/shell.qml and lock/shell.qml)
 # ttf-fira-code - Theme.qml's fontFamily in both shells; every label renders in
 #     the fallback font without it
 # libqalculate - qalc, behind the launcher's calculator (launcher/lib/calc.js)
@@ -31,6 +31,11 @@
 # libnotify - notify-send. The shell's NotificationDaemon.qml is what displays
 #     these; the bin/df-* scripts send them too.
 # playerctl - OsdService.qml's media keys (play-pause/next/previous + status)
+# qt6-imageformats - webp decoding for the Session Lock's wallpaper
+#     (lock/LockSurface.qml draws ~/.config/theme/background, and the shipped
+#     backgrounds are webp). Qt renders the theme background colour instead
+#     without it, which looks deliberate rather than broken -- so its absence
+#     shows up as a missing wallpaper, not as an error.
 sudo pacman -S --noconfirm \
     quickshell \
     ttf-fira-code \
@@ -38,4 +43,5 @@ sudo pacman -S --noconfirm \
     cliphist \
     wl-clipboard \
     libnotify \
-    playerctl
+    playerctl \
+    qt6-imageformats

@@ -171,6 +171,9 @@ fi
 # System-wide QoL tweaks (sysctl, sudoers, systemd timeouts).
 run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
 # run_step "sudo tries" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
+# The Session Lock authenticates against its own PAM service; without this it
+# rejects every password.
+run_step "lock pam" "$ARCH_HYPR_DIR/setup-packages/setup-lock-pam"
 run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
 # Passwordless `ts-serve` (zsh aliasrc) via a validating root wrapper.
 run_step "ts-serve sudo rule" "$DOTFILES_DIR/setup/common/setup-ts-serve"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Restart a long-running quickshell config: the bar ("dotfiles", the default)
-# or the Launcher ("launcher").
+# Restart a long-running quickshell config: the bar ("dotfiles", the default),
+# the Launcher ("launcher") or the Session Lock ("lock").
 #
 # QML edits hot-reload on their own, so this is for the cases that do not: a
 # reload that errored and left the previous config running, a quickshell
@@ -9,10 +9,10 @@
 # hypr/.config/hypr/lua/autostart.lua does, so the instance lands in the session
 # scope rather than in this shell's.
 #
-# Takes one config at a time on purpose. The two run as separate instances so
-# that a fault in the Launcher cannot take the bar's notification daemon down
-# with it; restarting both together would give that up at exactly the moment it
-# matters.
+# Takes one config at a time on purpose. They run as separate instances so that
+# a fault in the Launcher cannot take the bar's notification daemon down with
+# it, and so that neither can drop a live lock; restarting them together would
+# give that up at exactly the moment it matters.
 
 set -e
 
@@ -25,7 +25,7 @@ for arg in "$@"; do
       -h|--help)
          echo "Usage: df-qs-restart [config] [--log]"
          echo "  Restart a quickshell config (default: dotfiles, the bar)."
-         echo "  config  dotfiles | launcher"
+         echo "  config  dotfiles | launcher | lock"
          echo "  --log   print the new instance's log afterwards"
          exit 0
          ;;

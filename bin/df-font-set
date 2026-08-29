@@ -41,9 +41,17 @@ sed -i 's|^font-family[[:space:]]*=.*|font-family = "'"$font"'"|' \
 sed -i 's|^\([[:space:]]*\)font_family[[:space:]]*=.*|\1font_family = '"$font"'|' \
    "$REPO/hypr/.config/hypr/hyprlock.conf"
 
-# quickshell
-sed -i 's|^\([[:space:]]*\)readonly property string fontFamily:.*|\1readonly property string fontFamily: "'"$font"'"|' \
-   "$REPO/quickshell/.config/quickshell/dotfiles/Theme.qml"
+# quickshell -- every config's Theme.qml, not just the bar's. Each Quickshell
+# config root is its own import namespace, so the bar, the Launcher and the
+# Session Lock each carry a copy of the property; patching one left the others
+# on whatever font they were written with.
+for theme in "$REPO"/quickshell/.config/quickshell/*/Theme.qml; do
+   # Skipped rather than followed: lock-probe/Theme.qml is a symlink to the
+   # lock's, and `sed -i` would replace it with a regular copy.
+   [[ -f $theme && ! -L $theme ]] || continue
+   sed -i 's|^\([[:space:]]*\)readonly property string fontFamily:.*|\1readonly property string fontFamily: "'"$font"'"|' \
+      "$theme"
+done
 
 # zed
 if [[ -f "$REPO/zed/.config/zed/settings.json" ]]; then

@@ -11,6 +11,11 @@ o.exec_on_start("uwsm-app -- quickshell -c dotfiles -n")
 -- stall the bar's rendering and a fault in it cannot take the notification
 -- daemon down. See quickshell/.config/quickshell/launcher/shell.qml.
 o.exec_on_start("uwsm-app -- quickshell -c launcher -n")
+-- The Session Lock, as a third instance for the same reason the Launcher is a
+-- second one: `df-qs-restart dotfiles` exists to be used, and restarting the
+-- bar must not be able to drop a live lock.
+-- See quickshell/.config/quickshell/lock/shell.qml.
+o.exec_on_start("uwsm-app -- quickshell -c lock -n")
 -- Feeds cliphist, which the Launcher's clipboard Provider reads (ticket 14);
 -- cliphist keeps no history unless something pipes changes into it.
 --
