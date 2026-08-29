@@ -67,6 +67,14 @@ Two things bite immediately in that shell:
 `qs -c lock kill` prints `No running instances` and exits 0 when there is
 nothing to kill, so it is safe to run first and ask questions after.
 
+What the lock last published about itself — and, once its call site moves, what
+`df-power` reads (`docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md`):
+
+    cat /run/user/$UID/df-lock-state     # unlocked | requested | secure
+
+`requested` left standing is a lock that was asked for and never became Secure.
+A missing file means the lock config never started; `qs -c lock log` says why.
+
 If the screens stay covered after that, the compositor is holding a lock whose
 client is gone — a Stranded Lock. Nothing at the console clears it; end the
 session and log in again:

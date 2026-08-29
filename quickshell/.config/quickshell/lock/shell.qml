@@ -1,4 +1,10 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
 import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+import "lib/session.js" as Session
 
 // The Session Lock, as its own always-running Quickshell instance -- the third
 // alongside the bar's `dotfiles` config and the Launcher's.
@@ -8,15 +14,168 @@ import Quickshell
 // lock. See docs/session-lifecycle-spec.md (Implementation Decisions).
 //
 // Restart with `df-qs-restart lock`; read this instance's log with
-// `qs -c lock log` (`-f` follows).
+// `qs -c lock log` (`-f` follows). Lock it with
+// `qs -c lock ipc call lock lock`.
 //
-// This config takes no session lock yet. The appearance and the PAM
-// conversation live in LockSurface.qml and are exercised through the `lock-probe`
-// config (`df-qs-test lock-probe`), which renders the same surface in an
-// ordinary window -- so iterating on the lock cannot lock anyone out. Acquiring
-// the real ext-session-lock, publishing lock state and the IPC command surface
-// are separate changes on top of this one.
+// The appearance and the PAM conversation live in LockSurface.qml, which is
+// also what the `lock-probe` config renders (`df-qs-test lock-probe`) in an
+// ordinary window -- so iterating on the lock cannot lock anyone out.
+//
+// What this file adds on top of that surface is the lock itself: the
+// compositor's session lock, the IPC command that takes it, and the three
+// signals that report it (ADR 0017). Deferral, monitor attach and Stranded Lock
+// recovery are a separate change.
+//
+// The WlSessionLock arrangement follows Omarchy's shell/plugins/lock/Service.qml,
+// read at revision 83881e979b35468c3e7d60b171e319ede61a88fd; the state file and
+// its command-only IPC are this repo's, and have no upstream counterpart.
 ShellRoot {
-    // Nothing is rendered and nothing is held: the instance exists so that the
-    // change acquiring the session lock has a running process to put it in.
+    id: root
+
+    property var session: Session.initial()
+
+    // What is already on disk and already told to logind. `session` changes on
+    // transitions these two do not see -- taking the lock leaves the phase at
+    // `requested` -- and republishing an unchanged answer costs a blocking write.
+    property string publishedText: ""
+    property bool publishedHint: false
+
+    // `session`'s own initialiser fires onSessionChanged, and it fires before
+    // Component.onCompleted -- so without this the first thing written is
+    // `unlocked`, over whatever the last instance left behind.
+    property bool publishing: false
+
+    // `qs -c lock ipc call lock lock`. Idempotent: a repeat while locked is a
+    // second press of the keybind, not a second lock.
+    function lock(): void {
+        const next = Session.request(root.session);
+        if (next === root.session)
+            return;
+
+        root.session = next;
+        sessionLock.locked = true;
+
+        // A refused lock reads back false, and a request left standing would
+        // publish `requested` over a session nothing is covering.
+        if (!sessionLock.locked) {
+            console.warn("df lock: the compositor refused the session lock");
+            root.unlock();
+        }
+    }
+
+    function unlock(): void {
+        // The compositor first: publishing `unlocked` over surfaces that are
+        // still up points df-power at a confirmation that cannot render above a
+        // lock (ADR 0015).
+        sessionLock.locked = false;
+        root.session = Session.release(root.session);
+    }
+
+    function syncFromCompositor(): void {
+        root.session = Session.observe(root.session, sessionLock.locked, sessionLock.secure);
+    }
+
+    onSessionChanged: root.publish()
+
+    // The two published signals ADR 0017 keeps apart, written where a
+    // transition is known to have happened. The third -- the compositor's
+    // report of a blocked monitor -- belongs to Stranded Lock detection.
+    function publish(): void {
+        if (!root.publishing)
+            return;
+
+        // Blocking and atomic: no reader ever sees a half-written file, and the
+        // answer is on disk before the transition is observable anywhere else.
+        // That is also what makes an abnormal exit safe -- see the runbook.
+        const text = Session.fileText(root.session);
+        if (text !== root.publishedText) {
+            root.publishedText = text;
+            stateFile.setText(text);
+        }
+
+        const hint = Session.lockedHint(root.session);
+        if (hint === root.publishedHint)
+            return;
+
+        root.publishedHint = hint;
+        // For outside consumers; read by nothing here. Detached because a
+        // logind that refuses the hint must not hold up a lock.
+        Quickshell.execDetached(["busctl", "--system", "--quiet", "call",
+            "org.freedesktop.login1", "/org/freedesktop/login1/session/self",
+            "org.freedesktop.login1.Session", "SetLockedHint", "b",
+            hint ? "true" : "false"]);
+    }
+
+    WlSessionLock {
+        id: sessionLock
+
+        locked: false
+
+        onLockStateChanged: root.syncFromCompositor()
+        onSecureStateChanged: root.syncFromCompositor()
+
+        // One of these per screen, created and destroyed by the compositor's
+        // protocol -- which is what covers a second monitor without this file
+        // knowing how many there are.
+        WlSessionLockSurface {
+            // Painted before the surface's content is, so an unthemed flash on
+            // the way up does not show the session underneath.
+            color: "black"
+
+            LockSurface {
+                anchors.fill: parent
+
+                // Not while merely requested: keystrokes before the compositor
+                // calls the surface Secure are not guaranteed to be exclusive
+                // to it, and the first one would be the start of a password.
+                inputEnabled: sessionLock.secure
+
+                onUnlocked: root.unlock()
+            }
+        }
+    }
+
+    // Where shell callers learn whether the session is locked. bin/df-power
+    // will read it once its call site moves; it runs from a keybind at the lock
+    // screen, where nothing can render feedback, so it cannot ask a process
+    // (ADR 0017).
+    FileView {
+        id: stateFile
+
+        path: Session.statePath(Quickshell.env("XDG_RUNTIME_DIR") || "", Quickshell.env("TMPDIR") || "")
+        // Reads block too: startup adopts what the last instance left behind,
+        // and an async answer would arrive after the decision it informs.
+        blockLoading: true
+        blockWrites: true
+        atomicWrites: true
+        printErrors: false
+    }
+
+    IpcHandler {
+        target: "lock"
+
+        // Commands only. A caller that needs state reads the state file: `qs
+        // ipc call` exits zero against a target that does not exist, so a
+        // question asked here has a wrong answer indistinguishable from a
+        // right one (ADR 0017).
+        function lock(): void {
+            root.lock();
+        }
+    }
+
+    Component.onCompleted: {
+        // This instance holds no lock -- but a previous one may have died still
+        // holding one, and the compositor keeps that up. startupText() decides
+        // whether saying so is safe.
+        const startup = Session.startupText(stateFile.text());
+        root.publishing = true;
+
+        if (startup === null) {
+            console.warn(`df lock: leaving ${stateFile.path} as the last instance left it`);
+            return;
+        }
+
+        root.publishedText = startup;
+        stateFile.setText(startup);
+    }
 }

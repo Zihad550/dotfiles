@@ -127,6 +127,88 @@ test("every top-level entry of the lock config is reachable from the probe", () 
     });
 });
 
+test("the lock takes the compositor's session lock, one surface per screen", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /WlSessionLock\s*\{/);
+    assert.match(shell, /WlSessionLockSurface\s*\{/,
+        "the surface component is what the protocol instantiates per screen -- an overlay "
+        + "window would leave a newly attached monitor showing the session");
+});
+
+test("the surface takes keystrokes only once the compositor calls it Secure", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /inputEnabled:\s*sessionLock\.secure/,
+        "keystrokes before Secure are not guaranteed to be exclusive to the lock, and the "
+        + "first one would be the start of a password");
+});
+
+// The IpcHandler body, without the rest of shell.qml.
+function lockIpcHandler() {
+    const shell = source(`${lockRoot}/shell.qml`);
+    const block = shell.match(/IpcHandler \{\s*\n\s*target: "lock"\n([\s\S]*?)\n    \}/);
+    assert.ok(block, "the lock no longer exposes an IpcHandler targeting `lock`");
+    return block[1];
+}
+
+test("the IPC surface carries commands and nothing that answers a question", () => {
+    const handler = lockIpcHandler();
+    const returnTypes = [...handler.matchAll(/function\s+\w+\([^)]*\):\s*(\w+)/g)].map(m => m[1]);
+
+    assert.ok(returnTypes.length > 0, "the extraction stopped matching -- this test is now asserting nothing");
+    returnTypes.forEach(type => {
+        assert.strictEqual(type, "void",
+            "`qs ipc call` exits zero against a target that does not exist, so a question asked "
+            + "here has a wrong answer indistinguishable from a right one -- ADR 0017");
+    });
+});
+
+test("the state file is runtime, blocking and atomic", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+    const session = source(`${lockRoot}/lib/session.js`);
+
+    assert.match(session, /XDG_RUNTIME_DIR|runtimeDir/,
+        "a state file that survives the boot is a stale answer waiting to be read");
+    assert.match(shell, /path:\s*Session\.statePath\(Quickshell\.env\("XDG_RUNTIME_DIR"\)/);
+    assert.match(shell, /blockWrites:\s*true/,
+        "an async write is a transition that has not happened yet as far as df-power is concerned");
+    assert.match(shell, /atomicWrites:\s*true/,
+        "df-power reads this from a keybind at the lock screen; a half-written file there is a "
+        + "shutdown that silently does nothing");
+});
+
+test("every transition publishes", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /onSessionChanged:[\s\S]*?stateFile\.setText\(text\)/,
+        "publishing anywhere but on the state changing is a transition waiting to be missed");
+});
+
+test("a fresh instance does not claim unlocked over a lock it inherited", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /Component\.onCompleted:[\s\S]*?Session\.startupText\(stateFile\.text\(\)\)/,
+        "a previous instance can die still holding a lock the compositor keeps up, and "
+        + "`unlocked` over covered screens is the one direction this file must never be wrong in");
+    assert.match(shell, /blockLoading:\s*true/,
+        "an async read answers after the decision it informs");
+    assert.match(shell, /if \(!root\.publishing\)\s*\n\s*return;/,
+        "`session`'s own initialiser fires onSessionChanged before Component.onCompleted, so "
+        + "an unguarded publish writes `unlocked` over the inherited answer before it is read");
+});
+
+test("logind's hint is set on lock and cleared on unlock", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /SetLockedHint/);
+    assert.match(shell, /hint \? "true" : "false"/,
+        "set on lock and cleared on unlock -- a hint that is only ever set is worse than none");
+    assert.match(shell, /execDetached/,
+        "the hint is for outside consumers only, so a logind that refuses it must not hold up "
+        + "a lock");
+});
+
 test("the lock starts as its own instance, and cannot be run as a scratch config", () => {
     assert.match(source("hypr/.config/hypr/lua/autostart.lua"), /quickshell -c lock -n/);
     assert.match(source("bin/df-qs-test"), /dotfiles \| launcher \| lock\)/,
