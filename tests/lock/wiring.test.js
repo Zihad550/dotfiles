@@ -163,6 +163,42 @@ test("the lock takes the compositor's session lock, one surface per screen", () 
         + "window would leave a newly attached monitor showing the session");
 });
 
+test("a lock waits for a real screen and retries when screens change", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /Session\.shouldAcquire\(root\.session, Quickshell\.screens\)/);
+    assert.match(shell, /id:\s*sessionLockStabilizeTimer[\s\S]*interval:\s*500/,
+        "a newly visible screen must settle before the lock is acquired");
+    assert.match(shell, /id:\s*pendingSessionLockTimer[\s\S]*repeat:\s*true[\s\S]*root\.requestSessionLock\(\)/);
+    assert.match(shell, /target:\s*Quickshell[\s\S]*onScreensChanged\(\)[\s\S]*root\.queueSessionLock\(\)/,
+        "screen attachment must retry a request that arrived while every screen was absent");
+});
+
+test("a monitor attached while locked gets a protocol lock surface", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /WlSessionLock\s*\{[\s\S]*WlSessionLockSurface\s*\{/,
+        "the compositor creates a surface for each monitor, including monitors attached later");
+});
+
+test("startup recovers only a compositor-reported Stranded Lock", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /command:\s*\["hyprctl",\s*"-j",\s*"monitors"\]/);
+    assert.match(shell, /Session\.compositorLockReport\(stdout\.text\)/);
+    assert.match(shell, /Session\.isStranded\(root\.session, report\)/);
+    assert.match(shell, /id:\s*strandedLockRetryTimer[\s\S]*repeat:\s*true/);
+    assert.match(shell, /function rearm\(\): void \{[\s\S]*remaining = 20;[\s\S]*start\(\);/,
+        "screen attachment must restart an exhausted unresolved check");
+});
+
+test("Hyprland permits a fresh client to recover its failsafe lock", () => {
+    const lookAndFeel = source("hypr/.config/hypr/lua/looknfeel.lua");
+
+    assert.match(lookAndFeel, /misc\s*=\s*\{[\s\S]*allow_session_lock_restore\s*=\s*true/,
+        "without this, Hyprland closes the replacement client's Wayland connection");
+});
+
 test("the surface takes keystrokes only once the compositor calls it Secure", () => {
     const shell = source(`${lockRoot}/shell.qml`);
 

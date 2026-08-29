@@ -22,6 +22,10 @@ var UNLOCKED = "unlocked";
 var REQUESTED = "requested";
 var SECURE = "secure";
 
+var COMPOSITOR_UNLOCKED = "unlocked";
+var COMPOSITOR_LOCKED = "locked";
+var COMPOSITOR_UNDETERMINED = "undetermined";
+
 var STATE_FILE = "df-lock-state";
 
 function initial() {
@@ -64,6 +68,48 @@ function phase(state) {
 
 function isLocked(state) {
     return phase(state) !== UNLOCKED;
+}
+
+// Omarchy shell/plugins/lock/Service.qml,
+// revision 83881e979b35468c3e7d60b171e319ede61a88fd.
+function shouldAcquire(state, screens) {
+    if (!state.requested || state.held || state.secure)
+        return false;
+
+    return (screens || []).some(function(screen) {
+        return screen && screen.name && screen.width > 0 && screen.height > 0;
+    });
+}
+
+// Omarchy bin/omarchy-hyprland-session-locked,
+// revision 83881e979b35468c3e7d60b171e319ede61a88fd.
+function compositorLockReport(text) {
+    var monitors;
+    try {
+        monitors = JSON.parse(text);
+    } catch (_) {
+        return COMPOSITOR_UNDETERMINED;
+    }
+
+    if (!Array.isArray(monitors) || monitors.length === 0)
+        return COMPOSITOR_UNDETERMINED;
+
+    var hasConclusiveMonitor = false;
+    for (var i = 0; i < monitors.length; i++) {
+        var blockers = monitors[i] && Array.isArray(monitors[i].solitaryBlockedBy)
+            ? monitors[i].solitaryBlockedBy
+            : [];
+        if (blockers.indexOf("LOCK") !== -1)
+            return COMPOSITOR_LOCKED;
+        if (blockers.indexOf("WORKSPACE") === -1)
+            hasConclusiveMonitor = true;
+    }
+
+    return hasConclusiveMonitor ? COMPOSITOR_UNLOCKED : COMPOSITOR_UNDETERMINED;
+}
+
+function isStranded(state, report) {
+    return report === COMPOSITOR_LOCKED && !isLocked(state);
 }
 
 // What the state file holds. Trailing newline so `cat` and `read` both behave.
@@ -121,6 +167,9 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         UNLOCKED: UNLOCKED,
         REQUESTED: REQUESTED,
         SECURE: SECURE,
+        COMPOSITOR_UNLOCKED: COMPOSITOR_UNLOCKED,
+        COMPOSITOR_LOCKED: COMPOSITOR_LOCKED,
+        COMPOSITOR_UNDETERMINED: COMPOSITOR_UNDETERMINED,
         STATE_FILE: STATE_FILE,
         initial: initial,
         request: request,
@@ -128,6 +177,9 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         release: release,
         phase: phase,
         isLocked: isLocked,
+        shouldAcquire: shouldAcquire,
+        compositorLockReport: compositorLockReport,
+        isStranded: isStranded,
         fileText: fileText,
         lockedHint: lockedHint,
         logindSessionPath: logindSessionPath,

@@ -78,6 +78,58 @@ test("a lock not yet accepted by the compositor stays requested", () => {
         + "the request before it was ever made");
 });
 
+test("a lock request waits for a real screen", () => {
+    const requested = Session.request(Session.initial());
+
+    assert.strictEqual(Session.shouldAcquire(requested, []), false);
+    assert.strictEqual(Session.shouldAcquire(requested, [
+        { name: "DP-1", width: 0, height: 1440 },
+        { name: "", width: 2560, height: 1440 }
+    ]), false);
+    assert.strictEqual(Session.shouldAcquire(requested, [
+        { name: "DP-1", width: 2560, height: 1440 }
+    ]), true);
+});
+
+test("a deferred request becomes eligible when a real screen appears", () => {
+    const requested = Session.request(Session.initial());
+
+    assert.strictEqual(Session.shouldAcquire(requested, []), false);
+    assert.strictEqual(Session.shouldAcquire(requested, [
+        { name: "eDP-1", width: 1920, height: 1080 }
+    ]), true);
+});
+
+test("the compositor report detects only its LOCK blocker", () => {
+    assert.strictEqual(Session.compositorLockReport(JSON.stringify([
+        { name: "DP-1", solitaryBlockedBy: ["WINDOWED", "LOCK"] }
+    ])), Session.COMPOSITOR_LOCKED);
+    assert.strictEqual(Session.compositorLockReport(JSON.stringify([
+        { name: "LOCK-1", activeWorkspace: { name: "LOCK" }, solitaryBlockedBy: ["WINDOWED"] }
+    ])), Session.COMPOSITOR_UNLOCKED);
+});
+
+test("the compositor report stays undecided until a monitor can answer", () => {
+    assert.strictEqual(Session.compositorLockReport("[]"), Session.COMPOSITOR_UNDETERMINED);
+    assert.strictEqual(Session.compositorLockReport("not json"), Session.COMPOSITOR_UNDETERMINED);
+    assert.strictEqual(Session.compositorLockReport(JSON.stringify([
+        { name: "DP-1", solitaryBlockedBy: ["WORKSPACE"] }
+    ])), Session.COMPOSITOR_UNDETERMINED);
+    assert.strictEqual(Session.compositorLockReport(JSON.stringify([
+        { name: "DP-1", solitaryBlockedBy: ["WORKSPACE"] },
+        { name: "eDP-1", solitaryBlockedBy: null }
+    ])), Session.COMPOSITOR_UNLOCKED);
+});
+
+test("a compositor-held lock is stranded only when this process holds none", () => {
+    assert.strictEqual(Session.isStranded(Session.initial(), Session.COMPOSITOR_LOCKED), true);
+    assert.strictEqual(Session.isStranded(
+        Session.observe(Session.request(Session.initial()), true, true),
+        Session.COMPOSITOR_LOCKED
+    ), false);
+    assert.strictEqual(Session.isStranded(Session.initial(), Session.COMPOSITOR_UNDETERMINED), false);
+});
+
 test("logind's hint follows the lock, not the Secure distinction", () => {
     assert.strictEqual(Session.lockedHint(Session.initial()), false);
     assert.strictEqual(Session.lockedHint(Session.request(Session.initial())), true,

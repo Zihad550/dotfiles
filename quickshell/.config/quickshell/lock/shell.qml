@@ -49,6 +49,32 @@ ShellRoot {
     // `unlocked`, over whatever the last instance left behind.
     property bool publishing: false
 
+    property bool strandedLockResolved: false
+
+    function queueSessionLock(): void {
+        pendingSessionLockTimer.start();
+        sessionLockStabilizeTimer.restart();
+    }
+
+    function requestSessionLock(): void {
+        if (sessionLockStabilizeTimer.running)
+            return;
+
+        if (!Session.shouldAcquire(root.session, Quickshell.screens)) {
+            if (root.session.requested && !sessionLock.locked)
+                pendingSessionLockTimer.start();
+            return;
+        }
+
+        pendingSessionLockTimer.stop();
+        sessionLock.locked = true;
+
+        if (!sessionLock.locked) {
+            console.warn("df lock: the compositor refused the session lock");
+            root.unlock();
+        }
+    }
+
     // `qs -c lock ipc call lock lock`. Idempotent: a repeat while locked is a
     // second press of the keybind, not a second lock.
     function lock(): void {
@@ -61,14 +87,7 @@ ShellRoot {
         lockAuth.reset();
 
         root.session = next;
-        sessionLock.locked = true;
-
-        // A refused lock reads back false, and a request left standing would
-        // publish `requested` over a session nothing is covering.
-        if (!sessionLock.locked) {
-            console.warn("df lock: the compositor refused the session lock");
-            root.unlock();
-        }
+        root.queueSessionLock();
     }
 
     function unlock(): void {
@@ -76,6 +95,8 @@ ShellRoot {
         // still up points df-power at a confirmation that cannot render above a
         // lock (ADR 0015).
         sessionLock.locked = false;
+        sessionLockStabilizeTimer.stop();
+        pendingSessionLockTimer.stop();
         root.session = Session.release(root.session);
     }
 
@@ -157,6 +178,88 @@ ShellRoot {
         }
     }
 
+    // Omarchy shell/plugins/lock/Service.qml,
+    // revision 83881e979b35468c3e7d60b171e319ede61a88fd.
+    Timer {
+        id: sessionLockStabilizeTimer
+        interval: 500
+        onTriggered: root.requestSessionLock()
+    }
+
+    Timer {
+        id: pendingSessionLockTimer
+        interval: 100
+        repeat: true
+        onTriggered: root.requestSessionLock()
+    }
+
+    Connections {
+        target: Quickshell
+
+        function onScreensChanged(): void {
+            if (root.session.requested && !sessionLock.locked)
+                root.queueSessionLock();
+            strandedLockRetryTimer.rearm();
+            root.checkStrandedLock();
+        }
+    }
+
+    // Omarchy shell/plugins/lock/Service.qml and bin/omarchy-hyprland-session-locked,
+    // revision 83881e979b35468c3e7d60b171e319ede61a88fd.
+    function checkStrandedLock(): void {
+        if (root.strandedLockResolved || strandedLockCheck.running)
+            return;
+
+        strandedLockCheck.running = true;
+    }
+
+    Process {
+        id: strandedLockCheck
+        command: ["hyprctl", "-j", "monitors"]
+
+        stdout: StdioCollector {
+            id: stdout
+        }
+        stderr: StdioCollector {}
+
+        onExited: {
+            const report = Session.compositorLockReport(stdout.text);
+            if (report === Session.COMPOSITOR_UNDETERMINED)
+                return;
+
+            root.strandedLockResolved = true;
+            strandedLockRetryTimer.stop();
+            if (Session.isStranded(root.session, report)) {
+                console.warn("df lock: recovering Stranded Lock");
+                root.lock();
+            }
+        }
+    }
+
+    Timer {
+        id: strandedLockRetryTimer
+        interval: 500
+        repeat: true
+        property int remaining: 20
+
+        function rearm(): void {
+            if (root.strandedLockResolved)
+                return;
+
+            remaining = 20;
+            start();
+        }
+
+        onTriggered: {
+            remaining -= 1;
+            if (remaining <= 0) {
+                stop();
+                return;
+            }
+            root.checkStrandedLock();
+        }
+    }
+
     // Where shell callers learn whether the session is locked. bin/df-power
     // will read it once its call site moves; it runs from a keybind at the lock
     // screen, where nothing can render feedback, so it cannot ask a process
@@ -191,6 +294,9 @@ ShellRoot {
         // whether saying so is safe.
         const startup = Session.startupText(stateFile.text());
         root.publishing = true;
+
+        strandedLockRetryTimer.rearm();
+        root.checkStrandedLock();
 
         if (startup === null) {
             console.warn(`df lock: leaving ${stateFile.path} as the last instance left it`);
