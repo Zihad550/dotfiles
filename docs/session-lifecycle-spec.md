@@ -242,6 +242,8 @@ suspend model's documentation drops from four paths to three.
 **Package removal happens with the change, not after it.** The replaced daemons
 are removed from the package list in the same change that replaces them, and the
 Break-glass path is a written runbook rather than a retained installation.
+That runbook is `docs/session-lock-break-glass.md`, written and
+command-verified before the removal rather than after it.
 
 ## Testing Decisions
 

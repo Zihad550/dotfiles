@@ -63,3 +63,6 @@ answers the same question the same way.
 > The lock-state signal chosen here — `pidof hyprlock` — is superseded by
 > `docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md`. The rest of this
 > decision stands.
+
+> If the lock itself is what broke, the recovery path is
+> `docs/session-lock-break-glass.md`.

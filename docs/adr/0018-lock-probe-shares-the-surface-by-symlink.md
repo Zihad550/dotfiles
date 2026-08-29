@@ -38,3 +38,6 @@ directory.
 Anything the lock adds beside those three entries — a new directory, a new
 top-level component — has to be symlinked in as well, or the probe stops
 building. The failure is loud (`Type X unavailable` at startup), not silent.
+
+> The probe is the safe way to iterate. When the real lock is already broken,
+> `docs/session-lock-break-glass.md` is the way back.

@@ -38,3 +38,7 @@ The lock must write the file on every transition, including abnormal exit, or
 `df-power` reads a stale answer. That is the cost of choosing a signal the lock
 has to maintain over one derived from its existence, and it is the thing to
 suspect first if the power keybinds ever misbehave.
+
+> `docs/session-lock-break-glass.md` covers the case where the lock is broken
+> rather than merely misreported, including the separate faillock tally this
+> decision keeps apart from sudo's.

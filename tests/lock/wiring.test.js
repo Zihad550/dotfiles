@@ -133,3 +133,71 @@ test("the lock starts as its own instance, and cannot be run as a scratch config
         "a foreground lock instance dies with its terminal, which is a dropped lock");
     assert.match(source("bin/df-qs-restart"), /dotfiles \| launcher \| lock/);
 });
+
+// --- The Break-glass runbook -------------------------------------------------
+//
+// The runbook is read at a TTY by someone who has just lost their session, so
+// the failure that matters is silent rot: a path that moved, a symptom the
+// design grew, an ADR that no longer points at it. All four are checkable here.
+
+const runbookPath = "docs/session-lock-break-glass.md";
+
+// The ADRs that decide this work. A reader who lands on any of them has to be
+// able to reach the escape hatch from there.
+const lockAdrs = [
+    "docs/adr/0015-power-keybinds-reachable-while-locked.md",
+    "docs/adr/0016-lock-holds-its-own-sleep-inhibitor.md",
+    "docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md",
+    "docs/adr/0018-lock-probe-shares-the-surface-by-symlink.md",
+];
+
+test("the runbook names the three symptoms that should send you to it", () => {
+    const runbook = source(runbookPath);
+
+    assert.match(runbook, /never locks on idle/i);
+    assert.match(runbook, /suspends without locking/i);
+    assert.match(runbook, /refuses a correct password/i);
+});
+
+test("the runbook states the TTY escape", () => {
+    const runbook = source(runbookPath);
+
+    assert.match(runbook, /Ctrl\+Alt\+F3/,
+        "the runbook is useless if it does not say how to get a shell in front of a lock");
+    assert.doesNotMatch(runbook, /\*\*`Ctrl\+Alt\+F2`\*\*/,
+        "F2 is the graphical session's own console under GDM -- switching to it is the lock again");
+});
+
+test("the runbook names the unit to re-enable and the daemons to reinstall", () => {
+    const runbook = source(runbookPath);
+
+    assert.match(runbook, /systemctl --user enable --now hypridle\.service/);
+    assert.match(runbook, /pacman -S[^\n]*\bhyprlock\b[^\n]*\bhypridle\b/);
+});
+
+test("every lock ADR points at the runbook", () => {
+    lockAdrs.forEach(adr => {
+        assert.match(source(adr), new RegExp(runbookPath.replace(/[.]/g, "\\.")),
+            `${adr} decides part of the lock; the escape hatch has to be findable from it`);
+    });
+});
+
+test("every repo path the runbook names still exists", () => {
+    const runbook = source(runbookPath);
+
+    // Backticked paths that look repo-relative: a leading directory segment
+    // this repo actually has at its root.
+    const roots = fs.readdirSync(repoRoot).filter(entry => !entry.startsWith("."));
+    const cited = new Set(
+        (runbook.match(/`[A-Za-z0-9_./-]+`/g) || [])
+            .map(match => match.slice(1, -1))
+            .filter(candidate => roots.includes(candidate.split("/")[0]))
+            .filter(candidate => candidate.includes("/")),
+    );
+
+    assert.ok(cited.size > 0, "the extraction stopped matching -- this test is now asserting nothing");
+    cited.forEach(candidate => {
+        assert.ok(fs.existsSync(path.join(repoRoot, candidate)),
+            `the runbook sends a reader at a TTY to ${candidate}, which does not exist`);
+    });
+});

@@ -40,3 +40,7 @@ the external shape wholesale.
 
 Should the lock ever move out of the process holding the inhibitor, this
 decision reverses and the upstream's design becomes correct again.
+
+> A machine that suspends without locking is symptom 2 of
+> `docs/session-lock-break-glass.md`, which is the way back if this decision
+> turns out to have been optimistic.
