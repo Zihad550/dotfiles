@@ -6,7 +6,6 @@
   "permissions": {
     "allow": [
       "Bash(mise run *)",
-      "Bash(git * main)",
       "Bash(* --version)",
       "Bash(* --help *)",
       "Bash(pnpm exec *)",
@@ -15,9 +14,7 @@
       "Bash(mise run lint)"
     ],
     "deny": [
-      "Bash(git push *)",
       "Bash(gh issue delete)",
-      "Read(**/.env*)",
       "Read(**/.secrets*)",
       "Read(**/.credentials*)"
     ],
