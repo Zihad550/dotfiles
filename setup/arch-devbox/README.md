@@ -77,9 +77,10 @@ Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
 `gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos` and
 `setup-packages/` — except `setup-packages/setup-ufw`, which does `ufw
 deny SSH` and opens the syncthing profile (see [firewall](#firewall)).
-The package lists both boxes run live in
+The package lists this box runs live in
 [`../common/packages`](../common/packages): `pacman-base`, `yay-packages`,
-`flatpak-packages`, `go-packages` and `quickshell-packages`.
+`go-packages` and `quickshell-packages`. `flatpak-packages` is there too but
+this box leaves it off (see [flatpak](#flatpak-is-off-by-default)).
 Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
 directly on both boxes, not from `setup-packages/` at all.
 
@@ -113,8 +114,12 @@ difference:
   it lists `git-delta` twice.
 - **`packages/yay-packages`** → deleted. Its body was `exit 0`. `yay` itself is
   still installed by `setup-packages/setup-yay`.
-- **`packages/flatpak-packages`** → deleted. Every install line was commented out
-  and `init` never called it; see [flatpak](#flatpak-is-off-by-default).
+- **`packages/flatpak-packages`** → deleted. Every install line in *this box's*
+  copy was commented out. The shared list at
+  [`../common/packages/flatpak-packages`](../common/packages/flatpak-packages)
+  is a different file with live install lines, and `init` did call it until the
+  step was commented out to match `setup-flatpak`; see
+  [flatpak](#flatpak-is-off-by-default).
 
 State lives in `~/.local/state/arch-devbox-setup/`, not the arch-hyprland dir, so
 the `done-*` guards and the install log don't collide if both ever run on one box.
@@ -171,10 +176,15 @@ half of `pacman-base` plus the Hyprland steps.
 
 The flatpak set was zen browser, Quran, MongoDB Compass and Beekeeper Studio.
 The first two are replaced or non-dev; **Compass and Beekeeper are genuinely dev
-tools**, and they are the one real loss in this cull. If you want a database GUI,
-uncomment the `flatpak` `run_step` in `init` and add a `packages/flatpak-packages`
-installing `com.mongodb.Compass` and `io.beekeeperstudio.Studio` — this box's
-old copy was deleted, since every line in it was already commented out.
+tools**, and they are the one real loss in this cull.
+
+If you want a database GUI, uncomment **both** `run_step`s in `init` — `flatpak`
+(installs flatpak, adds the flathub remote) and `flatpak packages` (installs from
+[`../common/packages/flatpak-packages`](../common/packages/flatpak-packages),
+which already lists Compass and Beekeeper). They are twelve lines apart and were
+once out of step: the packages step ran on a box where flatpak was never
+installed, so `flatpak install` hit a missing command and failed the run. Turn
+them on and off together.
 
 ### webapps
 

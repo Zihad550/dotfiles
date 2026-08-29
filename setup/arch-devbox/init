@@ -85,9 +85,10 @@ run_step "mise" "$ARCH_HYPR_DIR/setup-packages/setup-mise"
 run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 
 # flatpak dropped — its only dev-relevant apps were MongoDB Compass and
-# Beekeeper Studio. To get a database GUI back, uncomment the line below and
-# add a packages/flatpak-packages installing com.mongodb.Compass and
-# io.beekeeperstudio.Studio (this box had no flatpak list of its own).
+# Beekeeper Studio. Two lines turn it back on, and both are needed: this one
+# installs flatpak and adds the flathub remote, and the "flatpak packages" step
+# further down installs from it. Running the second without the first is
+# `flatpak install` against a missing command.
 # run_step "flatpak" "$ARCH_HYPR_DIR/setup-packages/setup-flatpak"
 
 # Only the app layer is overridden. The CLI toolkit, fonts, coreutils
@@ -100,7 +101,10 @@ run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
 # DNS path. See setup/common/setup-dirmngr.
 run_step "dirmngr resolver" "$DOTFILES_DIR/setup/common/setup-dirmngr"
 run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
-run_step "flatpak packages" "$DOTFILES_DIR/setup/common/packages/flatpak-packages"
+# Off with setup-flatpak above, not independently of it — the shared list has
+# live install lines, so leaving this on with flatpak uninstalled failed the
+# step and dropped the run into the retry UI.
+# run_step "flatpak packages" "$DOTFILES_DIR/setup/common/packages/flatpak-packages"
 run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
 
 

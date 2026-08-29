@@ -45,7 +45,7 @@ here when the explanation does not belong beside the command it protects.
   | --- | --- | --- |
   | [`pacman-base`](packages/pacman-base) | The CLI toolkit, fonts, coreutils replacements and gcc. | Arch Hyprland, Arch devbox |
   | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch Hyprland, Arch devbox |
-  | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Hyprland, Arch devbox |
+  | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Hyprland (Arch devbox keeps it off) |
   | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch Hyprland, Arch devbox |
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Hyprland, Arch devbox |
   | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
