@@ -91,23 +91,23 @@ run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 # run_step "flatpak" "$ARCH_HYPR_DIR/setup-packages/setup-flatpak"
 
 # Only the app layer is overridden. The CLI toolkit, fonts, coreutils
-# replacements and gcc come from arch-hyprland's pacman-base unchanged, so a
-# tool added there lands on both machines.
-run_step "pacman base" "$ARCH_HYPR_DIR/packages/pacman-base"
+# replacements and gcc come from the shared pacman-base unchanged, so a tool
+# added there lands on both machines.
+run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
 # Before yay-packages, not after: makepkg fetches an AUR package's validpgpkeys
 # with `gpg --recv-keys`, and dirmngr's own resolver cannot follow this box's
 # DNS path. See setup/common/setup-dirmngr.
 run_step "dirmngr resolver" "$DOTFILES_DIR/setup/common/setup-dirmngr"
-run_step "yay packages" "$ARCH_HYPR_DIR/packages/yay-packages"
-run_step "flatpak packages" "$ARCH_HYPR_DIR/packages/flatpak-packages"
+run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
+run_step "flatpak packages" "$DOTFILES_DIR/setup/common/packages/flatpak-packages"
 run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
 
 
 run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
 # Shared with arch-hyprland, not overridden: the shell is identical on both
 # targets, so its runtime dependencies are too.
-run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
+run_step "quickshell packages" "$DOTFILES_DIR/setup/common/packages/quickshell-packages"
 
 # Rootless -- this box runs AI harnesses against text pulled off the internet.
 # See ../common/setup-rootless-docker and README.md "docker".
@@ -157,7 +157,7 @@ run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
 # setup-voxtype intentionally not run — uncomment to enable.
 # run_step "voxtype" "$ARCH_HYPR_DIR/setup-packages/setup-voxtype"
 
-run_step "go packages" "$ARCH_HYPR_DIR/packages/go-packages"
+run_step "go packages" "$DOTFILES_DIR/setup/common/packages/go-packages"
 run_step "shell completions" "$DOTFILES_DIR/bin/df-gen-completions"
 
 # Guard keyring: writes secret files, has built-in --check but re-running is wasteful.

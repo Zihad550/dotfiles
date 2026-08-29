@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # hyprpicker -> to pick colors from screen using pastel pick and other tools
-# quickshell and its runtime dependencies live in ../packages/quickshell-packages,
+# quickshell and its runtime dependencies live in
+# ../../common/packages/quickshell-packages,
 #               shared with arch-devbox. It is the bar, notification daemon and
 #               OSD (config in quickshell/, run as an autostart from
 #               hypr/lua/autostart.lua, not a systemd unit). brightnessctl

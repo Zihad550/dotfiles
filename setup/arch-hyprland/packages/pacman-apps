@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-# arch-hyprland's own pacman set: everything that is NOT in ./pacman-base.
+# arch-hyprland's own pacman set: everything that is NOT in
+# ../../common/packages/pacman-base.
 #
 # The shared toolkit (CLI tools, fonts, coreutils replacements, gcc) lives in
-# ./pacman-base, which init runs first. What's left here is the app layer and
+# ../../common/packages/pacman-base, which init runs first. What's left here is the app layer and
 # the handful of core entries arch-devbox deliberately drops — so the diff
 # against arch-devbox/packages/pacman-apps is now the *whole* difference
 # between the two machines.
@@ -26,7 +27,8 @@ sudo pacman -S --noconfirm \
 # converseen - convert and optimize img
 # swappy slurp grim - screenshot
 # blueberry - bluetooth
-# libqalculate, cliphist and wl-clipboard are in ./quickshell-packages --
+# libqalculate, cliphist and wl-clipboard are in
+#   ../../common/packages/quickshell-packages --
 #   they are quickshell's runtime dependencies (calculator, clipboard provider,
 #   wl-copy) and arch-devbox needs the same set.
 sudo pacman -S --noconfirm \

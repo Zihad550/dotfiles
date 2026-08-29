@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # arch-devbox's own pacman set: everything that is NOT in
-# ../../arch-hyprland/packages/pacman-base, which init runs first.
+# ../../common/packages/pacman-base, which init runs first.
 #
 # This file is the entire package-level difference between arch-devbox and
 # arch-hyprland — diff it against ../../arch-hyprland/packages/pacman-apps to
@@ -26,7 +26,7 @@
 # swappy slurp grim - screenshot (used by the hypr keybindings)
 #
 # libqalculate, cliphist and wl-clipboard are NOT dropped -- they moved to
-# ../../arch-hyprland/packages/quickshell-packages, shared by both targets.
+# ../../common/packages/quickshell-packages, shared by both targets.
 sudo pacman -S --noconfirm \
     chromium \
     zed \

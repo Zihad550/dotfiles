@@ -64,18 +64,19 @@ run_step "mise" "$ARCH_HYPR_DIR/setup-packages/setup-mise"
 run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
 
 # packages
-# pacman-base is the toolkit shared with arch-devbox; pacman-apps is this
-# target's own app layer. Base first — apps assumes gcc and the CLI set.
-run_step "pacman base" "$ARCH_HYPR_DIR/packages/pacman-base"
+# pacman-base is the toolkit shared with arch-devbox, so it lives in
+# setup/common/packages/; pacman-apps is this target's own app layer. Base
+# first — apps assumes gcc and the CLI set.
+run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
 run_step "pacman apps" "$ARCH_HYPR_DIR/packages/pacman-apps"
-run_step "yay packages" "$ARCH_HYPR_DIR/packages/yay-packages"
-run_step "flatpak packages" "$ARCH_HYPR_DIR/packages/flatpak-packages"
+run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
+run_step "flatpak packages" "$DOTFILES_DIR/setup/common/packages/flatpak-packages"
 run_step "mise packages" "$ARCH_HYPR_DIR/packages/mise-packages"
 
 run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
 # After hyprland: quickshell is the shell for that desktop, and shares this list
-# with arch-devbox.
-run_step "quickshell packages" "$ARCH_HYPR_DIR/packages/quickshell-packages"
+# with arch-devbox — hence setup/common/packages/.
+run_step "quickshell packages" "$DOTFILES_DIR/setup/common/packages/quickshell-packages"
 
 run_step "docker" "$DOTFILES_DIR/setup/common/setup-rootless-docker"
 run_step "syncthing" "$ARCH_HYPR_DIR/setup-packages/setup-syncthing"
@@ -109,7 +110,7 @@ run_step "kanata" "$ARCH_HYPR_DIR/setup-packages/setup-kanata"
 # run_step "voxtype" "$ARCH_HYPR_DIR/setup-packages/setup-voxtype"
 
 run_step "additional packages" "$ARCH_HYPR_DIR/packages/additional-packages"
-run_step "go packages" "$ARCH_HYPR_DIR/packages/go-packages"
+run_step "go packages" "$DOTFILES_DIR/setup/common/packages/go-packages"
 run_step "shell completions" "$DOTFILES_DIR/bin/df-gen-completions"
 
 # Guard keyring: writes secret files, has built-in --check but re-running is wasteful.

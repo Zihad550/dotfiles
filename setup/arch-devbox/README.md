@@ -74,10 +74,12 @@ so a fix there lands on both targets.
 | `setup-ufw` | step 2: allow the tailnet, delete the LAN hole, cut the box off from the rest of the VLAN |
 
 Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
-`gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos`, `packages/go-packages`,
-`packages/pacman-base`, `packages/quickshell-packages`
-and `setup-packages/` — except `setup-packages/setup-ufw`, which does `ufw
+`gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos` and
+`setup-packages/` — except `setup-packages/setup-ufw`, which does `ufw
 deny SSH` and opens the syncthing profile (see [firewall](#firewall)).
+The package lists both boxes run live in
+[`../common/packages`](../common/packages): `pacman-base`, `yay-packages`,
+`flatpak-packages`, `go-packages` and `quickshell-packages`.
 Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
 directly on both boxes, not from `setup-packages/` at all.
 
@@ -103,7 +105,7 @@ difference:
 
 - **`packages/pacman-packages`** → split. The CLI toolkit, fonts, coreutils
   replacements and `gcc` were byte-identical to arch-hyprland's and now live once
-  in [`../arch-hyprland/packages/pacman-base`](../arch-hyprland/packages/pacman-base);
+  in [`../common/packages/pacman-base`](../common/packages/pacman-base);
   only `packages/pacman-apps` is still local. Adding a CLI tool to `pacman-base`
   now reaches both machines — which is the failure this prevents. `ubuntu-devbox`
   is a third hand-maintained copy of the same toolkit and has already drifted:
@@ -147,7 +149,7 @@ gdm. The desktop is unusable without them.
 quickshell's own runtime dependencies (`ttf-fira-code`, `libqalculate`,
 `cliphist`, `wl-clipboard`, `libnotify`, `playerctl`) are **not** in any
 `pacman-*` list. They live in
-[`../arch-hyprland/packages/quickshell-packages`](../arch-hyprland/packages/quickshell-packages),
+[`../common/packages/quickshell-packages`](../common/packages/quickshell-packages),
 which both `init`s run — the shell is byte-identical on both targets, so its
 dependency list is declared once. Add a dependency there when a QML module
 starts shelling out to something new.

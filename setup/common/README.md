@@ -35,8 +35,20 @@ here when the explanation does not belong beside the command it protects.
 - [`ufw-lib`](ufw-lib) is sourced by the firewall scripts and `harden-ssh`. It
   centralizes address validation, subnet detection, rule deletion, and UFW
   startup.
-- [`packages/mise-dev-packages`](packages/mise-dev-packages) is an executable
-  package-command list, not a Shared Setup Script.
+- [`packages/`](packages) holds executable package-command lists, not Shared
+  Setup Scripts. A list lands here once more than one box runs it, on the same
+  rule as the scripts above — otherwise it stays in the Box Wrapper that owns
+  it (`arch-hyprland/packages/pacman-apps` is that box's app layer, and
+  `arch-devbox` keeps its own copy).
+
+  | List | Installs | Current callers |
+  | --- | --- | --- |
+  | [`pacman-base`](packages/pacman-base) | The CLI toolkit, fonts, coreutils replacements and gcc. | Arch Hyprland, Arch devbox |
+  | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch Hyprland, Arch devbox |
+  | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Hyprland, Arch devbox |
+  | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch Hyprland, Arch devbox |
+  | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Hyprland, Arch devbox |
+  | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
 
 ## SSH hardening
 
