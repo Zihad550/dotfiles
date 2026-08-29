@@ -122,6 +122,11 @@ Item {
             contrast: -0.08
         }
 
+        Rectangle {
+            anchors.fill: parent
+            color: theme.scrim
+        }
+
         // Anything landing on the surface belongs to the field; there is
         // nothing else here to click.
         MouseArea {
@@ -181,7 +186,15 @@ Item {
                     ? Math.max(1, Math.floor(theme.dotFontSize * dotScale))
                     : theme.fieldFontSize
                 font.letterSpacing: text.length > 0 ? theme.dotSpacing * dotScale : 0
-                cursorVisible: false
+                // Shown only over typed characters, and never during a check:
+                // an empty field is already saying "Enter Password", and a
+                // caret blinking under "Checking…" reads as still typeable.
+                cursorVisible: activeFocus && !readOnly && text.length > 0
+                cursorDelegate: Rectangle {
+                    width: 2
+                    color: theme.foreground
+                    visible: field.cursorVisible
+                }
 
                 readonly property real dotScale: dotMetrics.advanceWidth > 0
                     ? Math.min(1, (field.width - 4) / dotMetrics.advanceWidth)

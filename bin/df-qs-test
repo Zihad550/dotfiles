@@ -47,6 +47,17 @@ if ! command -v quickshell &>/dev/null; then
    exit 1
 fi
 
+# Without this Qt falls through to the xcb plugin, finds no X display and
+# aborts with a fatal platform-plugin error and a coredump -- 25 lines that say
+# nothing about the missing variable. Shells that are not children of the
+# session (an editor's task runner, an agent's shell) are where this happens.
+if [ -z "$WAYLAND_DISPLAY" ]; then
+   echo "Error: WAYLAND_DISPLAY is unset, so quickshell has no display to open" >&2
+   echo "       run this from a terminal inside the Hyprland session, or set it:" >&2
+   echo "       WAYLAND_DISPLAY=wayland-1 df-qs-test $CONFIG" >&2
+   exit 1
+fi
+
 # Leaves nothing behind from an earlier run; not an error when none is running.
 quickshell -c "$CONFIG" kill >/dev/null 2>&1 || true
 

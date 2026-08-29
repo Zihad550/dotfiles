@@ -18,6 +18,13 @@ QtObject {
     readonly property color accent: colors.accent
     readonly property color error: colors.error
 
+    // Laid over the blurred wallpaper so the clock and the field stay legible
+    // whatever the picture is -- a pale foreground on a pale sky is the case
+    // that fails, and it is the wallpaper that varies, not the theme. Derived
+    // from the theme background, like the Launcher's scrim, so a light theme
+    // does not dim towards black.
+    readonly property color scrim: Qt.rgba(background.r, background.g, background.b, 0.45)
+
     // Derived from the theme rather than fixed, so a light theme does not get
     // a black field on a bright wallpaper.
     readonly property color fieldBackground: Qt.rgba(background.r, background.g, background.b, 0.85)
