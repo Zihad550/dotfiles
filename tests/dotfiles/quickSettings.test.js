@@ -145,7 +145,10 @@ test("Devcontainer routing uses a Tile and a dedicated Page", () => {
     assert.doesNotMatch(quickSettings, /DevcontainerRoutingRow/);
     assert.equal(fs.existsSync(path.join(dotfilesRoot, "modules/DevcontainerRoutingRow.qml")), false);
 
-    assert.match(tile, /label:\s*"Devcontainer"/);
+    assert.match(tile, /label:\s*root\.routingState\.routingEnabled\s*&&\s*root\.routingState\.customHost\s*\?\s*root\.routingState\.customHost\s*:\s*"Devcontainer"/,
+        "the generic label is the fallback, not the label: a pill still reading "
+        + "\"Devcontainer\" once a host is committed is what #80 fixed, and one reading a "
+        + "host while routing is off claims a route that does not exist");
     assert.match(tile, /active:\s*root\.routingState\.routingEnabled/);
     assert.match(tile, /busy:\s*root\.routingState\.busy/);
     assert.match(tile, /onClicked:\s*root\.routingState\.toggle\(\)/);
