@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ "${HERDR_ENV:-}" != 1 ]]; then
+    printf 'df-update-daily must run inside Herdr.\n' >&2
+    exit 1
+fi
+
+skills_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "skills update" --no-focus | jq -er '.result.root_pane.pane_id')
+mise_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "mise update" --no-focus | jq -er '.result.root_pane.pane_id')
+
+herdr pane run "$skills_pane" "skills update -g"
+herdr pane run "$mise_pane" "mise update"

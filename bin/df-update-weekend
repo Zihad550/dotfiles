@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ "${HERDR_ENV:-}" != 1 ]]; then
+    printf 'df-update-weekend must run inside Herdr.\n' >&2
+    exit 1
+fi
+
+arch_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "Arch update" --no-focus | jq -er '.result.root_pane.pane_id')
+flatpak_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "Flatpak update" --no-focus | jq -er '.result.root_pane.pane_id')
+zinit_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "Zinit update" --no-focus | jq -er '.result.root_pane.pane_id')
+
+herdr pane run "$arch_pane" "sudo pacman -Syu && yay -Sua"
+herdr pane run "$flatpak_pane" "flatpak update"
+herdr pane run "$zinit_pane" "zsh -ic 'zinit update --all'"
