@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# Shutdown and restart. Unlocked this dispatches into the Launcher, which
+# confirms first; locked it runs the command directly, since nothing can draw
+# above hyprlock. Why that trade, and why logout is excluded from it:
+# docs/adr/0015-power-keybinds-reachable-while-locked.md.
+#
+#   $1   shutdown | restart
+
+action=$1
+
+# Second copy of lib/power.js's argv, pinned to it by tests/launcher/power.test.js.
+case "$action" in
+shutdown) argv=(shutdown now) ;;
+restart) argv=(shutdown -r now) ;;
+*)
+    echo "usage: ${0##*/} shutdown|restart" >&2
+    exit 2
+    ;;
+esac
+
+# Not loginctl's LockedHint: it reads "no" here while hyprlock is on screen.
+if pidof hyprlock >/dev/null; then
+    # The only record of why the machine went away -- nothing is visible.
+    logger -t df-power "$action from locked screen, unconfirmed"
+    exec "${argv[@]}"
+fi
+
+# hl.dsp form, not `dispatch global`: this Hyprland evaluates the argument as Lua.
+exec hyprctl dispatch "hl.dsp.global(\"launcher:confirm-$action\")"

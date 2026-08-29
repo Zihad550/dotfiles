@@ -4,13 +4,16 @@
 //     node --test "tests/launcher/*.test.js"
 //
 // What is worth pinning here is not the lookup, which is four lines, but the
-// *contents*: this table is the only remaining copy of commands that used to
+// *contents*: this table is the authoritative copy of commands that used to
 // live in hypr/.config/hypr/lua/bindings/system.lua, and a typo in one of them
 // is a keybind that asks a question and then fails silently -- the same failure
-// lib/menus.js is shaped around, one file over.
+// lib/menus.js is shaped around, one file over. bin/df-power holds a second
+// copy for its locked path; the tests at the bottom pin it to this one.
 
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const Power = require("../../quickshell/.config/quickshell/launcher/lib/power.js");
 
@@ -78,4 +81,40 @@ test("every action can be shown and run", () => {
 test("labels lowercase into a readable footer verb", () => {
     assert.strictEqual(Power.actionFor("shutdown").label.toLowerCase(), "shut down");
     assert.strictEqual(Power.actionFor("logout").label.toLowerCase(), "log out");
+});
+
+// bin/df-power carries a second copy of the shutdown and restart commands: the
+// locked path runs them directly, with no Launcher and so no confirmation --
+// see docs/adr/0015-power-keybinds-reachable-while-locked.md. power.js stays
+// authoritative and this pins the copy to it, so the two cannot drift the way
+// SystemMenu.qml's list already has.
+const LOCKED_KEYS = ["shutdown", "restart"];
+
+const SCRIPT = fs.readFileSync(
+    path.join(__dirname, "..", "..", "bin", "df-power"), "utf8");
+
+// The script's case arm, e.g. `shutdown) argv=(shutdown now) ;;`. Deliberately
+// anchored: a reformat that this stops matching fails the test rather than
+// silently pinning nothing.
+function scriptArgv(key) {
+    const arm = SCRIPT.match(new RegExp(`^\\s*${key}\\)\\s*argv=\\(([^)]*)\\)`, "m"));
+    return arm === null ? null : arm[1].trim().split(/\s+/);
+}
+
+test("df-power's locked path runs the same commands power.js confirms", () => {
+    LOCKED_KEYS.forEach(key => {
+        assert.deepStrictEqual(scriptArgv(key), Power.actionFor(key).argv,
+            `bin/df-power's ${key} has drifted from power.js -- the locked ` +
+            `screen and the confirmation would do different things`);
+    });
+});
+
+// Logout and lock are deliberately unreachable while locked -- ADR 0015 argues
+// why, and a new arm here would silently reverse it.
+test("df-power carries no arm for the actions excluded from the lock screen", () => {
+    ["logout", "lock"].forEach(key => {
+        assert.strictEqual(scriptArgv(key), null,
+            `bin/df-power has grown a ${key} arm -- that is a decision, and it ` +
+            `reverses one docs/adr/0015 makes explicitly`);
+    });
 });

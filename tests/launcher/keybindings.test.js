@@ -184,7 +184,7 @@ test("edit action resolves a binding definition in each active source file", t =
         ["Terminal", "apps.lua:21"],
         ["Universal copy", "clipboard.lua:3"],
         ["Volume up", "media.lua:8"],
-        ["Shutdown", "system.lua:20"],
+        ["Shutdown", "system.lua:11"],
         ["Close window", "tiling.lua:5"],
         ["Dismiss last notification", "utilities.lua:4"]
     ];
