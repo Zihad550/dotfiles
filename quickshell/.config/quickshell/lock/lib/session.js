@@ -77,6 +77,25 @@ function lockedHint(state) {
     return isLocked(state);
 }
 
+// logind's `session/self` follows the detached busctl helper, not the
+// graphical session that launched Quickshell. Target the inherited session.
+function logindSessionPath(sessionId) {
+    if (!sessionId)
+        return null;
+
+    var component = "";
+    for (var i = 0; i < sessionId.length; i++) {
+        var character = sessionId[i];
+        var allowed = /[A-Za-z]/.test(character)
+            || (i > 0 && /[0-9]/.test(character));
+        component += allowed
+            ? character
+            : "_" + character.charCodeAt(0).toString(16).padStart(2, "0");
+    }
+
+    return "/org/freedesktop/login1/session/" + component;
+}
+
 // What a fresh instance should write, given whatever the last one left behind,
 // or null to leave the file alone. A non-unlocked answer is a lock the
 // compositor may still be holding for a client that is gone -- and a Stranded
@@ -111,6 +130,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         isLocked: isLocked,
         fileText: fileText,
         lockedHint: lockedHint,
+        logindSessionPath: logindSessionPath,
         startupText: startupText,
         statePath: statePath
     };

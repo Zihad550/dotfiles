@@ -84,6 +84,15 @@ test("logind's hint follows the lock, not the Secure distinction", () => {
         "outside consumers are told the session is locked as soon as it is going down");
 });
 
+test("logind's object path names the graphical session explicitly", () => {
+    assert.strictEqual(Session.logindSessionPath("3"),
+        "/org/freedesktop/login1/session/_33");
+    assert.strictEqual(Session.logindSessionPath("c2"),
+        "/org/freedesktop/login1/session/c2");
+    assert.strictEqual(Session.logindSessionPath(""), null,
+        "without XDG_SESSION_ID, session/self would target the detached helper's session");
+});
+
 test("a fresh instance publishes unlocked over nothing and over unlocked", () => {
     assert.strictEqual(Session.startupText(""), "unlocked\n");
     assert.strictEqual(Session.startupText("unlocked\n"), "unlocked\n");

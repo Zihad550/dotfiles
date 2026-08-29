@@ -229,6 +229,10 @@ test("logind's hint is set on lock and cleared on unlock", () => {
     const shell = source(`${lockRoot}/shell.qml`);
 
     assert.match(shell, /SetLockedHint/);
+    assert.match(shell, /Quickshell\.env\("XDG_SESSION_ID"\)/,
+        "the detached busctl process is not in the graphical session, so session/self targets "
+        + "the wrong session");
+    assert.doesNotMatch(shell, /login1\/session\/self/);
     assert.match(shell, /hint \? "true" : "false"/,
         "set on lock and cleared on unlock -- a hint that is only ever set is worse than none");
     assert.match(shell, /execDetached/,

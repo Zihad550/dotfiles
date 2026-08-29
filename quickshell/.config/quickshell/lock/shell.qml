@@ -41,6 +41,8 @@ ShellRoot {
     // `requested` -- and republishing an unchanged answer costs a blocking write.
     property string publishedText: ""
     property bool publishedHint: false
+    readonly property string logindSessionPath: Session.logindSessionPath(
+        Quickshell.env("XDG_SESSION_ID")) || ""
 
     // `session`'s own initialiser fires onSessionChanged, and it fires before
     // Component.onCompleted -- so without this the first thing written is
@@ -104,10 +106,15 @@ ShellRoot {
             return;
 
         root.publishedHint = hint;
+        if (root.logindSessionPath.length === 0) {
+            console.warn("df lock: XDG_SESSION_ID is unset; cannot publish logind's locked hint");
+            return;
+        }
+
         // For outside consumers; read by nothing here. Detached because a
         // logind that refuses the hint must not hold up a lock.
         Quickshell.execDetached(["busctl", "--system", "--quiet", "call",
-            "org.freedesktop.login1", "/org/freedesktop/login1/session/self",
+            "org.freedesktop.login1", root.logindSessionPath,
             "org.freedesktop.login1.Session", "SetLockedHint", "b",
             hint ? "true" : "false"]);
     }
