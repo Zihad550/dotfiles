@@ -213,6 +213,53 @@ consumer. Every other Launcher action treats a local-provenance directory as
 always-local regardless of whether it's mirrored.
 _Avoid_: synced directory, shared directory
 
+# Session Lifecycle
+
+Who is at the machine, and what the machine does when nobody is: the login
+surface, the lock over a running session, and the timed stages that lead to it.
+
+## Language
+
+**Greeter**:
+The login surface shown before any session exists, running as its own user on
+its own VT. It authenticates and hands off; nothing of it survives into the
+session it starts, so it can never lock one.
+_Avoid_: display manager, login manager, lock screen, login screen
+
+**Session Lock**:
+The surface that covers a running session and takes a password to dismiss,
+held by the compositor rather than drawn by an ordinary window. The Greeter's
+counterpart on the other side of login.
+_Avoid_: lock screen, screensaver, screen lock, locker
+
+**Secure**:
+The state in which the Session Lock is actually guarding the session, as
+opposed to merely requested or drawn. The only state that makes suspending
+safe, and the only one worth waiting for.
+_Avoid_: locked, active, engaged, up
+
+**Stranded Lock**:
+A lock the compositor still holds after the client that raised it is gone —
+recoverable, but invisible to anything that asks the client whether it is
+locked.
+_Avoid_: orphan lock, stale lock, stuck lock, zombie lock
+
+**Idle Ladder**:
+The ordered sequence of Stages that runs while nothing is happening, each
+firing at its own elapsed time and unwinding on activity.
+_Avoid_: idle timeout, idle chain, timers, screensaver
+
+**Stage**:
+One rung of the Idle Ladder — Dim, Lock, Blank, Suspend — named by what it
+does rather than when it fires, since the times are configuration and the
+order is not.
+_Avoid_: step, timeout, listener, phase
+
+**Stay Awake**:
+The toggle that suspends the Idle Ladder entirely, leaving manual locking and
+manual suspend untouched.
+_Avoid_: caffeine, inhibit, no-idle, presentation mode
+
 # Setup
 
 The scripts and documentation that configure a development box.

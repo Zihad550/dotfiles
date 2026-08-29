@@ -59,3 +59,7 @@ answers the same question the same way.
 - The locked branch itself is unpinned. There is no shell-test harness in this
   repo and one `if pidof hyprlock` did not justify introducing bats plus an
   injection seam; it is verified by hand.
+
+> The lock-state signal chosen here — `pidof hyprlock` — is superseded by
+> `docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md`. The rest of this
+> decision stands.
