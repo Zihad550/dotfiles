@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+# Passwordless access to the root commands setup invokes over and over, so a
+# long run never stops on an expired sudo timestamp. Installed at the top of a
+# Box Wrapper's init and removed by its exit trap -- it is deliberately
+# temporary, and the commands on it are broad. See README.md "First-run sudo".
+#
+#   setup-first-run-sudo             install the drop-in
+#   setup-first-run-sudo --remove    delete it (safe when already gone)
+#
+# Caller contract:
+#   FIRST_RUN_SUDO_USER=<name>   user granted the rules; default the invoker
+#
+# Idempotent in both directions.
+
+set -euo pipefail
+
+SUDOERS=/etc/sudoers.d/arch-setup-first-run
+
+if [ "${1:-}" = "--remove" ]; then
+    # The exact command the ARCH_SETUP_CLEANUP alias below permits, argv and
+    # all -- a different spelling ('sudo rm -f', an extra flag) does not match
+    # the rule and prompts for a password on the way out of a finished install.
+    if [ -f "$SUDOERS" ]; then
+        sudo /usr/bin/rm -f "$SUDOERS"
+    fi
+    exit 0
+fi
+
+# $USER is whoever's environment we inherited, which is root under sudo.
+FIRST_RUN_SUDO_USER="${FIRST_RUN_SUDO_USER:-${SUDO_USER:-$(id -un)}}"
+
+# This name is interpolated into a root-installed sudoers file; visudo rejects
+# malformed output but not a well-formed line smuggled in through the variable.
+case "$FIRST_RUN_SUDO_USER" in
+'' | *[!A-Za-z0-9_.-]*)
+    echo "first-run-sudo: unsafe username: $FIRST_RUN_SUDO_USER" >&2
+    exit 1
+    ;;
+esac
+if ! id "$FIRST_RUN_SUDO_USER" >/dev/null 2>&1; then
+    echo "first-run-sudo: unknown user: $FIRST_RUN_SUDO_USER" >&2
+    exit 1
+fi
+
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+
+cat >"$tmp" <<EOF
+# Temporary, written by dotfiles setup/common/setup-first-run-sudo. The init
+# that installed this removes it on exit; if you are reading it on an idle box,
+# a run was killed hard -- delete it.
+Cmnd_Alias ARCH_SETUP_CLEANUP = /usr/bin/rm -f $SUDOERS
+$FIRST_RUN_SUDO_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl
+$FIRST_RUN_SUDO_USER ALL=(ALL) NOPASSWD: /usr/bin/ufw
+$FIRST_RUN_SUDO_USER ALL=(ALL) NOPASSWD: /usr/bin/snapper
+$FIRST_RUN_SUDO_USER ALL=(ALL) NOPASSWD: /usr/bin/modprobe
+$FIRST_RUN_SUDO_USER ALL=(ALL) NOPASSWD: ARCH_SETUP_CLEANUP
+EOF
+
+# A malformed drop-in makes every later sudo fail, including the one the exit
+# trap needs to remove it. Check before it is anywhere near /etc/sudoers.d.
+visudo -cqf "$tmp"
+
+sudo install -o root -g root -m 440 "$tmp" "$SUDOERS"

@@ -42,8 +42,7 @@ CURRENT_STEP="init"
 # on_exit_extra (if defined) last, so we drop the temporary passwordless-sudo
 # rule here.
 on_exit_extra() {
-    [[ -f /etc/sudoers.d/arch-setup-first-run ]] &&
-        sudo /usr/bin/rm -f /etc/sudoers.d/arch-setup-first-run 2>/dev/null
+    "$DOTFILES_DIR/setup/common/setup-first-run-sudo" --remove 2>/dev/null
 }
 
 # Bootstrap gum so the install UI works from step 1 (silent no-op if already present).
@@ -55,15 +54,7 @@ export ARCH_SETUP_START_EPOCH=$(date +%s)
 
 # Passwordless access for the noisy root commands used throughout setup, so
 # they never prompt mid-install. Self-removes via the cleanup trap.
-sudo tee /etc/sudoers.d/arch-setup-first-run >/dev/null <<EOF
-Cmnd_Alias ARCH_SETUP_CLEANUP = /usr/bin/rm -f /etc/sudoers.d/arch-setup-first-run
-$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl
-$USER ALL=(ALL) NOPASSWD: /usr/bin/ufw
-$USER ALL=(ALL) NOPASSWD: /usr/bin/snapper
-$USER ALL=(ALL) NOPASSWD: /usr/bin/modprobe
-$USER ALL=(ALL) NOPASSWD: ARCH_SETUP_CLEANUP
-EOF
-sudo chmod 440 /etc/sudoers.d/arch-setup-first-run
+"$DOTFILES_DIR/setup/common/setup-first-run-sudo"
 
 ui_header "ARCH DEVBOX SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 
@@ -181,6 +172,8 @@ fi
 run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
 # run_step "sudo tries" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
 run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
+# Passwordless `ts-serve` (zsh aliasrc) via a validating root wrapper.
+run_step "ts-serve sudo rule" "$DOTFILES_DIR/setup/common/setup-ts-serve"
 run_step "fast shutdown" "$ARCH_HYPR_DIR/setup-packages/setup-fast-shutdown"
 
 # Idle behavior only: points hypridle at the no-suspend config so idle timeout

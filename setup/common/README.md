@@ -19,6 +19,7 @@ here when the explanation does not belong beside the command it protects.
 | [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Hyprland, Arch devbox, Ubuntu devbox |
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override without breaking MagicDNS. | Arch wrapper |
+| [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Hyprland, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox |
 | [`setup-hypridle-no-suspend`](setup-hypridle-no-suspend) | Removes idle-triggered suspend while leaving manual suspend available. | Arch wrapper |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
@@ -26,6 +27,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-skills`](setup-skills) | Installs the shared agent skill set. | Arch, Ubuntu, and devcontainer setup |
 | [`setup-snapper`](setup-snapper) | Applies the root filesystem snapshot-retention policy. | Arch devbox |
 | [`setup-tailscale`](setup-tailscale) | Joins a box to the tailnet after its wrapper installs Tailscale. | Arch and Ubuntu wrappers |
+| [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch Hyprland, Arch devbox |
 | [`setup-tuned`](setup-tuned) | Installs the always-on bare-metal power profile. | Arch and Ubuntu wrappers |
 
 ### Support and package input
@@ -124,6 +126,62 @@ intercepts it before the host network stack, and the tailnet ACL must contain
 an `ssh` rule. A successful `tailscale up --ssh` does not prove that rule
 exists. Without it, the node joins and SSH connections are refused. sshd must
 move away from port 22 if it should remain reachable alongside Tailscale SSH.
+
+## First-run sudo
+
+A full install runs for longer than sudo's timestamp lifetime, so without help
+it stops partway through to ask for a password again — sometimes behind the live
+log panel, where the prompt is invisible. `setup-first-run-sudo` writes a
+drop-in granting passwordless `systemctl`, `ufw`, `snapper` and `modprobe`, and
+the init's exit trap calls it again with `--remove`.
+
+Those grants are broad; `systemctl` alone is close to root-equivalent. That is
+tolerable only because the file is temporary, which makes its removal the part
+that matters. Two things protect it. The drop-in permits exactly one cleanup
+command, `rm -f` on its own path, so the teardown never needs a password — which
+is why `--remove` must spell that command identically. And the file is syntax
+checked with `visudo -c` before installation, because a malformed drop-in breaks
+every subsequent sudo, including the one that would delete it.
+
+It is not the place to add a command merely to silence one prompt. A step that
+sudoes once or twice should let sudo's ordinary credential cache cover it; see
+"Serving dev ports" for what widening this list actually costs.
+
+## Serving dev ports
+
+`ts-serve` (in `zsh/.config/zsh/aliasrc`) publishes a local dev port on the
+tailnet. `tailscale serve` needs the tailscaled local API, which means root.
+
+The obvious grant is `tailscale set --operator=$USER`, but that is a daemon-wide
+pref: it hands the user the whole local API, so `tailscale up`, `down` and `set`
+also stop needing root. A sudoers rule on `tailscale serve *` is narrower and
+still too wide — every `serve` subcommand comes with it, including serving a
+filesystem path off this box.
+
+So the rule points at `/usr/local/bin/ts-serve-helper` instead. The helper takes
+a port and an optional scheme, rejects surplus arguments and everything that is
+not a port number or `http`/`https`, and composes the tailscale command itself;
+the caller never supplies a URL or a flag. It is root-owned, so the user who
+benefits from the rule cannot widen it by editing the helper.
+
+The port glob in the sudoers file is not load-bearing. A sudoers `*` matches
+whitespace and much more than a digit string, so it is a coarse prefilter — the
+helper is the boundary that actually validates. The username interpolated into
+the rule is checked for the same reason: `visudo -c` rejects a malformed file,
+not a well-formed line someone smuggled in through `TS_SERVE_USER`.
+
+The serve runs in the foreground, so Ctrl+C is the teardown and the rule never
+has to permit `tailscale serve off`. A serve whose terminal is SIGKILLed can
+outlive it; clear that with `sudo tailscale serve reset`.
+
+Both wrappers install it during setup. It is inert on a box without tailscale.
+
+Whether `tailscale serve` needs root at all is a per-box fact, not a documented
+constant: Tailscale's own examples run it unprivileged, which holds once
+`OperatorUser` is set. On these boxes it is unset, and `tailscale serve` fails
+with `Access denied: serve config denied`. `tailscale serve status` succeeds
+unprivileged either way — the socket is world-readable — so it does not answer
+the question.
 
 ## Staying awake
 

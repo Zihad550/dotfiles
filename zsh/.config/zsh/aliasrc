@@ -305,9 +305,10 @@ rmpyc() {
 }
 
 # tailscale serve a local dev port over the tailnet; --https targets an
-# HTTPS origin instead of HTTP.
+# HTTPS origin instead of HTTP. setup/common/setup-ts-serve installs the
+# helper, so this runs without a password prompt.
 ts-serve() {
-    local port='' scheme=http
+    local port='' scheme=http helper=/usr/local/bin/ts-serve-helper
     while (($#)); do
         case "$1" in
         --https) scheme=https ;;
@@ -319,5 +320,9 @@ ts-serve() {
         echo 'usage: ts-serve PORT [--https]' >&2
         return 1
     fi
-    sudo tailscale serve --https="$port" "$scheme://localhost:$port"
+    if [[ -x $helper ]]; then
+        sudo "$helper" "$port" "$scheme"
+    else
+        sudo tailscale serve --https="$port" "$scheme://localhost:$port"
+    fi
 }

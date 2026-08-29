@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+# Let this user run `ts-serve` (zsh/.config/zsh/aliasrc) without typing a sudo
+# password, without handing them the tailscaled local API.
+#
+# Two pieces: a root-owned wrapper that validates its arguments and builds the
+# tailscale command itself, and a sudoers rule that permits only that wrapper.
+# See README.md "Serving dev ports" for why it is shaped this way rather than
+# `tailscale set --operator` or a sudoers rule on `tailscale serve *`.
+#
+# Caller contract:
+#   TS_SERVE_USER=<name>   user granted the rule; default the invoking user
+#
+# Idempotent: re-running rewrites both files.
+
+set -euo pipefail
+
+# $USER is whoever's environment we inherited, which is root under sudo. The
+# rule is meant for the human, so prefer SUDO_USER.
+TS_SERVE_USER="${TS_SERVE_USER:-${SUDO_USER:-$(id -un)}}"
+HELPER=/usr/local/bin/ts-serve-helper
+SUDOERS=/etc/sudoers.d/ts-serve
+
+# This name is interpolated into a root-installed sudoers file. visudo below
+# rejects malformed output, but not a well-formed line someone smuggled in, so
+# the charset check is the actual guard. The id lookup catches the likelier
+# failure: a typo that installs a rule granting nothing.
+case "$TS_SERVE_USER" in
+'' | *[!A-Za-z0-9_.-]*)
+    echo "ts-serve: unsafe username: $TS_SERVE_USER" >&2
+    exit 1
+    ;;
+esac
+if ! id "$TS_SERVE_USER" >/dev/null 2>&1; then
+    echo "ts-serve: unknown user: $TS_SERVE_USER" >&2
+    exit 1
+fi
+
+helper_tmp="$(mktemp)"
+sudoers_tmp="$(mktemp)"
+trap 'rm -f "$helper_tmp" "$sudoers_tmp"' EXIT
+
+# The helper is the security boundary, so it re-validates everything and fails
+# closed on surplus arguments: the sudoers globs below only have to be no wider
+# than what it accepts.
+cat >"$helper_tmp" <<'HELPER_EOF'
+#!/bin/sh
+# Installed by dotfiles setup/common/setup-ts-serve. Edit that, not this.
+set -eu
+
+case "$#" in
+1 | 2) ;;
+*)
+    echo "ts-serve-helper: expected PORT [http|https]" >&2
+    exit 64
+    ;;
+esac
+
+port="$1"
+scheme="${2:-http}"
+
+case "$port" in '' | *[!0-9]*)
+    echo "ts-serve-helper: bad port" >&2
+    exit 64
+    ;;
+esac
+[ "$port" -ge 1 ] && [ "$port" -le 65535 ] ||
+    { echo "ts-serve-helper: port out of range" >&2; exit 64; }
+case "$scheme" in http | https) ;; *)
+    echo "ts-serve-helper: bad scheme" >&2
+    exit 64
+    ;;
+esac
+
+# Foreground on purpose: Ctrl+C is the teardown, so the sudoers rule never has
+# to permit `serve off`.
+exec /usr/bin/tailscale serve --https="$port" "$scheme://localhost:$port"
+HELPER_EOF
+
+# visudo -c on a temp copy first: a malformed drop-in makes every later sudo
+# fail, including the one that would remove it.
+cat >"$sudoers_tmp" <<EOF
+# ts-serve (dotfiles setup/common/setup-ts-serve). sudoers argument matching is
+# intentionally only a coarse filter -- '*' matches whitespace and far more than
+# a port number. $HELPER is the security boundary and strictly validates
+# everything it is handed.
+$TS_SERVE_USER ALL=(root) NOPASSWD: $HELPER [0-9]*, $HELPER [0-9]* http, $HELPER [0-9]* https
+EOF
+visudo -cqf "$sudoers_tmp"
+
+# install, not tee: replaces both files in one step, so an interrupted run
+# cannot leave a half-written helper that the sudoers rule already permits.
+sudo install -o root -g root -m 755 "$helper_tmp" "$HELPER"
+sudo install -o root -g root -m 440 "$sudoers_tmp" "$SUDOERS"
+
+echo "ts-serve: $TS_SERVE_USER may run $HELPER without a password"
+
+# The rule is inert until tailscale exists; installing it early is fine, saying
+# nothing about it is not. Test the exact path the helper execs, not $PATH.
+[ -x /usr/bin/tailscale ] ||
+    echo "note: /usr/bin/tailscale is not installed yet — ts-serve works once it is"
