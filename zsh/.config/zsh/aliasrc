@@ -2,6 +2,7 @@
 
 # cmd remaps
 # alias ls=eza
+alias od=open-design
 alias backup-dev='rsync -rPavh --exclude-from=dev/.rsyncignore --delete-after dev backup:'
 alias rm='trash-put'
 alias v='nvim'
@@ -44,7 +45,6 @@ alias \
     du="du -h -d 1" \
     p="procs" \
     f="yazi" \
-    g="git" \
     t='tmux' \
     m='mise'
     # grep="rg"
@@ -173,7 +173,6 @@ fzf_open_dir() {
 alias ff='fzf --preview="bat --color=always {}"'
 alias fzn='nvim $(fzf --preview="bat --color=always {}")'
 alias fzz='zed_open_dir $(fzf --preview="bat --color=always {}")'
-alias lg='lazygit'
 alias fcode='fzf_open_dir_func code'
 alias fcursor='fzf_open_dir_func cursor'
 zed_open_dir() {
@@ -238,37 +237,7 @@ alias nird='ni && nrd'
 alias nrb='nr build'
 alias nbp='nr build:preview'
 
-# git aliases
-alias gaa='git add -all'
-alias gcm='git commit -m'
-alias fpush='gitpush "s"'
-alias gco='git checkout'
-alias gl='git pull'
-alias grhh='git reset --hard'
-alias gcl="git clone"
-alias git-clone='ghq get'
-# alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
-# alias gs='git status'
-# alias gss='git status --short'
-gitpush() {
-    if [ -z "$1" ]; then
-        echo "Please provide a commit message."
-        return 1
-    fi
-
-    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
-
-    if [ -z "$branch" ]; then
-        echo "Not on a branch."
-        return 1
-    fi
-
-    git add -A && git commit -m "$1" && git push -u origin "$branch"
-}
-
-# github cli
-alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'
-alias gh-create-pvt='git init && gh repo create --private --source=. --remote=origin && git push -u --all && gh browse'
+# git + gh aliases live in gitrc
 
 # gpu stats
 #alias gpuInfo='sudo xpu-smi stats -d 0'

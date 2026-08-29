@@ -1,0 +1,40 @@
+#!/usr/env/bin bash
+# Personal git + gh aliases. Split out of aliasrc.
+
+alias g='git'
+alias gaa='git add --all'
+alias gcm='git commit -m'
+alias gco='git checkout'
+alias gl='git pull'
+alias gp='git push'
+alias grhh='git reset --hard'
+alias gcl='git clone'
+# ghq keeps clones in a $GOPATH-style tree, so it shadows the real `git clone`.
+alias git-clone='ghq get'
+alias lg='lazygit'
+
+# alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
+# alias gs='git status'
+# alias gss='git status --short'
+
+alias fpush='gitpush "s"'
+# Stage everything, commit, and push the current branch, setting upstream.
+gitpush() {
+    if [ -z "$1" ]; then
+        echo "Please provide a commit message."
+        return 1
+    fi
+
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+    if [ -z "$branch" ]; then
+        echo "Not on a branch."
+        return 1
+    fi
+
+    git add -A && git commit -m "$1" && git push -u origin "$branch"
+}
+
+# github cli
+alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'
+alias gh-create-pvt='git init && gh repo create --private --source=. --remote=origin && git push -u --all && gh browse'
