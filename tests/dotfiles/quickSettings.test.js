@@ -39,7 +39,7 @@ test("Quick Settings exposes laptop battery state and immediate header actions",
     assert.match(quickSettings, /id:\s*headerActions[\s\S]*anchors\.right:\s*parent\.right/);
     assert.match(quickSettings, /HeaderAction\s*{[\s\S]*id:\s*lockAction/);
     assert.match(quickSettings, /HeaderAction\s*{[\s\S]*id:\s*powerAction/);
-    assert.match(quickSettings, /lockAction[\s\S]*Quickshell\.execDetached\(\["hyprlock"\]\)[\s\S]*root\.dismiss\(\)/);
+    assert.match(quickSettings, /lockAction[\s\S]*Quickshell\.execDetached\(\["qs", "-c", "lock", "ipc", "call", "lock", "lock"\]\)[\s\S]*root\.dismiss\(\)/);
     assert.match(quickSettings, /powerAction[\s\S]*root\.navigate\(QuickSettings\.Power/);
 });
 

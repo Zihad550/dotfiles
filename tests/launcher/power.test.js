@@ -48,7 +48,8 @@ test("an unknown key is null, not a default action", () => {
 test("the commands are the keybinds' own", () => {
     assert.deepStrictEqual(Power.actionFor("shutdown").argv, ["shutdown", "now"]);
     assert.deepStrictEqual(Power.actionFor("restart").argv, ["shutdown", "-r", "now"]);
-    assert.deepStrictEqual(Power.actionFor("lock").argv, ["hyprlock"]);
+    assert.deepStrictEqual(Power.actionFor("lock").argv,
+        ["qs", "-c", "lock", "ipc", "call", "lock", "lock"]);
 });
 
 // The Lua dispatch form, for the reason lib/workspaces.js documents at length:

@@ -21,10 +21,9 @@
 //             templated from label -- "Log out?" isn't "Logout?").
 //   argv      what runs on Return. No shell, no launch prefix.
 //
-// No `scoped` field (unlike a menu entry): three of these end the session, so
-// scoping to it is pointless or wrong. Lock is the exception that would want
-// one, but the keybind it replaces ran bare `hyprlock`, and the rule here is
-// to run what the keybind ran.
+// No `scoped` field (unlike a menu entry): three actions end the session, and
+// Lock calls an existing process over IPC. None starts a process worth keeping
+// in a scope.
 var ACTIONS = [
     {
         key: "shutdown",
@@ -48,7 +47,7 @@ var ACTIONS = [
         key: "lock",
         label: "Lock",
         question: "Lock the screen?",
-        argv: ["hyprlock"]
+        argv: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"]
     }
 ];
 

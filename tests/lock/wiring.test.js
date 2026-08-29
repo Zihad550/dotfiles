@@ -191,6 +191,30 @@ test("the IPC surface carries commands and nothing that answers a question", () 
     });
 });
 
+test("every external lock call site uses the lock IPC command vector", () => {
+    const argv = /"qs",\s*"-c",\s*"lock",\s*"ipc",\s*"call",\s*"lock",\s*"lock"/;
+    const shell = /qs -c lock ipc call lock lock/;
+
+    assert.match(source("hypr/.config/hypr/lua/bindings/system.lua"), /launcher:confirm-lock/,
+        "the lock keybind must keep the Launcher's confirmation flow");
+    assert.strictEqual([...source("hypr/.config/hypr/hypridle.conf").matchAll(new RegExp(shell, "g"))].length, 3,
+        "hypridle's lock command, pre-sleep command and idle Stage must agree");
+    assert.strictEqual([...source("setup/arch-devbox/hypridle.conf").matchAll(new RegExp(shell, "g"))].length, 3,
+        "the devbox hypridle config must not leave the old locker reachable");
+    assert.match(source("quickshell/.config/quickshell/launcher/lib/power.js"), argv);
+    assert.match(source("quickshell/.config/quickshell/launcher/modules/SystemMenu.qml"), argv);
+    assert.match(source("quickshell/.config/quickshell/dotfiles/modules/QuickSettings.qml"), argv);
+});
+
+test("df-power reads lock state without running a process", () => {
+    const power = source("bin/df-power");
+
+    assert.match(power, /\$\{XDG_RUNTIME_DIR:-\$\{TMPDIR:-\/tmp\}\}\/df-lock-state/);
+    assert.match(power, /read\s+-r\s+lock_state\s*</);
+    assert.doesNotMatch(power, /pidof|pgrep|qs\s+.*ipc|loginctl/,
+        "the locked keybind path cannot wait for another process to answer");
+});
+
 test("the state file is runtime, blocking and atomic", () => {
     const shell = source(`${lockRoot}/shell.qml`);
     const session = source(`${lockRoot}/lib/session.js`);

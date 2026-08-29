@@ -2,7 +2,7 @@
 
 # Shutdown and restart. Unlocked this dispatches into the Launcher, which
 # confirms first; locked it runs the command directly, since nothing can draw
-# above hyprlock. Why that trade, and why logout is excluded from it:
+# above the Session Lock. Why that trade, and why logout is excluded from it:
 # docs/adr/0015-power-keybinds-reachable-while-locked.md.
 #
 #   $1   shutdown | restart
@@ -19,8 +19,11 @@ restart) argv=(shutdown -r now) ;;
     ;;
 esac
 
-# Not loginctl's LockedHint: it reads "no" here while hyprlock is on screen.
-if pidof hyprlock >/dev/null; then
+state_file="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/df-lock-state"
+lock_state=""
+IFS= read -r lock_state < "$state_file" 2>/dev/null || true
+
+if [[ "$lock_state" == requested || "$lock_state" == secure ]]; then
     # The only record of why the machine went away -- nothing is visible.
     logger -t df-power "$action from locked screen, unconfirmed"
     exec "${argv[@]}"

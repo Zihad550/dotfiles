@@ -388,7 +388,7 @@ PopupWindow {
                                         tooltipText: "Lock"
 
                                         onClicked: {
-                                            Quickshell.execDetached(["hyprlock"]);
+                                            Quickshell.execDetached(["qs", "-c", "lock", "ipc", "call", "lock", "lock"]);
                                             root.dismiss();
                                         }
                                     }

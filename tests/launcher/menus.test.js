@@ -42,7 +42,8 @@ function menu(entries, name) {
 // -- Commands -------------------------------------------------------------
 
 test("argvOf runs a declared argv under the launch prefix", () => {
-    assert.deepStrictEqual(Menus.argvOf({ command: ["hyprlock"] }, HOME, PREFIX), ["uwsm-app", "--", "hyprlock"]);
+    const command = ["qs", "-c", "lock", "ipc", "call", "lock", "lock"];
+    assert.deepStrictEqual(Menus.argvOf({ command: command, scoped: false }, HOME, PREFIX), command);
 });
 
 test("argvOf leaves an unscoped entry out of the launch prefix", () => {
@@ -205,8 +206,8 @@ const audit = [
         file: "SystemMenu.qml",
         menu: "system",
         elephant: "hyprlock",
-        entry: { name: "Lock", icon: "system-lock-screen", command: ["hyprlock"] },
-        argv: ["uwsm-app", "--", "hyprlock"]
+        entry: { name: "Lock", icon: "system-lock-screen", command: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"], scoped: false },
+        argv: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"]
     },
     {
         file: "SystemMenu.qml",
