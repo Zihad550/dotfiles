@@ -59,13 +59,10 @@ zinit wait lucid for \
     zsh-users/zsh-autosuggestions \
     zsh-users/zsh-syntax-highlighting
 
-# Add in snippets (also deferred via turbo)
-zinit wait lucid for \
-    OMZL::git.zsh \
-    OMZP::git \
-    OMZP::sudo \
-    OMZP::archlinux \
-    OMZP::command-not-found
+# Oh-My-Zsh snippets dropped: git/archlinux were alias bundles (zsh expands
+# aliases before completing, so _git/_pacman already applied), OMZL::git.zsh
+# only fed a p10k-style prompt, and command-not-found is a no-op without
+# pkgfile. Esc-Esc lives in sudo.zsh now.
 # zinit snippet OMZP::aws
 # OMZP::kubectl self-returns unless kubectl is installed -- pure download+source overhead here
 # zinit snippet OMZP::kubectl
@@ -90,6 +87,9 @@ zinit cdreplay -q
 
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 # [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
+
+# Esc-Esc: toggle a sudo prefix on the current line.
+source "$XDG_CONFIG_HOME/zsh/sudo.zsh"
 
 # aliases
 source "$XDG_CONFIG_HOME/zsh/aliasrc"
