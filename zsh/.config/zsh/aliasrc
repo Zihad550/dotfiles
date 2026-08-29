@@ -248,27 +248,7 @@ alias mt='mise trust'
 alias mr='mise run'
 alias mi='mise install'
 
-# worktrunk
-# alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
-wt-switch-active() {
-    local branch
-    branch=$(wt list --format json | jq -r '.[].branch' | fzf)
-    [[ -n "$branch" ]] && wt switch "$branch"
-}
-alias wtc="wt step commit"
-alias wtp="wtc && gp"
-alias wtl="wt list"
-alias wts="wt switch"
-wtake() {
-  local branch=$(git branch --show-current)
-  [ -n "$branch" ] || { echo "not on a branch"; return 1; }
-  local before=$(git rev-parse -q --verify refs/stash)
-  git stash push -u -m "wtake: $branch" || return
-  local after=$(git rev-parse -q --verify refs/stash)
-  git switch development || return
-  wt switch "$branch" || return
-  [ "$before" != "$after" ] && git stash pop
-}
+# worktrunk aliases live in wtrc
 
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE

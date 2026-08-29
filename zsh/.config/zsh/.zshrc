@@ -94,6 +94,7 @@ source "$XDG_CONFIG_HOME/zsh/sudo.zsh"
 # aliases
 source "$XDG_CONFIG_HOME/zsh/aliasrc"
 source "$XDG_CONFIG_HOME/zsh/gitrc"
+source "$XDG_CONFIG_HOME/zsh/wtrc"
 source "$XDG_CONFIG_HOME/zsh/zshalias"
 
 ##############
