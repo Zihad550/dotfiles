@@ -65,9 +65,10 @@ zinit wait lucid for \
     OMZP::git \
     OMZP::sudo \
     OMZP::archlinux \
-    OMZP::kubectl \
     OMZP::command-not-found
 # zinit snippet OMZP::aws
+# OMZP::kubectl self-returns unless kubectl is installed -- pure download+source overhead here
+# zinit snippet OMZP::kubectl
 # zinit snippet OMZP::kubectx
 
 # Load completions
