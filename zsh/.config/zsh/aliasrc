@@ -303,3 +303,21 @@ rmpyc() {
     find . -type d -name '__pycache__' -exec rm -rf {} +
     find . -type f -name '*.pyc' -delete
 }
+
+# tailscale serve a local dev port over the tailnet; --https targets an
+# HTTPS origin instead of HTTP.
+ts-serve() {
+    local port='' scheme=http
+    while (($#)); do
+        case "$1" in
+        --https) scheme=https ;;
+        *) port="$1" ;;
+        esac
+        shift
+    done
+    if [[ -z $port ]]; then
+        echo 'usage: ts-serve PORT [--https]' >&2
+        return 1
+    fi
+    sudo tailscale serve --https="$port" "$scheme://localhost:$port"
+}
