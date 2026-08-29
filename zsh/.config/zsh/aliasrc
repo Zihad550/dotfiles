@@ -2,7 +2,6 @@
 
 # cmd remaps
 # alias ls=eza
-alias od=open-design
 alias backup-dev='rsync -rPavh --exclude-from=dev/.rsyncignore --delete-after dev backup:'
 alias rm='trash-put'
 alias v='nvim'
