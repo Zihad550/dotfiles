@@ -25,7 +25,9 @@ lid_is_closed() {
 }
 
 monitor_snapshot() {
-    hyprctl monitors all -j 2>/dev/null
+    # Only active outputs count here. `monitors all` can retain disabled
+    # connectors and make a disconnected output look like a dock.
+    hyprctl monitors -j 2>/dev/null
 }
 
 internal_monitor() {
@@ -39,11 +41,33 @@ external_monitor() {
         [.[]
          | select((.name // "") != $internal)
          | select((.disabled // false) != true)
-         | select((.width // 0) > 0)
          | select((.mirrorOf // "") == "")]
         | sort_by(if .focused == true then 0 else 1 end)
         | .[0].name // empty
     '
+}
+
+external_monitor_with_retry() {
+    local internal="$1"
+    local monitors external delay
+
+    # The switch event can beat Hyprland's monitor-added event by a few
+    # hundred milliseconds. Give the compositor a short, bounded window to
+    # publish the external output before falling back to the normal lid path.
+    for delay in 0 0.1 0.3 0.7 1.2; do
+        if [[ $delay != 0 ]]; then
+            sleep "$delay"
+        fi
+
+        monitors=$(monitor_snapshot)
+        external=$(external_monitor "$internal" <<<"$monitors")
+        if [[ -n $external ]]; then
+            printf '%s\n' "$external"
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 valid_monitor_name() {
@@ -122,7 +146,7 @@ reconcile_closed() {
     [[ -n $internal ]] || return 0
     valid_monitor_name "$internal" || return 0
 
-    external=$(external_monitor "$internal" <<<"$monitors")
+    external=$(external_monitor_with_retry "$internal") || external=""
     if [[ -z $external ]]; then
         # Start the lock before logind's sleep path. The Session Lock's own
         # inhibitor still decides when suspend may continue.

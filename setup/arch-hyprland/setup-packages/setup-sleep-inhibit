@@ -20,6 +20,7 @@ sudo mkdir -p /etc/systemd/logind.conf.d
 sudo tee /etc/systemd/logind.conf.d/20-inhibit-delay.conf >/dev/null <<'CONF'
 [Login]
 InhibitDelayMaxSec=15
+HandleLidSwitchDocked=ignore
 CONF
 
 # Not restarting systemd-logind: it can disrupt an active graphical session.

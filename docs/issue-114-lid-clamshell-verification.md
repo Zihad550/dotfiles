@@ -59,6 +59,7 @@ command -v quickshell gdbus busctl systemd-inhibit notify-send
 test -f /etc/pam.d/df-lock
 test -f /etc/systemd/logind.conf.d/20-inhibit-delay.conf
 grep -Fx 'InhibitDelayMaxSec=15' /etc/systemd/logind.conf.d/20-inhibit-delay.conf
+grep -Fx 'HandleLidSwitchDocked=ignore' /etc/systemd/logind.conf.d/20-inhibit-delay.conf
 echo "PASS: Hyprland session and lock dependencies are installed"
 ```
 

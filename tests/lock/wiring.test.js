@@ -538,6 +538,8 @@ test("the lock's budget stays inside the logind window the drop-in asks for", ()
     assert.ok(sleep.SECURE_BUDGET_MS < Number(inhibitDelay[1]) * 1000,
         "a budget past logind's window leaves logind no room to act on the release");
     assert.match(setup, /\/etc\/systemd\/logind\.conf\.d\/20-inhibit-delay\.conf/);
+    assert.match(setup, /^HandleLidSwitchDocked=ignore$/m,
+        "a docked lid must stay awake long enough for Clamshell Mode instead of suspending the external session");
     assert.match(source("setup/arch-hyprland/init"), /setup-packages\/setup-sleep-inhibit"/,
         "a drop-in no box installs is a window that stays at the default");
 });

@@ -31,7 +31,7 @@ test("clamshell migration moves internal workspaces before disabling eDP-1", () 
     assert.notStrictEqual(disable, -1, "the clamshell path must disable the internal output");
     assert.ok(move < disable,
         "moving workspaces after disabling eDP-1 races the monitor removal");
-    assert.match(helper, /hyprctl monitors all -j/);
+    assert.match(helper, /hyprctl monitors -j/);
     assert.match(helper, /hyprctl workspaces -j/);
 });
 
