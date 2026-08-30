@@ -81,6 +81,13 @@ the `WAYLAND_DISPLAY` note above before believing it, because an unset one
 prints exactly the same thing over a live instance. `qs list --all` is what
 confirms the kill took.
 
+It routinely does not take: the instance logs `Exiting due to IPC request` and
+then stalls in shutdown, and the `kill` call blocks waiting for an exit that
+never comes. `SIGTERM` to that pid ends it immediately, and is safe — every
+transition is on disk before it happens, so the next instance adopts the truth
+and Stranded Lock recovery takes back a lock the compositor still holds.
+`df-qs-restart lock` escalates that way on its own.
+
 What the lock last published about itself — and, once its call site moves, what
 `df-power` reads (`docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md`):
 

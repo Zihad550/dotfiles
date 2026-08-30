@@ -304,6 +304,30 @@ test("the lock starts as its own instance, and cannot be run as a scratch config
     assert.match(source("bin/df-qs-restart"), /dotfiles \| launcher \| lock/);
 });
 
+test("df-qs-restart survives a lock instance that will not exit on request", () => {
+    const restart = source("bin/df-qs-restart");
+    const running = restart.match(/^RUNNING="(.*)"$/m);
+
+    assert.ok(running, "the instance pattern must remain extractable");
+
+    // What pgrep -f matches it against: whole command lines, this one's own
+    // `kill` call among them. `\$` is bash's escape, not part of the pattern.
+    const pattern = new RegExp(
+        running[1].replaceAll("$CONFIG", "lock").replaceAll("\\$", "$"));
+
+    assert.match("quickshell -c lock -n -d", pattern);
+    assert.match("/usr/bin/quickshell -c lock -n", pattern);
+    assert.doesNotMatch("quickshell -c lock kill", pattern,
+        "a pattern that matches this script's own kill call never sees the count reach zero");
+    assert.doesNotMatch("/bin/zsh -c pgrep -f 'quickshell -c lock'", pattern,
+        "and one that matches a shell mentioning the config kills the wrong process");
+
+    assert.match(restart, /timeout \d+ quickshell -c "\$CONFIG" kill/,
+        "the IPC kill blocks until the instance exits, and one stuck in shutdown never does");
+    assert.match(restart, /pkill -f "\$RUNNING"/,
+        "SIGTERM is what moves an instance that accepted the exit request and stalled");
+});
+
 test("the Idle Ladder reads box timings and respects compositor inhibitors", () => {
     const shell = source(`${lockRoot}/shell.qml`);
     const stageMonitor = shell.match(/component StageMonitor: IdleMonitor \{([\s\S]*?)\n    \}/);

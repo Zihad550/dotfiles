@@ -54,9 +54,12 @@ if ! command -v quickshell &>/dev/null; then
 fi
 
 # Either name, since autostart.lua uses `quickshell` and a shell may use `qs`.
-# Anchored on a word end so that restarting "launcher" does not match an
-# unrelated "launcher-probe" instance.
-RUNNING="(quickshell|qs) -c $CONFIG( |\$)"
+# Anchored at both ends: at the front so a shell that merely mentions the config
+# is not an instance, and at the back so neither an unrelated "launcher-probe"
+# nor this script's own `quickshell -c launcher kill` is -- only flags may
+# follow. A pattern that matches the kill call counts it as a survivor, and the
+# waits below then never see the instance go.
+RUNNING="^[^ ]*(quickshell|qs) -c $CONFIG( -[^ ]+)*\$"
 
 # Kill in a loop, because `qs kill` kills exactly one instance. New starts are
 # single-instance (ticket 21), but a session that accumulated several before
@@ -69,18 +72,37 @@ for _ in {1..20}; do
    BEFORE=$(pgrep -cf "$RUNNING" || true)
    (( BEFORE > 0 )) || break
 
-   quickshell -c "$CONFIG" kill >/dev/null 2>&1 || break
-   KILLED=$((KILLED + 1))
+   # Bounded: the request blocks until the instance is gone, and one stalled in
+   # shutdown never goes -- which is the lock's failure mode, not a rare one.
+   timeout 5 quickshell -c "$CONFIG" kill >/dev/null 2>&1 || true
 
    # kill returns before the instance is gone, so wait for the *count* to drop
    # before killing again -- otherwise the next pass targets a pid that is
    # already on its way out. Waiting for zero instead would burn the full three
    # seconds on every instance but the last, since the others are still there.
+   DROPPED=0
    for _ in {1..30}; do
-      (( $(pgrep -cf "$RUNNING" || true) < BEFORE )) && break
+      (( $(pgrep -cf "$RUNNING" || true) < BEFORE )) && { DROPPED=1; break; }
       sleep 0.1
    done
+
+   # Asking a stalled instance again only waits on it again.
+   (( DROPPED )) || break
+   KILLED=$((KILLED + 1))
 done
+
+# The IPC exit is a request; SIGTERM is not. Safe to escalate to: the lock
+# publishes each transition before it happens, so the next instance adopts the
+# truth from the state file, and Stranded Lock recovery takes back a lock the
+# compositor is still holding (ADR 0017, docs/session-lock-break-glass.md).
+if pgrep -f "$RUNNING" >/dev/null; then
+   echo "'$CONFIG' did not exit on request; sending SIGTERM"
+   pkill -f "$RUNNING" || true
+   for _ in {1..30}; do
+      pgrep -f "$RUNNING" >/dev/null || break
+      sleep 0.1
+   done
+fi
 
 # Say so rather than starting on top: starting anyway would hide the surviving
 # instance behind a Launcher that needs two presses to close.
