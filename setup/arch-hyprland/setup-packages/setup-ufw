@@ -3,7 +3,8 @@
 # sudo ufw app list -> displays all apps
 # sudo ufw limit SSH  -> instead of using sudo ufw allow SSH
 # Rootless docker (../../common/setup-rootless-docker, run earlier by init)
-# needs no docker0/ufw-docker carve-out here -- see ../../archive/setup-ufw
+# needs no docker0/ufw-docker carve-out here -- see setup/archive/setup-ufw
+# on the archive/rootful-docker branch
 # for the rootful counterpart this replaced (#95).
 
 set -e

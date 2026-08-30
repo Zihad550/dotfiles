@@ -23,3 +23,10 @@ reference at all.
 - **Comment out in place.** Rejected: leaves dead code live in the file a
   maintainer actually reads and edits, exactly what CLAUDE.md's comment
   guidance argues against.
+
+> Superseded in whole by
+> `docs/adr/0021-retired-setup-files-move-to-an-archive-branch.md`. Retired
+> setup files now move to an `archive/<topic>` branch and are deleted from
+> `main`; `setup/archive/` is gone, to `archive/rootful-docker`. The argument
+> above against outright deletion still stands and is why the branch is pushed
+> and kept rather than the files dropped.

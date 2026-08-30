@@ -302,9 +302,10 @@ recoverable: a temporary LAN ssh hole, a retained passphrase keyslot, the
 physical console.
 _Avoid_: fallback, escape hatch, backdoor, recovery path
 
-**Archived Script**:
-A setup component retired from every box's `init` — never sourced, never
-`run_step`'d — but kept under `setup/archive/` as a working reference instead
-of deleted, because a box configuration it once served may come back. Kept in
-step with current script conventions, not frozen as it was when retired.
-_Avoid_: deprecated script, legacy script, dead code, unused script
+**Archive Branch**:
+A pushed, never-merged `archive/<topic>` branch holding setup files retired
+from every box's `init` — never sourced, never `run_step`'d — instead of
+deleting them, because a box configuration they once served may come back.
+Frozen as they were when retired; `main` keeps no copy. Read one with
+`git show archive/<topic>:<path>`.
+_Avoid_: deprecated script, legacy script, dead code, unused script, stale branch

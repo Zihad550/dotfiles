@@ -318,8 +318,8 @@ handshake or an HTTP status. Strip those three lines back out afterwards.
 
 Rootless, via [`setup-rootless-docker`](../common/setup-rootless-docker) — `curl
 -fsSL https://get.docker.com/rootless | sh` — not the plain `pacman -S docker`
-of [`../archive/setup-docker`](../archive/setup-docker), retired when
-arch-hyprland finished its own move to rootless (#95).
+of `setup/archive/setup-docker`, on the `archive/rootful-docker` branch —
+retired when arch-hyprland finished its own move to rootless (#95).
 This box runs AI harnesses against text pulled off the internet (see
 [firewall](#firewall)); a compromised container landing on a root-owned
 daemon is a worse outcome than the same container landing on a daemon that
@@ -420,8 +420,8 @@ entirely.
   unit that was never created — so the script clears the binary first
   whenever it's about to retry.
 - Writes `~/.config/docker/daemon.json` with the same log-size cap
-  [`../archive/setup-docker`](../archive/setup-docker) used to write to
-  `/etc/docker/daemon.json` back when arch-hyprland ran it — rootless dockerd
+  `setup/archive/setup-docker` (now on `archive/rootful-docker`) used to write
+  to `/etc/docker/daemon.json` back when arch-hyprland ran it — rootless dockerd
   reads its own config in the user's `$DOCKER_CONFIG` (`zsh/.zshenv`), not
   the system one, so carrying the cap over verbatim would otherwise silently
   lose it.

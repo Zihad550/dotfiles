@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Rootless docker. NOT ../archive/setup-docker (rootful, retired -- #95).
+# Rootless docker. NOT the rootful setup-docker, retired to the
+# archive/rootful-docker branch (#95).
 # See README.md and ../arch-devbox/README.md "Docker". Idempotent, run by init.
 
 set -e
