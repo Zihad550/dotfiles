@@ -158,8 +158,11 @@ which both `init`s run — the shell is byte-identical on both targets, so its
 dependency list is declared once. Add a dependency there when a QML module
 starts shelling out to something new.
 
-`gnome-keyring` and `seahorse` are **not** optional: `setup-hyprland` enables
-`gcr-ssh-agent.service`, which is what unlocks ssh keys on this desktop.
+`gnome-keyring`, `libsecret` and `seahorse` are **not** optional:
+`setup-hyprland` enables `gcr-ssh-agent.service`, which is what unlocks ssh
+keys on this desktop. The session's default keyring is passwordless and
+preserved on reruns; SDDM's PAM hooks are removed so the Greeter does not own
+it.
 
 `stow-backgrounds` also stays. It looks cosmetic but `df-theme-set` reads
 `~/.config/backgrounds/<theme>.*` and warns when a theme has no wallpaper.

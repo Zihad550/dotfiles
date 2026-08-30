@@ -54,6 +54,32 @@ test("the Greeter setup removes gdm rather than leaving two display managers ena
     assert.match(setup, /pacman -R[^\n]*\bgdm\b/);
 });
 
+test("the Greeter does not own the Desktop Keyring through SDDM PAM", () => {
+    const setup = source(greeterSetup);
+
+    assert.ok(setup.includes("pam_gnome_keyring\\.so/d"),
+        "SDDM must not create a second keyring through its login hooks");
+    assert.match(setup, /-auth\.\*pam_gnome_keyring/);
+    assert.match(setup, /-password\.\*pam_gnome_keyring/);
+});
+
+test("both Arch boxes install the Desktop Keyring's Secret Service client", () => {
+    ["setup/arch-hyprland/packages/pacman-apps", "setup/arch-devbox/packages/pacman-apps"]
+        .forEach(packages => {
+            assert.match(source(packages), /gnome-keyring\s+libsecret\s+seahorse/,
+                `${packages} must keep the complete keyring stack`);
+        });
+});
+
+test("keyring setup creates defaults without overwriting existing credentials", () => {
+    const keyring = source("setup/arch-hyprland/keyring");
+
+    assert.match(keyring, /if \[\[ ! -f "\$KEYRING_FILE" \]\]/);
+    assert.match(keyring, /if \[\[ ! -f "\$DEFAULT_FILE" \]\]/);
+    assert.match(keyring, /ctime=\$\(date \+%s\)/,
+        "new keyrings must contain a real creation time");
+});
+
 test("the no-sleep setup no longer sets a greeter power policy", () => {
     const setup = source("setup/common/setup-no-sleep");
 

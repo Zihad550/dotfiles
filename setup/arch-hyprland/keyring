@@ -2,6 +2,7 @@
 
 # Setup passwordless gnome-keyring default keyring
 # This allows applications to store credentials securely without a master password
+set -euo pipefail
 
 KEYRING_DIR="$HOME/.local/share/keyrings"
 KEYRING_FILE="$KEYRING_DIR/Default_keyring.keyring"
@@ -10,7 +11,8 @@ DEFAULT_FILE="$KEYRING_DIR/default"
 setup_keyring() {
     mkdir -p "$KEYRING_DIR"
 
-    cat <<'EOF' >"$KEYRING_FILE"
+    if [[ ! -f "$KEYRING_FILE" ]]; then
+        cat <<EOF >"$KEYRING_FILE"
 [keyring]
 display-name=Default keyring
 ctime=$(date +%s)
@@ -18,10 +20,13 @@ mtime=0
 lock-on-idle=false
 lock-after=false
 EOF
+    fi
 
-    cat <<'EOF' >"$DEFAULT_FILE"
+    if [[ ! -f "$DEFAULT_FILE" ]]; then
+        cat <<'EOF' >"$DEFAULT_FILE"
 Default_keyring
 EOF
+    fi
 
     chmod 700 "$KEYRING_DIR"
     chmod 600 "$KEYRING_FILE"
@@ -32,7 +37,7 @@ EOF
     echo "File permissions: 600"
 }
 
-if [[ "$1" == "--check" ]]; then
+if [[ "${1:-}" == "--check" ]]; then
     if [[ -f "$KEYRING_FILE" ]]; then
         echo "Keyring already exists"
         exit 0

@@ -43,12 +43,12 @@ sudo pacman -S --noconfirm \
 # converseen \          # image conversion
 
 # install gnome apps
-# gnome-keyring seahorse are NOT optional: setup-hyprland enables
+# gnome-keyring, libsecret and seahorse are NOT optional: setup-hyprland enables
 # gcr-ssh-agent.service, which is how ssh keys get unlocked on this desktop.
 sudo pacman -S --noconfirm \
     nautilus \
     gnome-disk-utility \
-    gnome-keyring seahorse
+    gnome-keyring libsecret seahorse
 
 # dropped — not dev
 # nautilus-image-converter \

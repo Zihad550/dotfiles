@@ -225,6 +225,12 @@ gdm is removed, so a failure in between leaves a box that still boots. The
 enable is forced and the removal is non-fatal for the same reason: every state
 a half-finished run can leave behind has to be repairable by running it again.
 
+The Greeter does not own the Desktop Keyring. The setup removes SDDM's
+`pam_gnome_keyring` auth and password hooks, while the session creates a
+passwordless default keyring and `gcr-ssh-agent.service` serves SSH keys after
+login. Existing keyring files are preserved on reruns; the boundary is recorded
+in [ADR 0022](../../docs/adr/0022-sddm-does-not-own-the-desktop-keyring.md).
+
 The Greeter is left on its stock theme, deliberately —
 [ADR 0020](../../docs/adr/0020-greeter-stays-stock-themed.md).
 

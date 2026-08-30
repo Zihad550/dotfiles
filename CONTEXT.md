@@ -226,6 +226,13 @@ its own VT. It authenticates and hands off; nothing of it survives into the
 session it starts, so it can never lock one.
 _Avoid_: display manager, login manager, lock screen, login screen
 
+**Desktop Keyring**:
+The per-user Secret Service store used by graphical applications, separate
+from Greeter authentication, the Session Lock, and GPG keyrings. Its default
+keyring is created by the session setup and its SSH credentials are served by
+the desktop agent after login.
+_Avoid_: login keyring, system keyring, password keyring
+
 **Session Lock**:
 The surface that covers a running session and takes a password to dismiss,
 held by the compositor rather than drawn by an ordinary window. The Greeter's

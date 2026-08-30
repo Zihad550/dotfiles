@@ -45,12 +45,14 @@ sudo pacman -S --noconfirm \
 # gemini
 
 # install gnome apps
+# gnome-keyring, libsecret and seahorse are NOT optional: setup-hyprland
+# enables gcr-ssh-agent.service, which is how ssh keys get unlocked here.
 sudo pacman -S --noconfirm \
     nautilus \
     nautilus-image-converter \
     gnome-disk-utility \
     gnome-font-viewer \
-    gnome-keyring seahorse
+    gnome-keyring libsecret seahorse
 
 # gnome-calculator \
 # gnome-characters \
