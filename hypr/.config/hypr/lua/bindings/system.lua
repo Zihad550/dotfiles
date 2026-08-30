@@ -4,7 +4,7 @@ local dotfiles_bin = home .. "/dotfiles/bin"
 -- Power / session
 --
 -- Shutdown and restart go through df-power, which confirms via the Launcher
--- when unlocked and runs the command directly when hyprlock is up -- so they
+-- when unlocked and runs it directly when the Session Lock is up -- so they
 -- carry `locked`. Exit and Lock have no locked path and are Launcher-only:
 -- that asymmetry is the decision, not an oversight. See
 -- docs/adr/0015-power-keybinds-reachable-while-locked.md.

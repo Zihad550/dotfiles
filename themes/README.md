@@ -13,7 +13,6 @@ themes/
 │   ├── eza.yml.tpl
 │   ├── ghostty.conf.tpl
 │   ├── hyprland.lua.tpl
-│   ├── hyprlock.conf.tpl
 │   ├── keyboard.rgb.tpl
 │   ├── kitty.conf.tpl
 │   ├── lazygit.yml.tpl

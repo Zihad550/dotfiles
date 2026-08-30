@@ -145,7 +145,7 @@ with arch-hyprland and so deliberately not edited:
 `7zip` stays; it's useful on its own.
 
 **Kept even though it isn't "web dev":** the whole Hyprland layer (uwsm,
-quickshell, hyprlock, hyprpolkitagent, the portal,
+quickshell, hyprpolkitagent, the portal,
 hyprsunset, swaybg, brightnessctl, pavucontrol, nwg-look), ghostty, fonts,
 screenshots (swappy/slurp/grim), nautilus, gnome-disk-utility, and the
 Greeter. The desktop is unusable without them.

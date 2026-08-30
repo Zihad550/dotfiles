@@ -575,8 +575,8 @@ PanelWindow {
     }
 
     // Dismisses before running, same reason as runAction(): this surface
-    // holds the keyboard until it unmaps, and hyprlock especially must not
-    // come up behind a layer surface that still has it.
+    // holds the keyboard until it unmaps, and the Session Lock especially must
+    // not come up behind a layer surface that still has it.
     function applyConfirm(): void {
         const action = root.pendingAction;
         if (action === null)

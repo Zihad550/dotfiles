@@ -410,6 +410,26 @@ test("box timing data replaces hypridle and its devbox override machinery", () =
     assert.strictEqual(fs.existsSync(path.join(repoRoot, "setup/arch-devbox/setup-hypridle-no-suspend")), false);
 });
 
+test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
+    const packages = source("setup/arch-hyprland/setup-packages/setup-hyprland");
+    const fontSet = source("bin/df-font-set");
+    const themes = fs.readdirSync(path.join(repoRoot, "themes/.config/themes"));
+
+    assert.doesNotMatch(packages, /^\s*hyprlock\b/m);
+    assert.doesNotMatch(source("setup/fedora/hyprland.sh"), /\bhyprlock\b/);
+    assert.doesNotMatch(fontSet, /hyprlock/i,
+        "the positional two-occurrence substitution went with the file it patched");
+    assert.strictEqual(fs.existsSync(path.join(repoRoot, "hypr/.config/hypr/hyprlock.conf")), false);
+    assert.strictEqual(fs.existsSync(path.join(repoRoot, "themes/templates/hyprlock.conf.tpl")), false,
+        "df-theme-generate renders every template it finds, so the template is the generator");
+    assert.ok(themes.length > 0, "the theme scan found nothing -- this assertion is asserting nothing");
+    themes.forEach(theme => {
+        assert.strictEqual(
+            fs.existsSync(path.join(repoRoot, "themes/.config/themes", theme, "hyprlock.conf")), false,
+            `${theme} still carries a generated lock config, so adding a theme still needs one`);
+    });
+});
+
 // --- The Break-glass runbook -------------------------------------------------
 //
 // The runbook is read at a TTY by someone who has just lost their session, so
@@ -459,7 +479,14 @@ test("every lock ADR points at the runbook", () => {
 });
 
 test("every repo path the runbook names still exists", () => {
-    const runbook = source(runbookPath);
+    // The restore list is the one section that names paths precisely because
+    // they are gone -- checking those for existence would assert the removal
+    // never happened. Everything outside it is a path a reader is sent to.
+    const restoreList = /^What has to come back[\s\S]*?^\*\*/m;
+    const runbook = source(runbookPath).replace(restoreList, "");
+
+    assert.doesNotMatch(runbook, /What has to come back/,
+        "the restore-list heading moved, so the exemption is silently swallowing the whole file");
 
     // Backticked paths that look repo-relative: a leading directory segment
     // this repo actually has at its root.

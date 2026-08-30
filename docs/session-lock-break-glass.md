@@ -146,10 +146,11 @@ without them locks nothing:
 
 What has to come back, so you can check the revert covered it:
 
-- hypr/.config/hypr/hypridle.conf — the Idle Ladder as hypridle config, and
+- `hypr/.config/hypr/hypridle.conf` — the Idle Ladder as hypridle config, and
   its `lock_cmd`.
-- `hypr/.config/hypr/hyprlock.conf` — the lock's appearance, plus the
-  per-theme generated `hyprlock.conf` under `themes/`.
+- `hypr/.config/hypr/hyprlock.conf` — the lock's appearance, plus the per-theme
+  generated `hyprlock.conf` and the `themes/templates/hyprlock.conf.tpl` that
+  rendered it.
 - The `["hyprlock"]` command vector at the three call sites:
   `quickshell/.config/quickshell/launcher/lib/power.js`,
   `quickshell/.config/quickshell/launcher/modules/SystemMenu.qml` and
@@ -159,6 +160,8 @@ What has to come back, so you can check the revert covered it:
   (`docs/adr/0015-power-keybinds-reachable-while-locked.md`).
 - `hyprlock` and `hypridle` in
   `setup/arch-hyprland/setup-packages/setup-hyprland`.
+- The two-occurrence `font_family` substitution in `bin/df-font-set`, which is
+  the only thing that put the chosen font into the lock's config.
 
 **Restow, so the working tree reaches `~/.config`:**
 

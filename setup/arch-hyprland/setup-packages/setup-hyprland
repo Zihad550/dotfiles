@@ -17,7 +17,6 @@ sudo pacman -S --noconfirm \
     uwsm \
     brightnessctl \
     hyprpicker \
-    hyprlock \
     swaybg \
     nwg-look gnome-themes-extra \
     xdg-desktop-portal-hyprland \

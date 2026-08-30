@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Switch monospace font across configs (ghostty, hyprlock, quickshell, zed)
+# Switch monospace font across configs (ghostty, quickshell, zed)
 # and restart the visual daemons so the change is live.
 
 set -e
@@ -36,10 +36,6 @@ REPO="$HOME/dotfiles"
 # ghostty
 sed -i 's|^font-family[[:space:]]*=.*|font-family = "'"$font"'"|' \
    "$REPO/ghostty/.config/ghostty/config"
-
-# hyprlock (two occurrences)
-sed -i 's|^\([[:space:]]*\)font_family[[:space:]]*=.*|\1font_family = '"$font"'|' \
-   "$REPO/hypr/.config/hypr/hyprlock.conf"
 
 # quickshell -- every config's Theme.qml, not just the bar's. Each Quickshell
 # config root is its own import namespace, so the bar, the Launcher and the
