@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal dotfiles for Arch + Hyprland (with Ubuntu / Fedora / Alpine / arch-gnome variants under `setup/`).
+Personal dotfiles for Arch + Hyprland (with Ubuntu / Alpine / arch-gnome variants under `setup/`).
 Inspired by [omarchy](https://github.com/basecamp/omarchy) — see `resources/omarchy/` for the upstream reference.
 
 ## clone

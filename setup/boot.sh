@@ -2,7 +2,7 @@
 
 # Distro-detecting entrypoint for first-time setup.
 # Reads /etc/os-release ID and dispatches to the matching setup directory.
-# Override with: ./boot.sh <target>      (e.g. arch-hyprland, ubuntu, fedora)
+# Override with: ./boot.sh <target>      (e.g. arch-hyprland, ubuntu, alpine)
 
 set -e
 
@@ -71,7 +71,6 @@ case "$ID" in
       fi
       ;;
    ubuntu)        dispatch ubuntu ;;
-   fedora)        dispatch fedora ;;
    alpine)        dispatch alpine ;;
    debian)        dispatch ubuntu ;;   # close enough; override if you split later
    *)

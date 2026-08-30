@@ -1,3 +1,0 @@
-max_parallel_downloads=3
-fastestmirror=1
-defaultyes=True
