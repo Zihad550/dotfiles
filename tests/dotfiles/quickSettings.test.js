@@ -40,6 +40,16 @@ test("Stay Awake is a persistent, visible Tile in the primary surface", () => {
     assert.match(state, /rm[\s\S]*root\.togglePath/);
 });
 
+test("Stay Awake writes through its local Process and FileView objects", () => {
+    const state = source("StayAwakeState.qml");
+
+    assert.doesNotMatch(state, /root\.toggleProcess|root\.toggleFile/,
+        "QML ids are lexical objects, not properties exposed on the Singleton root");
+    assert.match(state, /toggleProcess\.command/);
+    assert.match(state, /toggleProcess\.running/);
+    assert.match(state, /onExited:\s*toggleFile\.reload\(\)/);
+});
+
 test("Quick Settings exposes laptop battery state and immediate header actions", () => {
     const quickSettings = source("modules/QuickSettings.qml");
 

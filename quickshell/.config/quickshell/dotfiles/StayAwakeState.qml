@@ -22,20 +22,20 @@ Singleton {
             return;
 
         if (root.enabled) {
-            root.toggleProcess.command = ["rm", "-f", root.togglePath];
+            toggleProcess.command = ["rm", "-f", root.togglePath];
         } else {
-            root.toggleProcess.command = [
+            toggleProcess.command = [
                 "bash", "-c", "mkdir -p \"$1\" && touch \"$2\"",
                 "bash", root.togglesDir, root.togglePath
             ];
         }
-        root.toggleProcess.running = true;
+        toggleProcess.running = true;
     }
 
     Process {
         id: toggleProcess
 
-        onExited: root.toggleFile.reload()
+        onExited: toggleFile.reload()
     }
 
     FileView {
