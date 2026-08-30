@@ -97,13 +97,16 @@ The PAM cleanup is idempotent. Verify it before rebooting:
 
 ```bash
 if [[ -f /etc/pam.d/sddm ]]; then
-    if grep -n 'pam_gnome_keyring' /etc/pam.d/sddm; then
-        echo "Unexpected pam_gnome_keyring hook remains" >&2
+    if grep -nE '^(-)?(auth|password).*pam_gnome_keyring\.so' /etc/pam.d/sddm; then
+        echo "Unexpected pam_gnome_keyring auth/password hook remains" >&2
         exit 1
     fi
-    echo "SDDM PAM keyring hooks removed"
+    echo "SDDM PAM keyring auth/password hooks removed"
 fi
 ```
+
+The `session ... pam_gnome_keyring.so auto_start` hook may remain. It starts the
+Secret Service daemon but does not give it the Greeter password.
 
 ## 6. Enable the session SSH agent
 
@@ -140,11 +143,41 @@ ls -la ~/.local/share/keyrings
 ssh-add -L
 ```
 
-Open Seahorse and confirm that the existing credentials you need are still
-visible. Test a Git operation that uses one of those credentials. If an old
-encrypted `Login` keyring contains credentials, unlock it with its existing
-password and move only the required items to the default keyring; keep the
-backup and old keyring until the applications have been verified.
+## 8. Migrate secrets from an old Login keyring
+
+This step applies when login shows an "Authentication required" prompt saying
+that the `Login` keyring did not get unlocked. That prompt does not mean the
+new default keyring failed. An application requested a secret that still lives
+in the old encrypted `Login` keyring. SDDM no longer passes the login password
+to that keyring, so it must be unlocked manually until its required secrets
+have been moved.
+
+Do not delete `login.keyring` to silence the prompt. It may contain application
+credentials that have not been copied elsewhere.
+
+1. Open **Passwords and Keys** (`seahorse`).
+2. Under **Passwords**, find both **Login** and **Default keyring**.
+3. Unlock **Login** with the password that previously unlocked it. This is
+   normally the account password in use when the keyring was created, which
+   may be an older password.
+4. Inspect the items in **Login**. For each credential you still need, move or
+   copy it to **Default keyring**. Seahorse versions differ: drag the item onto
+   **Default keyring** when supported; otherwise note which application owns
+   it, delete only that individual item, and let the application save it again
+   into the current default keyring.
+5. Close and reopen each affected application. Confirm that it still has its
+   credential and does not request the **Login** keyring.
+6. Log out and log back in. Confirm that the Login-keyring prompt no longer
+   appears.
+7. Keep the backup and `login.keyring` for several login cycles. Remove the old
+   keyring through Seahorse only after every affected application has been
+   tested. Removing it is optional; an unused old keyring does not need to be
+   deleted.
+
+If the old password is unknown, restore access application by application.
+Sign in again or recreate each credential so it is stored in **Default
+keyring**. The encrypted contents of `login.keyring` cannot be migrated without
+its password.
 
 ## Rollback
 
