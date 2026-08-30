@@ -342,10 +342,10 @@ test("the Idle Ladder reads box timings and respects compositor inhibitors", () 
         "the devbox file must be able to override one Stage without replacing the shared data");
     assert.match(shell, /function activateIdleConfig\(\): void \{[\s\S]*idleDefaultsReady[\s\S]*idleOverrideReady[\s\S]*Idle\.initial\(root\.idleTimings\)[\s\S]*idleConfigReady\s*=\s*true/,
         "the ladder state and monitors must use merged shared and box timings");
-    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.dim[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.dim/);
-    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.lock[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.lock/);
-    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.blank[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.blank/);
-    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.suspend[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.suspend/);
+    assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.dim[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.dim/);
+    assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.lock[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.lock/);
+    assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.blank[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.blank/);
+    assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.suspend[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.suspend/);
     assert.match(shell, /id: idleDefaultsFile[\s\S]*path:\s*Quickshell\.shellPath\("idle\.json"\)/,
         "the shared timing data must be loaded separately from the box override");
     assert.match(shell, /Loader\s*\{[\s\S]*active:\s*root\.idleConfigReady\s*&&/,
@@ -378,6 +378,23 @@ test("the Idle Ladder restores exact brightness and refreshes the Bar cache", ()
         "the Bar must refresh after hardware restoration finishes");
     assert.match(shell, /qs[^\n]*-c[^\n]*dotfiles[^\n]*brightness[^\n]*refresh/);
     assert.match(bar, /target:\s*"brightness"[\s\S]*function refresh\(\): void[\s\S]*BacklightService\.refresh\(\)/);
+});
+
+test("Stay Awake suppresses the Idle Ladder and resets its timer when released", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+    const statePath = shell.match(/stayAwakeStatePath:[\s\S]*stay-awake/);
+
+    assert.ok(statePath, "the lock must read the persisted Stay Awake toggle");
+    assert.match(shell, /stayAwakeStateProbe[\s\S]*mkdir -p[\s\S]*stayAwakeStatePath/);
+    assert.match(shell, /stayAwakeStateLoaded/);
+    assert.match(shell, /onRead:[\s\S]*root\.stayAwake[\s\S]*root\.stayAwakeStateLoaded\s*=\s*true/);
+    assert.match(shell, /stayAwakeStateDirWatcher[\s\S]*path:\s*root\.stayAwakeStateDir[\s\S]*watchChanges:\s*true/);
+    assert.match(shell, /onFileChanged:\s*if \(!stayAwakeStateProbe\.running\) stayAwakeStateProbe\.running\s*=\s*true/);
+    assert.match(shell, /onStayAwakeChanged:[\s\S]*dimArmTimer\.stop\(\)[\s\S]*suspendArmTimer\.stop\(\)[\s\S]*leaveIdleStages\(\)[\s\S]*Idle\.initial\(root\.idleTimings\)/);
+    assert.match(shell, /active:\s*root\.idleConfigReady\s*&&\s*root\.stayAwakeStateLoaded\s*&&\s*!root\.stayAwake\s*&&\s*idleTimings\.dim/);
+    assert.match(shell, /active:\s*root\.idleConfigReady\s*&&\s*root\.stayAwakeStateLoaded\s*&&\s*!root\.stayAwake\s*&&\s*idleTimings\.lock/);
+    assert.match(shell, /active:\s*root\.idleConfigReady\s*&&\s*root\.stayAwakeStateLoaded\s*&&\s*!root\.stayAwake\s*&&\s*idleTimings\.blank/);
+    assert.match(shell, /active:\s*root\.idleConfigReady\s*&&\s*root\.stayAwakeStateLoaded\s*&&\s*!root\.stayAwake\s*&&\s*idleTimings\.suspend/);
 });
 
 test("the Idle Ladder uses Hyprland's Lua dispatcher API for display blanking", () => {

@@ -455,6 +455,22 @@ PopupWindow {
                             }
 
                             Tile {
+                                id: stayAwakeTile
+
+                                visible: true
+                                width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
+
+                                icon: "󰒲"
+                                label: "Stay Awake"
+                                active: StayAwakeState.enabled
+                                busy: StayAwakeState.busy
+                                chevronVisible: false
+
+                                onClicked: StayAwakeState.toggle()
+                            }
+
+                            Tile {
                                 id: bluetoothTile
 
                                 visible: root.bluetoothAvailable

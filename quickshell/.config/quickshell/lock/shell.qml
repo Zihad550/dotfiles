@@ -56,6 +56,10 @@ ShellRoot {
     property bool idleDefaultsReady: false
     property bool idleOverrideReady: false
     property bool idleConfigReady: false
+    property bool stayAwake: false
+    property bool stayAwakeStateLoaded: false
+    readonly property string stayAwakeStateDir: `${Quickshell.env("HOME")}/.local/state/dotfiles/toggles`
+    readonly property string stayAwakeStatePath: `${root.stayAwakeStateDir}/stay-awake`
     readonly property var idleTimings: ({
         dim: idleConfig.dim !== undefined ? idleConfig.dim : idleDefaults.dim,
         lock: idleConfig.lock !== undefined ? idleConfig.lock : idleDefaults.lock,
@@ -67,7 +71,7 @@ ShellRoot {
     property var sleepState: Sleep.initial()
 
     function enterIdleStages(elapsedSeconds: int): void {
-        if (!root.idleConfigReady)
+        if (!root.idleConfigReady || !root.stayAwakeStateLoaded)
             return;
 
         const transition = Idle.advance(root.idleState, elapsedSeconds, false);
@@ -134,6 +138,20 @@ ShellRoot {
 
         root.idleState = Idle.initial(root.idleTimings);
         root.idleConfigReady = true;
+    }
+
+    // Stay Awake owns the idle policy, so changing it is a fresh idle cycle.
+    // Unwinding first restores any brightness or DPMS state the ladder changed.
+    onStayAwakeChanged: {
+        if (!root.idleConfigReady || !root.stayAwakeStateLoaded)
+            return;
+
+        dimArmTimer.stop();
+        lockArmTimer.stop();
+        blankArmTimer.stop();
+        suspendArmTimer.stop();
+        root.leaveIdleStages();
+        root.idleState = Idle.initial(root.idleTimings);
     }
 
     function refreshBarBrightness(): void {
@@ -375,6 +393,29 @@ ShellRoot {
     }
 
     Process {
+        id: stayAwakeStateProbe
+
+        command: ["bash", "-c", "mkdir -p \"$1\" && if [[ -f \"$2\" ]]; then echo yes; else echo no; fi",
+            "bash", root.stayAwakeStateDir, root.stayAwakeStatePath]
+        stdout: SplitParser {
+            onRead: line => {
+                root.stayAwake = String(line).trim() === "yes";
+                root.stayAwakeStateLoaded = true;
+            }
+        }
+        onExited: stayAwakeStateDirWatcher.reload()
+    }
+
+    FileView {
+        id: stayAwakeStateDirWatcher
+
+        path: root.stayAwakeStateDir
+        watchChanges: true
+        printErrors: false
+        onFileChanged: if (!stayAwakeStateProbe.running) stayAwakeStateProbe.running = true
+    }
+
+    Process {
         id: brightnessProcess
 
         onExited: {
@@ -486,22 +527,22 @@ ShellRoot {
 
     Loader {
         id: dimMonitor
-        active: root.idleConfigReady && idleTimings.dim !== null && idleTimings.dim !== undefined
+        active: root.idleConfigReady && root.stayAwakeStateLoaded && !root.stayAwake && idleTimings.dim !== null && idleTimings.dim !== undefined
         sourceComponent: StageMonitor { seconds: idleTimings.dim; armTimer: dimArmTimer }
     }
     Loader {
         id: lockMonitor
-        active: root.idleConfigReady && idleTimings.lock !== null && idleTimings.lock !== undefined
+        active: root.idleConfigReady && root.stayAwakeStateLoaded && !root.stayAwake && idleTimings.lock !== null && idleTimings.lock !== undefined
         sourceComponent: StageMonitor { seconds: idleTimings.lock; armTimer: lockArmTimer }
     }
     Loader {
         id: blankMonitor
-        active: root.idleConfigReady && idleTimings.blank !== null && idleTimings.blank !== undefined
+        active: root.idleConfigReady && root.stayAwakeStateLoaded && !root.stayAwake && idleTimings.blank !== null && idleTimings.blank !== undefined
         sourceComponent: StageMonitor { seconds: idleTimings.blank; armTimer: blankArmTimer }
     }
     Loader {
         id: suspendMonitor
-        active: root.idleConfigReady && idleTimings.suspend !== null && idleTimings.suspend !== undefined
+        active: root.idleConfigReady && root.stayAwakeStateLoaded && !root.stayAwake && idleTimings.suspend !== null && idleTimings.suspend !== undefined
         sourceComponent: StageMonitor { seconds: idleTimings.suspend; armTimer: suspendArmTimer }
     }
 
@@ -622,6 +663,7 @@ ShellRoot {
         // that were registered when it asked.
         sleepInhibitor.acquire();
         sleepMonitor.running = true;
+        stayAwakeStateProbe.running = true;
 
         // This instance holds no lock -- but a previous one may have died still
         // holding one, and the compositor keeps that up. startupText() decides

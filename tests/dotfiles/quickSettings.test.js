@@ -26,6 +26,20 @@ test("Primary surface keeps the finished hierarchy and spatial Tile navigation",
     assert.match(audioPage, /reconnectTimer\.stop\(\)[\s\S]*sinkList\.running\s*=\s*false/);
 });
 
+test("Stay Awake is a persistent, visible Tile in the primary surface", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const state = source("StayAwakeState.qml");
+
+    assert.match(quickSettings, /StayAwakeState\.enabled/);
+    assert.match(quickSettings, /id:\s*stayAwakeTile[\s\S]*visible:\s*true[\s\S]*label:\s*"Stay Awake"[\s\S]*active:\s*StayAwakeState\.enabled[\s\S]*busy:\s*StayAwakeState\.busy[\s\S]*onClicked:\s*StayAwakeState\.toggle\(\)/);
+    assert.match(state, /togglePath:\s*`\$\{root\.togglesDir\}\/stay-awake`/);
+    assert.match(state, /watchChanges:\s*true/);
+    assert.match(state, /onLoaded:\s*root\.enabled\s*=\s*true/);
+    assert.match(state, /onLoadFailed:\s*root\.enabled\s*=\s*false/);
+    assert.match(state, /mkdir -p[\s\S]*touch/);
+    assert.match(state, /rm[\s\S]*root\.togglePath/);
+});
+
 test("Quick Settings exposes laptop battery state and immediate header actions", () => {
     const quickSettings = source("modules/QuickSettings.qml");
 
