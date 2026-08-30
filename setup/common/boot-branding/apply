@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BRANDING_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+# shellcheck disable=SC1091
+source "$BRANDING_DIR/lib"
+commit_boot_branding "$BRANDING_DIR/plymouth"

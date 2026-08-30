@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if (( $# != 3 )); then
+	echo "Usage: df-boot-branding-set <background-hex> <foreground-hex> <logo.png>" >&2
+	exit 1
+fi
+
+background="${1#\#}"
+foreground="${2#\#}"
+logo="$3"
+[[ $background =~ ^[[:xdigit:]]{6}$ ]] || {
+	echo "Boot Branding: invalid background color: $1 (expected #RRGGBB)" >&2
+	exit 1
+}
+[[ $foreground =~ ^[[:xdigit:]]{6}$ ]] || {
+	echo "Boot Branding: invalid foreground color: $2 (expected #RRGGBB)" >&2
+	exit 1
+}
+[[ -f $logo ]] || {
+	echo "Boot Branding: logo file not found: $logo" >&2
+	exit 1
+}
+[[ ! -L $logo ]] || {
+	echo "Boot Branding: logo file is a symlink, which is not accepted: $logo" >&2
+	exit 1
+}
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+BRANDING_DIR="$DOTFILES_DIR/setup/common/boot-branding"
+GREETER_DIR="$DOTFILES_DIR/setup/common/greeter"
+# shellcheck disable=SC1091
+source "$BRANDING_DIR/lib"
+
+command -v magick >/dev/null 2>&1 || {
+	echo "Boot Branding: imagemagick's magick command is required" >&2
+	exit 1
+}
+identify_output=$(magick identify "$logo" 2>&1) || {
+	echo "Boot Branding: logo is not a readable image: $logo" >&2
+	exit 1
+}
+[[ $identify_output == *PNG* || $identify_output == *png* ]] || {
+	echo "Boot Branding: logo must be a PNG: $logo" >&2
+	exit 1
+}
+
+staging_dir=$(mktemp -d)
+trap 'rm -rf "$staging_dir"' EXIT
+plymouth_dir="$staging_dir/plymouth"
+sddm_dir="$staging_dir/sddm"
+cp -a --no-preserve=ownership "$BRANDING_DIR/plymouth/." "$plymouth_dir/"
+cp -a --no-preserve=ownership "$GREETER_DIR/omarchy/." "$sddm_dir/"
+cp "$logo" "$plymouth_dir/logo.png"
+cp "$logo" "$sddm_dir/logo.png"
+
+bg_r=$(awk -v n=$((16#${background:0:2})) 'BEGIN { printf "%.3f", n/255 }')
+bg_g=$(awk -v n=$((16#${background:2:2})) 'BEGIN { printf "%.3f", n/255 }')
+bg_b=$(awk -v n=$((16#${background:4:2})) 'BEGIN { printf "%.3f", n/255 }')
+sed -i \
+	-e "s/^Window.SetBackgroundTopColor.*/Window.SetBackgroundTopColor($bg_r, $bg_g, $bg_b);/" \
+	-e "s/^Window.SetBackgroundBottomColor.*/Window.SetBackgroundBottomColor($bg_r, $bg_g, $bg_b);/" \
+	"$plymouth_dir/omarchy.script"
+
+for asset in bullet.png entry.png lock.png progress_bar.png; do
+	magick "$plymouth_dir/$asset" -channel RGB +level-colors "#$foreground,#$foreground" \
+		"$plymouth_dir/$asset"
+done
+sed -i -e "s/#1a1b26/#$background/g" -e "s/#ffffff/#$foreground/g" "$sddm_dir/Main.qml"
+for asset in bullet.png entry.png lock.png; do
+	cp "$plymouth_dir/$asset" "$sddm_dir/$asset"
+done
+for asset in entry lock; do
+	magick "$plymouth_dir/$asset.png" -channel RGB +level-colors '#f7768e','#f7768e' \
+		"$sddm_dir/$asset-failed.png"
+done
+
+validate_assets "$plymouth_dir"
+"$GREETER_DIR/validate"
+commit_boot_branding "$plymouth_dir"
+
+sddm_target="$(root_path /usr/share/sddm/themes/omarchy)"
+as_root install -d -m 755 "$sddm_target"
+as_root cp -a --no-preserve=ownership "$sddm_dir/." "$sddm_target/"
+echo "Custom Boot Branding installed; initramfs and GRUB rebuilt"

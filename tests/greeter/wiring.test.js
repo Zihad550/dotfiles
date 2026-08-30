@@ -22,6 +22,7 @@ function source(relativePath) {
 const inits = ["setup/arch-devbox/init", "setup/arch-hyprland/init"];
 const greeterSetup = "setup/common/setup-greeter";
 const greeterRoot = "setup/common/greeter";
+const brandingRoot = "setup/common/boot-branding";
 const pinnedCommit = "83881e979b35468c3e7d60b171e319ede61a88fd";
 
 test("both boxes install the Greeter through the shared setup script", () => {
@@ -178,4 +179,57 @@ test("Boot Branding and the pinned Greeter decision are documented", () => {
     assert.match(newAdr, /Boot Branding/);
     assert.match(newAdr, new RegExp(pinnedCommit));
     assert.match(context, /\*\*Boot Branding\*\*/);
+});
+
+test("Boot Branding is installed before custom Greeter activation", () => {
+    const setup = source(greeterSetup);
+    const apply = source(`${brandingRoot}/apply`);
+    const lib = source(`${brandingRoot}/lib`);
+
+    assert.match(setup, /pacman -S[\s\S]*?--needed[\s\S]*?\bplymouth\b/);
+    assert.match(setup, /\bimagemagick\b/);
+    assert.ok(setup.indexOf("$BOOT_BRANDING_DIR/apply") < setup.indexOf("$GREETER_DIR/apply"),
+        "SDDM must not activate before the boot rebuild succeeds");
+    assert.match(lib, /plymouth-set-default-theme omarchy/);
+    assert.match(lib, /mkinitcpio -P/);
+    assert.match(lib, /grub-mkconfig -o/);
+    assert.match(lib, /greeter-backups/);
+    assert.match(lib, /rolling back/);
+    assert.match(apply, /commit_boot_branding/);
+});
+
+test("Boot Branding exposes guarded customization and recovery commands", () => {
+    const set = source("setup/common/boot-branding/set");
+    const setBin = source("bin/df-boot-branding-set");
+    const reset = source("bin/df-boot-branding-reset");
+    const provenance = source(`${brandingRoot}/PROVENANCE.md`);
+
+    assert.match(set, /\[\[:xdigit:\]\]\{6\}/);
+    assert.match(set, /-L \$logo/);
+    assert.match(set, /commit_boot_branding/);
+    assert.match(set, /sddm_target/);
+    assert.match(setBin, /boot-branding\/set/);
+    assert.match(reset, /boot-branding\/apply/);
+    assert.match(reset, /greeter\/apply/);
+    assert.doesNotMatch(reset, /systemctl (restart|stop|disable)|reboot/);
+    assert.match(provenance, new RegExp(pinnedCommit));
+    assert.match(provenance, /GRUB/);
+});
+
+test("the Plymouth theme contains the pinned upstream assets", () => {
+    const assets = {
+        "plymouth/bullet.png": "875ea8297db71415aeef2e03a5ccd67997a13c16f794d4e4929a9d669aaa7327",
+        "plymouth/entry.png": "494587957a28b0a69c7e1477a535f7a11d9b1790e9b7db7c77ed5fb231dfce4c",
+        "plymouth/lock.png": "36be04a15773170b656bdadfa129dc14695e296abed3ac62247e23dbf213d836",
+        "plymouth/logo.png": "ba8f1547a02ab5db64fe3923d0b834a220e2c3798c1674374a0eb92a18dfddfb",
+        "plymouth/omarchy.plymouth": "e53f4c2f1258b85c6a070219eb335c2970bbb56e9b7a57d2f9913af69a35ffbc",
+        "plymouth/omarchy.script": "7f4c1e615759eb72b0787e15b20d06a6b90aa460063227394390f4832322a0fe",
+    };
+
+    for (const [relativePath, expectedHash] of Object.entries(assets)) {
+        const filePath = path.join(repoRoot, brandingRoot, relativePath);
+        assert.strictEqual(fs.existsSync(filePath), true, `${relativePath} is vendored`);
+        const actualHash = crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+        assert.strictEqual(actualHash, expectedHash, `${relativePath} changed from the pin`);
+    }
 });

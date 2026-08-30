@@ -219,10 +219,19 @@ manual suspend remains available and idle suspend is absent.
 ## Greeter
 
 `setup-greeter` installs SDDM and removes the GDM these boxes used to run. It
-also installs the pinned Omarchy Boot Branding: the SDDM theme, its minimal
-Wayland compositor config, and the Qt6 runtime pieces that load them. The
-vendored source and its upstream pin live in [`greeter/`](greeter), so setup is
+first installs and rebuilds the pinned Omarchy Plymouth theme through the
+repository's existing GRUB and `mkinitcpio` configuration, then installs the
+SDDM theme, its minimal Wayland compositor config, and the Qt6 runtime pieces
+that load them. The vendored sources and their upstream pins live in
+[`greeter/`](greeter) and [`boot-branding/`](boot-branding), so setup is
 independent of the ignored `resources/omarchy` checkout.
+
+Boot setup rejects an unknown hook family or missing GRUB configuration before
+changing live files. It preserves existing hooks and kernel arguments, keeps a
+timestamped backup under `/var/lib/dotfiles/greeter-backups/`, and rolls back
+when either boot rebuild fails. `df-boot-branding-set` accepts six-digit RGB
+colors and a regular PNG logo, synchronizes Plymouth and SDDM, and rebuilds the
+boot artifacts. `df-boot-branding-reset` restores both pinned defaults.
 
 The order inside it is load-bearing: both units claim the
 `display-manager.service` alias, so gdm is disabled before sddm is enabled —

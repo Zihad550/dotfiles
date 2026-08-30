@@ -56,6 +56,9 @@ df-font-current                    # print current font
 
 df-greeter-refresh                 # reapply the pinned Omarchy SDDM Greeter
 df-greeter-reset                   # remove custom Greeter overrides (stock SDDM)
+df-boot-branding-set <bg> <fg> <logo.png>
+                                   # apply validated colors and logo to boot/login
+df-boot-branding-reset              # restore pinned Plymouth and Greeter defaults
 
 df-hypr-display-layout apply [variant]
                                    # restore the saved layout for the connected

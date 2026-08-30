@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BOOT_BRANDING_ROOT="${DF_BOOT_BRANDING_ROOT:-/}"
+BOOT_BRANDING_DIR="${DF_BOOT_BRANDING_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+
+root_path() {
+
+	local path="$1"
+	if [[ $BOOT_BRANDING_ROOT == / ]]; then
+		printf '%s\n' "$path"
+	else
+		printf '%s%s\n' "${BOOT_BRANDING_ROOT%/}" "$path"
+	fi
+}
+
+as_root() {
+	if [[ $BOOT_BRANDING_ROOT == / ]]; then
+		sudo "$@"
+	else
+		"$@"
+	fi
+}
+
+die() {
+	echo "Boot Branding: $*" >&2
+	return 1
+}
+
+validate_assets() {
+	local source_dir="${1:-$BOOT_BRANDING_DIR/plymouth}"
+	local required=(
+		bullet.png
+		entry.png
+		lock.png
+		logo.png
+		omarchy.plymouth
+		omarchy.script
+		preview-unlock.png
+		progress_bar.png
+		progress_box.png
+		logos/oma.png
+	)
+
+	local file
+	for file in "${required[@]}"; do
+		[[ -f "$source_dir/$file" ]] || die "missing Plymouth asset: $source_dir/$file"
+	done
+}
+
+transform_mkinitcpio() {
+	local input="$1" output="$2" line hooks hook found=0 has_plymouth=0 anchor=-1
+
+	: >"$output"
+	while IFS= read -r line || [[ -n $line ]]; do
+		if [[ $line =~ ^HOOKS=\((.*)\)$ ]]; then
+			(( found += 1 ))
+			read -r -a hooks <<<"${BASH_REMATCH[1]}"
+			for hook in "${hooks[@]}"; do
+				case "$hook" in
+					plymouth) has_plymouth=1 ;;
+					udev) [[ $anchor == -1 ]] && anchor=0 ;;
+					systemd) anchor=1 ;;
+				esac
+			done
+			if (( has_plymouth == 0 )); then
+				(( anchor >= 0 )) || {
+					die "unrecognized initramfs hook family in $input (expected udev or systemd)"
+					return 1
+				}
+				local -a updated=()
+				for hook in "${hooks[@]}"; do
+					updated+=("$hook")
+					if [[ ($anchor == 0 && $hook == udev) || ($anchor == 1 && $hook == systemd) ]]; then
+						updated+=(plymouth)
+					fi
+				done
+				printf 'HOOKS=(%s)\n' "${updated[*]}" >>"$output"
+			else
+				printf '%s\n' "$line" >>"$output"
+			fi
+		else
+			printf '%s\n' "$line" >>"$output"
+		fi
+	done <"$input"
+
+	(( found == 1 )) || die "expected one HOOKS=(...) line in $input"
+}
+
+transform_grub() {
+	local input="$1" output="$2" line args arg found=0 has_splash
+
+	: >"$output"
+	while IFS= read -r line || [[ -n $line ]]; do
+		if [[ $line =~ ^GRUB_CMDLINE_LINUX_DEFAULT=\"([^\"]*)\"$ ]]; then
+			(( found += 1 ))
+			args="${BASH_REMATCH[1]}"
+			has_splash=0
+			read -r -a grub_args <<<"$args"
+			for arg in "${grub_args[@]}"; do
+				[[ $arg == splash ]] && has_splash=1
+			done
+			if (( has_splash == 0 )); then
+				[[ -n $args ]] && args+=" "
+				args+=splash
+			fi
+			printf 'GRUB_CMDLINE_LINUX_DEFAULT="%s"\n' "$args" >>"$output"
+		else
+			printf '%s\n' "$line" >>"$output"
+		fi
+	done <"$input"
+
+	(( found == 1 )) || die "expected GRUB_CMDLINE_LINUX_DEFAULT=\"...\" in $input"
+}
+
+backup_path() {
+	local target="$1" relative backup
+	if [[ $BOOT_BRANDING_ROOT == / ]]; then
+		relative="${1#/}"
+	else
+		relative="${1#"${BOOT_BRANDING_ROOT%/}"}"
+		relative="${relative#/}"
+	fi
+	backup="$BOOT_BRANDING_BACKUP_DIR/$relative"
+
+	if [[ -e $target || -L $target ]]; then
+		as_root install -d -m 755 "$(dirname "$backup")"
+		as_root cp -a --no-preserve=ownership "$target" "$backup"
+		printf 'present %s\n' "$relative" |
+			as_root tee -a "$BOOT_BRANDING_BACKUP_DIR/manifest" >/dev/null
+	else
+		printf 'absent %s\n' "$relative" |
+			as_root tee -a "$BOOT_BRANDING_BACKUP_DIR/manifest" >/dev/null
+	fi
+}
+
+restore_backups() {
+	local status=0 state relative target backup
+	while read -r state relative; do
+		target="$(root_path "/$relative")"
+		backup="$BOOT_BRANDING_BACKUP_DIR/$relative"
+		if ! as_root rm -rf -- "$target"; then
+			echo "Boot Branding: rollback failed removing $target" >&2
+			status=1
+			continue
+		fi
+		if [[ $state == present ]] && ! as_root cp -a --no-preserve=ownership "$backup" "$target"; then
+			echo "Boot Branding: rollback failed restoring $target" >&2
+			status=1
+		fi
+	done <"$BOOT_BRANDING_BACKUP_DIR/manifest"
+	return "$status"
+}
+
+commit_boot_branding() {
+	local source_dir="$1" grub_conf mkinitcpio_conf grub_stage hooks_stage
+	local theme_target selector_target grub_output image
+
+	validate_assets "$source_dir"
+	grub_conf="$(root_path /etc/default/grub)"
+	mkinitcpio_conf="$(root_path /etc/mkinitcpio.conf)"
+	grub_output="$(root_path /boot/grub/grub.cfg)"
+	[[ -f $grub_conf ]] || die "expected GRUB configuration is missing: $grub_conf"
+	[[ -f $mkinitcpio_conf ]] || die "expected mkinitcpio configuration is missing: $mkinitcpio_conf"
+
+	grub_stage=$(mktemp)
+	hooks_stage=$(mktemp)
+	trap 'rm -f "$grub_stage" "$hooks_stage"' RETURN
+	transform_grub "$grub_conf" "$grub_stage"
+	transform_mkinitcpio "$mkinitcpio_conf" "$hooks_stage"
+
+	BOOT_BRANDING_BACKUP_DIR="$(root_path /var/lib/dotfiles/greeter-backups)/$(date +%Y%m%d-%H%M%S-%N)-$$"
+	as_root install -d -m 755 "$BOOT_BRANDING_BACKUP_DIR"
+	as_root install -m 644 /dev/null "$BOOT_BRANDING_BACKUP_DIR/manifest"
+	theme_target="$(root_path /usr/share/plymouth/themes/omarchy)"
+	selector_target="$(root_path /etc/plymouth/plymouthd.conf)"
+	backup_path "$grub_conf"
+	backup_path "$mkinitcpio_conf"
+	backup_path "$selector_target"
+	backup_path "$grub_output"
+	backup_path "$theme_target"
+	shopt -s nullglob
+	for image in "$(root_path /boot/)"initramfs*; do
+		backup_path "$image"
+	done
+	shopt -u nullglob
+
+	as_root install -d -m 755 "$(dirname "$grub_conf")" "$(dirname "$mkinitcpio_conf")"
+	as_root cp "$grub_stage" "$grub_conf"
+	as_root cp "$hooks_stage" "$mkinitcpio_conf"
+	as_root install -d -m 755 "$theme_target"
+	as_root cp -a --no-preserve=ownership "$source_dir/." "$theme_target/"
+	as_root install -Dm 644 "$BOOT_BRANDING_DIR/plymouthd.conf" "$selector_target"
+
+	if ! as_root plymouth-set-default-theme omarchy; then
+		echo "Boot Branding: selecting the Plymouth theme failed; rolling back" >&2
+		if ! restore_backups; then
+			echo "Boot Branding: rollback failures were reported above" >&2
+		fi
+		return 1
+	fi
+	if ! as_root mkinitcpio -P || ! as_root grub-mkconfig -o "$grub_output"; then
+		echo "Boot Branding: boot rebuild failed; rolling back" >&2
+		if ! restore_backups; then
+			echo "Boot Branding: rollback failures were reported above" >&2
+		fi
+		return 1
+	fi
+
+	echo "Boot Branding installed; initramfs and GRUB rebuilt"
+}

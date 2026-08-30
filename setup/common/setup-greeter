@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 
-# Install the pinned Greeter — SDDM plus Omarchy's small theme — and retire the
-# GDM this repo used to install.
+# Install the pinned Greeter and Boot Branding, then retire the GDM this repo
+# used to install.
 # See README.md "Greeter".
 
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 GREETER_DIR="$DOTFILES_DIR/setup/common/greeter"
+BOOT_BRANDING_DIR="$DOTFILES_DIR/setup/common/boot-branding"
 
 # These are explicit rather than relying on SDDM's transitive dependencies:
 # the Greeter launches a Wayland compositor, loads Qt6 QML, and decodes PNGs.
 sudo pacman -S --noconfirm --needed \
-	sddm qt6-wayland qt6-declarative qt6-imageformats ttf-jetbrains-mono-nerd
+	sddm plymouth imagemagick qt6-wayland qt6-declarative qt6-imageformats \
+	ttf-jetbrains-mono-nerd
+
+# Boot changes are validated and rebuilt before the display-manager alias is
+# changed. A failed rebuild therefore never activates a custom Greeter.
+"$BOOT_BRANDING_DIR/validate"
+"$BOOT_BRANDING_DIR/apply"
 
 # Validate and stage the replacement before changing the display-manager alias.
 # A broken Greeter must never be the first thing enabled on a box.
