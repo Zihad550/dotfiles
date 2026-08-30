@@ -338,8 +338,16 @@ test("the Idle Ladder reads box timings and respects compositor inhibitors", () 
     assert.match(shell, /path:\s*[^\n]*\.config\/df\/idle\.json/);
     assert.match(idleFileView[1], /watchChanges:\s*false/,
         "live timing reload can fire a newly enabled Stage from old compositor idle time");
-    assert.match(shell, /onLoaded:[\s\S]*root\.idleState\s*=\s*Idle\.initial\(root\.idleTimings\)[\s\S]*root\.idleConfigReady\s*=\s*true/,
-        "the ladder state and monitors must use loaded box timings");
+    assert.match(shell, /id: idleConfig[\s\S]*property var dim: undefined[\s\S]*property var lock: undefined[\s\S]*property var blank: undefined[\s\S]*property var suspend: undefined/,
+        "the devbox file must be able to override one Stage without replacing the shared data");
+    assert.match(shell, /function activateIdleConfig\(\): void \{[\s\S]*idleDefaultsReady[\s\S]*idleOverrideReady[\s\S]*Idle\.initial\(root\.idleTimings\)[\s\S]*idleConfigReady\s*=\s*true/,
+        "the ladder state and monitors must use merged shared and box timings");
+    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.dim[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.dim/);
+    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.lock[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.lock/);
+    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.blank[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.blank/);
+    assert.match(shell, /active: root\.idleConfigReady && idleTimings\.suspend[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.suspend/);
+    assert.match(shell, /id: idleDefaultsFile[\s\S]*path:\s*Quickshell\.shellPath\("idle\.json"\)/,
+        "the shared timing data must be loaded separately from the box override");
     assert.match(shell, /Loader\s*\{[\s\S]*active:\s*root\.idleConfigReady\s*&&/,
         "no compositor idle monitor may exist before asynchronous timing data is loaded");
     assert.doesNotMatch(idleFileView[1], /onFileChanged|reload\(\)/);
@@ -383,7 +391,7 @@ test("the Idle Ladder uses Hyprland's Lua dispatcher API for display blanking", 
         "a replacement process must recover a display blanked by its predecessor");
 });
 
-test("box timing data replaces hypridle and its devbox override machinery", () => {
+test("box timing data shares defaults and disables only devbox suspend", () => {
     const laptop = JSON.parse(source(`${lockRoot}/idle.json`));
     const devbox = JSON.parse(source("setup/arch-devbox/idle.json"));
     const packages = source("setup/arch-hyprland/setup-packages/setup-hyprland");
@@ -393,7 +401,14 @@ test("box timing data replaces hypridle and its devbox override machinery", () =
     const devboxInit = source("setup/arch-devbox/init");
 
     assert.deepStrictEqual(laptop, { dim: 120, lock: 1800, blank: 1830, suspend: 1860 });
-    assert.deepStrictEqual(devbox, { dim: null, lock: 1800, blank: 1830, suspend: null });
+    assert.deepStrictEqual(devbox, { suspend: null });
+    const shell = source(`${lockRoot}/shell.qml`);
+    assert.match(shell, /path:\s*Quickshell\.shellPath\("idle\.json"\)/,
+        "the shared timing file must remain the base for every box");
+    assert.match(shell, /idleConfig\.dim !== undefined \? idleConfig\.dim : idleDefaults\.dim/,
+        "a box override must merge onto the shared timing file");
+    assert.match(shell, /property var dim: 120[\s\S]*property var lock: 1800[\s\S]*property var blank: 1830[\s\S]*property var suspend: 1860/,
+        "the shared file's defaults must keep Dim, Lock, Blank and Suspend defined");
     assert.match(setup, /SOURCE=.*realpath/,
         "a relative source must not become a broken link relative to ~/.config/df");
     assert.match(setup, /mkdir -p "\$HOME\/\.config\/df"/);

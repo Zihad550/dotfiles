@@ -37,8 +37,9 @@ its own replacement is independent.
 
 The Session Lock and the Idle Ladder become Quickshell QML, in a Quickshell
 config of their own, drawing their colours from the same per-theme data the Bar
-and Launcher already read and their timings from a single configuration file
-that the devbox varies by shipping a different copy.
+and Launcher already read and their timings from a single configuration file.
+The devbox supplies a one-field override for that data rather than another
+complete timing file.
 
 The lock becomes a first-class participant in the session rather than a process
 spawned at it. It reports whether it is Secure, holds its own sleep inhibitor so
@@ -208,10 +209,12 @@ routing through the Bar's backlight service, which lives in another process and
 would fire an on-screen display as the screen dims. This leaves the Bar's cached
 brightness stale across a dim-and-restore, so it is refreshed on unlock.
 
-**Ladder timings are a data file the config reads, one per box.** The devbox
-ships a copy with its Suspend Stage disabled. The duplicated idle config, the
-systemd drop-in and the shared wrapper script that produced that difference are
-all removed.
+**Ladder timings are a data file the config reads, with small per-box
+overrides.** The shared file supplies Dim, Lock, Blank and Suspend. The devbox
+ships only `{ "suspend": null }`, so it keeps Dim, Lock and Blank while omitting
+idle-triggered suspend. Manual suspend remains a separate system action. The
+duplicated daemon config, systemd drop-in and wrapper script that produced that
+difference are all removed.
 
 **Stay Awake is a persisted toggle surfaced in Quick Settings**, suppressing the
 Idle Ladder only. Manual locking and manual suspend are unaffected.

@@ -53,12 +53,14 @@ ShellRoot {
 
     property bool strandedLockResolved: false
     property bool brightnessRestorePending: false
+    property bool idleDefaultsReady: false
+    property bool idleOverrideReady: false
     property bool idleConfigReady: false
     readonly property var idleTimings: ({
-        dim: idleConfig.dim,
-        lock: idleConfig.lock,
-        blank: idleConfig.blank,
-        suspend: idleConfig.suspend
+        dim: idleConfig.dim !== undefined ? idleConfig.dim : idleDefaults.dim,
+        lock: idleConfig.lock !== undefined ? idleConfig.lock : idleDefaults.lock,
+        blank: idleConfig.blank !== undefined ? idleConfig.blank : idleDefaults.blank,
+        suspend: idleConfig.suspend !== undefined ? idleConfig.suspend : idleDefaults.suspend
     })
     property var idleState: null
 
@@ -124,6 +126,14 @@ ShellRoot {
     function restoreBrightness(): void {
         brightnessProcess.command = ["brightnessctl", "--class=backlight", "-r"];
         brightnessProcess.running = true;
+    }
+
+    function activateIdleConfig(): void {
+        if (!root.idleDefaultsReady || !root.idleOverrideReady)
+            return;
+
+        root.idleState = Idle.initial(root.idleTimings);
+        root.idleConfigReady = true;
     }
 
     function refreshBarBrightness(): void {
@@ -324,24 +334,43 @@ ShellRoot {
     }
 
     FileView {
-        id: idleConfigFile
+        id: idleDefaultsFile
 
-        path: `${Quickshell.env("HOME")}/.config/df/idle.json`
-        // Live changes can fire a Stage from idle accumulated under the old config.
-        // Restarting the unlocked process is the safe configuration boundary.
+        path: Quickshell.shellPath("idle.json")
         watchChanges: false
         onLoaded: {
-            root.idleState = Idle.initial(root.idleTimings);
-            root.idleConfigReady = true;
+            root.idleDefaultsReady = true;
+            root.activateIdleConfig();
         }
 
         JsonAdapter {
-            id: idleConfig
+            id: idleDefaults
 
             property var dim: 120
             property var lock: 1800
             property var blank: 1830
             property var suspend: 1860
+        }
+    }
+
+    FileView {
+        id: idleConfigFile
+
+        path: `${Quickshell.env("HOME")}/.config/df/idle.json`
+        watchChanges: false
+        onLoaded: {
+            root.idleOverrideReady = true;
+            root.activateIdleConfig();
+        }
+
+        JsonAdapter {
+            id: idleConfig
+
+            // Box files override only the stage that differs from the shared data.
+            property var dim: undefined
+            property var lock: undefined
+            property var blank: undefined
+            property var suspend: undefined
         }
     }
 
@@ -457,23 +486,23 @@ ShellRoot {
 
     Loader {
         id: dimMonitor
-        active: root.idleConfigReady && idleConfig.dim !== null && idleConfig.dim !== undefined
-        sourceComponent: StageMonitor { seconds: idleConfig.dim; armTimer: dimArmTimer }
+        active: root.idleConfigReady && idleTimings.dim !== null && idleTimings.dim !== undefined
+        sourceComponent: StageMonitor { seconds: idleTimings.dim; armTimer: dimArmTimer }
     }
     Loader {
         id: lockMonitor
-        active: root.idleConfigReady && idleConfig.lock !== null && idleConfig.lock !== undefined
-        sourceComponent: StageMonitor { seconds: idleConfig.lock; armTimer: lockArmTimer }
+        active: root.idleConfigReady && idleTimings.lock !== null && idleTimings.lock !== undefined
+        sourceComponent: StageMonitor { seconds: idleTimings.lock; armTimer: lockArmTimer }
     }
     Loader {
         id: blankMonitor
-        active: root.idleConfigReady && idleConfig.blank !== null && idleConfig.blank !== undefined
-        sourceComponent: StageMonitor { seconds: idleConfig.blank; armTimer: blankArmTimer }
+        active: root.idleConfigReady && idleTimings.blank !== null && idleTimings.blank !== undefined
+        sourceComponent: StageMonitor { seconds: idleTimings.blank; armTimer: blankArmTimer }
     }
     Loader {
         id: suspendMonitor
-        active: root.idleConfigReady && idleConfig.suspend !== null && idleConfig.suspend !== undefined
-        sourceComponent: StageMonitor { seconds: idleConfig.suspend; armTimer: suspendArmTimer }
+        active: root.idleConfigReady && idleTimings.suspend !== null && idleTimings.suspend !== undefined
+        sourceComponent: StageMonitor { seconds: idleTimings.suspend; armTimer: suspendArmTimer }
     }
 
     // Omarchy shell/plugins/lock/Service.qml,

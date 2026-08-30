@@ -217,17 +217,20 @@ Then log out and back in. Confirm the lock works before you walk away from it:
 
     hyprlock            # from the graphical session, not the console
 
-## 5. On the devbox
+## 5. On the devbox after a rollback
 
-The devbox runs the ladder without its Suspend Stage. After a revert it needs
-the drop-in back as well, or it suspends a machine you reach over the network:
+The live Session Lock uses the shared timing data plus the devbox's one-field
+`suspend: null` override; it has no daemon-specific drop-in. If you reverted to
+the old daemons in section 4, restore that old override as well, or the daemon
+will suspend a machine you reach over the network:
 
     ~/dotfiles/setup/common/setup-hypridle-no-suspend \
         ~/dotfiles/setup/arch-devbox/hypridle.conf
     systemctl --user status hypridle.service
 
-The script writes `~/.config/systemd/user/hypridle.service.d/override.conf`,
-reloads and restarts the unit itself.
+The restored script writes `~/.config/systemd/user/hypridle.service.d/override.conf`,
+then reloads and restarts the restored unit itself. That drop-in belongs only to
+this rollback path; the live Idle Ladder has no daemon unit to rewrite.
 
 ## Verification
 

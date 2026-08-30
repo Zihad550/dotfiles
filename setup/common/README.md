@@ -212,8 +212,9 @@ repeated failed suspend attempts. A detached monitor can expose the lid path: a
 closed laptop changes from docked to undocked, then follows `HandleLidSwitch`
 instead of `HandleLidSwitchDocked`.
 
-The devbox's `idle.json` is the narrower control. Its Suspend Stage is `null`,
-so manual suspend remains available while idle suspend is absent.
+The devbox's `idle.json` is a one-field override of the shared timing data. Its
+Suspend Stage is `null`, so Dim, Lock and Blank keep their shared timings while
+manual suspend remains available and idle suspend is absent.
 
 ## Greeter
 

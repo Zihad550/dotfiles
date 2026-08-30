@@ -63,7 +63,7 @@ so a fix there lands on both targets.
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
 | `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
-| `idle.json` | devbox Idle Ladder timings — Lock and Blank, no Dim or Suspend |
+| `idle.json` | one-field Idle Ladder override — no Suspend Stage; shared Dim, Lock and Blank remain |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
 | `docker` | rootless docker via [`../common/setup-rootless-docker`](../common/setup-rootless-docker), called directly (no local wrapper) — an AI harness box shouldn't hand a compromised container a root-owned daemon |
@@ -763,23 +763,21 @@ The three suspend paths and why systemd's sleep targets are the boundary live in
 the Idle Ladder is present, and a detached monitor can change which logind lid
 policy applies.
 
-Confirm it took:
-
-```bash
-systemctl suspend    # must fail: "Unit suspend.target is masked"
-```
-
-That one command proves all three sources are dead. Masking is immediate;
-the lid settings need a reboot, which `init` offers when it finishes.
+Confirm it took by inspecting `~/.config/df/idle.json`: it contains only
+`{ "suspend": null }`. The Session Lock merges that override onto the shared
+timings, so the devbox still dims, locks and blanks. Manual `systemctl suspend`
+remains available. The opt-in `setup-no-sleep` script is the separate mechanism
+that masks sleep targets and changes that policy; its lid settings need a reboot.
 
 ### the Idle Ladder gets box timings
 
-The laptop and devbox each link their timing data to `~/.config/df/idle.json`
-during `init`, outside the folded Quickshell stow tree. This box selects
-[`idle.json`](idle.json). Lock and Blank retain their shared times. Dim and
-Suspend are `null`, so a detached devbox neither dims hardware that may not
-exist nor suspends itself out of SSH reach. The lock reads the file at startup;
-changing it takes effect after `df-qs-restart lock` or the next login.
+The laptop links the shared timing data to `~/.config/df/idle.json` during
+`init`, outside the folded Quickshell stow tree. The devbox selects its
+[`idle.json`](idle.json) override at the same path. Quickshell's timing defaults
+merge the override onto the shared Dim, Lock, Blank and Suspend values; the one
+explicit `null` removes only the Suspend Stage. The lock reads both files at
+startup, so changing them takes effect after `df-qs-restart lock` or the next
+login.
 
 Reverse it with `sudo systemctl unmask sleep.target suspend.target
 hibernate.target hybrid-sleep.target`. On a laptop this does mean the battery
@@ -791,9 +789,9 @@ runs flat instead of suspending.
 sit at (the desktop, not the headless case) masking `sleep.target` also kills
 *manual* suspend: a keybind or `systemctl suspend` resolves to the same masked
 target as the idle timer, so there's no way to distinguish "the timer fired"
-from "I asked for this." The devbox timing file distinguishes them by omitting
-only the Idle Ladder's Suspend Stage. To restore that link without changing
-system sleep policy, run:
+from "I asked for this." The devbox timing override distinguishes them by
+omitting only the Idle Ladder's Suspend Stage. To restore that link without
+changing system sleep policy, run:
 
 ```bash
 ~/dotfiles/setup/common/setup-idle-ladder ~/dotfiles/setup/arch-devbox/idle.json

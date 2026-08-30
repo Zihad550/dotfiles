@@ -55,11 +55,11 @@ test("application inhibition suppresses the whole ladder", () => {
         [Idle.DIM, Idle.LOCK, Idle.BLANK, Idle.SUSPEND]);
 });
 
-test("a disabled Stage is absent without changing the other timings", () => {
-    const devbox = { dim: null, lock: 1800, blank: 1830, suspend: null };
+test("a partial box override preserves shared Stages and disables Suspend", () => {
+    const devbox = { ...timings, suspend: null };
     const transition = Idle.advance(Idle.initial(devbox), 2000, false);
 
-    assert.deepStrictEqual(transition.entered, [Idle.LOCK, Idle.BLANK]);
+    assert.deepStrictEqual(transition.entered, [Idle.DIM, Idle.LOCK, Idle.BLANK]);
 });
 
 test("invalid or unordered timings are rejected", () => {
