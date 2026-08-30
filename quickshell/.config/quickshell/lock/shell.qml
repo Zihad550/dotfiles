@@ -131,10 +131,7 @@ ShellRoot {
     }
 
     // Suspend waits for Secure because this process is what logind is waiting
-    // for: it holds a delay inhibitor from startup, locks when logind announces
-    // sleep, and releases the inhibitor once the compositor calls the session
-    // Secure. See docs/adr/0016-lock-holds-its-own-sleep-inhibitor.md for why
-    // the upstream's external watcher and IPC budget are not imported.
+    // for (ADR 0016).
     function onSleepAnnounced(): void {
         const next = Sleep.announce(root.sleepState);
         if (next === root.sleepState)
@@ -176,10 +173,13 @@ ShellRoot {
     }
 
     // The suspend already happened, so the only place anyone can be told is the
-    // screen they come back to -- and while the session is locked that screen is
-    // the lock, which the Bar's notification popup cannot render over.
+    // screen they come back to -- and while surfaces are up that screen is the
+    // lock, which the Bar's notification popup cannot render over. The question
+    // is what covers the screens, not whether a lock was asked for: a lock that
+    // was never granted holds `requested` forever, and that is the very case
+    // this notice exists to report.
     function reportUnsecuredSuspend(): void {
-        if (!Sleep.noticePending(root.sleepState) || Session.isLocked(root.session))
+        if (!Sleep.noticePending(root.sleepState) || Session.coversScreens(root.session))
             return;
 
         root.sleepState = Sleep.takeNotice(root.sleepState);
@@ -236,7 +236,6 @@ ShellRoot {
         pendingSessionLockTimer.stop();
         root.session = Session.release(root.session);
         root.refreshBarBrightness();
-        root.reportUnsecuredSuspend();
     }
 
     function syncFromCompositor(): void {
@@ -246,6 +245,10 @@ ShellRoot {
     onSessionChanged: {
         root.publish();
         root.settleSleep();
+
+        // Every uncovering is a transition, unlocking among them, so this is
+        // the one place that sees all of them.
+        root.reportUnsecuredSuspend();
     }
 
     // The two published signals ADR 0017 keeps apart, written where a
@@ -355,12 +358,8 @@ ShellRoot {
         }
     }
 
-    // The inhibitor itself: logind holds its delay open for as long as this
-    // process lives, and this process lives as long as the lock does. `head -n 1`
-    // is how it is released -- a line on stdin ends the child, systemd-inhibit
-    // reaps it, and the inhibitor's file descriptor closes with it. Signalling
-    // systemd-inhibit instead would leave the child running, and stdin closing
-    // when this shell dies releases the inhibitor for free.
+    // logind holds its delay open for as long as this process lives; a line on
+    // stdin is what ends it. See ADR 0016, "How the Sleep Inhibitor is held".
     Process {
         id: sleepInhibitor
 
@@ -394,11 +393,8 @@ ShellRoot {
     }
 
     // logind's announcement: PrepareForSleep, true on the way down and false on
-    // the way back. Quickshell has no logind binding, and `dbus-monitor` is not
-    // the way to read one unprivileged -- it needs BecomeMonitor and falls back
-    // to eavesdropping, both of which the system bus refuses to a user. `gdbus
-    // monitor` takes an ordinary match instead, which is what every desktop
-    // uses to see this signal.
+    // the way back. `gdbus`, not `dbus-monitor` -- see ADR 0016, "How the Sleep
+    // Inhibitor is held".
     Process {
         id: sleepMonitor
 

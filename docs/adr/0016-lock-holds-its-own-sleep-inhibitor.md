@@ -29,6 +29,35 @@ the window expires whether the session is Secure or not, and the default window
 is too short when closing the lid also reconfigures displays. That drop-in is
 imported unchanged, along with the upstream's assertion on its value.
 
+## How the Sleep Inhibitor is held
+
+Three mechanics in the lock config are not obvious from its code, and all
+three were arrived at by testing rather than by reading.
+
+**The inhibitor is a child process holding a file descriptor, released by a
+line on its stdin.** `systemd-inhibit` keeps logind's delay open for as long as
+it lives, so the lock runs `systemd-inhibit … head -n 1` and writes a newline
+to release it. Signalling `systemd-inhibit` instead would end the inhibitor but
+leave its child running, orphaned. Reading stdin also means the inhibitor is
+released for free when the lock exits: the descriptor closes, `head` sees EOF,
+and the machine is no longer waiting for a process that is gone.
+
+**logind's announcement is read with `gdbus monitor`, not `dbus-monitor`.** The
+latter needs `BecomeMonitor`, which the system bus refuses to an ordinary user,
+and its fallback — eavesdropping — is refused too. It prints that refusal on
+stderr and then sees nothing, which is the worst available failure: a sleep
+path that looks wired up and is not. `gdbus monitor` subscribes with an
+ordinary match, which is what every desktop uses to see this signal, and was
+confirmed unprivileged on an Arch box before being relied on.
+
+**The wait ends on a resume as well as on the budget.** logind's window is
+whatever logind currently thinks it is, which is its 5s default until the
+drop-in is both installed and loaded by a reboot. If a resume arrives while the
+lock is still securing, logind stopped waiting and slept regardless, so that is
+reported exactly as an expired budget is. This is why the budget is not derived
+from logind's live window the way the upstream derives it: the outcome that
+matters is observable directly, and needs no estimate.
+
 ## Consequences
 
 The lid is where this decision is most likely to show strain, since lid

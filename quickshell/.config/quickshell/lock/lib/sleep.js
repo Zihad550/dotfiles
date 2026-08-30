@@ -54,8 +54,17 @@ function expire(state) {
     return { phase: RELEASED, unsecuredNotice: true };
 }
 
+// A resume arriving while the lock is still securing means logind stopped
+// waiting for us and slept anyway -- its window is shorter than the one the
+// drop-in asks for, or it has not reloaded that drop-in yet. The session was
+// exposed exactly as an expired budget would have left it, so it is reported
+// the same way. An aborted suspend reaches here too and is reported as well:
+// this is the direction to be wrong in.
 function resume(state) {
-    return { phase: HOLDING, unsecuredNotice: state.unsecuredNotice };
+    return {
+        phase: HOLDING,
+        unsecuredNotice: state.unsecuredNotice || awaitingSecure(state)
+    };
 }
 
 function holdsInhibitor(state) {

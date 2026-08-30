@@ -473,10 +473,12 @@ test("the wait for Secure is bounded, and a suspend without it is reported", () 
         "logind suspends when its own window expires either way");
     assert.match(shell, /notify-send[\s\S]*--urgency=critical/,
         "the suspend already happened; the notification is the only way anyone finds out");
-    assert.match(shell, /function reportUnsecuredSuspend\(\): void \{[\s\S]*Session\.isLocked\(root\.session\)/,
-        "the Bar's notification popup cannot render over the lock, so the notice waits for the "
-        + "screen the session is unlocked into");
-    assert.match(shell, /function unlock\(\): void \{[\s\S]*root\.reportUnsecuredSuspend\(\)/);
+    assert.match(shell, /function reportUnsecuredSuspend\(\): void \{[\s\S]*Session\.coversScreens\(root\.session\)/,
+        "the Bar's notification popup cannot render over the lock, so the notice waits for a "
+        + "screen with nothing over it -- and a lock that was never granted holds `requested` "
+        + "forever, which is the case this notice exists to report");
+    assert.match(shell, /onSessionChanged:\s*\{[\s\S]*root\.reportUnsecuredSuspend\(\)/,
+        "every uncovering is a session transition, unlocking among them");
     assert.match(shell, /function onSleepFinished\(\): void \{[\s\S]*root\.reportUnsecuredSuspend\(\)/,
         "a session that never locked at all is unlocked at the resume, and nothing later would "
         + "deliver the notice");

@@ -73,6 +73,23 @@ test("a lock that secures after the deadline does not un-notify", () => {
         + "whatever was on the screen in between");
 });
 
+test("a resume while still securing is a suspend that beat the lock", () => {
+    const state = Sleep.resume(Sleep.announce(Sleep.initial()));
+
+    assert.strictEqual(Sleep.noticePending(state), true,
+        "logind stopped waiting and slept anyway, which is the same exposure an expired "
+        + "budget leaves -- its window can be shorter than the one the drop-in asks for, and "
+        + "is until the reboot that loads it");
+    assert.strictEqual(Sleep.holdsInhibitor(state), true);
+});
+
+test("a resume from a released inhibitor reports nothing new", () => {
+    const state = Sleep.resume(Sleep.secured(Sleep.announce(Sleep.initial())));
+
+    assert.strictEqual(Sleep.noticePending(state), false,
+        "the machine slept over a Secure session and came back; nothing happened");
+});
+
 test("resuming takes the inhibitor again, and keeps what has not been reported", () => {
     let state = Sleep.expire(Sleep.announce(Sleep.initial()));
     state = Sleep.resume(state);

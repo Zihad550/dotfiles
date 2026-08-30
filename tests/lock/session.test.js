@@ -40,6 +40,18 @@ test("the compositor confirming the surfaces is what makes it Secure", () => {
     assert.strictEqual(Session.fileText(state), "secure\n");
 });
 
+test("a lock nothing accepted covers no screen, however locked it counts as", () => {
+    const requested = Session.request(Session.initial());
+
+    assert.strictEqual(Session.isLocked(requested), true);
+    assert.strictEqual(Session.coversScreens(requested), false,
+        "a lock stays `requested` for as long as no screen exists to take it, and anything "
+        + "that has to be seen would otherwise wait behind it forever");
+    assert.strictEqual(Session.coversScreens(Session.observe(requested, true, false)), true,
+        "the compositor holding the lock is what puts surfaces over the screens, Secure or not");
+    assert.strictEqual(Session.coversScreens(Session.initial()), false);
+});
+
 test("a second lock request while locked changes nothing", () => {
     const locked = Session.observe(Session.request(Session.initial()), true, true);
 

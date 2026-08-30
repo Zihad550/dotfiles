@@ -112,6 +112,15 @@ function isStranded(state, report) {
     return report === COMPOSITOR_LOCKED && !isLocked(state);
 }
 
+// Whether the compositor is actually covering the screens. Not the same
+// question as isLocked: a lock stays `requested` for as long as no screen
+// exists to take it, and nothing is covered in the meantime. Anything that has
+// to be seen has to ask this rather than isLocked, which would hold it back
+// forever behind a lock that never arrived.
+function coversScreens(state) {
+    return !!(state.held || state.secure);
+}
+
 // What the state file holds. Trailing newline so `cat` and `read` both behave.
 function fileText(state) {
     return phase(state) + "\n";
@@ -177,6 +186,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         release: release,
         phase: phase,
         isLocked: isLocked,
+        coversScreens: coversScreens,
         shouldAcquire: shouldAcquire,
         compositorLockReport: compositorLockReport,
         isStranded: isStranded,
