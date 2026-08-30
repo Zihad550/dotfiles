@@ -50,8 +50,15 @@
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true
   },
-  "effortLevel": "high",
-  "advisorModel": "opus",
+  "effortLevel": "medium",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "medium"
+    },
+    "claude-sonnet-5": {
+      "effortLevel": "high"
+    }
+  },
   "tui": "fullscreen",
   "voice": {
     "enabled": true,
