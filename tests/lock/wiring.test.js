@@ -338,6 +338,10 @@ test("the Idle Ladder reads box timings and respects compositor inhibitors", () 
     assert.match(shell, /path:\s*[^\n]*\.config\/df\/idle\.json/);
     assert.match(idleFileView[1], /watchChanges:\s*false/,
         "live timing reload can fire a newly enabled Stage from old compositor idle time");
+    assert.match(idleFileView[1], /printErrors:\s*false/,
+        "the machine override is optional, so its absence is not a lock warning");
+    assert.match(idleFileView[1], /onLoadFailed:\s*\{[\s\S]*idleOverrideReady\s*=\s*true[\s\S]*activateIdleConfig\(\)/,
+        "missing machine timings must fall back to the shared defaults instead of disabling the ladder");
     assert.match(shell, /id: idleConfig[\s\S]*property var dim: undefined[\s\S]*property var lock: undefined[\s\S]*property var blank: undefined[\s\S]*property var suspend: undefined/,
         "the devbox file must be able to override one Stage without replacing the shared data");
     assert.match(shell, /function activateIdleConfig\(\): void \{[\s\S]*idleDefaultsReady[\s\S]*idleOverrideReady[\s\S]*Idle\.initial\(root\.idleTimings\)[\s\S]*idleConfigReady\s*=\s*true/,

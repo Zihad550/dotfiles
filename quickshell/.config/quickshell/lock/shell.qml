@@ -376,7 +376,12 @@ ShellRoot {
 
         path: `${Quickshell.env("HOME")}/.config/df/idle.json`
         watchChanges: false
+        printErrors: false
         onLoaded: {
+            root.idleOverrideReady = true;
+            root.activateIdleConfig();
+        }
+        onLoadFailed: {
             root.idleOverrideReady = true;
             root.activateIdleConfig();
         }
