@@ -43,10 +43,12 @@ sudo systemctl enable --force sddm.service
 # SDDM must not try to own the session's desktop keyring through PAM. The
 # session creates the passwordless default keyring and gcr-ssh-agent owns SSH
 # credentials after login; these hooks belong to GDM's login-keyring flow.
-if [[ -f /etc/pam.d/sddm ]]; then
-	sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
-	sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
-fi
+for pam_file in /etc/pam.d/sddm /etc/pam.d/sddm-autologin; do
+	if [[ -f $pam_file ]]; then
+		sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' "$pam_file"
+		sudo sed -i '/-password.*pam_gnome_keyring\.so/d' "$pam_file"
+	fi
+done
 
 # Not fatal: the Greeter is already switched by this point, and aborting the
 # whole install over a package pacman declines to remove is the wrong trade.

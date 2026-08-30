@@ -67,6 +67,8 @@ test("the Greeter does not own the Desktop Keyring through SDDM PAM", () => {
 
     assert.ok(setup.includes("pam_gnome_keyring\\.so/d"),
         "SDDM must not create a second keyring through its login hooks");
+    assert.match(setup, /sddm-autologin/,
+        "the persistent autologin PAM stack must keep the same keyring boundary");
     assert.match(setup, /-auth\.\*pam_gnome_keyring/);
     assert.match(setup, /-password\.\*pam_gnome_keyring/);
 });
@@ -238,6 +240,15 @@ test("the single-owner login policy follows successful Greeter installation", ()
     assert.match(policy, /autologin\.conf/);
     assert.doesNotMatch(policy, /first.?owner|one.?shot/i,
         "the existing-account port must not provision a first-owner autologin");
+});
+
+test("system authentication policy runs after SDDM installation", () => {
+    inits.forEach(init => {
+        const setup = source(init);
+        assert.match(setup, /run_step "system authentication lockout" [^\n]*setup-sudo-tries/);
+        assert.ok(setup.indexOf('run_step "greeter"') < setup.indexOf('setup-sudo-tries'),
+            `${init} must install SDDM before patching sddm-autologin`);
+    });
 });
 
 test("the Plymouth theme contains the pinned upstream assets", () => {

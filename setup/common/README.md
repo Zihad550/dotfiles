@@ -268,6 +268,13 @@ drop-in without touching other SDDM configuration.
 This policy runs after the Boot Branding rebuild and Greeter files install. It
 does not add Omarchy's first-owner or one-shot provisioning.
 
+The system authentication lockout policy runs after the Greeter installs its
+PAM files. It applies ten failed attempts and a 120-second unlock window to
+`system-auth` and SDDM's autologin stack, which covers TTY login and sudo while
+keeping the Session Lock's tally and service separate. It preserves unrelated
+`faillock.conf` settings and keeps timestamped recovery copies under
+`/var/lib/dotfiles/auth-backups/`. The policy is recorded in [ADR 0026](../../docs/adr/0026-system-auth-lockout-policy.md).
+
 `df-greeter-refresh` reapplies the pinned files. `df-greeter-reset` removes
 only this repository's SDDM overrides and returns to stock behavior; neither
 command restarts SDDM or logs out the current session. The decision is recorded

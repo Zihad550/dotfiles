@@ -102,7 +102,8 @@ test("the sudo-tries setup no longer claims to cover the locker", () => {
     const sudoTries = source("setup/arch-hyprland/setup-packages/setup-sudo-tries");
 
     assert.doesNotMatch(sudoTries, /hyprlock/i);
-    assert.match(sudoTries, /does\s*\n?#?\s*NOT cover the Session Lock/i);
+    assert.match(sudoTries, /Session Lock uses its own PAM service and tally/);
+    assert.doesNotMatch(sudoTries, /FAILLOCK_DIR/);
 });
 
 test("the lock reads the active theme's Quickshell data and nothing lock-specific", () => {

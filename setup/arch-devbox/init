@@ -176,7 +176,6 @@ fi
 
 # System-wide QoL tweaks (sysctl, sudoers, systemd timeouts).
 run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
-# run_step "sudo tries" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
 # The Session Lock authenticates against its own PAM service; without this it
 # rejects every password.
 run_step "lock pam" "$ARCH_HYPR_DIR/setup-packages/setup-lock-pam"
@@ -204,6 +203,9 @@ CURRENT_STEP="useful directories"
 mkdir -p ~/dev
 
 run_step "greeter" "$DOTFILES_DIR/setup/common/setup-greeter"
+
+# Apply the system lockout policy after SDDM has installed its PAM service.
+run_step "system authentication lockout" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
 
 run_step "post-install" "$ARCH_DEVBOX_DIR/post-install"
 
