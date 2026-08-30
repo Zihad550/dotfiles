@@ -60,6 +60,7 @@ df-hypr-display-layout apply [variant]
 df-hypr-display-layout save <variant> [--default]
                                    # capture the current monitor arrangement
 df-hypr-display-layout list|show|signature|remove
+df-hypr-clamshell                  # reconcile lid state and external workspaces
 
 df-launch-tui <cmd>                # launch TUI in ghostty (guards missing bin)
 df-launch-app <cmd>                # launch GUI (guards missing bin)

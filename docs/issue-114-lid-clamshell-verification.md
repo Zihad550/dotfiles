@@ -1,9 +1,8 @@
 # Lid and clamshell verification
 
-This checklist verifies the existing lock-before-suspend path and records the
-lid behavior needed to define issue #114. It does not itself close #114:
-that issue still needs acceptance criteria based on an observed lid or
-clamshell failure.
+This checklist verifies the lock-before-suspend and Clamshell Mode paths for
+issue #114. It covers both the physical lid transition and the workspace
+relocation that keeps an external-only session usable.
 
 Run the host checks on a physical laptop running Arch Linux and Hyprland. Do
 not use the Arch devbox target for this test: its no-sleep policy masks sleep
@@ -146,14 +145,15 @@ Record these observations even when the test passes:
 ## 7. Repeat with an external display or dock
 
 If the laptop normally uses a dock or external monitor, connect it and repeat
-the previous lid test. Record whether closing the lid changes the result,
-including whether the external display remains active and whether the Session
-Lock covers every display after wake.
+the previous lid test. In Clamshell Mode, closing the lid should keep the
+session awake, disable the internal display, and move its normal workspaces to
+the external display. Opening the lid should restore the saved monitor layout
+and move those workspaces back to the internal display.
 
-This comparison is the evidence needed for #114. A difference between the
-laptop-only and docked cases is a concrete clamshell-handling bug to turn into
-acceptance criteria. Do not infer a failure merely because the behavior differs
-from another desktop environment.
+Do not infer a failure merely because the behavior differs from another
+desktop environment. A failure is one of these concrete cases: the internal
+display remains active while closed, a workspace remains stranded on it, the
+external display disappears, or opening the lid fails to restore the layout.
 
 ## 8. Capture the lock log
 
@@ -177,6 +177,8 @@ Machine:
 Arch/Hyprland versions:
 Laptop-only result:
 Docked/external-display result:
+Clamshell internal-display result:
+Workspace relocation result:
 InhibitDelayMaxUSec output:
 df lock inhibitor present: yes/no
 Lock log warning present: yes/no

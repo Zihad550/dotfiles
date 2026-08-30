@@ -48,6 +48,12 @@ Its edge-case handling is imported wholesale from Omarchy, whose equivalent
 plugins encode years of accumulated fixes for stranded locks, multi-monitor
 transitions and lid-close races.
 
+The lid switch has a separate Clamshell Mode path. With an external display
+active, closing the lid moves normal workspaces off the internal output before
+disabling it and leaves the session awake; opening the lid restores the saved
+monitor layout and the workspaces moved by that transition. Without an external
+display, closing the lid starts the Session Lock and leaves suspend to logind.
+
 Separately and afterwards, the Greeter moves from GDM to SDDM, matching
 Omarchy's choice, and the greeter-specific power-policy workaround that only
 made sense for a GNOME greeter is deleted rather than translated.
@@ -296,12 +302,6 @@ part of the lock change, not a follow-up.
 branding assets and toggle. That is scope, not edge-case handling.
 
 **Fingerprint authentication.** No box this repo configures has the hardware.
-
-**Lid and clamshell handling.** The upstream's clamshell synchronisation is
-wired into the external sleep-lock script that is not being imported, so it has
-nowhere to attach here. It becomes a follow-up once the simple suspend path has
-been exercised, since the lid is where an in-process inhibitor is most likely to
-show strain.
 
 **Greeter theming.** Covered under Implementation Decisions: stock theme,
 deliberately.

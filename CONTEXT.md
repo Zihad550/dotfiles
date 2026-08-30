@@ -252,6 +252,12 @@ its window expires, Secure or not, so the lock's own wait is bounded well
 inside it.
 _Avoid_: sleep lock, suspend hook, sleep guard, delay lock
 
+**Clamshell Mode**:
+The awake state while the laptop lid is closed and an external display is
+active. The internal output is disabled, workspaces it owned are moved to the
+external output, and they return when the lid opens.
+_Avoid_: docked mode, lid mode, laptop mode
+
 **Stranded Lock**:
 A lock the compositor still holds after the client that raised it is gone —
 recoverable, but invisible to anything that asks the client whether it is
