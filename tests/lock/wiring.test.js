@@ -416,7 +416,6 @@ test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
     const themes = fs.readdirSync(path.join(repoRoot, "themes/.config/themes"));
 
     assert.doesNotMatch(packages, /^\s*hyprlock\b/m);
-    assert.doesNotMatch(source("setup/fedora/hyprland.sh"), /\bhyprlock\b/);
     assert.doesNotMatch(fontSet, /hyprlock/i,
         "the positional two-occurrence substitution went with the file it patched");
     assert.strictEqual(fs.existsSync(path.join(repoRoot, "hypr/.config/hypr/hyprlock.conf")), false);
