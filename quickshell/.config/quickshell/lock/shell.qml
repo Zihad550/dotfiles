@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "lib/idle.js" as Idle
 import "lib/session.js" as Session
 
 // The Session Lock, as its own always-running Quickshell instance -- the third
@@ -50,6 +51,72 @@ ShellRoot {
     property bool publishing: false
 
     property bool strandedLockResolved: false
+    property bool brightnessRestorePending: false
+    property bool idleConfigReady: false
+    readonly property var idleTimings: ({
+        dim: idleConfig.dim,
+        lock: idleConfig.lock,
+        blank: idleConfig.blank,
+        suspend: idleConfig.suspend
+    })
+    property var idleState: null
+
+    function enterIdleStages(elapsedSeconds: int): void {
+        if (!root.idleConfigReady)
+            return;
+
+        const transition = Idle.advance(root.idleState, elapsedSeconds, false);
+        root.idleState = transition.state;
+        transition.entered.forEach(stage => root.enterIdleStage(stage));
+    }
+
+    function leaveIdleStages(): void {
+        if (!root.idleConfigReady)
+            return;
+
+        const transition = Idle.resetOnActivity(root.idleState);
+        root.idleState = transition.state;
+        transition.exited.forEach(stage => root.leaveIdleStage(stage));
+    }
+
+    function enterIdleStage(stage: string): void {
+        if (stage === Idle.DIM) {
+            brightnessRestorePending = false;
+            brightnessProcess.command = ["brightnessctl", "--class=backlight", "-s", "set", "10"];
+            brightnessProcess.running = true;
+        }
+        else if (stage === Idle.LOCK)
+            root.lock();
+        else if (stage === Idle.BLANK)
+            Quickshell.execDetached([
+                "hyprctl", "dispatch", "hl.dsp.dpms({action = \"off\"})"
+            ]);
+        else if (stage === Idle.SUSPEND)
+            Quickshell.execDetached(["systemctl", "suspend"]);
+    }
+
+    function leaveIdleStage(stage: string): void {
+        if (stage === Idle.BLANK)
+            Quickshell.execDetached([
+                "hyprctl", "dispatch", "hl.dsp.dpms({action = \"on\"})"
+            ]);
+        else if (stage === Idle.DIM) {
+            if (brightnessProcess.running) {
+                brightnessRestorePending = true;
+            } else {
+                root.restoreBrightness();
+            }
+        }
+    }
+
+    function restoreBrightness(): void {
+        brightnessProcess.command = ["brightnessctl", "--class=backlight", "-r"];
+        brightnessProcess.running = true;
+    }
+
+    function refreshBarBrightness(): void {
+        Quickshell.execDetached(["qs", "-c", "dotfiles", "ipc", "call", "brightness", "refresh"]);
+    }
 
     function queueSessionLock(): void {
         pendingSessionLockTimer.start();
@@ -98,6 +165,7 @@ ShellRoot {
         sessionLockStabilizeTimer.stop();
         pendingSessionLockTimer.stop();
         root.session = Session.release(root.session);
+        root.refreshBarBrightness();
     }
 
     function syncFromCompositor(): void {
@@ -176,6 +244,91 @@ ShellRoot {
                 inputEnabled: sessionLock.secure
             }
         }
+    }
+
+    FileView {
+        id: idleConfigFile
+
+        path: `${Quickshell.env("HOME")}/.config/df/idle.json`
+        // Live changes can fire a Stage from idle accumulated under the old config.
+        // Restarting the unlocked process is the safe configuration boundary.
+        watchChanges: false
+        onLoaded: {
+            root.idleState = Idle.initial(root.idleTimings);
+            root.idleConfigReady = true;
+        }
+
+        JsonAdapter {
+            id: idleConfig
+
+            property var dim: 120
+            property var lock: 1800
+            property var blank: 1830
+            property var suspend: 1860
+        }
+    }
+
+    Process {
+        id: brightnessProcess
+
+        onExited: {
+            if (root.brightnessRestorePending) {
+                root.brightnessRestorePending = false;
+                root.restoreBrightness();
+            } else if (command.indexOf("-r") !== -1) {
+                root.refreshBarBrightness();
+            }
+        }
+    }
+
+    // IdleMonitor and inhibitor wiring follow Omarchy's
+    // shell/plugins/services/idle/Service.qml at revision 83881e979b35468c3e7d60b171e319ede61a88fd.
+    component StageMonitor: IdleMonitor {
+        required property var seconds
+        required property var armTimer
+        property bool armed: false
+
+        timeout: seconds
+        respectInhibitors: true
+        onIsIdleChanged: {
+            if (!isIdle) {
+                root.leaveIdleStages();
+                armTimer.restart();
+            } else if (armed) {
+                armTimer.stop();
+                root.enterIdleStages(seconds);
+            } else {
+                armTimer.stop();
+            }
+        }
+
+        Component.onCompleted: if (!isIdle) armTimer.start()
+    }
+
+    Timer { id: dimArmTimer; interval: 1000; onTriggered: if (dimMonitor.item && !dimMonitor.item.isIdle) dimMonitor.item.armed = true }
+    Timer { id: lockArmTimer; interval: 1000; onTriggered: if (lockMonitor.item && !lockMonitor.item.isIdle) lockMonitor.item.armed = true }
+    Timer { id: blankArmTimer; interval: 1000; onTriggered: if (blankMonitor.item && !blankMonitor.item.isIdle) blankMonitor.item.armed = true }
+    Timer { id: suspendArmTimer; interval: 1000; onTriggered: if (suspendMonitor.item && !suspendMonitor.item.isIdle) suspendMonitor.item.armed = true }
+
+    Loader {
+        id: dimMonitor
+        active: root.idleConfigReady && idleConfig.dim !== null && idleConfig.dim !== undefined
+        sourceComponent: StageMonitor { seconds: idleConfig.dim; armTimer: dimArmTimer }
+    }
+    Loader {
+        id: lockMonitor
+        active: root.idleConfigReady && idleConfig.lock !== null && idleConfig.lock !== undefined
+        sourceComponent: StageMonitor { seconds: idleConfig.lock; armTimer: lockArmTimer }
+    }
+    Loader {
+        id: blankMonitor
+        active: root.idleConfigReady && idleConfig.blank !== null && idleConfig.blank !== undefined
+        sourceComponent: StageMonitor { seconds: idleConfig.blank; armTimer: blankArmTimer }
+    }
+    Loader {
+        id: suspendMonitor
+        active: root.idleConfigReady && idleConfig.suspend !== null && idleConfig.suspend !== undefined
+        sourceComponent: StageMonitor { seconds: idleConfig.suspend; armTimer: suspendArmTimer }
     }
 
     // Omarchy shell/plugins/lock/Service.qml,

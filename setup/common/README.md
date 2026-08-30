@@ -21,8 +21,8 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override without breaking MagicDNS. | Arch wrapper |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Hyprland, Arch devbox |
 | [`setup-greeter`](setup-greeter) | Installs and enables the Greeter, retiring the display manager it replaces. | Arch Hyprland, Arch devbox |
+| [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Hyprland, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox |
-| [`setup-hypridle-no-suspend`](setup-hypridle-no-suspend) | Removes idle-triggered suspend while leaving manual suspend available. | Arch wrapper |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
 | [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch Hyprland and Arch devbox |
 | [`setup-skills`](setup-skills) | Installs the shared agent skill set. | Arch, Ubuntu, and devcontainer setup |
@@ -199,7 +199,7 @@ the question.
 ## Staying awake
 
 Three independent mechanisms can suspend a graphical box: systemd sleep
-targets, logind lid handling, and Hyprland's idle daemon. `setup-no-sleep`
+targets, logind lid handling, and the Quickshell Idle Ladder. `setup-no-sleep`
 blocks all three because an always-on devbox must remain reachable.
 
 A fourth used to be counted here — the Greeter's own power policy, which under
@@ -212,9 +212,8 @@ repeated failed suspend attempts. A detached monitor can expose the lid path: a
 closed laptop changes from docked to undocked, then follows `HandleLidSwitch`
 instead of `HandleLidSwitchDocked`.
 
-`setup-hypridle-no-suspend` is deliberately narrower. It removes the idle
-suspend listener but leaves manual suspend available. Use it alone when a
-desktop should still honor a keybind or `systemctl suspend`.
+The devbox's `idle.json` is the narrower control. Its Suspend Stage is `null`,
+so manual suspend remains available while idle suspend is absent.
 
 ## Greeter
 

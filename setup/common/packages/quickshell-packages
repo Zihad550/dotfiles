@@ -9,8 +9,8 @@
 # Deliberately NOT here, because they are owned by a layer underneath and would
 # be installed even with the shell removed:
 #   hyprland          # hyprctl, behind Quickshell.Hyprland (setup-hyprland)
-#   brightnessctl     # OsdService's backlight — hypridle.conf also drives it
-#                     # directly, so it stays in setup-hyprland
+#   brightnessctl     # the OSD and Idle Ladder drive it directly, so it stays
+#                     # in setup-hyprland
 #   ttf-nerd-fonts-symbols-mono  # the bar's one nerd glyph (packages/pacman-packages)
 #   tailscale         # TailscaleService — installed by ../../*/setup-tailscale
 #   pavucontrol nautilus ghostty zed  # apps the menus launch, not the shell

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# Select box timing data outside the folded Quickshell stow tree.
+# The lock reads this link only at process startup.
+
+set -euo pipefail
+
+SOURCE="${1:?usage: setup-idle-ladder <idle.json>}"
+
+if [[ ! -f "$SOURCE" ]]; then
+    echo "Error: Idle Ladder timing file not found: $SOURCE" >&2
+    exit 1
+fi
+
+SOURCE="$(realpath "$SOURCE")"
+
+mkdir -p "$HOME/.config/df"
+ln -snf "$SOURCE" "$HOME/.config/df/idle.json"
+
+echo "Idle Ladder timings -> $SOURCE"

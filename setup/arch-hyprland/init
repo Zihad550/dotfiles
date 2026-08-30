@@ -53,6 +53,8 @@ ln -snf "$DOTFILES_DIR/setup/applications/icons" "$HOME/.local/share/application
 run_step "stow base" "$DOTFILES_DIR/scripts/stow/stow-base"
 run_step "stow backgrounds" "$DOTFILES_DIR/scripts/stow/stow-backgrounds"
 run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
+run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
+    "$DOTFILES_DIR/quickshell/.config/quickshell/lock/idle.json"
 
 run_step "theme" "$ARCH_HYPR_DIR/theme"
 run_step "gnome-theme" "$ARCH_HYPR_DIR/gnome-theme"

@@ -18,7 +18,6 @@ sudo pacman -S --noconfirm \
     brightnessctl \
     hyprpicker \
     hyprlock \
-    hypridle \
     swaybg \
     nwg-look gnome-themes-extra \
     xdg-desktop-portal-hyprland \
@@ -34,7 +33,9 @@ sudo pacman -S --noconfirm \
 # rofi-emoji \
 # rofi-calc \
 
-systemctl --user enable hypridle.service            # lock screen
+# Migration from the old Idle Ladder. The package may remain installed until
+# the next package cleanup, but its daemon must not compete with Quickshell.
+systemctl --user disable --now hypridle.service 2>/dev/null || true
 systemctl --user enable xdg-desktop-portal-hyprland # screensharing and file picking
 systemctl --user enable hyprsunset.service          # hyprsunset for blue light filtering
 systemctl --user enable hyprpolkitagent.service

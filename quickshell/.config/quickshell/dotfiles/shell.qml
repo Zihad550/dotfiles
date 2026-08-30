@@ -100,6 +100,14 @@ ShellRoot {
         }
     }
 
+    IpcHandler {
+        target: "brightness"
+
+        function refresh(): void {
+            BacklightService.refresh();
+        }
+    }
+
     // The SUPER+CTRL+A keybind (hypr/.config/hypr/lua/bindings/utilities.lua)
     // -- opens whichever monitor's Quick Settings is focused, via the
     // registry each Bar fills in (QuickSettingsRegistry.qml). No fork/exec,

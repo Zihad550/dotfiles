@@ -139,7 +139,7 @@ without them locks nothing:
 
 What has to come back, so you can check the revert covered it:
 
-- `hypr/.config/hypr/hypridle.conf` — the Idle Ladder as hypridle config, and
+- hypr/.config/hypr/hypridle.conf — the Idle Ladder as hypridle config, and
   its `lock_cmd`.
 - `hypr/.config/hypr/hyprlock.conf` — the lock's appearance, plus the
   per-theme generated `hyprlock.conf` under `themes/`.

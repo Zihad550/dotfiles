@@ -63,8 +63,7 @@ so a fix there lands on both targets.
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
 | `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
-| `setup-hypridle-no-suspend` | idle behavior only, sleep targets left unmasked — manual suspend still works (wrapper over [`../common/setup-hypridle-no-suspend`](../common/setup-hypridle-no-suspend)) |
-| `hypridle.conf` | devbox idle rules — lock and DPMS-off, no suspend |
+| `idle.json` | devbox Idle Ladder timings — Lock and Blank, no Dim or Suspend |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
 | `docker` | rootless docker via [`../common/setup-rootless-docker`](../common/setup-rootless-docker), called directly (no local wrapper) — an AI harness box shouldn't hand a compromised container a root-owned daemon |
@@ -146,7 +145,7 @@ with arch-hyprland and so deliberately not edited:
 `7zip` stays; it's useful on its own.
 
 **Kept even though it isn't "web dev":** the whole Hyprland layer (uwsm,
-quickshell, hyprlock, hypridle, hyprpolkitagent, the portal,
+quickshell, hyprlock, hyprpolkitagent, the portal,
 hyprsunset, swaybg, brightnessctl, pavucontrol, nwg-look), ghostty, fonts,
 screenshots (swappy/slurp/grim), nautilus, gnome-disk-utility, and the
 Greeter. The desktop is unusable without them.
@@ -757,12 +756,12 @@ in with it — and since `setup-ufw` leaves no LAN hole, the tailnet is the whol
 set. A suspended box needs a physical keyboard. `setup-no-sleep` handles it,
 but is commented out in `init` — see
 [idle behavior without masking sleep](#idle-behavior-without-masking-sleep)
-for why `init` runs the lighter `setup-hypridle-no-suspend` instead.
+for why `init` installs no-suspend Idle Ladder timings instead.
 
 The three suspend paths and why systemd's sleep targets are the boundary live in
 [`../common/README.md`](../common/README.md#staying-awake). On this box,
-hypridle is present, and a detached monitor can change which logind lid policy
-applies.
+the Idle Ladder is present, and a detached monitor can change which logind lid
+policy applies.
 
 Confirm it took:
 
@@ -773,43 +772,14 @@ systemctl suspend    # must fail: "Unit suspend.target is masked"
 That one command proves all three sources are dead. Masking is immediate;
 the lid settings need a reboot, which `init` offers when it finishes.
 
-### hypridle gets its own config
+### the Idle Ladder gets box timings
 
-The shared `hypr/.config/hypr/hypridle.conf` is left untouched — the laptop
-genuinely wants its suspend listener. This box points hypridle at
-[`hypridle.conf`](hypridle.conf) in this directory instead, which keeps the
-screen-lock and DPMS-off listeners and drops:
-
-- the **suspend** listener (`timeout = 1860`) — the whole point;
-- the **screen-dim** and **keyboard-backlight** listeners —
-  `brightnessctl -sd rgb:kbd_backlight` errors on hardware without a keyboard
-  backlight, and dimming a usually-detached monitor is pointless.
-
-It has to be a separate file rather than an override: hypridle listeners are
-**additive**, so a sourced config can add a listener but never subtract one.
-
-`setup-no-sleep` wires it up with a systemd user drop-in:
-
-```ini
-# ~/.config/systemd/user/hypridle.service.d/override.conf
-[Service]
-ExecStart=
-ExecStart=/usr/bin/hypridle -c ~/dotfiles/setup/arch-devbox/hypridle.conf
-```
-
-The bare `ExecStart=` is required — without it systemd *appends* a second
-command instead of replacing the unit's own.
-
-A drop-in rather than swapping the file, because `~/.config/hypr` is a single
-**folded stow symlink** into the repo: replacing one file inside it would either
-write into the repo or leave a link that breaks the next `stow hypr` run — which
-would abort `init` at the `stow hyprland` step. Nothing stows `~/.config/systemd`,
-so that path is free.
-
-This is belt-and-braces, not the protection itself: masking `sleep.target`
-already makes the shared config's suspend listener inert. The config removes the
-doomed `systemctl suspend` attempt from the journal and the brightness errors
-along with it.
+The laptop and devbox each link their timing data to `~/.config/df/idle.json`
+during `init`, outside the folded Quickshell stow tree. This box selects
+[`idle.json`](idle.json). Lock and Blank retain their shared times. Dim and
+Suspend are `null`, so a detached devbox neither dims hardware that may not
+exist nor suspends itself out of SSH reach. The lock reads the file at startup;
+changing it takes effect after `df-qs-restart lock` or the next login.
 
 Reverse it with `sudo systemctl unmask sleep.target suspend.target
 hibernate.target hybrid-sleep.target`. On a laptop this does mean the battery
@@ -821,16 +791,13 @@ runs flat instead of suspending.
 sit at (the desktop, not the headless case) masking `sleep.target` also kills
 *manual* suspend: a keybind or `systemctl suspend` resolves to the same masked
 target as the idle timer, so there's no way to distinguish "the timer fired"
-from "I asked for this." Skip it and hypridle falls back to the shared
-`hypr/.config/hypr/hypridle.conf`, suspend listener included — the box goes to
-sleep on its own after ~31 minutes idle.
-
-To get the no-suspend idle behavior (lock, DPMS-off) while leaving manual
-suspend alone, run `setup-hypridle-no-suspend` instead — it's just the
-drop-in from the previous section, without the masking or the logind drop-in:
+from "I asked for this." The devbox timing file distinguishes them by omitting
+only the Idle Ladder's Suspend Stage. To restore that link without changing
+system sleep policy, run:
 
 ```bash
-setup/arch-devbox/setup-hypridle-no-suspend
+~/dotfiles/setup/common/setup-idle-ladder ~/dotfiles/setup/arch-devbox/idle.json
+df-qs-restart lock
 ```
 
 ### if it went unreachable but did not sleep

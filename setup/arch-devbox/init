@@ -74,6 +74,8 @@ run_step "stow base" "$DOTFILES_DIR/scripts/stow/stow-base"
 # ~/.config/backgrounds/<theme>.* and warns if the theme has no wallpaper.
 run_step "stow backgrounds" "$DOTFILES_DIR/scripts/stow/stow-backgrounds"
 run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
+run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
+    "$DOTFILES_DIR/setup/arch-devbox/idle.json"
 
 run_step "theme" "$ARCH_HYPR_DIR/theme"
 run_step "gnome-theme" "$ARCH_HYPR_DIR/gnome-theme"
@@ -182,12 +184,6 @@ run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
 # Passwordless `ts-serve` (zsh aliasrc) via a validating root wrapper.
 run_step "ts-serve sudo rule" "$DOTFILES_DIR/setup/common/setup-ts-serve"
 run_step "fast shutdown" "$ARCH_HYPR_DIR/setup-packages/setup-fast-shutdown"
-
-# Idle behavior only: points hypridle at the no-suspend config so idle timeout
-# no longer suspends the box, without masking sleep.target — manual suspend
-# stays intact. See README.md "staying awake" > "idle behavior without
-# masking sleep".
-run_step "hypridle no suspend" "$ARCH_DEVBOX_DIR/setup-hypridle-no-suspend"
 
 # Power management, one branch each. TLP and tuned drive the same sysfs knobs
 # and neither yields, so the if/else is what keeps them mutually exclusive —

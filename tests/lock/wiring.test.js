@@ -229,14 +229,11 @@ test("the IPC surface carries commands and nothing that answers a question", () 
 
 test("every external lock call site uses the lock IPC command vector", () => {
     const argv = /"qs",\s*"-c",\s*"lock",\s*"ipc",\s*"call",\s*"lock",\s*"lock"/;
-    const shell = /qs -c lock ipc call lock lock/;
 
     assert.match(source("hypr/.config/hypr/lua/bindings/system.lua"), /launcher:confirm-lock/,
         "the lock keybind must keep the Launcher's confirmation flow");
-    assert.strictEqual([...source("hypr/.config/hypr/hypridle.conf").matchAll(new RegExp(shell, "g"))].length, 3,
-        "hypridle's lock command, pre-sleep command and idle Stage must agree");
-    assert.strictEqual([...source("setup/arch-devbox/hypridle.conf").matchAll(new RegExp(shell, "g"))].length, 3,
-        "the devbox hypridle config must not leave the old locker reachable");
+    assert.match(source(`${lockRoot}/shell.qml`), /root\.lock\(\)/,
+        "the Idle Ladder must call the in-process Session Lock");
     assert.match(source("quickshell/.config/quickshell/launcher/lib/power.js"), argv);
     assert.match(source("quickshell/.config/quickshell/launcher/modules/SystemMenu.qml"), argv);
     assert.match(source("quickshell/.config/quickshell/dotfiles/modules/QuickSettings.qml"), argv);
@@ -305,6 +302,86 @@ test("the lock starts as its own instance, and cannot be run as a scratch config
     assert.match(source("bin/df-qs-test"), /dotfiles \| launcher \| lock\)/,
         "a foreground lock instance dies with its terminal, which is a dropped lock");
     assert.match(source("bin/df-qs-restart"), /dotfiles \| launcher \| lock/);
+});
+
+test("the Idle Ladder reads box timings and respects compositor inhibitors", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+    const stageMonitor = shell.match(/component StageMonitor: IdleMonitor \{([\s\S]*?)\n    \}/);
+    const idleFileView = shell.match(/FileView \{\s*\n\s*id: idleConfigFile([\s\S]*?)\n\s*JsonAdapter \{/);
+
+    assert.ok(stageMonitor, "the shared Stage monitor component must remain extractable");
+    assert.ok(idleFileView, "the timing FileView must remain extractable");
+    assert.match(shell, /path:\s*[^\n]*\.config\/df\/idle\.json/);
+    assert.match(idleFileView[1], /watchChanges:\s*false/,
+        "live timing reload can fire a newly enabled Stage from old compositor idle time");
+    assert.match(shell, /onLoaded:[\s\S]*root\.idleState\s*=\s*Idle\.initial\(root\.idleTimings\)[\s\S]*root\.idleConfigReady\s*=\s*true/,
+        "the ladder state and monitors must use loaded box timings");
+    assert.match(shell, /Loader\s*\{[\s\S]*active:\s*root\.idleConfigReady\s*&&/,
+        "no compositor idle monitor may exist before asynchronous timing data is loaded");
+    assert.doesNotMatch(idleFileView[1], /onFileChanged|reload\(\)/);
+    assert.match(shell, /IdleMonitor\s*\{[\s\S]*respectInhibitors:\s*true/);
+    assert.match(shell, /property bool armed:\s*false[\s\S]*if \(!isIdle\)[\s\S]*armTimer\.restart\(\)[\s\S]*else if \(armed\)/,
+        "startup while already idle must wait for activity before firing old timeouts");
+    assert.match(shell, /required property var armTimer/);
+    assert.match(shell, /onTriggered: if \(dimMonitor\.item && !dimMonitor\.item\.isIdle\) dimMonitor\.item\.armed = true/);
+    assert.doesNotMatch(stageMonitor[1], /Timer\s*\{/,
+        "IdleMonitor has no default property, so an owned Timer makes the whole lock config fail to load");
+    assert.match(shell, /Idle\.advance\(/);
+    assert.match(shell, /Idle\.resetOnActivity\(/);
+    assert.match(shell, /timeout:\s*seconds/,
+        "the data file and IdleMonitor.timeout both use seconds");
+    assert.doesNotMatch(stageMonitor[1], /timeout:[^\n]*:\s*1/,
+        "a one-second placeholder can survive asynchronous config loading");
+});
+
+test("the Idle Ladder restores exact brightness and refreshes the Bar cache", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+    const bar = source("quickshell/.config/quickshell/dotfiles/shell.qml");
+
+    assert.match(shell, /"brightnessctl",\s*"--class=backlight",\s*"-s",\s*"set",\s*"10"/);
+    assert.match(shell, /"brightnessctl",\s*"--class=backlight",\s*"-r"/);
+    assert.match(shell, /brightnessRestorePending[\s\S]*onExited[\s\S]*root\.restoreBrightness\(\)/,
+        "activity during the dim write must restore after it, not race it");
+    assert.match(shell, /command\.indexOf\("-r"\)[\s\S]*refreshBarBrightness\(\)/,
+        "the Bar must refresh after hardware restoration finishes");
+    assert.match(shell, /qs[^\n]*-c[^\n]*dotfiles[^\n]*brightness[^\n]*refresh/);
+    assert.match(bar, /target:\s*"brightness"[\s\S]*function refresh\(\): void[\s\S]*BacklightService\.refresh\(\)/);
+});
+
+test("the Idle Ladder uses Hyprland's Lua dispatcher API for display blanking", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /hl\.dsp\.dpms\(\{action = \\"off\\"\}\)/);
+    assert.match(shell, /hl\.dsp\.dpms\(\{action = \\"on\\"\}\)/);
+    assert.doesNotMatch(shell, /"dispatch",\s*"dpms",\s*"(?:off|on)"/,
+        "current Hyprland parses the old dpms arguments as invalid Lua");
+});
+
+test("box timing data replaces hypridle and its devbox override machinery", () => {
+    const laptop = JSON.parse(source(`${lockRoot}/idle.json`));
+    const devbox = JSON.parse(source("setup/arch-devbox/idle.json"));
+    const packages = source("setup/arch-hyprland/setup-packages/setup-hyprland");
+    const autostart = source("hypr/.config/hypr/lua/autostart.lua");
+    const setup = source("setup/common/setup-idle-ladder");
+    const laptopInit = source("setup/arch-hyprland/init");
+    const devboxInit = source("setup/arch-devbox/init");
+
+    assert.deepStrictEqual(laptop, { dim: 120, lock: 1800, blank: 1830, suspend: 1860 });
+    assert.deepStrictEqual(devbox, { dim: null, lock: 1800, blank: 1830, suspend: null });
+    assert.match(setup, /SOURCE=.*realpath/,
+        "a relative source must not become a broken link relative to ~/.config/df");
+    assert.match(setup, /mkdir -p "\$HOME\/\.config\/df"/);
+    assert.match(setup, /ln -snf "\$SOURCE" "\$HOME\/\.config\/df\/idle\.json"/);
+    assert.match(laptopInit, /setup-idle-ladder" \\\n\s*"\$DOTFILES_DIR\/quickshell\/\.config\/quickshell\/lock\/idle\.json"/);
+    assert.match(devboxInit, /setup-idle-ladder" \\\n\s*"\$DOTFILES_DIR\/setup\/arch-devbox\/idle\.json"/);
+    assert.doesNotMatch(packages, /^\s*hypridle\s*\\/m);
+    assert.match(packages, /disable --now hypridle\.service/,
+        "an already-installed daemon must be stopped during migration");
+    assert.doesNotMatch(autostart, /hypridle/);
+    assert.strictEqual(fs.existsSync(path.join(repoRoot, "hypr/.config/hypr/hypridle.conf")), false);
+    assert.strictEqual(fs.existsSync(path.join(repoRoot, "setup/arch-devbox/hypridle.conf")), false);
+    assert.strictEqual(fs.existsSync(path.join(repoRoot, "setup/common/setup-hypridle-no-suspend")), false);
+    assert.strictEqual(fs.existsSync(path.join(repoRoot, "setup/arch-devbox/setup-hypridle-no-suspend")), false);
 });
 
 // --- The Break-glass runbook -------------------------------------------------

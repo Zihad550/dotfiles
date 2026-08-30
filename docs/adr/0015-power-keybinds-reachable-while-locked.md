@@ -36,7 +36,7 @@ Launcher-only, bound without `locked`.
 **Lock state is `pidof hyprlock`, not `loginctl`'s `LockedHint`.** `LockedHint`
 is the correct-looking answer and the wrong one here: hyprlock does not always
 come up via `loginctl lock-session` on this machine, and the hint reads `no`
-while the lock screen is on display. `hypridle.conf`'s `lock_cmd` already
+while the lock screen is on display. The old idle daemon's lock action already
 answers the same question the same way.
 
 ## Consequences
