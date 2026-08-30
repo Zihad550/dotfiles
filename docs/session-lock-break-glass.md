@@ -125,10 +125,44 @@ or wrong. Check it exists, then rewrite it:
 
 A missing `/etc/pam.d/df-lock` rejects every password, including the right one.
 
-## 3. Put the old daemons back
+## 3. If the machine suspended without locking
 
-Only after 1 and 2. This reverts the design decision, so it is a retreat, not a
-fix — file the bug on the way past.
+The lock holds a logind delay inhibitor from the moment it starts and drops it
+once the session is Secure
+(`docs/adr/0016-lock-holds-its-own-sleep-inhibitor.md`). Two things break that,
+and they look the same from the outside.
+
+**The inhibitor was never held.** Ask logind who is holding one:
+
+    systemd-inhibit --list | grep 'df lock'
+
+Nothing listed means the lock config is not running, or `gdbus` is missing and
+its sleep monitor died. `qs -c lock log` says which.
+
+**The window was too short.** The lock gives up after its own budget and lets
+the machine sleep, because logind suspends at the end of its window either way.
+A notification says so on the screen the session is unlocked into. Check the
+window logind is actually using:
+
+    busctl get-property org.freedesktop.login1 /org/freedesktop/login1 \
+        org.freedesktop.login1.Manager InhibitDelayMaxUSec
+
+Expect `15000000`. `5000000` is logind's default, which means the drop-in is
+missing or logind has not reloaded it since:
+
+    cat /etc/systemd/logind.conf.d/20-inhibit-delay.conf
+    ~/dotfiles/setup/arch-hyprland/setup-packages/setup-sleep-inhibit
+
+The drop-in applies at the next reboot; restarting `systemd-logind` in a live
+graphical session is not worth it.
+
+Until either is fixed, suspend manually only after the lock is up — the
+`SUPER + CTRL + S` keybind after locking, not instead of it.
+
+## 4. Put the old daemons back
+
+Only after 1, 2 and 3. This reverts the design decision, so it is a retreat, not
+a fix — file the bug on the way past.
 
 **Reinstall the packages.** Both are in `extra`:
 
@@ -183,7 +217,7 @@ Then log out and back in. Confirm the lock works before you walk away from it:
 
     hyprlock            # from the graphical session, not the console
 
-## 4. On the devbox
+## 5. On the devbox
 
 The devbox runs the ladder without its Suspend Stage. After a revert it needs
 the drop-in back as well, or it suspends a machine you reach over the network:
@@ -211,6 +245,14 @@ hypridle` and `pacman -Sp hyprlock hypridle`, resolving both from `extra`;
 `hyprlock --help` and `hypridle --help`; `loginctl list-sessions`, which is
 what showed the graphical session on `tty2` here and so ruled out
 `Ctrl+Alt+F2` as the escape.
+
+The suspend section was verified separately on 2026-08-30, against the running
+lock config: `systemd-inhibit --list`, which listed the lock's own delay
+inhibitor as `df lock`; and the `busctl get-property` above, which returned
+`5000000` — logind's default, because the drop-in had not been installed on this
+box yet, which is the state that section exists to name. `cat` of the drop-in
+and the `setup-sleep-inhibit` rerun were not executed for the same reason: the
+second one mutates the box.
 
 Checked but not executed, because running them ends the session or mutates the
 box: `sudo pacman -S --needed --noconfirm hyprlock hypridle` (package names and

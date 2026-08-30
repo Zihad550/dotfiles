@@ -238,6 +238,13 @@ opposed to merely requested or drawn. The only state that makes suspending
 safe, and the only one worth waiting for.
 _Avoid_: locked, active, engaged, up
 
+**Sleep Inhibitor**:
+The logind delay the Session Lock holds itself, from startup until the session
+it locked reports Secure. A timer rather than a promise: logind suspends when
+its window expires, Secure or not, so the lock's own wait is bounded well
+inside it.
+_Avoid_: sleep lock, suspend hook, sleep guard, delay lock
+
 **Stranded Lock**:
 A lock the compositor still holds after the client that raised it is gone —
 recoverable, but invisible to anything that asks the client whether it is

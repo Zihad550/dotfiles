@@ -6,6 +6,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import "lib/idle.js" as Idle
 import "lib/session.js" as Session
+import "lib/sleep.js" as Sleep
 
 // The Session Lock, as its own always-running Quickshell instance -- the third
 // alongside the bar's `dotfiles` config and the Launcher's.
@@ -25,9 +26,9 @@ import "lib/session.js" as Session
 // ordinary window -- so iterating on the lock cannot lock anyone out.
 //
 // What this file adds on top of that surface is the lock itself: the
-// compositor's session lock, the IPC command that takes it, and the three
-// signals that report it (ADR 0017). Deferral, monitor attach and Stranded Lock
-// recovery are a separate change.
+// compositor's session lock, the IPC command that takes it, the three signals
+// that report it (ADR 0017), and the logind delay inhibitor that makes suspend
+// wait for Secure (ADR 0016).
 //
 // The WlSessionLock arrangement follows Omarchy's shell/plugins/lock/Service.qml,
 // read at revision 83881e979b35468c3e7d60b171e319ede61a88fd; the state file and
@@ -60,6 +61,8 @@ ShellRoot {
         suspend: idleConfig.suspend
     })
     property var idleState: null
+
+    property var sleepState: Sleep.initial()
 
     function enterIdleStages(elapsedSeconds: int): void {
         if (!root.idleConfigReady)
@@ -127,6 +130,64 @@ ShellRoot {
         Quickshell.execDetached(["qs", "-c", "dotfiles", "ipc", "call", "brightness", "refresh"]);
     }
 
+    // Suspend waits for Secure because this process is what logind is waiting
+    // for: it holds a delay inhibitor from startup, locks when logind announces
+    // sleep, and releases the inhibitor once the compositor calls the session
+    // Secure. See docs/adr/0016-lock-holds-its-own-sleep-inhibitor.md for why
+    // the upstream's external watcher and IPC budget are not imported.
+    function onSleepAnnounced(): void {
+        const next = Sleep.announce(root.sleepState);
+        if (next === root.sleepState)
+            return;
+
+        root.sleepState = next;
+        secureBudgetTimer.restart();
+        root.lock();
+        root.settleSleep();
+    }
+
+    // A resume is also the only moment at which the inhibitor can be taken
+    // again: logind waits only for inhibitors registered before it announces.
+    function onSleepFinished(): void {
+        secureBudgetTimer.stop();
+        root.sleepState = Sleep.resume(root.sleepState);
+        sleepInhibitor.acquire();
+        root.reportUnsecuredSuspend();
+    }
+
+    function settleSleep(): void {
+        if (!Sleep.awaitingSecure(root.sleepState))
+            return;
+
+        if (Session.phase(root.session) !== Session.SECURE)
+            return;
+
+        secureBudgetTimer.stop();
+        root.sleepState = Sleep.secured(root.sleepState);
+        sleepInhibitor.release();
+    }
+
+    // Our own deadline, held well inside logind's window: past it the machine
+    // suspends anyway, so holding on only delays a suspend that is happening.
+    function onSecureBudgetExpired(): void {
+        console.warn("df lock: suspending without a Secure session");
+        root.sleepState = Sleep.expire(root.sleepState);
+        sleepInhibitor.release();
+    }
+
+    // The suspend already happened, so the only place anyone can be told is the
+    // screen they come back to -- and while the session is locked that screen is
+    // the lock, which the Bar's notification popup cannot render over.
+    function reportUnsecuredSuspend(): void {
+        if (!Sleep.noticePending(root.sleepState) || Session.isLocked(root.session))
+            return;
+
+        root.sleepState = Sleep.takeNotice(root.sleepState);
+        Quickshell.execDetached(["notify-send", "--urgency=critical",
+            "Screen did not lock before suspend",
+            "The session was left unlocked while the machine slept."]);
+    }
+
     function queueSessionLock(): void {
         pendingSessionLockTimer.start();
         sessionLockStabilizeTimer.restart();
@@ -175,13 +236,17 @@ ShellRoot {
         pendingSessionLockTimer.stop();
         root.session = Session.release(root.session);
         root.refreshBarBrightness();
+        root.reportUnsecuredSuspend();
     }
 
     function syncFromCompositor(): void {
         root.session = Session.observe(root.session, sessionLock.locked, sessionLock.secure);
     }
 
-    onSessionChanged: root.publish()
+    onSessionChanged: {
+        root.publish();
+        root.settleSleep();
+    }
 
     // The two published signals ADR 0017 keeps apart, written where a
     // transition is known to have happened. The third -- the compositor's
@@ -288,6 +353,81 @@ ShellRoot {
                 root.refreshBarBrightness();
             }
         }
+    }
+
+    // The inhibitor itself: logind holds its delay open for as long as this
+    // process lives, and this process lives as long as the lock does. `head -n 1`
+    // is how it is released -- a line on stdin ends the child, systemd-inhibit
+    // reaps it, and the inhibitor's file descriptor closes with it. Signalling
+    // systemd-inhibit instead would leave the child running, and stdin closing
+    // when this shell dies releases the inhibitor for free.
+    Process {
+        id: sleepInhibitor
+
+        command: ["systemd-inhibit", "--what=sleep", "--mode=delay", "--who=df lock",
+            "--why=Lock the session before suspend", "head", "-n", "1"]
+        stdinEnabled: true
+
+        function acquire(): void {
+            if (running)
+                return;
+
+            running = true;
+        }
+
+        function release(): void {
+            if (!running)
+                return;
+
+            write("\n");
+        }
+
+        // An inhibitor that died on its own is one logind is no longer waiting
+        // for, and nothing else would notice until a suspend raced a lock.
+        onExited: if (Sleep.holdsInhibitor(root.sleepState)) inhibitorRetryTimer.start()
+    }
+
+    Timer {
+        id: inhibitorRetryTimer
+        interval: 5000
+        onTriggered: if (Sleep.holdsInhibitor(root.sleepState)) sleepInhibitor.acquire()
+    }
+
+    // logind's announcement: PrepareForSleep, true on the way down and false on
+    // the way back. Quickshell has no logind binding, and `dbus-monitor` is not
+    // the way to read one unprivileged -- it needs BecomeMonitor and falls back
+    // to eavesdropping, both of which the system bus refuses to a user. `gdbus
+    // monitor` takes an ordinary match instead, which is what every desktop
+    // uses to see this signal.
+    Process {
+        id: sleepMonitor
+
+        command: ["gdbus", "monitor", "--system", "--dest", "org.freedesktop.login1",
+            "--object-path", "/org/freedesktop/login1"]
+
+        stdout: SplitParser {
+            onRead: line => {
+                const announced = Sleep.signalValue(line);
+                if (announced === true)
+                    root.onSleepAnnounced();
+                else if (announced === false)
+                    root.onSleepFinished();
+            }
+        }
+
+        onExited: sleepMonitorRetryTimer.start()
+    }
+
+    Timer {
+        id: sleepMonitorRetryTimer
+        interval: 5000
+        onTriggered: sleepMonitor.running = true
+    }
+
+    Timer {
+        id: secureBudgetTimer
+        interval: Sleep.SECURE_BUDGET_MS
+        onTriggered: root.onSecureBudgetExpired()
     }
 
     // IdleMonitor and inhibitor wiring follow Omarchy's
@@ -452,6 +592,11 @@ ShellRoot {
 
     Component.onCompleted: {
         root.setDpms("on");
+
+        // Before anything announces sleep: logind waits only for inhibitors
+        // that were registered when it asked.
+        sleepInhibitor.acquire();
+        sleepMonitor.running = true;
 
         // This instance holds no lock -- but a previous one may have died still
         // holding one, and the compositor keeps that up. startupText() decides

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# Give the Session Lock room to become Secure before logind suspends.
+#
+# The lock holds its own delay inhibitor and drops it the moment the session is
+# Secure (docs/adr/0016-lock-holds-its-own-sleep-inhibitor.md). A delay
+# inhibitor is a timer, not a promise: logind suspends when its window expires
+# whether the session is Secure or not, and the 5s default is not enough when
+# closing the lid also reconfigures displays. Imported from Omarchy's
+# etc/systemd/logind.conf.d/20-inhibit-delay.conf, revision
+# 83881e979b35468c3e7d60b171e319ede61a88fd.
+#
+# This only costs anything when locking is broken. A healthy lock releases the
+# inhibitor well under a second.
+#
+# The value is asserted against the lock's own budget by tests/lock/wiring.test.js.
+set -euo pipefail
+
+sudo mkdir -p /etc/systemd/logind.conf.d
+sudo tee /etc/systemd/logind.conf.d/20-inhibit-delay.conf >/dev/null <<'CONF'
+[Login]
+InhibitDelayMaxSec=15
+CONF
+
+# Not restarting systemd-logind: it can disrupt an active graphical session.
+# Matches setup/common/setup-no-sleep, which writes a drop-in beside this one.
+sudo systemctl daemon-reload
+echo "logind inhibit-delay drop-in written; it applies after the next reboot"

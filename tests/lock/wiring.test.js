@@ -429,6 +429,81 @@ test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
     });
 });
 
+test("the lock holds the delay inhibitor itself, and holds it from startup", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+    const inhibitor = shell.match(/Process \{\s*\n\s*id: sleepInhibitor([\s\S]*?)\n    \}/);
+
+    assert.ok(inhibitor, "the inhibitor process must remain extractable");
+    assert.match(inhibitor[1], /"systemd-inhibit",\s*"--what=sleep",\s*"--mode=delay"/,
+        "a block inhibitor would refuse the suspend rather than delay it");
+    assert.match(inhibitor[1], /"head",\s*"-n",\s*"1"/,
+        "signalling systemd-inhibit leaves its child running; ending the child is what closes "
+        + "the inhibitor's descriptor, and stdin closing does it too when this shell dies");
+    assert.match(inhibitor[1], /stdinEnabled:\s*true[\s\S]*write\("\\n"\)/,
+        "release is a line on stdin, not a signal");
+    assert.match(shell, /Component\.onCompleted:[\s\S]*sleepInhibitor\.acquire\(\)/,
+        "logind waits only for inhibitors registered before it announces sleep, so one taken "
+        + "on the announcement is already too late");
+});
+
+test("the lock locks on logind's announcement and releases once Secure", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /"gdbus",\s*"monitor",\s*"--system",\s*"--dest",\s*"org\.freedesktop\.login1"/,
+        "`dbus-monitor` needs BecomeMonitor or eavesdropping, and the system bus refuses both "
+        + "to a user -- it prints its refusal and then sees nothing");
+    assert.match(shell, /Sleep\.signalValue\(line\)/);
+    assert.match(shell, /root\.onSleepAnnounced\(\)[\s\S]*root\.onSleepFinished\(\)/,
+        "the resume is the same signal with a false argument, and the moment the inhibitor has "
+        + "to be taken again");
+    assert.match(shell, /function onSleepAnnounced\(\): void \{[\s\S]*root\.lock\(\)/);
+    assert.match(shell, /function settleSleep\(\): void \{[\s\S]*Session\.phase\(root\.session\) !== Session\.SECURE[\s\S]*sleepInhibitor\.release\(\)/,
+        "releasing on a lock merely requested is the race the Secure distinction exists to "
+        + "prevent");
+    assert.match(shell, /onSessionChanged:\s*\{[\s\S]*root\.settleSleep\(\)/,
+        "Secure arrives as a session transition, and nothing else would notice it");
+});
+
+test("the wait for Secure is bounded, and a suspend without it is reported", () => {
+    const shell = source(`${lockRoot}/shell.qml`);
+
+    assert.match(shell, /id:\s*secureBudgetTimer[\s\S]*interval:\s*Sleep\.SECURE_BUDGET_MS[\s\S]*root\.onSecureBudgetExpired\(\)/,
+        "an unbounded wait strands a closed laptop in a bag");
+    assert.match(shell, /function onSecureBudgetExpired\(\): void \{[\s\S]*sleepInhibitor\.release\(\)/,
+        "logind suspends when its own window expires either way");
+    assert.match(shell, /notify-send[\s\S]*--urgency=critical/,
+        "the suspend already happened; the notification is the only way anyone finds out");
+    assert.match(shell, /function reportUnsecuredSuspend\(\): void \{[\s\S]*Session\.isLocked\(root\.session\)/,
+        "the Bar's notification popup cannot render over the lock, so the notice waits for the "
+        + "screen the session is unlocked into");
+    assert.match(shell, /function unlock\(\): void \{[\s\S]*root\.reportUnsecuredSuspend\(\)/);
+    assert.match(shell, /function onSleepFinished\(\): void \{[\s\S]*root\.reportUnsecuredSuspend\(\)/,
+        "a session that never locked at all is unlocked at the resume, and nothing later would "
+        + "deliver the notice");
+});
+
+// Copied from Omarchy test/shell.d/sleep-lock-test.sh, revision
+// 83881e979b35468c3e7d60b171e319ede61a88fd: the budget is only reachable
+// because the shipped drop-in widens logind's window past it, so shipping one
+// without the other makes the budget dead weight.
+test("the lock's budget stays inside the logind window the drop-in asks for", () => {
+    const setup = source("setup/arch-hyprland/setup-packages/setup-sleep-inhibit");
+    const sleep = require(path.join(repoRoot, lockRoot, "lib/sleep.js"));
+    const inhibitDelay = setup.match(/^InhibitDelayMaxSec=(\d+)$/m);
+
+    assert.ok(inhibitDelay, "the drop-in no longer declares an inhibit delay");
+    assert.strictEqual(Number(inhibitDelay[1]), sleep.INHIBIT_DELAY_SECONDS,
+        "the budget is checked against this number, so the two have to be the same number");
+    assert.ok(Number(inhibitDelay[1]) > 5,
+        "5s is logind's default, and it is not enough when closing the lid also reconfigures "
+        + "displays");
+    assert.ok(sleep.SECURE_BUDGET_MS < Number(inhibitDelay[1]) * 1000,
+        "a budget past logind's window leaves logind no room to act on the release");
+    assert.match(setup, /\/etc\/systemd\/logind\.conf\.d\/20-inhibit-delay\.conf/);
+    assert.match(source("setup/arch-hyprland/init"), /setup-packages\/setup-sleep-inhibit"/,
+        "a drop-in no box installs is a window that stays at the default");
+});
+
 // --- The Break-glass runbook -------------------------------------------------
 //
 // The runbook is read at a TTY by someone who has just lost their session, so
