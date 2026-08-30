@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+hyprctl monitors all -j |
+    jq -e '.[]
+        | select((.name // "") | test("^(eDP|LVDS|DSI)-") | not)
+        | select(.disabled == false)' >/dev/null 2>&1

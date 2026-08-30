@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Lock only the undocked lid-close path. Docked lid closes remain awake and
+# are reconciled by the Hyprland clamshell helper.
+
+if df-hw-laptop-closed && ! df-hw-external-monitors; then
+    qs -c lock ipc call lock lock >/dev/null 2>&1 || true
+fi
+
+df-hypr-clamshell

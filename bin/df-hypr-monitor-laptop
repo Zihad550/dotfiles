@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+hyprctl monitors all -j |
+    jq -r '.[] | select((.name // "") | test("^(eDP|LVDS|DSI)-")) | .name' |
+    head -n 1

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+# Recovery backstop for monitor events the lid binding can miss.
+
+set -uo pipefail
+
+SOCKET="${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+LOCK="${XDG_RUNTIME_DIR:-/tmp}/df-hypr-monitor-clamshell.lock"
+
+sync_clamshell() {
+    (
+        flock -n 9 || exit 0
+        timeout --kill-after=0.1s 0.4s df-hypr-clamshell >/dev/null 2>&1 || true
+    ) 9>"$LOCK"
+}
+
+sync_clamshell_after_monitor_change() {
+    sync_clamshell
+
+    (
+        for delay in 1 3 7; do
+            sleep "$delay"
+            sync_clamshell
+        done
+    ) &
+}
+
+poll_clamshell_state() {
+    while true; do
+        sleep 2
+        sync_clamshell
+    done
+}
+
+poll_pid=""
+sync_poll_state() {
+    if df-hw-clamshell && df-hypr-monitor-external-active; then
+        if [[ -z $poll_pid ]] || ! kill -0 "$poll_pid" 2>/dev/null; then
+            poll_clamshell_state &
+            poll_pid=$!
+        fi
+    elif [[ -n $poll_pid ]]; then
+        kill "$poll_pid" 2>/dev/null || true
+        poll_pid=""
+    fi
+}
+
+sync_clamshell_after_monitor_change
+sync_poll_state
+
+while read -r event; do
+    case "$event" in
+        monitoradded\>\>*|monitoraddedv2\>\>*|monitorremoved\>\>*|monitorremovedv2\>\>*)
+            sync_clamshell_after_monitor_change
+            sync_poll_state
+            ;;
+        configreloaded\>\>*)
+            sync_clamshell
+            ;;
+    esac
+done < <(socat -U - "UNIX-CONNECT:$SOCKET")

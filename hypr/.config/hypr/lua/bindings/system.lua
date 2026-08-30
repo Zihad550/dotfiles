@@ -20,11 +20,11 @@ o.bind("SUPER + CTRL + D",         "Close eDP-1",      dotfiles_bin .. "/df-hypr
 o.bind("SUPER + CTRL + SHIFT + D", "Close HDMI-A-1",   dotfiles_bin .. "/df-hypr-close-display HDMI-A-1", { locked = true })
 
 -- Lid / clamshell
--- A closed lid with an external display stays awake and moves any workspaces
--- off eDP-1 before disabling it. A lid close without an external display
--- starts the Session Lock early, then logind performs the normal suspend.
-o.bind("switch:on:Lid Switch",  "Lid close", dotfiles_bin .. "/df-hypr-clamshell", { locked = true })
-o.bind("switch:off:Lid Switch", "Lid open",  dotfiles_bin .. "/df-hypr-clamshell", { locked = true })
+-- A closed lid with an external display stays awake while the monitor helper
+-- disables eDP-1; Hyprland evacuates its workspaces. A lid close without an
+-- external display starts the Session Lock before logind performs suspend.
+o.bind("switch:on:Lid Switch",  "Lid close", dotfiles_bin .. "/df-system-lid-close", { locked = true })
+o.bind("switch:off:Lid Switch", "Lid open",  dotfiles_bin .. "/df-hypr-clamshell",    { locked = true })
 
 -- Launchers
 --

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+lid_state_dir="${DF_HYPR_LID_STATE_DIR:-/proc/acpi/button/lid}"
+
+for state in "$lid_state_dir"/*/state; do
+    [[ -r $state ]] || continue
+    [[ $(<"$state") == *closed* ]] && exit 0
+done
+
+exit 1

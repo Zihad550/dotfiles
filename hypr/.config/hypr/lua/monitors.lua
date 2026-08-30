@@ -88,3 +88,14 @@ hl.workspace_rule({ workspace = "2", monitor = "eDP-1" })
 -- hl.workspace_rule({ workspace = "name:8",  monitor = "eDP-1" })
 -- hl.workspace_rule({ workspace = "name:9",  monitor = "eDP-1" })
 -- hl.workspace_rule({ workspace = "name:10", monitor = "eDP-1" })
+
+-- Omarchy-style transient monitor toggle. The clamshell helper writes this
+-- state file before reloading Hyprland, so the compositor owns output removal
+-- and the workspace evacuation that follows it.
+local clamshell_flag = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state"))
+    .. "/hypr/internal-monitor-clamshell.lua"
+local clamshell_file = io.open(clamshell_flag, "r")
+if clamshell_file then
+    clamshell_file:close()
+    dofile(clamshell_flag)
+end

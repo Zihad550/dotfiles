@@ -1,8 +1,8 @@
 # Lid and clamshell verification
 
 This checklist verifies the lock-before-suspend and Clamshell Mode paths for
-issue #114. It covers both the physical lid transition and the workspace
-relocation that keeps an external-only session usable.
+issue #114. It covers both the physical lid transition and the monitor
+reconciliation that keeps an external-only session usable.
 
 Run the host checks on a physical laptop running Arch Linux and Hyprland. Do
 not use the Arch devbox target for this test: its no-sleep policy masks sleep
@@ -147,14 +147,15 @@ Record these observations even when the test passes:
 
 If the laptop normally uses a dock or external monitor, connect it and repeat
 the previous lid test. In Clamshell Mode, closing the lid should keep the
-session awake, disable the internal display, and move its normal workspaces to
-the external display. Opening the lid should restore the saved monitor layout
-and move those workspaces back to the internal display.
+session awake and disable the internal display. Hyprland should evacuate the
+internal display's workspaces to the external display. Opening the lid should
+remove the temporary clamshell rule and restore the saved monitor layout.
 
 Do not infer a failure merely because the behavior differs from another
 desktop environment. A failure is one of these concrete cases: the internal
 display remains active while closed, a workspace remains stranded on it, the
-external display disappears, or opening the lid fails to restore the layout.
+external display disappears, the internal workspace remains stranded, or
+opening the lid fails to restore the layout.
 
 ## 8. Capture the lock log
 

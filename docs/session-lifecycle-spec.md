@@ -49,10 +49,11 @@ plugins encode years of accumulated fixes for stranded locks, multi-monitor
 transitions and lid-close races.
 
 The lid switch has a separate Clamshell Mode path. With an external display
-active, closing the lid moves normal workspaces off the internal output before
-disabling it and leaves the session awake; opening the lid restores the saved
-monitor layout and the workspaces moved by that transition. Without an external
-display, closing the lid starts the Session Lock and leaves suspend to logind.
+active, closing the lid disables the internal output through a temporary
+monitor rule; Hyprland evacuates its workspaces to the surviving output and
+the session stays awake. Opening the lid removes that rule and restores the
+saved monitor layout. Without an external display, closing the lid starts the
+Session Lock and leaves suspend to logind.
 
 Separately and afterwards, the Greeter moves from GDM to SDDM, matching
 Omarchy's choice, and the greeter-specific power-policy workaround that only

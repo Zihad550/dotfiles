@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+df-hw-laptop-closed && df-hw-external-monitors

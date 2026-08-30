@@ -16,6 +16,7 @@ o.exec_on_start("uwsm-app -- quickshell -c launcher -n")
 -- bar must not be able to drop a live lock.
 -- See quickshell/.config/quickshell/lock/shell.qml.
 o.exec_on_start("uwsm-app -- quickshell -c lock -n")
+o.exec_on_start("uwsm-app -- " .. os.getenv("HOME") .. "/dotfiles/bin/df-hypr-monitor-watch")
 -- Feeds cliphist, which the Launcher's clipboard Provider reads (ticket 14);
 -- cliphist keeps no history unless something pipes changes into it.
 --
