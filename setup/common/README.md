@@ -51,6 +51,15 @@ here when the explanation does not belong beside the command it protects.
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Hyprland, Arch devbox |
   | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
 
+## Boot Branding
+
+`boot-branding` installs the pinned Plymouth theme and keeps it aligned with
+the pinned SDDM theme. It adds Plymouth to the configured initramfs hook chain
+and adds `splash` to GRUB. If the host has `/etc/kernel/cmdline`, the same
+arguments are written there because `mkinitcpio` uses that file when building a
+UKI. The command-line update also adds `initramfs_async=0`, matching Omarchy's
+Plymouth workaround for asynchronous UKI unpacking.
+
 ## SSH hardening
 
 Both Box Wrappers set the contract documented at the top of

@@ -49,6 +49,25 @@ validate_assets() {
 	done
 }
 
+ensure_kernel_arguments() {
+	local args="$1" arg found
+	shift
+	local -a current=()
+	if [[ -n $args ]]; then
+		read -r -a current <<<"$args"
+	fi
+
+	for arg in "$@"; do
+		found=0
+		local current_arg
+		for current_arg in "${current[@]}"; do
+			[[ $current_arg == "$arg" ]] && found=1
+		done
+		(( found == 0 )) && current+=("$arg")
+	done
+	printf '%s' "${current[*]}"
+}
+
 transform_mkinitcpio() {
 	local input="$1" output="$2" line hooks hook found=0 has_plymouth=0 anchor=-1
 
@@ -89,22 +108,14 @@ transform_mkinitcpio() {
 }
 
 transform_grub() {
-	local input="$1" output="$2" line args arg found=0 has_splash
+	local input="$1" output="$2" line args found=0
 
 	: >"$output"
 	while IFS= read -r line || [[ -n $line ]]; do
 		if [[ $line =~ ^GRUB_CMDLINE_LINUX_DEFAULT=\"([^\"]*)\"$ ]]; then
 			(( found += 1 ))
 			args="${BASH_REMATCH[1]}"
-			has_splash=0
-			read -r -a grub_args <<<"$args"
-			for arg in "${grub_args[@]}"; do
-				[[ $arg == splash ]] && has_splash=1
-			done
-			if (( has_splash == 0 )); then
-				[[ -n $args ]] && args+=" "
-				args+=splash
-			fi
+			args="$(ensure_kernel_arguments "$args" splash initramfs_async=0)"
 			printf 'GRUB_CMDLINE_LINUX_DEFAULT="%s"\n' "$args" >>"$output"
 		else
 			printf '%s\n' "$line" >>"$output"
@@ -112,6 +123,15 @@ transform_grub() {
 	done <"$input"
 
 	(( found == 1 )) || die "expected GRUB_CMDLINE_LINUX_DEFAULT=\"...\" in $input"
+}
+
+transform_kernel_cmdline() {
+	local input="$1" output="$2" args
+
+	args="$(<"$input")"
+	[[ $args != *$'\n'* ]] || die "expected one kernel command line in $input"
+	ensure_kernel_arguments "$args" splash initramfs_async=0 >"$output"
+	printf '\n' >>"$output"
 }
 
 backup_path() {
@@ -170,17 +190,23 @@ install_staged_directory() {
 install_boot_branding_files() {
 	local source_dir="$1" theme_target="$2" selector_target="$3"
 	local grub_conf="$4" mkinitcpio_conf="$5" grub_stage="$6" hooks_stage="$7"
+	local kernel_cmdline="${8:-}" kernel_stage="${9:-}"
 
 	as_root install -d -m 755 "$(dirname "$grub_conf")" "$(dirname "$mkinitcpio_conf")" || return 1
 	as_root cp "$grub_stage" "$grub_conf" || return 1
 	as_root cp "$hooks_stage" "$mkinitcpio_conf" || return 1
+	if [[ -n $kernel_stage ]]; then
+		as_root install -d -m 755 "$(dirname "$kernel_cmdline")" || return 1
+		as_root cp "$kernel_stage" "$kernel_cmdline" || return 1
+	fi
 	install_staged_directory "$source_dir" "$theme_target" || return 1
 	as_root install -Dm 644 "$BOOT_BRANDING_DIR/plymouthd.conf" "$selector_target" || return 1
 }
 
 commit_boot_branding() {
 	local source_dir="$1" sddm_source_dir="${2:-}" grub_conf mkinitcpio_conf
-	local grub_stage hooks_stage theme_target sddm_target selector_target grub_output image
+	local grub_stage hooks_stage kernel_stage theme_target sddm_target selector_target
+	local grub_output kernel_cmdline image
 
 	validate_assets "$source_dir"
 	grub_conf="$(root_path /etc/default/grub)"
@@ -191,9 +217,18 @@ commit_boot_branding() {
 
 	grub_stage=$(mktemp)
 	hooks_stage=$(mktemp)
-	trap 'rm -f "$grub_stage" "$hooks_stage"' RETURN
+	kernel_cmdline="$(root_path /etc/kernel/cmdline)"
+	if [[ -f $kernel_cmdline ]]; then
+		kernel_stage=$(mktemp)
+	else
+		kernel_stage=""
+	fi
+	trap 'rm -f "$grub_stage" "$hooks_stage"; [[ -z ${kernel_stage:-} ]] || rm -f "$kernel_stage"' RETURN
 	transform_grub "$grub_conf" "$grub_stage"
 	transform_mkinitcpio "$mkinitcpio_conf" "$hooks_stage"
+	if [[ -n $kernel_stage ]]; then
+		transform_kernel_cmdline "$kernel_cmdline" "$kernel_stage"
+	fi
 	if [[ -n $sddm_source_dir ]]; then
 		[[ -d $sddm_source_dir ]] || die "missing staged SDDM theme: $sddm_source_dir"
 	fi
@@ -205,11 +240,17 @@ commit_boot_branding() {
 	selector_target="$(root_path /etc/plymouth/plymouthd.conf)"
 	backup_path "$grub_conf"
 	backup_path "$mkinitcpio_conf"
+	if [[ -n $kernel_stage ]]; then
+		backup_path "$kernel_cmdline"
+	fi
 	backup_path "$selector_target"
 	backup_path "$grub_output"
 	backup_path "$theme_target"
 	shopt -s nullglob
 	for image in "$(root_path /boot/)"initramfs*; do
+		backup_path "$image"
+	done
+	for image in "$(root_path /boot/)"initrd-plymouth.img "$(root_path /boot/EFI/Linux/)"*.efi; do
 		backup_path "$image"
 	done
 	shopt -u nullglob
@@ -220,7 +261,8 @@ commit_boot_branding() {
 
 	if ! install_boot_branding_files \
 		"$source_dir" "$theme_target" "$selector_target" "$grub_conf" \
-		"$mkinitcpio_conf" "$grub_stage" "$hooks_stage"; then
+		"$mkinitcpio_conf" "$grub_stage" "$hooks_stage" "$kernel_cmdline" \
+		"$kernel_stage"; then
 		echo "Boot Branding: installation failed; rolling back" >&2
 		rollback_boot_branding
 		return 1

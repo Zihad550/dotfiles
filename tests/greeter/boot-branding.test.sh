@@ -9,7 +9,7 @@ trap 'rm -rf "$test_tmp"' EXIT
 fake_bin="$test_tmp/bin"
 root="$test_tmp/root"
 calls="$test_tmp/calls.log"
-mkdir -p "$fake_bin" "$root/etc/default" "$root/etc" "$root/boot/grub"
+mkdir -p "$fake_bin" "$root/etc/default" "$root/etc/kernel" "$root/etc" "$root/boot/grub"
 
 cat >"$fake_bin/mkinitcpio" <<'SH'
 #!/usr/bin/env bash
@@ -55,12 +55,15 @@ write_fixture() {
     local hooks=$1 grub_args=$2
     printf 'HOOKS=(base udev %s filesystems fsck)\n' "$hooks" >"$root/etc/mkinitcpio.conf"
     printf 'GRUB_CMDLINE_LINUX_DEFAULT="%s"\nGRUB_TIMEOUT=5\n' "$grub_args" >"$root/etc/default/grub"
+    printf '%s\n' "$grub_args" >"$root/etc/kernel/cmdline"
 }
 
 write_fixture 'autodetect' 'quiet loglevel=3'
 run_apply
 grep -Fx 'HOOKS=(base udev plymouth autodetect filesystems fsck)' "$root/etc/mkinitcpio.conf" >/dev/null
-grep -Fx 'GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 splash"' "$root/etc/default/grub" >/dev/null
+grep -Fx 'GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 splash initramfs_async=0"' \
+    "$root/etc/default/grub" >/dev/null
+grep -Fx 'quiet loglevel=3 splash initramfs_async=0' "$root/etc/kernel/cmdline" >/dev/null
 [[ -f "$root/usr/share/plymouth/themes/omarchy/omarchy.script" ]]
 [[ -f "$root/etc/plymouth/plymouthd.conf" ]]
 [[ -d "$root/var/lib/dotfiles/greeter-backups" ]]
@@ -68,11 +71,15 @@ grep -Fx 'GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 splash"' "$root/etc/defau
 run_apply
 [[ $(grep -o 'plymouth' "$root/etc/mkinitcpio.conf" | wc -l) == 1 ]]
 [[ $(grep -o 'splash' "$root/etc/default/grub" | wc -l) == 1 ]]
+[[ $(grep -o 'splash' "$root/etc/kernel/cmdline" | wc -l) == 1 ]]
+[[ $(grep -o 'initramfs_async=0' "$root/etc/kernel/cmdline" | wc -l) == 1 ]]
 
 write_fixture 'autodetect' 'cryptdevice=UUID=abc root=/dev/mapper/root'
 run_apply
-grep -Fx 'GRUB_CMDLINE_LINUX_DEFAULT="cryptdevice=UUID=abc root=/dev/mapper/root splash"' \
+grep -Fx 'GRUB_CMDLINE_LINUX_DEFAULT="cryptdevice=UUID=abc root=/dev/mapper/root splash initramfs_async=0"' \
     "$root/etc/default/grub" >/dev/null
+grep -Fx 'cryptdevice=UUID=abc root=/dev/mapper/root splash initramfs_async=0' \
+    "$root/etc/kernel/cmdline" >/dev/null
 
 printf 'HOOKS=(base systemd autodetect filesystems fsck)\n' >"$root/etc/mkinitcpio.conf"
 run_apply
@@ -109,12 +116,14 @@ write_fixture 'autodetect' 'quiet'
 printf 'previous initramfs\n' >"$root/boot/initramfs-linux.img"
 cp "$root/etc/mkinitcpio.conf" "$test_tmp/hooks.before-failure"
 cp "$root/etc/default/grub" "$test_tmp/grub.before-failure"
+cp "$root/etc/kernel/cmdline" "$test_tmp/cmdline.before-failure"
 cp "$root/boot/initramfs-linux.img" "$test_tmp/initramfs.before-failure"
 export TEST_FAIL_REBUILD=1
 run_apply 2>"$test_tmp/rebuild.err" && exit 1
 unset TEST_FAIL_REBUILD
 cmp "$test_tmp/hooks.before-failure" "$root/etc/mkinitcpio.conf"
 cmp "$test_tmp/grub.before-failure" "$root/etc/default/grub"
+cmp "$test_tmp/cmdline.before-failure" "$root/etc/kernel/cmdline"
 cmp "$test_tmp/initramfs.before-failure" "$root/boot/initramfs-linux.img"
 grep -F 'rolling back' "$test_tmp/rebuild.err" >/dev/null
 

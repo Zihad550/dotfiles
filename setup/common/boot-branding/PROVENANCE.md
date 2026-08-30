@@ -21,6 +21,10 @@ The theme is copied here so setup and recovery do not depend on the ignored
 - `plymouth` is selected through the package's `plymouth-set-default-theme`
   command, then `mkinitcpio -P` and `grub-mkconfig` rebuild the current boot
   artifacts.
+- When `/etc/kernel/cmdline` exists, it is updated along with GRUB's command
+  line. Both receive one `splash` argument and Omarchy's
+  `initramfs_async=0` workaround, so a GRUB-launched UKI gets the same
+  Plymouth settings as a GRUB menu entry.
 - Hook and kernel-argument changes are staged before installation and backed up
   under `/var/lib/dotfiles/greeter-backups/` before a rebuild.
 - `df-boot-branding-set` owns the validated recoloring and SDDM synchronization;
