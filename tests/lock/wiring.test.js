@@ -355,6 +355,8 @@ test("the Idle Ladder uses Hyprland's Lua dispatcher API for display blanking", 
     assert.match(shell, /hl\.dsp\.dpms\(\{action = \\"on\\"\}\)/);
     assert.doesNotMatch(shell, /"dispatch",\s*"dpms",\s*"(?:off|on)"/,
         "current Hyprland parses the old dpms arguments as invalid Lua");
+    assert.match(shell, /Component\.onCompleted:\s*\{\s*root\.setDpms\("on"\)/,
+        "a replacement process must recover a display blanked by its predecessor");
 });
 
 test("box timing data replaces hypridle and its devbox override machinery", () => {

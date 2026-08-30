@@ -88,18 +88,14 @@ ShellRoot {
         else if (stage === Idle.LOCK)
             root.lock();
         else if (stage === Idle.BLANK)
-            Quickshell.execDetached([
-                "hyprctl", "dispatch", "hl.dsp.dpms({action = \"off\"})"
-            ]);
+            root.setDpms("off");
         else if (stage === Idle.SUSPEND)
             Quickshell.execDetached(["systemctl", "suspend"]);
     }
 
     function leaveIdleStage(stage: string): void {
         if (stage === Idle.BLANK)
-            Quickshell.execDetached([
-                "hyprctl", "dispatch", "hl.dsp.dpms({action = \"on\"})"
-            ]);
+            root.setDpms("on");
         else if (stage === Idle.DIM) {
             if (brightnessProcess.running) {
                 brightnessRestorePending = true;
@@ -107,6 +103,19 @@ ShellRoot {
                 root.restoreBrightness();
             }
         }
+    }
+
+    // A replacement instance inherits the compositor's DPMS state but none of
+    // the idle state that explains it: a display the previous process blanked
+    // has no Blank Stage left to unwind, so activity would never wake it.
+    // `hyprctl dpms off` is invalid Lua to the current dispatcher.
+    readonly property var dpmsCommands: ({
+        off: ["hyprctl", "dispatch", "hl.dsp.dpms({action = \"off\"})"],
+        on: ["hyprctl", "dispatch", "hl.dsp.dpms({action = \"on\"})"]
+    })
+
+    function setDpms(action: string): void {
+        Quickshell.execDetached(root.dpmsCommands[action]);
     }
 
     function restoreBrightness(): void {
@@ -442,6 +451,8 @@ ShellRoot {
     }
 
     Component.onCompleted: {
+        root.setDpms("on");
+
         // This instance holds no lock -- but a previous one may have died still
         // holding one, and the compositor keeps that up. startupText() decides
         // whether saying so is safe.
