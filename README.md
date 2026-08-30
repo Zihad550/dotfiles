@@ -54,6 +54,9 @@ df-font-set <family>               # switch monospace font across configs
 df-font-list                       # list installed mono families
 df-font-current                    # print current font
 
+df-greeter-refresh                 # reapply the pinned Omarchy SDDM Greeter
+df-greeter-reset                   # remove custom Greeter overrides (stock SDDM)
+
 df-hypr-display-layout apply [variant]
                                    # restore the saved layout for the connected
                                    # displays; falls back to monitors.lua

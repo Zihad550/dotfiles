@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
 
-# Install the Greeter — SDDM — and retire the GDM this repo used to install.
+# Install the pinned Greeter — SDDM plus Omarchy's small theme — and retire the
+# GDM this repo used to install.
 # See README.md "Greeter".
 
 set -euo pipefail
 
-sudo pacman -S --noconfirm --needed sddm
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+GREETER_DIR="$DOTFILES_DIR/setup/common/greeter"
+
+# These are explicit rather than relying on SDDM's transitive dependencies:
+# the Greeter launches a Wayland compositor, loads Qt6 QML, and decodes PNGs.
+sudo pacman -S --noconfirm --needed \
+	sddm qt6-wayland qt6-declarative qt6-imageformats ttf-jetbrains-mono-nerd
+
+# Validate and stage the replacement before changing the display-manager alias.
+# A broken Greeter must never be the first thing enabled on a box.
+"$GREETER_DIR/validate"
+"$GREETER_DIR/apply"
 
 if systemctl is-enabled gdm.service &>/dev/null; then
-    sudo systemctl disable gdm.service
+	sudo systemctl disable gdm.service
 fi
 
 # --force because the display-manager.service alias may still point at gdm —
@@ -21,13 +33,13 @@ sudo systemctl enable --force sddm.service
 # session creates the passwordless default keyring and gcr-ssh-agent owns SSH
 # credentials after login; these hooks belong to GDM's login-keyring flow.
 if [[ -f /etc/pam.d/sddm ]]; then
-    sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
-    sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
+	sudo sed -i '/-auth.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
+	sudo sed -i '/-password.*pam_gnome_keyring\.so/d' /etc/pam.d/sddm
 fi
 
 # Not fatal: the Greeter is already switched by this point, and aborting the
 # whole install over a package pacman declines to remove is the wrong trade.
 if pacman -Qq gdm &>/dev/null; then
-    sudo pacman -Rs --noconfirm gdm ||
-        echo "warn: gdm not removed — sddm is enabled, so remove it by hand"
+	sudo pacman -Rs --noconfirm gdm ||
+		echo "warn: gdm not removed — sddm is enabled, so remove it by hand"
 fi

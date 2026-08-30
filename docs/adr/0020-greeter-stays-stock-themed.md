@@ -1,4 +1,6 @@
-# The Greeter stays on its stock theme
+> Status: Superseded by [ADR 0024](0024-pinned-omarchy-greeter.md).
+
+# Superseded: The Greeter stays on its stock theme
 
 The Greeter is SDDM, and it is left exactly as SDDM ships it. It does not
 follow the active theme, and nothing in the theme pipeline writes to it.

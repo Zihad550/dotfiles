@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+GREETER_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+THEME_TARGET=/usr/share/sddm/themes/omarchy
+
+"$GREETER_DIR/validate"
+
+sudo rm -rf "$THEME_TARGET"
+sudo install -d -m 755 "$THEME_TARGET"
+sudo install -m 644 "$GREETER_DIR/omarchy"/* "$THEME_TARGET/"
+sudo install -Dm 644 "$GREETER_DIR/hyprland.lua" /usr/share/sddm/hyprland.lua
+sudo install -Dm 644 "$GREETER_DIR/etc/sddm.conf.d/10-wayland.conf" \
+	/etc/sddm.conf.d/10-wayland.conf
+sudo install -Dm 644 "$GREETER_DIR/etc/sddm.conf.d/10-theme.conf" \
+	/etc/sddm.conf.d/10-theme.conf
+
+echo "Pinned Omarchy Greeter installed; it applies on the next SDDM start"

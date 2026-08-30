@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Remove only the files owned by the pinned Greeter. SDDM remains installed;
+# without these overrides it falls back to its package-provided behavior.
+sudo rm -rf /usr/share/sddm/themes/omarchy
+sudo rm -f \
+	/usr/share/sddm/hyprland.lua \
+	/etc/sddm.conf.d/10-wayland.conf \
+	/etc/sddm.conf.d/10-theme.conf
+
+echo "Pinned Greeter removed; SDDM stock behavior applies on its next start"

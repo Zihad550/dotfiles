@@ -9,6 +9,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -20,6 +21,8 @@ function source(relativePath) {
 
 const inits = ["setup/arch-devbox/init", "setup/arch-hyprland/init"];
 const greeterSetup = "setup/common/setup-greeter";
+const greeterRoot = "setup/common/greeter";
+const pinnedCommit = "83881e979b35468c3e7d60b171e319ede61a88fd";
 
 test("both boxes install the Greeter through the shared setup script", () => {
     inits.forEach(init => {
@@ -38,8 +41,12 @@ test("no setup path installs or enables gdm any more", () => {
 test("the Greeter setup is idempotent and installs sddm", () => {
     const setup = source(greeterSetup);
 
-    assert.match(setup, /pacman -S[^\n]*--needed[^\n]*\bsddm\b/,
+    assert.match(setup, /pacman -S[\s\S]*?--needed[\s\S]*?\bsddm\b/,
         "without --needed a re-run reinstalls the package every time");
+    assert.match(setup, /\bqt6-wayland\b/);
+    assert.match(setup, /\bqt6-imageformats\b/);
+    assert.match(setup, /\bttf-jetbrains-mono-nerd\b/,
+        "the Greeter uses the official Arch Nerd Font package");
     assert.match(setup, /systemctl enable --force sddm\.service/,
         "without --force a re-run dies on a display-manager.service alias left behind by "
         + "the run before it, and no later run can repair that");
@@ -61,6 +68,64 @@ test("the Greeter does not own the Desktop Keyring through SDDM PAM", () => {
         "SDDM must not create a second keyring through its login hooks");
     assert.match(setup, /-auth\.\*pam_gnome_keyring/);
     assert.match(setup, /-password\.\*pam_gnome_keyring/);
+});
+
+test("the pinned Omarchy Greeter is vendored instead of reading the ignored checkout", () => {
+    const setup = source(greeterSetup);
+    const apply = source(`${greeterRoot}/apply`);
+    const provenance = source(`${greeterRoot}/PROVENANCE.md`);
+
+    assert.doesNotMatch(setup, /resources\/omarchy/);
+    assert.doesNotMatch(apply, /resources\/omarchy/);
+    assert.match(provenance, new RegExp(pinnedCommit));
+    assert.match(provenance, /4\.0\.0\.alpha/);
+    assert.match(provenance, /local adaptation/i);
+});
+
+test("the vendored Greeter contains every pinned upstream asset byte-for-byte", () => {
+    const assets = {
+        "hyprland.lua": "353fe59d7d46b21946cdc48000eef7b131e9e577c1d6117f07c3137cdbf0fe67",
+        "omarchy/Main.qml": "aa578ec8a6269079e2141842073821fa24940fa4495a13815fa0754652e6027f",
+        "omarchy/bullet.png": "875ea8297db71415aeef2e03a5ccd67997a13c16f794d4e4929a9d669aaa7327",
+        "omarchy/entry-failed.png": "f8f3ab148ea6c7e0580d918593fecfb6784d2c4859b9d1822c5f0ba7e8090e83",
+        "omarchy/entry.png": "494587957a28b0a69c7e1477a535f7a11d9b1790e9b7db7c77ed5fb231dfce4c",
+        "omarchy/lock-failed.png": "e30c49a41e6b2c8d26ea6410c9551ecf927492682d8ba35d7c7543af603f26a9",
+        "omarchy/lock.png": "36be04a15773170b656bdadfa129dc14695e296abed3ac62247e23dbf213d836",
+        "omarchy/logo.png": "ba8f1547a02ab5db64fe3923d0b834a220e2c3798c1674374a0eb92a18dfddfb",
+        "omarchy/metadata.desktop": "d7a94b02b897c3356c07ee31e6543924baf1a7ee2c2205b97fc4d0db915e5ea2",
+        "omarchy/theme.conf": "a371ee2822ab833c1349cbe193bf4b9292d6ab6b49a22b525fc1dcd95aa933c1",
+        "etc/sddm.conf.d/10-wayland.conf": "711c05e5cfa836ff25deaf433b521d975f026bc189a3cbb6892b9822297c90b6",
+        "etc/sddm.conf.d/10-theme.conf": "61ae32f59f5ae343b37c0c5f79306d0dcd8691a8ad2dd062904aaab2733a62bd",
+    };
+
+    for (const [relativePath, expectedHash] of Object.entries(assets)) {
+        const filePath = path.join(repoRoot, greeterRoot, relativePath);
+        assert.strictEqual(fs.existsSync(filePath), true, `${relativePath} is vendored`);
+        const actualHash = crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+        assert.strictEqual(actualHash, expectedHash, `${relativePath} changed from the pin`);
+    }
+});
+
+test("Greeter setup validates before activation and exposes refresh/reset recovery", () => {
+    const setup = source(greeterSetup);
+    const validate = source(`${greeterRoot}/validate`);
+    const apply = source(`${greeterRoot}/apply`);
+    const refresh = source("bin/df-greeter-refresh");
+    const reset = source("bin/df-greeter-reset");
+
+    assert.match(setup, /GREETER_DIR.*validate/);
+    assert.match(validate, /metadata\.desktop/);
+    assert.match(validate, /identify|file/);
+    assert.match(validate, /qmllint/);
+    assert.match(validate, /hyprland.*--verify-config|--verify-config.*hyprland/);
+    assert.match(apply, /\/usr\/share\/sddm\/themes\/omarchy/);
+    assert.match(apply, /\/etc\/sddm\.conf\.d/);
+    assert.match(refresh, /greeter\/apply/);
+    assert.match(reset, /\/usr\/share\/sddm\/themes\/omarchy/);
+    assert.match(reset, /10-wayland\.conf/);
+    assert.match(reset, /10-theme\.conf/);
+    assert.doesNotMatch(reset, /systemctl restart|systemctl stop|systemctl disable/,
+        "reset must not log a user out while providing recovery");
 });
 
 test("both Arch boxes install the Desktop Keyring's Secret Service client", () => {
@@ -104,13 +169,13 @@ test("the suspend model is documented as three paths, in every document that cou
         "the count moved to three");
 });
 
-test("the decision to leave the Greeter unthemed is recorded as an ADR", () => {
-    const adrs = fs.readdirSync(path.join(repoRoot, "docs/adr"))
-        .filter(name => /greeter/.test(name));
+test("Boot Branding and the pinned Greeter decision are documented", () => {
+    const oldAdr = source("docs/adr/0020-greeter-stays-stock-themed.md");
+    const newAdr = source("docs/adr/0024-pinned-omarchy-greeter.md");
+    const context = source("CONTEXT.md");
 
-    assert.strictEqual(adrs.length, 1,
-        "the stock theme is the question that keeps getting reopened; it needs one place to land");
-    const adr = source(`docs/adr/${adrs[0]}`);
-    assert.match(adr, /sddm/i);
-    assert.match(adr, /theme/i);
+    assert.match(oldAdr, /superseded by.*0024/i);
+    assert.match(newAdr, /Boot Branding/);
+    assert.match(newAdr, new RegExp(pinnedCommit));
+    assert.match(context, /\*\*Boot Branding\*\*/);
 });

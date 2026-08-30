@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+GREETER_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+THEME_DIR="$GREETER_DIR/omarchy"
+
+required_files=(
+	"$GREETER_DIR/hyprland.lua"
+	"$GREETER_DIR/etc/sddm.conf.d/10-wayland.conf"
+	"$GREETER_DIR/etc/sddm.conf.d/10-theme.conf"
+	"$THEME_DIR/Main.qml"
+	"$THEME_DIR/metadata.desktop"
+	"$THEME_DIR/theme.conf"
+	"$THEME_DIR/bullet.png"
+	"$THEME_DIR/entry-failed.png"
+	"$THEME_DIR/entry.png"
+	"$THEME_DIR/lock-failed.png"
+	"$THEME_DIR/lock.png"
+	"$THEME_DIR/logo.png"
+)
+
+for file in "${required_files[@]}"; do
+	[[ -f "$file" ]] || {
+		echo "missing Greeter asset: $file" >&2
+		exit 1
+	}
+done
+
+grep -Fqx 'Type=sddm-theme' "$THEME_DIR/metadata.desktop"
+grep -Fqx 'QtVersion=6' "$THEME_DIR/metadata.desktop"
+grep -Fqx 'Current=omarchy' "$GREETER_DIR/etc/sddm.conf.d/10-theme.conf"
+grep -Fqx 'DisplayServer=wayland' "$GREETER_DIR/etc/sddm.conf.d/10-wayland.conf"
+
+pngs=("$THEME_DIR"/*.png)
+if command -v identify >/dev/null 2>&1; then
+	identify -quiet "${pngs[@]}" >/dev/null
+elif command -v file >/dev/null 2>&1; then
+	for png in "${pngs[@]}"; do
+		file --mime-type --brief "$png" | grep -Fqx image/png
+	done
+else
+	echo "skip: no image validation tool available" >&2
+fi
+
+if command -v qmllint >/dev/null 2>&1 && [[ -d /usr/lib/qt6/qml/SddmComponents ]]; then
+	qmllint -I /usr/lib/qt6/qml "$THEME_DIR/Main.qml"
+else
+	echo "skip: QML tooling or SDDM imports unavailable" >&2
+fi
+
+if command -v hyprland >/dev/null 2>&1; then
+	hyprland --verify-config --config "$GREETER_DIR/hyprland.lua" >/dev/null
+else
+	echo "skip: Hyprland config verifier unavailable" >&2
+fi
+
+echo "Greeter assets and configuration validated"

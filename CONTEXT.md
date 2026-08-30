@@ -226,6 +226,12 @@ its own VT. It authenticates and hands off; nothing of it survives into the
 session it starts, so it can never lock one.
 _Avoid_: display manager, login manager, lock screen, login screen
 
+**Boot Branding**:
+The static visual identity shown before a session exists: the pinned Greeter
+theme and the minimal compositor configuration that draws it. It is
+system-owned, version-pinned, and independent of the logged-in user's Theme.
+_Avoid_: boot theme, login theme, greeter theme
+
 **Desktop Keyring**:
 The per-user Secret Service store used by graphical applications, separate
 from Greeter authentication, the Session Lock, and GPG keyrings. Its default

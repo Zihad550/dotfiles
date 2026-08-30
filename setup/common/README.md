@@ -20,7 +20,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override without breaking MagicDNS. | Arch wrapper |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Hyprland, Arch devbox |
-| [`setup-greeter`](setup-greeter) | Installs and enables the Greeter, retiring the display manager it replaces. | Arch Hyprland, Arch devbox |
+| [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Hyprland, Arch devbox |
 | [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Hyprland, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
@@ -218,12 +218,18 @@ manual suspend remains available and idle suspend is absent.
 
 ## Greeter
 
-`setup-greeter` installs SDDM and removes the GDM these boxes used to run. The
-order inside it is load-bearing: both units claim the `display-manager.service`
-alias, so gdm is disabled before sddm is enabled — and sddm is enabled before
-gdm is removed, so a failure in between leaves a box that still boots. The
-enable is forced and the removal is non-fatal for the same reason: every state
-a half-finished run can leave behind has to be repairable by running it again.
+`setup-greeter` installs SDDM and removes the GDM these boxes used to run. It
+also installs the pinned Omarchy Boot Branding: the SDDM theme, its minimal
+Wayland compositor config, and the Qt6 runtime pieces that load them. The
+vendored source and its upstream pin live in [`greeter/`](greeter), so setup is
+independent of the ignored `resources/omarchy` checkout.
+
+The order inside it is load-bearing: both units claim the
+`display-manager.service` alias, so gdm is disabled before sddm is enabled —
+and sddm is enabled before gdm is removed, so a failure in between leaves a
+box that still boots. The enable is forced and the removal is non-fatal for the
+same reason: every state a half-finished run can leave behind has to be
+repairable by running it again.
 
 The Greeter does not own the Desktop Keyring. The setup removes SDDM's
 `pam_gnome_keyring` auth and password hooks, while the session creates a
@@ -231,7 +237,10 @@ passwordless default keyring and `gcr-ssh-agent.service` serves SSH keys after
 login. Existing keyring files are preserved on reruns; the boundary is recorded
 in [ADR 0022](../../docs/adr/0022-sddm-does-not-own-the-desktop-keyring.md).
 
-The Greeter is left on its stock theme, deliberately —
+`df-greeter-refresh` reapplies the pinned files. `df-greeter-reset` removes
+only this repository's SDDM overrides and returns to stock behavior; neither
+command restarts SDDM or logs out the current session. The decision is recorded
+in [ADR 0024](../../docs/adr/0024-pinned-omarchy-greeter.md), which supersedes
 [ADR 0020](../../docs/adr/0020-greeter-stays-stock-themed.md).
 
 ## Power management
