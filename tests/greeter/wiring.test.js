@@ -216,6 +216,29 @@ test("Boot Branding exposes guarded customization and recovery commands", () => 
     assert.match(provenance, /GRUB/);
 });
 
+test("the single-owner login policy follows successful Greeter installation", () => {
+    const setup = source(greeterSetup);
+    const policy = source(`${greeterRoot}/login-policy`);
+
+    assert.ok(setup.indexOf("$GREETER_DIR/apply") < setup.indexOf("$GREETER_DIR/login-policy"),
+        "account and autologin policy must wait for Greeter installation");
+    assert.match(policy, /GREETER_USER/);
+    assert.match(policy, /SUDO_USER/);
+    assert.match(policy, /id -un/);
+    assert.match(policy, /ambiguous Greeter account/);
+    assert.match(policy, /RememberLastUser=true/);
+    assert.match(policy, /RememberLastSession=true/);
+    assert.match(policy, /omarchy\.desktop/);
+    assert.match(policy, /hyprland-uwsm\.desktop/);
+    assert.match(policy, /crypttab/);
+    assert.match(policy, /has_encrypted_root/);
+    assert.match(policy, /cryptdevice/);
+    assert.match(policy, /rd\\\.luks/);
+    assert.match(policy, /autologin\.conf/);
+    assert.doesNotMatch(policy, /first.?owner|one.?shot/i,
+        "the existing-account port must not provision a first-owner autologin");
+});
+
 test("the Plymouth theme contains the pinned upstream assets", () => {
     const assets = {
         "plymouth/bullet.png": "875ea8297db71415aeef2e03a5ccd67997a13c16f794d4e4929a9d669aaa7327",

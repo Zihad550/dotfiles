@@ -26,6 +26,10 @@ sudo pacman -S --noconfirm --needed \
 "$GREETER_DIR/validate"
 "$GREETER_DIR/apply"
 
+# Account selection and login policy are deliberately last among the Greeter
+# files. Boot Branding and the Greeter must be installed before login changes.
+"$GREETER_DIR/login-policy"
+
 if systemctl is-enabled gdm.service &>/dev/null; then
 	sudo systemctl disable gdm.service
 fi

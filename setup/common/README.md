@@ -246,6 +246,19 @@ passwordless default keyring and `gcr-ssh-agent.service` serves SSH keys after
 login. Existing keyring files are preserved on reruns; the boundary is recorded
 in [ADR 0022](../../docs/adr/0022-sddm-does-not-own-the-desktop-keyring.md).
 
+The Greeter is password-only and remembers one account. `GREETER_USER` selects
+that account explicitly. Without it, setup uses a non-root `SUDO_USER`, then
+the invoking non-root account. It refuses root, missing accounts, and an
+ambiguous multi-user system. It writes the selected account and
+the selected Omarchy-compatible session to SDDM's state, then enables the managed autologin drop-in
+when `/etc/crypttab` contains a non-comment entry or the running root is
+encrypted. The latter covers `cryptdevice=` and `rd.luks.*` initramfs boots.
+An absent or empty crypttab on an unencrypted-root machine removes that
+drop-in without touching other SDDM configuration.
+
+This policy runs after the Boot Branding rebuild and Greeter files install. It
+does not add Omarchy's first-owner or one-shot provisioning.
+
 `df-greeter-refresh` reapplies the pinned files. `df-greeter-reset` removes
 only this repository's SDDM overrides and returns to stock behavior; neither
 command restarts SDDM or logs out the current session. The decision is recorded

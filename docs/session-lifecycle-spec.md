@@ -241,13 +241,16 @@ reset, which is a no-op with a single layout; the password-manager lock hook,
 which has nothing to bind to here; and the screensaver teardown, since the
 screensaver is not being imported.
 
-**The Greeter moves to SDDM in its own change, last.** Its theme stays stock:
-the greeter runs before login and cannot read the user's theme data, so making
-it follow the live theme would mean the theme switcher acquiring a privileged
-write for a surface visible for two seconds. The GNOME-greeter power-policy call
-is deleted rather than translated — SDDM's greeter runs no GNOME settings
-daemon, and the masked sleep target it backstops already covers the case. The
-suspend model's documentation drops from four paths to three.
+**The Greeter moves to SDDM in its own change, last.** Its theme is the pinned
+Omarchy Boot Branding. The Greeter runs before login and cannot read the user's
+theme data, so it does not follow the live theme. Setup selects one existing
+non-root account, remembers the Omarchy session, and keeps autologin when
+`/etc/crypttab` has an effective entry or the running root is encrypted through
+`cryptdevice=` or `rd.luks.*`. It does not port Omarchy's first-owner or
+one-shot provisioning. The GNOME-greeter power-policy call is deleted rather
+than translated. SDDM's Greeter runs no GNOME settings daemon, and the masked
+sleep target it backstops already covers the case. The suspend model's
+documentation drops from four paths to three.
 
 **Package removal happens with the change, not after it.** The replaced daemons
 are removed from the package list in the same change that replaces them, and the
@@ -304,8 +307,8 @@ branding assets and toggle. That is scope, not edge-case handling.
 
 **Fingerprint authentication.** No box this repo configures has the hardware.
 
-**Greeter theming.** Covered under Implementation Decisions: stock theme,
-deliberately.
+**Greeter theming.** Covered under Implementation Decisions: pinned Omarchy
+Boot Branding, deliberately separate from the live Desktop Theme.
 
 **Migration machinery.** The upstream carries versioned migrations for
 in-place upgrades of installed systems. This repo re-runs setup instead.
