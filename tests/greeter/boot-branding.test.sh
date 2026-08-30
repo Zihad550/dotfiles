@@ -32,11 +32,13 @@ SH
 cat >"$fake_bin/magick" <<'SH'
 #!/usr/bin/env bash
 if [[ ${1:-} == identify ]]; then
+    [[ ${TEST_BAD_IMAGE:-0} == 1 ]] && exit 1
     printf '%s PNG\n' "${2:-image}"
     exit 0
 fi
 source_image="$1"
 target_image="${@: -1}"
+printf 'magick %s\n' "$*" >>"$TEST_CALLS"
 [[ $source_image == "$target_image" ]] || cp "$source_image" "$target_image"
 SH
 chmod +x "$fake_bin"/*
@@ -77,6 +79,14 @@ run_apply
 grep -Fx 'HOOKS=(base systemd plymouth autodetect filesystems fsck)' \
     "$root/etc/mkinitcpio.conf" >/dev/null
 
+printf 'HOOKS=(base plymouth autodetect filesystems fsck)\n' >"$root/etc/mkinitcpio.conf"
+cp "$root/etc/mkinitcpio.conf" "$test_tmp/unknown-with-plymouth"
+if run_apply 2>"$test_tmp/unknown-with-plymouth.err"; then
+    echo "an unknown hook family was accepted because plymouth was already present" >&2
+    exit 1
+fi
+cmp "$test_tmp/unknown-with-plymouth" "$root/etc/mkinitcpio.conf"
+
 before_hooks=$(cat "$root/etc/mkinitcpio.conf")
 before_grub=$(cat "$root/etc/default/grub")
 printf 'HOOKS=(base autodetect filesystems)\n' >"$root/etc/mkinitcpio.conf"
@@ -113,7 +123,53 @@ cp "$ROOT/setup/common/greeter/omarchy/logo.png" "$logo"
 PATH="$fake_bin:$PATH" TEST_CALLS="$calls" DOTFILES_DIR="$ROOT" \
 DF_BOOT_BRANDING_ROOT="$root" "$ROOT/setup/common/boot-branding/set" '#112233' 'aabbcc' "$logo"
 grep -F 'color: "#112233"' "$root/usr/share/sddm/themes/omarchy/Main.qml" >/dev/null
+grep -F 'Window.SetBackgroundTopColor(0.067, 0.133, 0.200);' \
+    "$root/usr/share/plymouth/themes/omarchy/omarchy.script" >/dev/null
+grep -F 'Window.SetBackgroundBottomColor(0.067, 0.133, 0.200);' \
+    "$root/usr/share/plymouth/themes/omarchy/omarchy.script" >/dev/null
+grep -F -- '+level-colors #aabbcc,#aabbcc' "$calls" >/dev/null
+for asset in bullet.png entry.png lock.png; do
+    cmp "$root/usr/share/plymouth/themes/omarchy/$asset" \
+        "$root/usr/share/sddm/themes/omarchy/$asset"
+done
 cmp "$logo" "$root/usr/share/sddm/themes/omarchy/logo.png"
+
+cp -a "$root/usr/share/plymouth/themes/omarchy" "$test_tmp/plymouth.before-failure"
+cp -a "$root/usr/share/sddm/themes/omarchy" "$test_tmp/sddm.before-failure"
+export TEST_FAIL_REBUILD=1
+if PATH="$fake_bin:$PATH" TEST_CALLS="$calls" DOTFILES_DIR="$ROOT" \
+    DF_BOOT_BRANDING_ROOT="$root" "$ROOT/setup/common/boot-branding/set" \
+    '#445566' '112233' "$logo" 2>"$test_tmp/custom-rebuild.err"; then
+    exit 1
+fi
+unset TEST_FAIL_REBUILD
+diff -ru "$test_tmp/plymouth.before-failure" \
+    "$root/usr/share/plymouth/themes/omarchy" >/dev/null
+diff -ru "$test_tmp/sddm.before-failure" \
+    "$root/usr/share/sddm/themes/omarchy" >/dev/null
+grep -F 'rolling back' "$test_tmp/custom-rebuild.err" >/dev/null
+
+cp "$test_tmp/plymouth.before-failure/logo.png" "$test_tmp/unreadable.png"
+export TEST_BAD_IMAGE=1
+if PATH="$fake_bin:$PATH" TEST_CALLS="$calls" DOTFILES_DIR="$ROOT" \
+    DF_BOOT_BRANDING_ROOT="$root" "$ROOT/setup/common/boot-branding/set" \
+    '#445566' '112233' "$test_tmp/unreadable.png" 2>"$test_tmp/image.err"; then
+    exit 1
+fi
+unset TEST_BAD_IMAGE
+grep -F 'not a readable image' "$test_tmp/image.err" >/dev/null
+diff -ru "$test_tmp/plymouth.before-failure" \
+    "$root/usr/share/plymouth/themes/omarchy" >/dev/null
+
+touch "$root/usr/share/plymouth/themes/omarchy/stale.png"
+touch "$root/usr/share/sddm/themes/omarchy/stale.png"
+PATH="$fake_bin:$PATH" TEST_CALLS="$calls" DOTFILES_DIR="$ROOT" \
+DF_BOOT_BRANDING_ROOT="$root" "$ROOT/setup/common/boot-branding/set" '#334455' 'ddeeff' "$logo"
+[[ ! -e "$root/usr/share/plymouth/themes/omarchy/stale.png" ]]
+[[ ! -e "$root/usr/share/sddm/themes/omarchy/stale.png" ]]
+grep -F 'color: "#334455"' "$root/usr/share/sddm/themes/omarchy/Main.qml" >/dev/null
+grep -F 'Window.SetBackgroundTopColor(0.200, 0.267, 0.333);' \
+    "$root/usr/share/plymouth/themes/omarchy/omarchy.script" >/dev/null
 
 ln -s "$logo" "$test_tmp/logo-link.png"
 if PATH="$fake_bin:$PATH" DOTFILES_DIR="$ROOT" DF_BOOT_BRANDING_ROOT="$root" \

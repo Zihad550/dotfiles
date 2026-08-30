@@ -64,11 +64,11 @@ transform_mkinitcpio() {
 					systemd) anchor=1 ;;
 				esac
 			done
+			(( anchor >= 0 )) || {
+				die "unrecognized initramfs hook family in $input (expected udev or systemd)"
+				return 1
+			}
 			if (( has_plymouth == 0 )); then
-				(( anchor >= 0 )) || {
-					die "unrecognized initramfs hook family in $input (expected udev or systemd)"
-					return 1
-				}
 				local -a updated=()
 				for hook in "${hooks[@]}"; do
 					updated+=("$hook")
@@ -153,9 +153,34 @@ restore_backups() {
 	return "$status"
 }
 
+rollback_boot_branding() {
+	if ! restore_backups; then
+		echo "Boot Branding: rollback failures were reported above" >&2
+	fi
+}
+
+install_staged_directory() {
+	local source_dir="$1" target_dir="$2"
+
+	as_root rm -rf -- "$target_dir" || return 1
+	as_root install -d -m 755 "$target_dir" || return 1
+	as_root cp -a --no-preserve=ownership "$source_dir/." "$target_dir/" || return 1
+}
+
+install_boot_branding_files() {
+	local source_dir="$1" theme_target="$2" selector_target="$3"
+	local grub_conf="$4" mkinitcpio_conf="$5" grub_stage="$6" hooks_stage="$7"
+
+	as_root install -d -m 755 "$(dirname "$grub_conf")" "$(dirname "$mkinitcpio_conf")" || return 1
+	as_root cp "$grub_stage" "$grub_conf" || return 1
+	as_root cp "$hooks_stage" "$mkinitcpio_conf" || return 1
+	install_staged_directory "$source_dir" "$theme_target" || return 1
+	as_root install -Dm 644 "$BOOT_BRANDING_DIR/plymouthd.conf" "$selector_target" || return 1
+}
+
 commit_boot_branding() {
-	local source_dir="$1" grub_conf mkinitcpio_conf grub_stage hooks_stage
-	local theme_target selector_target grub_output image
+	local source_dir="$1" sddm_source_dir="${2:-}" grub_conf mkinitcpio_conf
+	local grub_stage hooks_stage theme_target sddm_target selector_target grub_output image
 
 	validate_assets "$source_dir"
 	grub_conf="$(root_path /etc/default/grub)"
@@ -169,6 +194,9 @@ commit_boot_branding() {
 	trap 'rm -f "$grub_stage" "$hooks_stage"' RETURN
 	transform_grub "$grub_conf" "$grub_stage"
 	transform_mkinitcpio "$mkinitcpio_conf" "$hooks_stage"
+	if [[ -n $sddm_source_dir ]]; then
+		[[ -d $sddm_source_dir ]] || die "missing staged SDDM theme: $sddm_source_dir"
+	fi
 
 	BOOT_BRANDING_BACKUP_DIR="$(root_path /var/lib/dotfiles/greeter-backups)/$(date +%Y%m%d-%H%M%S-%N)-$$"
 	as_root install -d -m 755 "$BOOT_BRANDING_BACKUP_DIR"
@@ -185,26 +213,37 @@ commit_boot_branding() {
 		backup_path "$image"
 	done
 	shopt -u nullglob
+	if [[ -n $sddm_source_dir ]]; then
+		sddm_target="$(root_path /usr/share/sddm/themes/omarchy)"
+		backup_path "$sddm_target"
+	fi
 
-	as_root install -d -m 755 "$(dirname "$grub_conf")" "$(dirname "$mkinitcpio_conf")"
-	as_root cp "$grub_stage" "$grub_conf"
-	as_root cp "$hooks_stage" "$mkinitcpio_conf"
-	as_root install -d -m 755 "$theme_target"
-	as_root cp -a --no-preserve=ownership "$source_dir/." "$theme_target/"
-	as_root install -Dm 644 "$BOOT_BRANDING_DIR/plymouthd.conf" "$selector_target"
+	if ! install_boot_branding_files \
+		"$source_dir" "$theme_target" "$selector_target" "$grub_conf" \
+		"$mkinitcpio_conf" "$grub_stage" "$hooks_stage"; then
+		echo "Boot Branding: installation failed; rolling back" >&2
+		rollback_boot_branding
+		return 1
+	fi
 
 	if ! as_root plymouth-set-default-theme omarchy; then
 		echo "Boot Branding: selecting the Plymouth theme failed; rolling back" >&2
-		if ! restore_backups; then
-			echo "Boot Branding: rollback failures were reported above" >&2
-		fi
+		rollback_boot_branding
 		return 1
 	fi
-	if ! as_root mkinitcpio -P || ! as_root grub-mkconfig -o "$grub_output"; then
+	if ! as_root mkinitcpio -P; then
 		echo "Boot Branding: boot rebuild failed; rolling back" >&2
-		if ! restore_backups; then
-			echo "Boot Branding: rollback failures were reported above" >&2
-		fi
+		rollback_boot_branding
+		return 1
+	fi
+	if ! as_root grub-mkconfig -o "$grub_output"; then
+		echo "Boot Branding: boot rebuild failed; rolling back" >&2
+		rollback_boot_branding
+		return 1
+	fi
+	if [[ -n $sddm_source_dir ]] && ! install_staged_directory "$sddm_source_dir" "$sddm_target"; then
+		echo "Boot Branding: SDDM installation failed; rolling back" >&2
+		rollback_boot_branding
 		return 1
 	fi
 

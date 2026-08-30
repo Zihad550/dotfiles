@@ -202,12 +202,13 @@ test("Boot Branding exposes guarded customization and recovery commands", () => 
     const set = source("setup/common/boot-branding/set");
     const setBin = source("bin/df-boot-branding-set");
     const reset = source("bin/df-boot-branding-reset");
+    const lib = source(`${brandingRoot}/lib`);
     const provenance = source(`${brandingRoot}/PROVENANCE.md`);
 
     assert.match(set, /\[\[:xdigit:\]\]\{6\}/);
     assert.match(set, /-L \$logo/);
     assert.match(set, /commit_boot_branding/);
-    assert.match(set, /sddm_target/);
+    assert.match(lib, /sddm_target/);
     assert.match(setBin, /boot-branding\/set/);
     assert.match(reset, /boot-branding\/apply/);
     assert.match(reset, /greeter\/apply/);

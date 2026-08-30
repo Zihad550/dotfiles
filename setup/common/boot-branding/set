@@ -49,11 +49,11 @@ identify_output=$(magick identify "$logo" 2>&1) || {
 staging_dir=$(mktemp -d)
 trap 'rm -rf "$staging_dir"' EXIT
 plymouth_dir="$staging_dir/plymouth"
-sddm_dir="$staging_dir/sddm"
+greeter_dir="$staging_dir/greeter"
 cp -a --no-preserve=ownership "$BRANDING_DIR/plymouth/." "$plymouth_dir/"
-cp -a --no-preserve=ownership "$GREETER_DIR/omarchy/." "$sddm_dir/"
+cp -a --no-preserve=ownership "$GREETER_DIR/." "$greeter_dir/"
 cp "$logo" "$plymouth_dir/logo.png"
-cp "$logo" "$sddm_dir/logo.png"
+cp "$logo" "$greeter_dir/omarchy/logo.png"
 
 bg_r=$(awk -v n=$((16#${background:0:2})) 'BEGIN { printf "%.3f", n/255 }')
 bg_g=$(awk -v n=$((16#${background:2:2})) 'BEGIN { printf "%.3f", n/255 }')
@@ -67,20 +67,16 @@ for asset in bullet.png entry.png lock.png progress_bar.png; do
 	magick "$plymouth_dir/$asset" -channel RGB +level-colors "#$foreground,#$foreground" \
 		"$plymouth_dir/$asset"
 done
-sed -i -e "s/#1a1b26/#$background/g" -e "s/#ffffff/#$foreground/g" "$sddm_dir/Main.qml"
+sed -i -e "s/#1a1b26/#$background/g" -e "s/#ffffff/#$foreground/g" "$greeter_dir/omarchy/Main.qml"
 for asset in bullet.png entry.png lock.png; do
-	cp "$plymouth_dir/$asset" "$sddm_dir/$asset"
+	cp "$plymouth_dir/$asset" "$greeter_dir/omarchy/$asset"
 done
 for asset in entry lock; do
 	magick "$plymouth_dir/$asset.png" -channel RGB +level-colors '#f7768e','#f7768e' \
-		"$sddm_dir/$asset-failed.png"
+		"$greeter_dir/omarchy/$asset-failed.png"
 done
 
 validate_assets "$plymouth_dir"
-"$GREETER_DIR/validate"
-commit_boot_branding "$plymouth_dir"
-
-sddm_target="$(root_path /usr/share/sddm/themes/omarchy)"
-as_root install -d -m 755 "$sddm_target"
-as_root cp -a --no-preserve=ownership "$sddm_dir/." "$sddm_target/"
+"$GREETER_DIR/validate" "$greeter_dir"
+commit_boot_branding "$plymouth_dir" "$greeter_dir/omarchy"
 echo "Custom Boot Branding installed; initramfs and GRUB rebuilt"
