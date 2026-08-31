@@ -88,23 +88,12 @@ keybindings:
       - key: C
         name: code review
         command: >
-          tmux new-window -n "PR-{{.PrNumber}}"
-          'wt switch pr:{{.PrNumber}} -x "opencode --prompt review-pr-for-this-branch"'
+          review_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "{{.RepoPath}}" --label "PR-{{.PrNumber}}" --focus | jq -er '.result.root_pane.pane_id') &&
+          herdr pane run "$review_pane" 'wt switch pr:{{.PrNumber}} -x "opencode --prompt review-pr-for-this-branch"'
     issues:
       - key: n
         name: Create issue
         command: gh issue create --repo {{.RepoName}}
-      # - key: C
-      #   name: code review
-      #   command: >
-      #     tmux new-window -n "PR-{{.PrNumber}}"
-      #     opencode pr {{.PrNumber}}
-      # - key: C
-      #   name: code review
-      #   command: >
-      #     tmux new-window -n {{.RepoName}}
-      #     'nvim -c
-      #     ":silent Octo pr edit {{.PrNumber}}}"'
 repoPaths:
 theme:
   ui:

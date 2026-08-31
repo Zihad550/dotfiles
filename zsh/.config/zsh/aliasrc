@@ -43,7 +43,6 @@ alias \
     du="du -h -d 1" \
     p="procs" \
     f="yazi" \
-    t='tmux' \
     m='mise'
     # grep="rg"
 # rm="rm -Iv" \

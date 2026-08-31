@@ -145,3 +145,8 @@ The headless carve-out in the opening decision — and the dependent claim that
 tmux remains installed as an inert fallback there — is superseded by
 [ADR 0029](0029-headless-profiles-use-herdr.md). Its substantive Herdr
 decisions, including routing, path fallback, and the rename hook, still stand.
+
+The remaining desktop fallback clause is superseded by issue #121. No supported
+profile installs or stows tmux now, and the old `tmux/` config is removed from
+`main`. The complete config remains recoverable on the pushed
+`archive/tmux` branch under the archive policy in [ADR 0021](0021-retired-setup-files-move-to-an-archive-branch.md).

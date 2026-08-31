@@ -7,8 +7,6 @@ copy = 'wt step copy-ignored'
 [post-start]
 mise-trust = '[ -f mise.toml ] && mise trust'
 
-[post-switch]
-tmux = "[ -n \"$TMUX\" ] && tmux rename-window {{ (repo ~ '-' ~ branch) | sanitize}}"
 # mise-install = '[ -f mise.toml ] && mise install'
 
 [commit]
@@ -154,7 +152,7 @@ step.copy-ignored.exclude = ["caddy-tailscale.key", "caddy-tailscale.crt"]
 # watch = "npm run watch"
 
 # Post-Switch: Runs in BACKGROUND after every switch (parallel)
-# Use for: terminal tab naming, tmux window titles, IDE notifications
+# Use for: terminal tab naming, IDE notifications
 #
 # post-switch = "echo -ne '\\033]0;{{ branch }}\\007'"
 

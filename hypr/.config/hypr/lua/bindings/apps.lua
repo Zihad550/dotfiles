@@ -50,10 +50,6 @@ o.bind("SUPER + SHIFT + D", "Docker", dotfiles_bin .. "/df-launch-tui lazydocker
 -- see docs/adr/0007-super-u-follows-devcontainer-routing.md.
 o.bind("SUPER + U", "Herdr",
     dotfiles_bin .. [[/df-launch-special-workspace "io.github.zihad550.dotfiles.herdr" "herdr" ghostty "--class=io.github.zihad550.dotfiles.herdr" "--title=herdr" -e "]] .. dotfiles_bin .. [[/df-herdr-session" herdr "]] .. home .. [[/dotfiles"]])
--- o.bind("SUPER + i", "Tmux work session",
---     dotfiles_bin .. [[/df-launch-special-app 'work-tmux' 'tmux new -s work' 'work-tmux']])
--- o.bind("SUPER + i", "Tmux work session",
--- dotfiles_bin .. [[/df-launch-special-app 'tmux-work' 'ghostty -e tmux a -d -t tmux-work' 'tmux-work']])
 
 -- doesn't work, executable not found, not on PATH
 -- o.bind("SUPER + SHIFT + R", "Timer",
