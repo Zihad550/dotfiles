@@ -1,45 +1,16 @@
 #!/usr/bin/env bash
 
-# Toggle a monitor off/on. Re-enabling has to place the monitor relative to
-# whatever orientation the *other* one is currently in — see df-hypr-display-rotate,
-# which moves both monitors together. eDP-1 stacks below HDMI, so its y offset is
-# HDMI's current height; hardcoding the horizontal one (0x1080) overlaps HDMI
-# whenever HDMI is rotated to vertical, which Hyprland then reports as an
-# invalid layout (and the cursor genuinely shows up on both screens at once).
+# Toggle a monitor off/on. Re-enabling restores the last-used layout for the
+# connected display set, including orientation and relative positions.
 
 monitor=$1
-
-# Current transform of HDMI-A-1, or empty if it isn't connected/enabled.
-# 1 and 3 are the portrait transforms; 0 and 2 are landscape.
-hdmi_transform() {
-    hyprctl monitors -j | jq -r '.[] | select(.name == "HDMI-A-1") | .transform'
-}
-
-edp_enabled() {
-    hyprctl monitors | grep -q "^Monitor eDP-1"
-}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+DISPLAY_LAYOUT=${DF_HYPR_DISPLAY_LAYOUT:-"$SCRIPT_DIR/df-hypr-display-layout"}
 
 # setsid uwsm-app -- swaybg -i "$HOME/.config/theme/background" -m solid_color
 if hyprctl monitors | grep -q "^Monitor $monitor"; then
     # monitor exists → close/disable it
     hyprctl eval "hl.monitor({ output = '$monitor', disabled = true })"
 else
-    # monitor does not exist → start/enable it
-    if [ "$monitor" = "eDP-1" ]; then
-        case "$(hdmi_transform)" in
-        1 | 3) position="0x1920" ;; # HDMI vertical → eDP-1 sits below its 1920 height
-        "") position="0x0" ;;      # HDMI not connected → eDP-1 is on its own
-        *) position="0x1080" ;;    # HDMI horizontal → eDP-1 sits below its 1080 height
-        esac
-        hyprctl eval "hl.monitor({ output = '$monitor', mode = 'preferred', position = '$position', scale = '1', disabled = false })"
-    elif [ "$monitor" = "HDMI-A-1" ]; then
-        # HDMI comes back in its configured vertical orientation, so eDP-1 has to
-        # move to the vertical layout's slot too, or the two drift apart.
-        # reserved_area takes a table; a legacy "340 0 40 0" string is rejected by
-        # the lua config parser, which silently leaves the previous reserve in place.
-        hyprctl eval "hl.monitor({ output = '$monitor', mode = '1920x1080@75', position = '0x0', scale = '1', transform = 1, reserved_area = { top = 340, right = 0, bottom = 40, left = 0 }, disabled = false })"
-        if edp_enabled; then
-            hyprctl eval "hl.monitor({ output = 'eDP-1', mode = 'preferred', position = '0x1920', scale = '1' })"
-        fi
-    fi
+    "$DISPLAY_LAYOUT" apply --quiet
 fi
