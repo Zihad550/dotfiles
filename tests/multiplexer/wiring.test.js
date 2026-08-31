@@ -65,9 +65,21 @@ test("no live alias, config, or binding invokes tmux", () => {
 
 test("gh-dash's review binding creates a focused named Herdr tab", () => {
     const config = source("gh-dash/.config/gh-dash/config.yml");
-    const reviewBinding = config.match(/- key: C[\s\S]*?(?=\n\s*issues:)/);
+    const universalStart = config.indexOf("    universal:");
+    const prsStart = config.indexOf("    prs:", universalStart);
+    const issuesStart = config.indexOf("    issues:", prsStart);
 
-    assert.ok(reviewBinding, "the review binding disappeared or moved out of universal bindings");
+    assert.ok(universalStart >= 0 && prsStart > universalStart && issuesStart > prsStart,
+        "universal, PR, and issue bindings must remain distinct template scopes");
+
+    const universalBindings = config.slice(universalStart, prsStart);
+    const prBindings = config.slice(prsStart, issuesStart);
+    assert.doesNotMatch(universalBindings, /- key: C\b/,
+        "a universal command receives RepoPath only, never PrNumber");
+
+    const reviewBinding = prBindings.match(/- key: C[\s\S]*$/);
+
+    assert.ok(reviewBinding, "the review binding disappeared from PR bindings");
     assert.match(reviewBinding[0], /herdr tab create/);
     assert.match(reviewBinding[0], /--workspace \"\$HERDR_WORKSPACE_ID\"/);
     assert.match(reviewBinding[0], /--cwd \"\{\{\.RepoPath\}\}\"/);

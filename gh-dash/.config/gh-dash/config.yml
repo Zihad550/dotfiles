@@ -85,6 +85,7 @@ keybindings:
         name: lazygit
         command: >
           cd {{.RepoPath}} && lazygit
+    prs:
       - key: C
         name: code review
         command: >
