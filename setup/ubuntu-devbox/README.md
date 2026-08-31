@@ -50,12 +50,13 @@ be verified with an on-console reboot.
 
 | script | what it does |
 |---|---|
-| `init` | entrypoint; runs `packages`, `setup-docker`, `stow`, `../common/setup-no-sleep`, `setup-tuned`, `tools`, sets zsh |
+| `init` | entrypoint; runs `packages`, `setup-docker`, `stow`, `../common/setup-no-sleep`, `setup-tuned`, `tools`, `../common/setup-herdr`, sets zsh |
 | `packages` | apt + mise/neovim PPAs — same list as the devcontainer |
 | `setup-docker` | Docker CE + `docker` group — the devcontainer's docker-in-docker feature |
 | `setup-tuned` | power management — a `ubuntu-devbox` tuned profile (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `tools` | global mise toolchain — copy of `devcontainer/tools` |
 | `stow` | dotfile symlinks — `devcontainer/stow` plus the bind-mounted paths it assumed |
+| `../common/setup-herdr` | installs the mise-managed Herdr binary and its existing agent integrations |
 | `setup-tailscale` | install tailscale and join the tailnet; sshd stays the access path (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-ufw` | deny all in; allow the tailnet, plus ssh from `$LAN_SSH_SRC` |
 | `harden-ssh` | key-only sshd, no root, random high port, modern crypto only (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |

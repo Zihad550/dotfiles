@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
-cd ~/dotfiles
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+cd "$DOTFILES" || exit
 
 stow git
 stow zsh
 stow starship
-stow tmux
 stow bash
+# stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
+mkdir -p ~/.config/herdr
+ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml
 
 # ai tools
 scripts/stow/stow-ai

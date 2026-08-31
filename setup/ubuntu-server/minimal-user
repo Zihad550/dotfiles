@@ -1,32 +1,35 @@
 #!/usr/bin/env bash
 
 # stow
-cd ~/dotfiles || exit
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+cd "$DOTFILES" || exit
 
 stow git
 mkdir -p ~/.config/opencode
-ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.config/opencode/agent
-ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.config/opencode/command
-ln -snf ~/dotfiles/opencode/.config/opencode/plugin ~/.config/opencode/plugin
-ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.config/opencode/AGENTS.md
-ln -snf ~/dotfiles/opencode/.config/opencode/opencode.jsonc ~/.config/opencode/opencode.jsonc
-ln -snf ~/dotfiles/opencode/.config/opencode/tui.json ~/.config/opencode/tui.json
-stow tmux
+ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.config/opencode/agent
+ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.config/opencode/command
+ln -snf "$DOTFILES/opencode/.config/opencode/plugin" ~/.config/opencode/plugin
+ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
+ln -snf "$DOTFILES/opencode/.config/opencode/opencode.jsonc" ~/.config/opencode/opencode.jsonc
+ln -snf "$DOTFILES/opencode/.config/opencode/tui.json" ~/.config/opencode/tui.json
 stow zsh # to get the aliasrc file
 rm -rf ~/.bashrc
 stow bash
 stow coi
 
+mkdir -p ~/.config/herdr
+ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml
+
 mkdir -p ~/.config/mise
-cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
+cp "$DOTFILES/mise/.config/mise/config.toml" ~/.config/mise/config.toml
 
 mkdir -p ~/dev
 mkdir -p ~/.kilocode
-ln -snf ~/dotfiles/kilocode/.kilocode/kilo.jsonc ~/.kilocode/kilo.jsonc
-ln -snf ~/dotfiles/kilocode/.kilocode/plugin ~/.kilocode/plugin
-ln -snf ~/dotfiles/opencode/.config/opencode/agent ~/.kilocode/agent
-ln -snf ~/dotfiles/opencode/.config/opencode/command ~/.kilocode/command
-ln -snf ~/dotfiles/opencode/.config/opencode/AGENTS.md ~/.kilocode/AGENTS.md
+ln -snf "$DOTFILES/kilocode/.kilocode/kilo.jsonc" ~/.kilocode/kilo.jsonc
+ln -snf "$DOTFILES/kilocode/.kilocode/plugin" ~/.kilocode/plugin
+ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.kilocode/agent
+ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.kilocode/command
+ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.kilocode/AGENTS.md
 
 # agents live in separate repo: https://github.com/Zihad550/.agents
 [ -d ~/.agents ] || git clone --depth 1 https://github.com/Zihad550/.agents.git ~/.agents
@@ -45,6 +48,8 @@ sudo apt install make gcc ripgrep unzip xclip neovim -y
 mise use -g usage
 # mise use -g fzf@latest
 mise use -g bottom
+
+"$DOTFILES/setup/common/setup-herdr"
 
 # mise completion zsh >_mise
 # sudo mkdir -p /usr/local/share/zsh/site-functions

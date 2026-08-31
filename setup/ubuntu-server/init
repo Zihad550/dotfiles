@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$SETUP_DIR/../.." && pwd)}"
+
 sudo apt update -y
 sudo apt upgrade -y
 # sudo apt install qemu-guest-agent -y
 # sudo systemctl enable --now qemu-guest-agent.service
 
 sudo apt install stow -y
-~/dotfiles/setup/ubuntu-server/stow
+"$SETUP_DIR/stow"
 
-~/dotfiles/setup/ubuntu-server/packages
+"$SETUP_DIR/packages"
+"$SETUP_DIR/setup-mise"
+"$DOTFILES_DIR/setup/common/setup-herdr"
 
-sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
+sudo install -d -m755 -o "$(id -u)" -g "$(id -g)" /nix
 curl -L https://nixos.org/nix/install | sh
-source $HOME/.nix-profile/etc/profile.d/nix.sh
+source "$HOME/.nix-profile/etc/profile.d/nix.sh"
 
 nix-env -iA nixpkgs.procs
 nix-env -iA nixpkgs.starship
@@ -24,8 +29,8 @@ nix-env -iA nixpkgs.bottom
 
 git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
 
-chsh -s $(which zsh)
+chsh -s "$(which zsh)"
 
-~/dotfiles/setup/ubuntu-server/rm-snap
+"$SETUP_DIR/rm-snap"
 
 echo "now logout and log back in"

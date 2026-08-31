@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
 
-# mise use -g herdr
+# `setup-herdr` is also called directly by headless profiles, before the full
+# shared skill sync. Keep its one dependency here so the standalone path is
+# complete and non-interactive.
+mise use -g npm:skills
 mise use -g github:herdrdev/herdr
 
 eval "$(mise activate bash)"
@@ -25,4 +29,4 @@ herdr integration install cursor
 # herdr integration install grok
 
 ##### install skill
-skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor pi kilo
+skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor pi kilo -y

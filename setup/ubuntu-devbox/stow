@@ -14,7 +14,6 @@ stow zsh
 stow lazygit
 stow starship
 stow yazi
-stow tmux
 # stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
 mkdir -p ~/.config/herdr
 ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml

@@ -52,6 +52,7 @@ fi
 
 mise trust
 "$SETUP_DIR/tools"
+"$DOTFILES_DIR/setup/common/setup-herdr"
 "$DOTFILES_DIR/setup/common/setup-skills"
 
 sudo chsh -s "$(which zsh)" "$USER"

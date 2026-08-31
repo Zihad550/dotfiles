@@ -22,8 +22,7 @@ sudo apt install -y \
     less \
     git-delta \
     atuin \
-    lazygit \
-    tmux
+    lazygit
 
 # clis for interacting with git providers
 sudo apt install -y \
