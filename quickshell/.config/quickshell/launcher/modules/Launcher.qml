@@ -67,8 +67,8 @@ PanelWindow {
     // Entries are hand-written to be typed ("Lock", "Restart") and losing a
     // tie against a real window/app costs nothing.
     //
-    // Ex-dmenu Providers (processes, systemd, workspaces, dev servers,
-    // zellij), themes and backgrounds are deliberately not here -- see
+    // Ex-dmenu Providers (processes, systemd, workspaces, dev servers),
+    // themes and backgrounds are deliberately not here -- see
     // `rankedRoutable`.
     readonly property var pool: [windows, apps, systemMenu, mediaMenu, displayMenu, otherMenu]
 
@@ -79,7 +79,7 @@ PanelWindow {
     // screenshots is kept out for a different reason, see `previewMode`.
     //
     // Themes, backgrounds and the ex-dmenu Providers (processes, systemd,
-    // workspaces, dev servers, zellij) have no prefix of their own -- reached
+    // workspaces, dev servers) have no prefix of their own -- reached
     // only through the "?" provider list's enter()/nested mechanism, which is
     // why they must be in this list even without a prefix (`nestedProvider`
     // below reads it). Ranking them against every keystroke would put a row
@@ -87,7 +87,7 @@ PanelWindow {
     // ordinary Query; being enter-only makes that impossible rather than
     // merely unlikely. They keep `refresh()` on every open regardless -- this
     // list is what `open()` walks.
-    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, systemd, devServers, zellij, providerList])
+    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, systemd, devServers, providerList])
 
     // `root.activePool`, not `root.pool`: a Query routed to one Provider that
     // hasn't populated yet should report pending for *that* Provider only.
@@ -766,12 +766,6 @@ PanelWindow {
 
     DevServers {
         id: devServers
-
-        active: root.visible
-    }
-
-    Zellij {
-        id: zellij
 
         active: root.visible
     }

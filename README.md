@@ -99,7 +99,7 @@ themselves stow-managed symlinks; writes through them land in the repo.
 hyprctl dispatch focuscurrentorlast
 hyprctl dispatch fullscreen 0
 hyprctl dispatch movewindow u
-hyprctl dispatch movetoworkspace special:zellij,title:zellij
+hyprctl dispatch movetoworkspace special:herdr,title:herdr
 hyprctl keyword monitor "eDP-1,preferred,0x1920,1"
 ```
 

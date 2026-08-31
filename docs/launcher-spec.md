@@ -82,7 +82,7 @@ the only signal comparable between Providers.
 37. As a user, I want to reach my clipboard history from the Launcher, so that it is one more Provider rather than a separate tool.
 38. As a user, I want to apply a theme from the Launcher, so that theme switching does not need its own script.
 39. As a user, I want to set a background from the Launcher, so that it lives beside the other appearance actions.
-40. As a user, I want to see running dev servers, processes, systemd units and zellij sessions as Providers, so that they are reachable from the same place as everything else.
+40. As a user, I want to see running dev servers, processes and systemd units as Providers, so that they are reachable from the same place as everything else.
 41. As a user, I want to kill a process directly from its Entry, so that managing something does not need a second tool.
 42. As a user, I want to rename a workspace without a separate text-prompt tool, so that the capability survives the dmenu mode being removed.
 43. As a user, I want a prefix to route my Query to one Provider, so that I can narrow the search when I already know what I want.

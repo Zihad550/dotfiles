@@ -299,28 +299,6 @@ const audit = [
     {
         file: "OtherMenu.qml",
         menu: "other",
-        elephant: "~/dotfiles/bin/df-launch-special-app 'work-zellij' 'ghostty -e zellij -l work attach --create work-zellij options --on-force-close quit' 'work-zellij'",
-        entry: {
-            name: "work - zellij session",
-            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.work", "work-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.work", "-e", "zellij", "-l", "work", "attach", "--create", "work-zellij", "options", "--on-force-close", "quit"],
-            scoped: false
-        },
-        argv: ["/home/jehad/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.work", "work-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.work", "-e", "zellij", "-l", "work", "attach", "--create", "work-zellij", "options", "--on-force-close", "quit"]
-    },
-    {
-        file: "OtherMenu.qml",
-        menu: "other",
-        elephant: "~/dotfiles/bin/df-launch-special-app 'project-zellij' 'ghostty -e zellij -l project attach --create project-zellij options --on-force-close quit' 'project-zellij'",
-        entry: {
-            name: "project - zellij session",
-            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.project", "project-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.project", "-e", "zellij", "-l", "project", "attach", "--create", "project-zellij", "options", "--on-force-close", "quit"],
-            scoped: false
-        },
-        argv: ["/home/jehad/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.project", "project-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.project", "-e", "zellij", "-l", "project", "attach", "--create", "project-zellij", "options", "--on-force-close", "quit"]
-    },
-    {
-        file: "OtherMenu.qml",
-        menu: "other",
         elephant: "~/dotfiles/bin/df-launch-special-app 'helium-work' 'helium-browser --profile-directory=\"Profile 2\"' 'work'",
         entry: {
             name: "Helium - work profile",
@@ -337,7 +315,7 @@ for (const row of audit) {
     });
 }
 
-test("audit: every one of the fifteen entries renders an icon", () => {
+test("audit: every one of the fourteen entries renders an icon", () => {
     for (const row of audit) {
         const built = Menus.catalogOf({
             name: row.menu,

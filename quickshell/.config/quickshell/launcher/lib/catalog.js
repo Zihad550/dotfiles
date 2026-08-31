@@ -4,7 +4,7 @@
 // imports another).
 //
 // Three shapes, none a flag on another: keyedCatalog for an Entry findable by
-// exactly one text (dev servers, zellij sessions); ownedCatalog for an Entry
+// exactly one text (dev servers); ownedCatalog for an Entry
 // findable by several texts with a stable Key (themes, backgrounds,
 // directories, provider list); keylessCatalog for an Entry findable by
 // several texts with no identity worth keying (processes, systemd,

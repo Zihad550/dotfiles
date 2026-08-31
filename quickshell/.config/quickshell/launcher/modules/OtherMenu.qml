@@ -1,5 +1,5 @@
 // The other menu: specific application invocations no desktop entry covers
-// (a browser profile, a database client wanting a secret, zellij sessions).
+// (a browser profile or a database client wanting a secret).
 // Data only -- see lib/menus.js for what a declaration may contain, and
 // Menu.qml for the Provider that runs them.
 //
@@ -15,7 +15,7 @@ Menu {
     description: "Everything that fits nowhere else"
     subtext: "Other"
 
-    // None of the six entries declares an icon; they fall back to the menu's own.
+    // None of the four entries declares an icon; they fall back to the menu's own.
     icon: "applications-other"
 
     entries: [
@@ -33,17 +33,6 @@ Menu {
             name: "MongoDB Compass env",
             keywords: ["mongodb", "compass"],
             shell: "flatpak run com.mongodb.Compass --trustedConnectionString $(pass env/mongodb_uri)"
-        },
-        {
-            name: "work - zellij session",
-            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.work", "work-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.work", "-e", "zellij", "-l", "work", "attach", "--create", "work-zellij", "options", "--on-force-close", "quit"],
-            scoped: false
-        },
-        {
-            name: "project - zellij session",
-            keywords: ["project", "zellij"],
-            command: ["~/dotfiles/bin/df-launch-special-workspace", "io.github.zihad550.dotfiles.zellij.project", "project-zellij", "ghostty", "--class=io.github.zihad550.dotfiles.zellij.project", "-e", "zellij", "-l", "project", "attach", "--create", "project-zellij", "options", "--on-force-close", "quit"],
-            scoped: false
         },
         {
             name: "Helium - work profile",

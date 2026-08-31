@@ -28,7 +28,7 @@ const catalogOf = (processes, provider) => C.keylessCatalog(processes,
 const PS_SAMPLE = [
     "    PID COMMAND         CMD                         %CPU",
     "   1234 firefox         /usr/bin/firefox --new-window --profile-dir=/tmp/p 12.3",
-    "   2345 ghostty         ghostty -e zellij -l work attach 0.4",
+    "   2345 ghostty         ghostty -e herdr --session work attach 0.4",
     "   3456 mongod          /usr/bin/mongod --config /etc/mongod.conf 1.1",
     "   4567 sshd            sshd: user@pts/0 0.0",
     "   5678 hyprland        /usr/bin/Hyprland 6.0",
@@ -50,8 +50,8 @@ test("a real ps line's leading column padding does not eat the pid", () => {
 });
 
 test("a command containing spaces stays one command line", () => {
-    const process = P.parseLine("2345 ghostty ghostty -e zellij -l work attach 0.4");
-    assert.strictEqual(process.cmd, "ghostty -e zellij -l work attach");
+    const process = P.parseLine("2345 ghostty ghostty -e herdr --session work attach 0.4");
+    assert.strictEqual(process.cmd, "ghostty -e herdr --session work attach");
 });
 
 test("the header and a blank line are not processes", () => {
@@ -86,7 +86,7 @@ test("a process is found by its name and by its full command line", () => {
     const byName = M.collapse(corpus, M.rank(corpus, "firefox")).indices.map(index => built.entries[index].name);
     assert.deepStrictEqual(byName, ["firefox"]);
 
-    const byArg = M.collapse(corpus, M.rank(corpus, "zellij")).indices.map(index => built.entries[index].name);
+    const byArg = M.collapse(corpus, M.rank(corpus, "herdr")).indices.map(index => built.entries[index].name);
     assert.deepStrictEqual(byArg, ["ghostty"]);
 });
 

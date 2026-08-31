@@ -140,11 +140,11 @@ test("a Provider reachable by prefix or by enter() is not a problem", () => {
 });
 
 test("a listable Provider with neither a prefix nor an enter() is named", () => {
-    const stranded = { label: "zellij", description: "Attach to a zellij session" };
+    const stranded = { label: "workspaces", description: "Rename a workspace" };
     const found = P.problems([screenshots, stranded]);
 
     assert.strictEqual(found.length, 1);
-    assert.match(found[0], /zellij/);
+    assert.match(found[0], /workspaces/);
     assert.match(found[0], /neither a prefix nor an enter/);
 });
 

@@ -1,11 +1,11 @@
-// Tests for keyedCatalog -- the catalog build shared by the dev-servers and
-// zellij Providers.
+// Tests for keyedCatalog -- the catalog build shared by the dev-servers
+// Provider.
 //
 //     node --test "tests/launcher/*.test.js"
 //
 // What each Provider's rows actually look like stays pinned in
-// devservers.test.js and zellij.test.js, which call this with their own real
-// entryFor. What is pinned here is the contract those two rely on: three
+// devservers.test.js, which calls this with its own real entryFor. What is
+// pinned here is the contract it relies on: three
 // arrays that line up index for index, built out of whatever entryFor
 // returns.
 

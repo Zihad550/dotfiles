@@ -28,7 +28,6 @@ alias hr='herdr'
 # short aliases
 # cat="bat" \
 alias \
-    zj="zellij" \
     s="ssh" \
     c="clear" \
     v="nvim" \

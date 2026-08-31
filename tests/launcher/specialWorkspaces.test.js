@@ -392,10 +392,8 @@ test("enabled Special Workspace bindings use only the shared exact-class lifecyc
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
     const otherMenu = fs.readFileSync(path.join(ROOT,
         "quickshell/.config/quickshell/launcher/modules/OtherMenu.qml"), "utf8");
-    const zellij = fs.readFileSync(path.join(ROOT,
-        "quickshell/.config/quickshell/launcher/lib/zellij.js"), "utf8");
     const enabledConfig = apps.split("\n").filter(line => !/^\s*--/.test(line)).join("\n");
 
     assert.strictEqual(fs.existsSync(path.join(ROOT, "bin/df-launch-special-app")), false);
-    assert.doesNotMatch(`${enabledConfig}\n${otherMenu}\n${zellij}`, /df-launch-special-app/);
+    assert.doesNotMatch(`${enabledConfig}\n${otherMenu}`, /df-launch-special-app/);
 });

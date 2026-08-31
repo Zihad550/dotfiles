@@ -89,7 +89,6 @@ end
 o.bind("SUPER + S",         "Toggle magic workspace", hl.dsp.workspace.toggle_special("magic"))
 o.bind("SUPER + SHIFT + S", "Move to magic workspace", hl.dsp.window.move({ workspace = "special:magic" }))
 -- o.bind("SUPER + SHIFT + O", "Move to note workspace",   hl.dsp.window.move({ workspace = "special:note" }))
--- o.bind("SUPER + SHIFT + U", "Move to zellij workspace", hl.dsp.window.move({ workspace = "special:zellij" }))
 -- o.bind("SUPER + SHIFT + A", "Move to ai workspace",     hl.dsp.window.move({ workspace = "special:ai" }))
 -- o.bind("SUPER + SHIFT + Y", "Move to yt workspace",     hl.dsp.window.move({ workspace = "special:yt" }))
 

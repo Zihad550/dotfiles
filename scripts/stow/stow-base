@@ -13,7 +13,6 @@ stow zsh
 stow zed
 mkdir -p ~/.local/share/zed/extensions
 ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions/index.json
-# stow zellij
 # stow gemini
 stow lazygit
 stow themes

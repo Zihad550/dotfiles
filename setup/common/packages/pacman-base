@@ -58,7 +58,6 @@ sudo pacman -S --noconfirm \
 # mission-center \
 # atac \            # terminal api client
 # termdown \        # terminal counter
-# zellij \
 
 # fonts
 sudo pacman -S --noconfirm \
