@@ -25,6 +25,16 @@ const greeterRoot = "setup/common/greeter";
 const brandingRoot = "setup/common/boot-branding";
 const pinnedCommit = "83881e979b35468c3e7d60b171e319ede61a88fd";
 
+function assertOrdered(sourceText, steps) {
+    let previous = -1;
+    for (const [name, marker] of steps) {
+        const position = sourceText.indexOf(marker);
+        assert.ok(position >= 0, `missing ${name}: ${marker}`);
+        assert.ok(position > previous, `${name} is out of order`);
+        previous = position;
+    }
+}
+
 test("both boxes install the Greeter through the shared setup script", () => {
     inits.forEach(init => {
         assert.match(source(init), new RegExp(`run_step "greeter" [^\\n]*${greeterSetup}`),
@@ -184,20 +194,71 @@ test("Boot Branding and the pinned Greeter decision are documented", () => {
 });
 
 test("Boot Branding is installed before custom Greeter activation", () => {
-    const setup = source(greeterSetup);
     const apply = source(`${brandingRoot}/apply`);
     const lib = source(`${brandingRoot}/lib`);
 
-    assert.match(setup, /pacman -S[\s\S]*?--needed[\s\S]*?\bplymouth\b/);
-    assert.match(setup, /\bimagemagick\b/);
-    assert.ok(setup.indexOf("$BOOT_BRANDING_DIR/apply") < setup.indexOf("$GREETER_DIR/apply"),
-        "SDDM must not activate before the boot rebuild succeeds");
     assert.match(lib, /plymouth-set-default-theme omarchy/);
     assert.match(lib, /mkinitcpio -P/);
     assert.match(lib, /grub-mkconfig -o/);
     assert.match(lib, /greeter-backups/);
     assert.match(lib, /rolling back/);
     assert.match(apply, /commit_boot_branding/);
+});
+
+test("shared setup protects boot and login with the required transaction order", () => {
+    const setup = source(greeterSetup);
+
+    assertOrdered(setup, [
+        ["packages", "sudo pacman -S"],
+        ["Boot Branding validation", '"$BOOT_BRANDING_DIR/validate"'],
+        ["Greeter validation", '"$GREETER_DIR/validate"'],
+        ["Boot Branding backup and rebuild", '"$BOOT_BRANDING_DIR/apply"'],
+        ["Greeter installation", '"$GREETER_DIR/apply"'],
+        ["old display manager deactivation", "systemctl disable gdm.service"],
+        ["SDDM activation", "systemctl enable --force sddm.service"],
+        ["autologin policy", '"$GREETER_DIR/login-policy"'],
+        ["SDDM authentication policy", "for pam_file in /etc/pam.d/sddm"],
+    ]);
+});
+
+test("setup and recovery commands leave the running graphical session alone", () => {
+    [
+        greeterSetup,
+        "bin/df-boot-branding-set",
+        "bin/df-boot-branding-reset",
+        "bin/df-greeter-refresh",
+        "bin/df-greeter-reset",
+        `${brandingRoot}/set`,
+        `${brandingRoot}/apply`,
+        `${brandingRoot}/lib`,
+        `${brandingRoot}/validate`,
+        `${greeterRoot}/apply`,
+        `${greeterRoot}/login-policy`,
+        `${greeterRoot}/validate`,
+    ].forEach(script => {
+        assert.doesNotMatch(
+            source(script),
+            /\b(?:reboot|logout|loginctl\s+terminate|chvt|systemctl\s+(?:restart|stop|start)\s+sddm)/,
+            `${script} must defer disruptive checks until the user runs them on the host`,
+        );
+    });
+});
+
+test("Greeter recovery and host-only verification are documented", () => {
+    const guide = source("docs/greeter-recovery.md");
+
+    assert.match(guide, /df-greeter-reset/);
+    assert.match(guide, /greeter-backups/);
+    assert.match(guide, /manifest/);
+    assert.match(guide, /sddm-greeter-qt6 --test-mode/);
+    assert.match(guide, /encrypted-root prompt/i);
+    assert.match(guide, /Plymouth/);
+    assert.match(guide, /logout/i);
+    assert.match(guide, /df-boot-branding-set/);
+    assert.match(guide, /df-boot-branding-reset/);
+    assert.match(guide, /stock Greeter/i);
+    assert.match(guide, /setup\/common\/setup-greeter/);
+    assert.match(guide, /not verified/i);
 });
 
 test("Boot Branding exposes guarded customization and recovery commands", () => {
@@ -219,12 +280,9 @@ test("Boot Branding exposes guarded customization and recovery commands", () => 
     assert.match(provenance, /GRUB/);
 });
 
-test("the single-owner login policy follows successful Greeter installation", () => {
-    const setup = source(greeterSetup);
+test("the single-owner login policy configures the selected account", () => {
     const policy = source(`${greeterRoot}/login-policy`);
 
-    assert.ok(setup.indexOf("$GREETER_DIR/apply") < setup.indexOf("$GREETER_DIR/login-policy"),
-        "account and autologin policy must wait for Greeter installation");
     assert.match(policy, /GREETER_USER/);
     assert.match(policy, /SUDO_USER/);
     assert.match(policy, /id -un/);

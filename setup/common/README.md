@@ -280,6 +280,8 @@ only this repository's SDDM overrides and returns to stock behavior; neither
 command restarts SDDM or logs out the current session. The decision is recorded
 in [ADR 0024](../../docs/adr/0024-pinned-omarchy-greeter.md), which supersedes
 [ADR 0020](../../docs/adr/0020-greeter-stays-stock-themed.md).
+The copy-paste recovery and host-only checks are in
+[Greeter recovery and host verification](../../docs/greeter-recovery.md).
 
 ## Power management
 

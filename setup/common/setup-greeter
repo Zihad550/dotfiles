@@ -16,19 +16,13 @@ sudo pacman -S --noconfirm --needed \
 	sddm plymouth imagemagick qt6-wayland qt6-declarative qt6-imageformats \
 	ttf-jetbrains-mono-nerd
 
-# Boot changes are validated and rebuilt before the display-manager alias is
-# changed. A failed rebuild therefore never activates a custom Greeter.
+# Validate every staged visual input before backing up or changing live files.
+# A failed rebuild therefore never activates a custom Greeter.
 "$BOOT_BRANDING_DIR/validate"
-"$BOOT_BRANDING_DIR/apply"
-
-# Validate and stage the replacement before changing the display-manager alias.
-# A broken Greeter must never be the first thing enabled on a box.
 "$GREETER_DIR/validate"
-"$GREETER_DIR/apply"
 
-# Account selection and login policy are deliberately last among the Greeter
-# files. Boot Branding and the Greeter must be installed before login changes.
-"$GREETER_DIR/login-policy"
+"$BOOT_BRANDING_DIR/apply"
+"$GREETER_DIR/apply"
 
 if systemctl is-enabled gdm.service &>/dev/null; then
 	sudo systemctl disable gdm.service
@@ -39,6 +33,10 @@ fi
 # `enable` refuses to replace and which no re-run could then repair. Enabling
 # is idempotent, so there is nothing to guard.
 sudo systemctl enable --force sddm.service
+
+# Account selection and login policy are deliberately last. Boot Branding,
+# the Greeter, and SDDM activation must succeed before login changes.
+"$GREETER_DIR/login-policy"
 
 # SDDM must not try to own the session's desktop keyring through PAM. The
 # session creates the passwordless default keyring and gcr-ssh-agent owns SSH
