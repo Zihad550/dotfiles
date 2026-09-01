@@ -89,7 +89,7 @@ navigate_pane_right = "l"
 # --- workspaces (tmux sessions) -----------------------------------------
 new_workspace      = "prefix+shift+n"
 rename_workspace   = "prefix+shift+w"
-close_workspace    = "prefix+shift+d"        # closes only the current workspace, with confirm prompt
+close_workspace    = "prefix+shift+d"        # closes only the current workspace
 # prefix+ctrl+w is bound below (see [[keys.command]]) to actually kill the
 # session -- close_workspace alone leaves the client/window running with
 # zero workspaces. tmux: bind ^W kill-session.
@@ -166,6 +166,9 @@ auto_switch = false
 # tmux: set -g mouse on / set -g set-clipboard on
 mouse_capture = true
 copy_on_select = true
+
+# Close the current workspace immediately without a confirmation dialog.
+confirm_close = false
 
 # Start with the sidebar collapsed (takes effect on next launch).
 sidebar_start_collapsed = false
