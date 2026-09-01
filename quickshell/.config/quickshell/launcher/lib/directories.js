@@ -176,25 +176,25 @@ function chooserApps(path, routed, home, host, remote, routingEnabled) {
             // `herdr session list` -- with a `· <host>` suffix (subtextFor's
             // own shape) whenever Herdr would actually route, so the one row
             // that can still SSH is visibly marked as such.
-            name: "Herdr", icon: "utilities-terminal",
+            name: "Herdr", application: "herdr", icon: "utilities-terminal",
             target: subtextFor(sessionNameOf(path, home), herdrRoutes ? sshHost : undefined),
             scoped: false,
             argv: herdrLaunchArgv(path, home)
         },
         {
-            name: "Zed", icon: "zed", target: target,
+            name: "Zed", application: "zed", icon: "zed", target: target,
             argv: pick(["zeditor", path], ["zeditor", target])
         },
         {
-            name: "VSCode", icon: "vscode", target: target,
+            name: "VSCode", application: "code", icon: "vscode", target: target,
             argv: pick(["code", path], ["code", "--remote", "ssh-remote+" + sshHost, path])
         },
         {
-            name: "Cursor", icon: "cursor", target: target,
+            name: "Cursor", application: "cursor", icon: "cursor", target: target,
             argv: pick(["cursor", path], ["cursor", "--remote", "ssh-remote+" + sshHost, path])
         },
         {
-            name: "Neovim", icon: "nvim", target: target,
+            name: "Neovim", application: "nvim", icon: "nvim", target: target,
             argv: pick(
                 ["ghostty", "--working-directory=" + path, "-e", "nvim"],
                 // Escaped, unlike the other four: this argument isn't run
@@ -210,7 +210,7 @@ function chooserApps(path, routed, home, host, remote, routingEnabled) {
     // remote-provenance directory (no local path to open) omits it entirely.
     if (!remote) {
         apps.push({
-            name: "Files", icon: "folder",
+            name: "Files", application: "files", icon: "folder",
             target: path,
             argv: ["nautilus", path]
         });
@@ -229,7 +229,11 @@ function chooserEntriesFor(path, routed, home, launchPrefix, provider, host, rem
             subtext: app.target,
             icon: app.icon,
             provider: provider,
-            target: { argv: app.scoped === false ? app.argv : prefix.concat(app.argv) }
+            target: {
+                path: path,
+                application: app.application,
+                argv: app.scoped === false ? app.argv : prefix.concat(app.argv)
+            }
         };
     });
 }

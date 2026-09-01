@@ -10,8 +10,9 @@ import "lib/workspaceLabel.js" as WorkspaceLabel
 // scrolling layout with 2+ windows and opens a Flyout of that workspace's
 // windows. See .scratch/workspace-window-flyout/spec.md.
 //
-// The text is a Workspace Label derived from the windows on the workspace,
-// never a compositor rename -- see docs/adr/0013-workspace-labels-derived-in-bar.md.
+// The text is a Workspace Label. It preserves any non-bare Workspace Name,
+// including a Launcher directory name, and derives only for a bare one. See
+// docs/adr/0013-workspace-labels-derived-in-bar.md.
 Item {
     id: root
 

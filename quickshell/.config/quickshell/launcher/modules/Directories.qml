@@ -1,9 +1,13 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import "../lib/catalog.js" as Catalog
+import "../lib/directorylaunch.js" as DirectoryLaunch
 import "../lib/directories.js" as Dirs
 import "../lib/matching.js" as Matching
+import "../lib/sequence.js" as Seq
+import "../lib/workspaces.js" as Ws
 
 // The directories Provider: jump to any project directory by fuzzy-matching
 // its path. Asynchronous, cached, background-refreshed, and the first
@@ -73,6 +77,11 @@ QtObject {
     // cached scan sitting there.
     readonly property bool remoteReady: root.routingEnabled && root.devcontainerHost !== ""
     readonly property var remotePaths: root.remoteReady ? root.remoteSnapshot.paths : []
+
+    // A launch outlives the Launcher surface: the primary Action dismisses it
+    // before the application is requested, but the compositor may take a few
+    // frames to report the resulting focused window.
+    property var pendingLaunches: []
 
     // A remote-provenance chooser has no local fallback -- routing turning
     // off from under it must close it too, not just the list behind it
@@ -165,7 +174,11 @@ QtObject {
         // target always routes, to its own host; a local one never does (#92).
         const remote = root.isRemoteTarget(entry.target);
         const host = remote ? entry.target.host : root.devcontainerHost;
-        Quickshell.execDetached(Dirs.defaultOpenArgv(entry.target.path, remote, root.launchPrefix, host));
+        root.openDirectory({
+            path: entry.target.path,
+            application: "zed",
+            argv: Dirs.defaultOpenArgv(entry.target.path, remote, root.launchPrefix, host)
+        });
     }
 
     function enterChooser(entry): void {
@@ -177,7 +190,89 @@ QtObject {
     }
 
     function openWith(entry): void {
-        Quickshell.execDetached(entry.target.argv);
+        root.openDirectory(entry.target);
+    }
+
+    function stringOf(value) {
+        return typeof value === "string" ? value : "";
+    }
+
+    // Snapshot only the identity and focus facts the pure coordinator needs.
+    // `lastIpcObject` is the fallback for the short interval before the
+    // Wayland handle or Hyprland workspace object is linked.
+    function compositorSnapshot() {
+        const active = Hyprland.activeToplevel;
+        const activeAddress = root.stringOf(active?.address);
+        return Seq.listOf(Hyprland.toplevels?.values).map(toplevel => {
+            const workspace = toplevel.workspace;
+            const ipcWorkspace = toplevel.lastIpcObject?.workspace;
+            const address = root.stringOf(toplevel.address);
+            const wayland = toplevel.wayland;
+            const appId = root.stringOf(wayland?.appId || toplevel.lastIpcObject?.class);
+            const focused = toplevel === active || wayland === active
+                || (address !== "" && address === activeAddress)
+                || toplevel.activated === true
+                || wayland?.activated === true;
+
+            return {
+                address: address,
+                appId: appId,
+                workspaceId: workspace?.id ?? ipcWorkspace?.id ?? null,
+                workspaceName: root.stringOf(workspace?.name || ipcWorkspace?.name),
+                focused: focused
+            };
+        }).filter(window => window.address !== "");
+    }
+
+    // Start tracking before dispatching so a very fast application cannot
+    // focus a window between the open request and the first poll. A failed or
+    // slow optional rename must never turn a successful directory open into
+    // an apparent failure.
+    function openDirectory(request): void {
+        const before = root.compositorSnapshot();
+        root.pendingLaunches = root.pendingLaunches.concat([DirectoryLaunch.begin(before, request)]);
+
+        if (!root.launchPollTimer.running)
+            root.launchPollTimer.start();
+
+        Quickshell.execDetached(request.argv);
+    }
+
+    function pollDirectoryLaunch(): void {
+        if (root.pendingLaunches.length === 0)
+            return;
+
+        if (typeof Hyprland.refreshToplevels === "function")
+            Hyprland.refreshToplevels();
+        if (typeof Hyprland.refreshWorkspaces === "function")
+            Hyprland.refreshWorkspaces();
+
+        const snapshot = root.compositorSnapshot();
+        const remaining = [];
+        const claimed = {};
+
+        for (const pending of root.pendingLaunches) {
+            const polled = DirectoryLaunch.poll(pending, snapshot, claimed);
+            if (!polled.done) {
+                remaining.push(polled.state);
+                continue;
+            }
+
+            if (polled.destination === null) {
+                console.warn("launcher: directory opened without a confident focused-window match for",
+                    pending.request.application);
+                continue;
+            }
+
+            claimed[polled.destination.identity] = true;
+            const name = DirectoryLaunch.workspaceNameFor(polled.destination.workspaceId,
+                pending.request.application, DirectoryLaunch.directoryHintOf(pending.request.path));
+            Quickshell.execDetached(Ws.renameLuaArgv(polled.destination.workspaceId, name));
+        }
+
+        root.pendingLaunches = remaining;
+        if (remaining.length === 0)
+            root.launchPollTimer.stop();
     }
 
     // Existence-only: routing is off, the default, until this file appears.
@@ -206,4 +301,11 @@ QtObject {
         onLoaded: root.devcontainerHost = hostView.text().trim()
         onLoadFailed: root.devcontainerHost = ""
     }
+
+    readonly property Timer launchPollTimer: Timer {
+        interval: DirectoryLaunch.POLL_INTERVAL_MS
+        repeat: true
+        onTriggered: root.pollDirectoryLaunch()
+    }
+
 }

@@ -1,7 +1,7 @@
 // How the bar labels a numbered workspace after what is open on it (issue
-// #98). The label is derived, never stored -- see
-// docs/adr/0013-workspace-labels-derived-in-bar.md for why this lives in
-// the bar rather than in a compositor rename.
+// #98). A bare Workspace Name gets a derived label; any explicit name stays
+// intact, including one written by the Directories Provider. See
+// docs/adr/0013-workspace-labels-derived-in-bar.md.
 //
 // Free of QML types, no `.pragma library`: that's a syntax error under node.
 
@@ -64,7 +64,7 @@ function shortAppName(appId) {
 
 // `name` is Hyprland's Workspace Name: bare "3" until renamed, "3-(dev)"
 // once the Launcher's rename Action has. Anything other than the bare id is
-// manual and wins untouched; only a bare id gets derived over.
+// explicit and wins untouched; only a bare id gets derived over.
 //
 function labelFor(id, name, app) {
     if (typeof name === "string" && name !== "" && name !== String(id))
