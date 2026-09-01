@@ -6,3 +6,6 @@ repos
 resources
 .zcompdump*
 themes/**/background
+
+# symlink created by ralph-loop/install.sh; points outside this repo
+opencode/.config/opencode/command/implement-issue.md
