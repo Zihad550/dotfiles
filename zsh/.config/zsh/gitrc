@@ -12,6 +12,10 @@ alias gcl='git clone'
 # ghq keeps clones in a $GOPATH-style tree, so it shadows the real `git clone`.
 alias git-clone='ghq get'
 alias lg='lazygit'
+alias tpr='tea pr rc -o simple'
+alias gpr='gh pr view --comments'
+alias ti='tea issue --comments -o simple'
+alias gi='gh issue view --comments'
 
 # alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
 # alias gs='git status'
