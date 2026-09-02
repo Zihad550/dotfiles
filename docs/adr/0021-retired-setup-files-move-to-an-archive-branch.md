@@ -38,7 +38,7 @@ quietly made it.
 
 - **Inbound links from `main` become branch references, not paths.** Four
   pointers reached into `setup/archive/`: `setup/common/setup-rootless-docker`,
-  `setup/arch-hyprland/setup-packages/setup-ufw`, and two in
+  `setup/arch-workstation/setup-packages/setup-ufw`, and two in
   `setup/arch-devbox/README.md`. They now name the branch instead of a relative
   path, so they are no longer clickable in the working tree. This is the real
   cost of the change, and the reason `0011` went the other way.

@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 
-# arch-devbox: the arch-hyprland desktop, stripped to web development.
+# arch-devbox: the arch-workstation desktop, stripped to web development.
 # See README.md — it is the canonical copy of what this directory owns and why.
 #
 # The one thing README.md does not cover is why the step *list* below is not
-# shared with ../arch-hyprland/init the way everything else is. It is a copy,
+# shared with ../arch-workstation/init the way everything else is. It is a copy,
 # and adding a step there does not add it here. Kept a copy on purpose — the two
 # instead of mise-packages, plus sshd/ufw-base/no-sleep/tuned that only exist
 # here) that sharing one would mean inventing a step-manifest format to express
 # the differences, which is more machinery than two 40-line lists are worth. If
-# you add a step to arch-hyprland's init, decide here whether this box wants it.
+# you add a step to arch-workstation's init, decide here whether this box wants it.
 
 set -eEo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 ARCH_DEVBOX_DIR="$DOTFILES_DIR/setup/arch-devbox"
 # Shared implementation lives next door; we only override the package lists.
-ARCH_HYPR_DIR="$DOTFILES_DIR/setup/arch-hyprland"
+ARCH_WORKSTATION_DIR="$DOTFILES_DIR/setup/arch-workstation"
 
 # Own state dir, so the done-* guards (zsh-shell, apparmor) and the install log
-# never collide with an arch-hyprland run on the same machine.
+# never collide with an arch-workstation run on the same machine.
 export ARCH_SETUP_STATE_DIR="$HOME/.local/state/arch-devbox-setup"
 mkdir -p "$ARCH_SETUP_STATE_DIR"
 export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
@@ -29,10 +29,10 @@ export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 export ARCH_SETUP_NAME="arch-devbox"
 export ARCH_SETUP_INIT="$ARCH_DEVBOX_DIR/init"
 
-# shellcheck source=../arch-hyprland/utils/logging
-source "$ARCH_HYPR_DIR/utils/logging"
-# shellcheck source=../arch-hyprland/utils/state
-source "$ARCH_HYPR_DIR/utils/state"
+# shellcheck source=../arch-workstation/utils/logging
+source "$ARCH_WORKSTATION_DIR/utils/logging"
+# shellcheck source=../arch-workstation/utils/state
+source "$ARCH_WORKSTATION_DIR/utils/state"
 # shellcheck source=../common/hw-detect
 source "$DOTFILES_DIR/setup/common/hw-detect"
 
@@ -50,7 +50,7 @@ ensure_gum || true
 
 export ARCH_SETUP_START_EPOCH=$(date +%s)
 
-"$ARCH_HYPR_DIR/preflight"
+"$ARCH_WORKSTATION_DIR/preflight"
 
 # Passwordless access for the noisy root commands used throughout setup, so
 # they never prompt mid-install. Self-removes via the cleanup trap.
@@ -77,21 +77,21 @@ run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
 run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
     "$DOTFILES_DIR/setup/arch-devbox/idle.json"
 
-run_step "theme" "$ARCH_HYPR_DIR/theme"
-run_step "gnome-theme" "$ARCH_HYPR_DIR/gnome-theme"
+run_step "theme" "$ARCH_WORKSTATION_DIR/theme"
+run_step "gnome-theme" "$ARCH_WORKSTATION_DIR/gnome-theme"
 
 # The omarchy repo is required, not optional: worktrunk, opencode, claude-code,
 # tea and quickshell all come from it.
-run_step "omarchy repos" "$ARCH_HYPR_DIR/setup-omarchy-repos"
-run_step "mise" "$ARCH_HYPR_DIR/setup-packages/setup-mise"
-run_step "yay" "$ARCH_HYPR_DIR/setup-packages/setup-yay"
+run_step "omarchy repos" "$ARCH_WORKSTATION_DIR/setup-omarchy-repos"
+run_step "mise" "$ARCH_WORKSTATION_DIR/setup-packages/setup-mise"
+run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
 
 # flatpak dropped — its only dev-relevant apps were MongoDB Compass and
 # Beekeeper Studio. Two lines turn it back on, and both are needed: this one
 # installs flatpak and adds the flathub remote, and the "flatpak packages" step
 # further down installs from it. Running the second without the first is
 # `flatpak install` against a missing command.
-# run_step "flatpak" "$ARCH_HYPR_DIR/setup-packages/setup-flatpak"
+# run_step "flatpak" "$ARCH_WORKSTATION_DIR/setup-packages/setup-flatpak"
 
 # Only the app layer is overridden. The CLI toolkit, fonts, coreutils
 # replacements and gcc come from the shared pacman-base unchanged, so a tool
@@ -110,8 +110,8 @@ run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
 run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
 
 
-run_step "hyprland" "$ARCH_HYPR_DIR/setup-packages/setup-hyprland"
-# Shared with arch-hyprland, not overridden: the shell is identical on both
+run_step "hyprland" "$ARCH_WORKSTATION_DIR/setup-packages/setup-hyprland"
+# Shared with arch-workstation, not overridden: the shell is identical on both
 # targets, so its runtime dependencies are too.
 run_step "quickshell packages" "$DOTFILES_DIR/setup/common/packages/quickshell-packages"
 run_step "network page validation" "$DOTFILES_DIR/setup/common/setup-network-page"
@@ -128,19 +128,19 @@ run_step "sshd" "$ARCH_DEVBOX_DIR/setup-sshd"
 # from ./setup-tailscale and ./setup-ufw, which must be run by hand
 # after this — setup-tailscale is interactive (a login URL) and run_step gives
 # steps stdin /dev/null, and setup-ufw needs tailscale0 to already exist.
-# NOT ../arch-hyprland/setup-packages/setup-ufw: that one opens the syncthing
+# NOT ../arch-workstation/setup-packages/setup-ufw: that one opens the syncthing
 # profile and does `ufw deny SSH`, the opposite of what this box wants.
 run_step "ufw baseline" "$ARCH_DEVBOX_DIR/setup-ufw-base"
 
 # syncthing dropped — file sync, not development.
-# run_step "syncthing" "$ARCH_HYPR_DIR/setup-packages/setup-syncthing"
+# run_step "syncthing" "$ARCH_WORKSTATION_DIR/setup-packages/setup-syncthing"
 
 # Guard zsh: usermod -s is non-idempotent (records a change every run).
 CURRENT_STEP="zsh"
 if is_done zsh-shell; then
     ui_skip "zsh shell already configured"
 else
-    run_step "zsh" "$ARCH_HYPR_DIR/setup-packages/setup-zsh"
+    run_step "zsh" "$ARCH_WORKSTATION_DIR/setup-packages/setup-zsh"
     mark_done zsh-shell
 fi
 
@@ -150,63 +150,63 @@ CURRENT_STEP="apparmor"
 if is_done apparmor; then
     ui_skip "apparmor already configured"
 else
-    run_step "apparmor" "$ARCH_HYPR_DIR/setup-packages/setup-apparmor"
+    run_step "apparmor" "$ARCH_WORKSTATION_DIR/setup-packages/setup-apparmor"
     mark_done apparmor
 fi
 
-run_step "kanata" "$ARCH_HYPR_DIR/setup-packages/setup-kanata"
+run_step "kanata" "$ARCH_WORKSTATION_DIR/setup-packages/setup-kanata"
 run_step "herdr" "$DOTFILES_DIR/setup/common/setup-herdr"
 run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
 
 # setup-github-cli intentionally not run — needs `gh auth login` first.
-# Run manually after login: ~/dotfiles/bin/df-arch-hypr-post-install
+# Run manually after login: ~/dotfiles/bin/df-arch-workstation-post-install
 
 # setup-voxtype intentionally not run — uncomment to enable.
-# run_step "voxtype" "$ARCH_HYPR_DIR/setup-packages/setup-voxtype"
+# run_step "voxtype" "$ARCH_WORKSTATION_DIR/setup-packages/setup-voxtype"
 
 run_step "go packages" "$DOTFILES_DIR/setup/common/packages/go-packages"
 run_step "shell completions" "$DOTFILES_DIR/bin/df-gen-completions"
 
 # Guard keyring: writes secret files, has built-in --check but re-running is wasteful.
 CURRENT_STEP="keyring"
-if "$ARCH_HYPR_DIR/keyring" --check >/dev/null 2>&1; then
+if "$ARCH_WORKSTATION_DIR/keyring" --check >/dev/null 2>&1; then
     ui_skip "keyring already exists"
 else
-    run_step "keyring" "$ARCH_HYPR_DIR/keyring"
+    run_step "keyring" "$ARCH_WORKSTATION_DIR/keyring"
 fi
 
 # System-wide QoL tweaks (sysctl, sudoers, systemd timeouts).
-run_step "file watchers" "$ARCH_HYPR_DIR/setup-packages/setup-file-watchers"
+run_step "file watchers" "$ARCH_WORKSTATION_DIR/setup-packages/setup-file-watchers"
 # The Session Lock authenticates against its own PAM service; without this it
 # rejects every password.
-run_step "lock pam" "$ARCH_HYPR_DIR/setup-packages/setup-lock-pam"
-run_step "ssh flakiness" "$ARCH_HYPR_DIR/setup-packages/setup-ssh-flakiness"
+run_step "lock pam" "$ARCH_WORKSTATION_DIR/setup-packages/setup-lock-pam"
+run_step "ssh flakiness" "$ARCH_WORKSTATION_DIR/setup-packages/setup-ssh-flakiness"
 # Passwordless `ts-serve` (zsh aliasrc) via a validating root wrapper.
 run_step "ts-serve sudo rule" "$DOTFILES_DIR/setup/common/setup-ts-serve"
-run_step "fast shutdown" "$ARCH_HYPR_DIR/setup-packages/setup-fast-shutdown"
+run_step "fast shutdown" "$ARCH_WORKSTATION_DIR/setup-packages/setup-fast-shutdown"
 
 # Power management, one branch each. TLP and tuned drive the same sysfs knobs
 # and neither yields, so the if/else is what keeps them mutually exclusive —
 # setup-tuned also checks for tlp.service itself, in case one was added by hand.
 # On the laptop side auto-cpufreq is the alternative to TLP; edit here to switch.
 if is_laptop; then
-    run_step "tlp (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-tlp"
-    # run_step "auto-cpufreq (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-auto-cpufreq"
-    run_step "bluetooth (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-bluetooth"
-    run_step "wifi powersave (laptop)" "$ARCH_HYPR_DIR/setup-packages/setup-wifi-powersave"
+    run_step "tlp (laptop)" "$ARCH_WORKSTATION_DIR/setup-packages/setup-tlp"
+    # run_step "auto-cpufreq (laptop)" "$ARCH_WORKSTATION_DIR/setup-packages/setup-auto-cpufreq"
+    run_step "bluetooth (laptop)" "$ARCH_WORKSTATION_DIR/setup-packages/setup-bluetooth"
+    run_step "wifi powersave (laptop)" "$ARCH_WORKSTATION_DIR/setup-packages/setup-wifi-powersave"
 else
     ui_skip "not a laptop — skipping tlp/auto-cpufreq/bluetooth/wifi-powersave"
     run_step "tuned (desktop)" env TUNED_ON_TLP=skip "$ARCH_DEVBOX_DIR/setup-tuned"
 fi
 
-# arch-hyprland also makes ~/.obsidian-vault; obsidian is culled here.
+# arch-workstation also makes ~/.obsidian-vault; obsidian is culled here.
 CURRENT_STEP="useful directories"
 mkdir -p ~/dev
 
 run_step "greeter" "$DOTFILES_DIR/setup/common/setup-greeter"
 
 # Apply the system lockout policy after SDDM has installed its PAM service.
-run_step "system authentication lockout" "$ARCH_HYPR_DIR/setup-packages/setup-sudo-tries"
+run_step "system authentication lockout" "$ARCH_WORKSTATION_DIR/setup-packages/setup-sudo-tries"
 
 run_step "post-install" "$ARCH_DEVBOX_DIR/post-install"
 
@@ -233,7 +233,7 @@ echo "      Tailscale SSH is off; sshd is the tailnet access path. The port"
 echo "      move is optional, so SSH_PORT=keep is valid.)"
 echo
 echo "Then:"
-echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-hypr-post-install"
+echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-workstation-post-install"
 echo "    (configures GitHub CLI; completions + go tools already ran during setup)"
 echo "  • AI CLIs already installed by 'ai tools' — several need a login on"
 echo "    first run (claude, opencode, gemini, kilo)."

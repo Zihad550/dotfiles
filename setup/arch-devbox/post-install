@@ -9,7 +9,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
 
 tldr --update
 
-# arch-hyprland points this at zen; chromium is the only browser here. Warn
+# arch-workstation points this at zen; chromium is the only browser here. Warn
 # rather than fail: a wrong .desktop name would otherwise just silently leave
 # the default browser unset.
 xdg-settings set default-web-browser chromium.desktop ||

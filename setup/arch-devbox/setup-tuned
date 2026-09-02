@@ -4,7 +4,7 @@
 # README.md "power management" for the reasoning.
 #
 # Runs from init's non-laptop branch only; the laptop gets
-# ../arch-hyprland/setup-packages/setup-tlp instead.
+# ../arch-workstation/setup-packages/setup-tlp instead.
 
 set -euo pipefail
 

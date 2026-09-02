@@ -107,7 +107,7 @@ Everything unsaved in that session is lost. It is the last step, not the first.
 ## 2. If a correct password is rejected
 
 The lock tallies failed attempts in its own faillock directory, deliberately
-not the system-wide one (`setup/arch-hyprland/setup-packages/setup-lock-pam`,
+not the system-wide one (`setup/arch-workstation/setup-packages/setup-lock-pam`,
 and `docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md` for why the
 lock's signals are kept apart). Read the tally and clear it:
 
@@ -121,7 +121,7 @@ If the tally is empty and the password is still refused, the service is missing
 or wrong. Check it exists, then rewrite it:
 
     cat /etc/pam.d/df-lock
-    ~/dotfiles/setup/arch-hyprland/setup-packages/setup-lock-pam
+    ~/dotfiles/setup/arch-workstation/setup-packages/setup-lock-pam
 
 A missing `/etc/pam.d/df-lock` rejects every password, including the right one.
 
@@ -151,7 +151,7 @@ Expect `15000000`. `5000000` is logind's default, which means the drop-in is
 missing or logind has not reloaded it since:
 
     cat /etc/systemd/logind.conf.d/20-inhibit-delay.conf
-    ~/dotfiles/setup/arch-hyprland/setup-packages/setup-sleep-inhibit
+    ~/dotfiles/setup/arch-workstation/setup-packages/setup-sleep-inhibit
 
 The drop-in applies at the next reboot; restarting `systemd-logind` in a live
 graphical session is not worth it.
@@ -193,7 +193,7 @@ What has to come back, so you can check the revert covered it:
   stay reachable from a locked screen
   (`docs/adr/0015-power-keybinds-reachable-while-locked.md`).
 - `hyprlock` and `hypridle` in
-  `setup/arch-hyprland/setup-packages/setup-hyprland`.
+  `setup/arch-workstation/setup-packages/setup-hyprland`.
 - The two-occurrence `font_family` substitution in `bin/df-font-set`, which is
   the only thing that put the chosen font into the lock's config.
 

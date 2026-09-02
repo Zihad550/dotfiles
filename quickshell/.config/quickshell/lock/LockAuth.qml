@@ -65,7 +65,7 @@ QtObject {
         id: pam
 
         // The lock's own PAM service, with its own lockout policy and its own
-        // faillock tally -- see setup/arch-hyprland/setup-packages/setup-lock-pam.
+        // faillock tally -- see setup/arch-workstation/setup-packages/setup-lock-pam.
         config: "df-lock"
         user: Quickshell.env("USER") || Quickshell.env("LOGNAME")
 

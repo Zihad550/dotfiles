@@ -1367,7 +1367,7 @@ test("both Arch targets validate the Network Page seam without selecting a backe
         packageList.match(/sudo pacman -S --noconfirm \\\n[\s\S]*?(?=\n\s*$)/)?.[0] || "",
         /\bqrencode\b/
     );
-    for (const target of ["setup/arch-hyprland/init", "setup/arch-devbox/init"]) {
+    for (const target of ["setup/arch-workstation/init", "setup/arch-devbox/init"]) {
         const init = fs.readFileSync(path.join(repoRoot, target), "utf8");
         assert.match(init, /run_step "quickshell packages"/);
         assert.match(init, /run_step "network page validation" .*setup-network-page/);

@@ -2,7 +2,7 @@
 
 # Distro-detecting entrypoint for first-time setup.
 # Reads /etc/os-release ID and dispatches to the matching setup directory.
-# Override with: ./boot.sh <target>      (e.g. arch-hyprland, ubuntu, alpine)
+# Override with: ./boot.sh <target>      (e.g. arch-workstation, ubuntu, alpine)
 
 set -e
 
@@ -61,7 +61,7 @@ fi
 case "$ID" in
    arch)
       if pacman -Qi hyprland >/dev/null 2>&1 || command -v Hyprland >/dev/null 2>&1; then
-         dispatch arch-hyprland
+         dispatch arch-workstation
       elif pacman -Qi gnome-shell >/dev/null 2>&1; then
          dispatch arch-gnome
       else

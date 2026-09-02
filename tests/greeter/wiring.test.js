@@ -19,7 +19,7 @@ function source(relativePath) {
     return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
-const inits = ["setup/arch-devbox/init", "setup/arch-hyprland/init"];
+const inits = ["setup/arch-devbox/init", "setup/arch-workstation/init"];
 const greeterSetup = "setup/common/setup-greeter";
 const greeterRoot = "setup/common/greeter";
 const brandingRoot = "setup/common/boot-branding";
@@ -142,7 +142,7 @@ test("Greeter setup validates before activation and exposes refresh/reset recove
 });
 
 test("both Arch boxes install the Desktop Keyring's Secret Service client", () => {
-    ["setup/arch-hyprland/packages/pacman-apps", "setup/arch-devbox/packages/pacman-apps"]
+    ["setup/arch-workstation/packages/pacman-apps", "setup/arch-devbox/packages/pacman-apps"]
         .forEach(packages => {
             assert.match(source(packages), /gnome-keyring\s+libsecret\s+seahorse/,
                 `${packages} must keep the complete keyring stack`);
@@ -150,7 +150,7 @@ test("both Arch boxes install the Desktop Keyring's Secret Service client", () =
 });
 
 test("keyring setup creates defaults without overwriting existing credentials", () => {
-    const keyring = source("setup/arch-hyprland/keyring");
+    const keyring = source("setup/arch-workstation/keyring");
 
     assert.match(keyring, /if \[\[ ! -f "\$KEYRING_FILE" \]\]/);
     assert.match(keyring, /if \[\[ ! -f "\$DEFAULT_FILE" \]\]/);

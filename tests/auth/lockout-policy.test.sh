@@ -8,7 +8,7 @@ trap 'rm -rf "$test_tmp"' EXIT
 
 fake_bin="$test_tmp/bin"
 root="$test_tmp/root"
-setup="$ROOT/setup/arch-hyprland/setup-packages/setup-sudo-tries"
+setup="$ROOT/setup/arch-workstation/setup-packages/setup-sudo-tries"
 mkdir -p "$fake_bin" "$root/etc/pam.d" "$root/etc/security" \
     "$root/etc/sudoers.d"
 

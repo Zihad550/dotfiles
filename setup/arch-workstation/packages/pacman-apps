@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# arch-hyprland's own pacman set: everything that is NOT in
+# arch-workstation's own pacman set: everything that is NOT in
 # ../../common/packages/pacman-base.
 #
 # The shared toolkit (CLI tools, fonts, coreutils replacements, gcc) lives in

@@ -21,7 +21,7 @@ var RELEASED = "released";
 // window below to act on the release.
 var SECURE_BUDGET_MS = 12000;
 
-// What the drop-in in setup/arch-hyprland/setup-packages/setup-sleep-inhibit
+// What the drop-in in setup/arch-workstation/setup-packages/setup-sleep-inhibit
 // asks logind for, asserted against it in tests/lock/wiring.test.js. A budget
 // past this window is not a budget: logind suspends when the window expires
 // whether the session is Secure or not.

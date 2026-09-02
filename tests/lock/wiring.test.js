@@ -23,12 +23,12 @@ const probeRoot = "quickshell/.config/quickshell/lock-probe";
 
 test("the conversation and the setup script name the same PAM service", () => {
     assert.match(source(`${lockRoot}/LockAuth.qml`), /config:\s*"df-lock"/);
-    assert.match(source("setup/arch-hyprland/setup-packages/setup-lock-pam"), /\/etc\/pam\.d\/df-lock/,
+    assert.match(source("setup/arch-workstation/setup-packages/setup-lock-pam"), /\/etc\/pam\.d\/df-lock/,
         "a service name that disagrees is a lock that rejects every correct password");
 });
 
 test("the lock's lockout policy is its own, tallied separately from sudo's", () => {
-    const setup = source("setup/arch-hyprland/setup-packages/setup-lock-pam");
+    const setup = source("setup/arch-workstation/setup-packages/setup-lock-pam");
 
     assert.match(setup, /FAILLOCK_DIR=(?!\/run\/faillock\b)\S+/,
         "sharing /run/faillock is what lets a mistyped lock password eat sudo's tries");
@@ -44,7 +44,7 @@ test("the lock's lockout policy is its own, tallied separately from sudo's", () 
 
 // The service file the script writes, without the script's own prose about it.
 function pamService() {
-    const setup = source("setup/arch-hyprland/setup-packages/setup-lock-pam");
+    const setup = source("setup/arch-workstation/setup-packages/setup-lock-pam");
     const body = setup.match(/<<PAM\n([\s\S]*?)\nPAM\n/);
     assert.ok(body, "the script no longer writes the service as a PAM heredoc");
     return body[1];
@@ -99,7 +99,7 @@ test("the field keeps focus while PAM is in flight", () => {
 });
 
 test("the sudo-tries setup no longer claims to cover the locker", () => {
-    const sudoTries = source("setup/arch-hyprland/setup-packages/setup-sudo-tries");
+    const sudoTries = source("setup/arch-workstation/setup-packages/setup-sudo-tries");
 
     assert.doesNotMatch(sudoTries, /hyprlock/i);
     assert.match(sudoTries, /Session Lock uses its own PAM service and tally/);
@@ -416,10 +416,10 @@ test("the Idle Ladder uses Hyprland's Lua dispatcher API for display blanking", 
 test("box timing data shares defaults and disables only devbox suspend", () => {
     const laptop = JSON.parse(source(`${lockRoot}/idle.json`));
     const devbox = JSON.parse(source("setup/arch-devbox/idle.json"));
-    const packages = source("setup/arch-hyprland/setup-packages/setup-hyprland");
+    const packages = source("setup/arch-workstation/setup-packages/setup-hyprland");
     const autostart = source("hypr/.config/hypr/lua/autostart.lua");
     const setup = source("setup/common/setup-idle-ladder");
-    const laptopInit = source("setup/arch-hyprland/init");
+    const laptopInit = source("setup/arch-workstation/init");
     const devboxInit = source("setup/arch-devbox/init");
 
     assert.deepStrictEqual(laptop, { dim: 120, lock: 1800, blank: 1830, suspend: 1860 });
@@ -448,7 +448,7 @@ test("box timing data shares defaults and disables only devbox suspend", () => {
 });
 
 test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
-    const packages = source("setup/arch-hyprland/setup-packages/setup-hyprland");
+    const packages = source("setup/arch-workstation/setup-packages/setup-hyprland");
     const fontSet = source("bin/df-font-set");
     const themes = fs.readdirSync(path.join(repoRoot, "themes/.config/themes"));
 
@@ -526,7 +526,7 @@ test("the wait for Secure is bounded, and a suspend without it is reported", () 
 // because the shipped drop-in widens logind's window past it, so shipping one
 // without the other makes the budget dead weight.
 test("the lock's budget stays inside the logind window the drop-in asks for", () => {
-    const setup = source("setup/arch-hyprland/setup-packages/setup-sleep-inhibit");
+    const setup = source("setup/arch-workstation/setup-packages/setup-sleep-inhibit");
     const sleep = require(path.join(repoRoot, lockRoot, "lib/sleep.js"));
     const inhibitDelay = setup.match(/^InhibitDelayMaxSec=(\d+)$/m);
 
@@ -541,7 +541,7 @@ test("the lock's budget stays inside the logind window the drop-in asks for", ()
     assert.match(setup, /\/etc\/systemd\/logind\.conf\.d\/20-inhibit-delay\.conf/);
     assert.match(setup, /^HandleLidSwitchDocked=ignore$/m,
         "a docked lid must stay awake long enough for Clamshell Mode instead of suspending the external session");
-    assert.match(source("setup/arch-hyprland/init"), /setup-packages\/setup-sleep-inhibit"/,
+    assert.match(source("setup/arch-workstation/init"), /setup-packages\/setup-sleep-inhibit"/,
         "a drop-in no box installs is a window that stays at the default");
 });
 

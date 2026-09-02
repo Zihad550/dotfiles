@@ -1,6 +1,6 @@
 # Retired setup scripts move to setup/archive/, not deletion
 
-Finishing arch-hyprland's migration to rootless docker (#95) retires
+Finishing arch-workstation's migration to rootless docker (#95) retires
 `setup/common/setup-docker` (the rootful installer) and the
 `ufw-docker`/`docker0`-DNS lines in its `setup-ufw`. Deleting them was the
 default move `#87`/`#95` had already been making for stale references, but

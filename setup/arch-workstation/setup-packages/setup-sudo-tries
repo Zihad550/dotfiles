@@ -6,7 +6,7 @@ set -euo pipefail
 # autologin service. The Session Lock uses its own PAM service and tally.
 
 AUTH_ROOT="${DF_AUTH_ROOT:-/}"
-MANAGED_SUDOERS='# Managed by dotfiles setup/arch-hyprland/setup-packages/setup-sudo-tries'
+MANAGED_SUDOERS='# Managed by dotfiles setup/arch-workstation/setup-packages/setup-sudo-tries'
 
 root_path() {
 	local path="$1"

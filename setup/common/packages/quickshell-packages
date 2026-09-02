@@ -4,7 +4,7 @@
 # quickshell/.config/quickshell. Optional feature packages are documented
 # separately below so a minimal install does not pull them in.
 #
-# Shared: arch-hyprland and arch-devbox both run this, so a dependency added to
+# Shared: arch-workstation and arch-devbox both run this, so a dependency added to
 # a QML module gets declared once here rather than in two package lists.
 #
 # Deliberately NOT here, because they are owned by a layer underneath and would

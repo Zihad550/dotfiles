@@ -16,19 +16,19 @@ here when the explanation does not belong beside the command it protects.
 | Component | Purpose | Current callers |
 | --- | --- | --- |
 | [`harden-ssh`](harden-ssh) | Hardens sshd and performs its two-phase port change. | Arch and Ubuntu wrappers |
-| [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Hyprland, Arch devbox, Ubuntu devbox |
+| [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Workstation, Arch devbox, Ubuntu devbox |
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override without breaking MagicDNS. | Arch wrapper |
-| [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Hyprland, Arch devbox |
-| [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Hyprland, Arch devbox |
-| [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Hyprland, Arch devbox |
+| [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Workstation, Arch devbox |
+| [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Workstation, Arch devbox |
+| [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Workstation, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu server, Alpine |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
-| [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch Hyprland and Arch devbox |
+| [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch Workstation and Arch devbox |
 | [`setup-skills`](setup-skills) | Installs the shared agent skill set. | Arch, Ubuntu, and devcontainer setup |
 | [`setup-snapper`](setup-snapper) | Applies the root filesystem snapshot-retention policy. | Arch devbox |
 | [`setup-tailscale`](setup-tailscale) | Joins a box to the tailnet after its wrapper installs Tailscale. | Arch and Ubuntu wrappers |
-| [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch Hyprland, Arch devbox |
+| [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch Workstation, Arch devbox |
 | [`setup-tuned`](setup-tuned) | Installs the always-on bare-metal power profile. | Arch and Ubuntu wrappers |
 
 ### Support and package input
@@ -39,16 +39,16 @@ here when the explanation does not belong beside the command it protects.
 - [`packages/`](packages) holds executable package-command lists, not Shared
   Setup Scripts. A list lands here once more than one box runs it, on the same
   rule as the scripts above — otherwise it stays in the Box Wrapper that owns
-  it (`arch-hyprland/packages/pacman-apps` is that box's app layer, and
+  it (`arch-workstation/packages/pacman-apps` is that box's app layer, and
   `arch-devbox` keeps its own copy).
 
   | List | Installs | Current callers |
   | --- | --- | --- |
-  | [`pacman-base`](packages/pacman-base) | The CLI toolkit, fonts, coreutils replacements and gcc. | Arch Hyprland, Arch devbox |
-  | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch Hyprland, Arch devbox |
-  | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Hyprland (Arch devbox keeps it off) |
-  | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch Hyprland, Arch devbox |
-  | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Hyprland, Arch devbox |
+  | [`pacman-base`](packages/pacman-base) | The CLI toolkit, fonts, coreutils replacements and gcc. | Arch Workstation, Arch devbox |
+  | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch Workstation, Arch devbox |
+  | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Workstation (Arch devbox keeps it off) |
+  | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch Workstation, Arch devbox |
+  | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Workstation, Arch devbox |
   | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
 
 ## Boot Branding

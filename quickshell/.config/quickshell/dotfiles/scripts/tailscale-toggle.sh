@@ -7,7 +7,7 @@
 # `tailscale up`/`down` need root unless `tailscale set --operator=$USER` has
 # been run, and there is no terminal here to type a sudo password into. So the
 # direct call is tried first and only a permission failure falls back to
-# pkexec, where hyprpolkitagent (setup/arch-hyprland/setup-packages) draws the
+# pkexec, where hyprpolkitagent (setup/arch-workstation/setup-packages) draws the
 # prompt. Errors surface through notify-send, since a menu row that silently
 # does nothing is indistinguishable from a broken one.
 

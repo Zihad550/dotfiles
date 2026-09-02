@@ -8,7 +8,7 @@ already-running session and keeps its own persistent tally under
 
 ## Implementation
 
-`setup/arch-hyprland/setup-packages/setup-sudo-tries` updates the package-owned
+`setup/arch-workstation/setup-packages/setup-sudo-tries` updates the package-owned
 `/etc/pam.d/system-auth` and `/etc/pam.d/sddm-autologin` files to the expected
 Arch PAM shape. It validates both structures first, stages every result, and
 only then installs them. SDDM keeps one `authsucc` line after `pam_permit`; its

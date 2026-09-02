@@ -1,6 +1,6 @@
 # Migrate an existing machine to the session-owned keyring
 
-This migrates an existing Arch Hyprland machine to the current setup:
+This migrates an existing Arch Workstation machine to the current setup:
 
 - SDDM remains only the Greeter; it does not own the Desktop Keyring through
   PAM.
@@ -24,7 +24,7 @@ git pull --ff-only
 Confirm that the expected scripts exist:
 
 ```bash
-test -x setup/arch-hyprland/keyring
+test -x setup/arch-workstation/keyring
 test -x setup/common/setup-greeter
 ```
 
@@ -71,7 +71,7 @@ non-destructive: it creates only missing files and preserves an existing
 `Default_keyring.keyring` and `default` file.
 
 ```bash
-~/dotfiles/setup/arch-hyprland/keyring
+~/dotfiles/setup/arch-workstation/keyring
 ```
 
 Inspect the result:
@@ -118,7 +118,7 @@ If the unit is not found, rerun the Hyprland package/setup step that installs
 the desktop layer, then repeat this command:
 
 ```bash
-~/dotfiles/setup/arch-hyprland/setup-packages/setup-hyprland
+~/dotfiles/setup/arch-workstation/setup-packages/setup-hyprland
 ```
 
 ## 7. Reboot and verify the new session

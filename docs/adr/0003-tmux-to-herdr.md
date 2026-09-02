@@ -10,7 +10,7 @@ theme switching, and the devcontainer-routing session script all still
 targeted tmux.
 
 This finishes that migration on the two GUI desktop profiles
-(`arch-hyprland`, `arch-devbox`) only. `tmux` stays installed and fully
+(`arch-workstation`, `arch-devbox`) only. `tmux` stays installed and fully
 configured as an inert fallback; nothing in the repo calls it anymore.
 
 ## Why

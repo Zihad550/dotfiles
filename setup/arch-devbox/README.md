@@ -1,6 +1,6 @@
 # arch-devbox
 
-The [`arch-hyprland`](../arch-hyprland) desktop, stripped to web development.
+The [`arch-workstation`](../arch-workstation) desktop, stripped to web development.
 
 Same Hyprland session, same dotfiles, same theming, same system hardening. What
 changes is the app layer: **one browser (chromium), two editors (zed, neovim)**,
@@ -52,14 +52,14 @@ all, just the default-deny policy.
 
 ## what this directory actually contains
 
-Only what differs. Everything else is used straight out of `../arch-hyprland`,
+Only what differs. Everything else is used straight out of `../arch-workstation`,
 so a fix there lands on both targets.
 
 | file | why it exists |
 |---|---|
-| `init` | entrypoint; the arch-hyprland run order with the culled steps removed |
-| `packages/pacman-apps` | the cull — this box's app layer, the *whole* package difference from arch-hyprland |
-| `post-install` | same as arch-hyprland's, but sets chromium as default browser |
+| `init` | entrypoint; the arch-workstation run order with the culled steps removed |
+| `packages/pacman-apps` | the cull — this box's app layer, the *whole* package difference from arch-workstation |
+| `post-install` | same as arch-workstation's, but sets chromium as default browser |
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
 | `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
@@ -72,7 +72,7 @@ so a fix there lands on both targets.
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-ufw` | step 2: allow the tailnet, delete the LAN hole, cut the box off from the rest of the VLAN |
 
-Borrowed unchanged from `../arch-hyprland`: `utils/*`, `preflight`, `theme`,
+Borrowed unchanged from `../arch-workstation`: `utils/*`, `preflight`, `theme`,
 `gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos` and
 `setup-packages/` — except `setup-packages/setup-ufw`, which does `ufw
 deny SSH` and opens the syncthing profile (see [firewall](#firewall)).
@@ -83,7 +83,7 @@ this box leaves it off (see [flatpak](#flatpak-is-off-by-default)).
 Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
 directly on both boxes, not from `setup-packages/` at all.
 
-Hardware detection is the exception: it used to be `../arch-hyprland/utils/hw-detect`
+Hardware detection is the exception: it used to be `../arch-workstation/utils/hw-detect`
 and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
 three installers. It is not arch-specific, and `../ubuntu-devbox` needs
 `is_laptop` too.
@@ -92,7 +92,7 @@ Four small changes were made there so both installers can share them:
 
 - `preflight` and `utils/logging` take the installer's name from
   `$ARCH_SETUP_NAME`, and the error screen's *Retry* re-execs `$ARCH_SETUP_INIT`
-  instead of a hardcoded arch-hyprland path.
+  instead of a hardcoded arch-workstation path.
 - `setup-mise` guards its `kilo completion` call. `kilo` is installed by
 , which `init` never runs, so on a fresh box that line installed an
   **empty** `_kilo` completion file system-wide (the redirect created the file
@@ -104,7 +104,7 @@ Four package files this directory used to own are gone, because they carried no
 difference:
 
 - **`packages/pacman-packages`** → split. The CLI toolkit, fonts, coreutils
-  replacements and `gcc` were byte-identical to arch-hyprland's and now live once
+  replacements and `gcc` were byte-identical to arch-workstation's and now live once
   in [`../common/packages/pacman-base`](../common/packages/pacman-base);
   only `packages/pacman-apps` is still local. Adding a CLI tool to `pacman-base`
   now reaches both machines — which is the failure this prevents. `ubuntu-devbox`
@@ -120,7 +120,7 @@ difference:
   step was commented out to match `setup-flatpak`; see
   [flatpak](#flatpak-is-off-by-default).
 
-State lives in `~/.local/state/arch-devbox-setup/`, not the arch-hyprland dir, so
+State lives in `~/.local/state/arch-devbox-setup/`, not the arch-workstation dir, so
 the `done-*` guards and the install log don't collide if both ever run on one box.
 
 ## what was dropped
@@ -135,7 +135,7 @@ helium-browser-bin, zen-browser, and the syncthing step.
 
 **yazi** (and `resvg`, which was only there to render svg previews inside it) —
 nautilus covers file browsing. Two loose ends this leaves, both in files shared
-with arch-hyprland and so deliberately not edited:
+with arch-workstation and so deliberately not edited:
 
 - `hypr/.config/hypr/lua/bindings/apps.lua:25` binds **SUPER+F** to
   `df-launch-tui yazi`. That keybinding is now dead — rebind or ignore it.
@@ -190,8 +190,8 @@ them on and off together.
 
 ### webapps
 
-`arch-hyprland/packages/webapp-packages` (ChatGPT, Figma, LinkedIn, Facebook,
-Memrise, …) is not referenced here. Note it isn't referenced by arch-hyprland's
+`arch-workstation/packages/webapp-packages` (ChatGPT, Figma, LinkedIn, Facebook,
+Memrise, …) is not referenced here. Note it isn't referenced by arch-workstation's
 `init` either — it has always been a run-it-yourself script. Chromium installs
 PWAs on demand, so there's nothing to replace.
 
@@ -297,7 +297,7 @@ needs it: makepkg verifies AUR source signatures against the PKGBUILD's
 operation is fine. Existing settings are left alone, so a hand-picked keyserver
 survives a re-run.
 
-**`../arch-hyprland/init` deliberately does not run it**, even though it runs the
+**`../arch-workstation/init` deliberately does not run it**, even though it runs the
 same `packages/yay-packages` with the same `helium-browser-bin`. That box is not
 isolated — no VLAN boundary, no public-resolver override, so its lookups take the
 plain path dirmngr can follow. The script is in `../common/` rather than this
@@ -322,7 +322,7 @@ handshake or an HTTP status. Strip those three lines back out afterwards.
 Rootless, via [`setup-rootless-docker`](../common/setup-rootless-docker) — `curl
 -fsSL https://get.docker.com/rootless | sh` — not the plain `pacman -S docker`
 of `setup/archive/setup-docker`, on the `archive/rootful-docker` branch —
-retired when arch-hyprland finished its own move to rootless (#95).
+retired when arch-workstation finished its own move to rootless (#95).
 This box runs AI harnesses against text pulled off the internet (see
 [firewall](#firewall)); a compromised container landing on a root-owned
 daemon is a worse outcome than the same container landing on a daemon that
@@ -331,7 +331,7 @@ runs as `$USER` and can be torn down by killing a user session.
 The consequence that matters elsewhere in this file: rootful dockerd
 publishes ports with its own iptables DNAT rules, which bypass ufw's INPUT
 chain entirely — that's what `ufw-docker` exists to plug, and it's why
-arch-hyprland's `setup-ufw` and this box's old baseline both installed it,
+arch-workstation's `setup-ufw` and this box's old baseline both installed it,
 back when both boxes still ran rootful docker. Rootless dockerd has no root
 to write host iptables with. RootlessKit's
 builtin port driver publishes a container port as an ordinary userspace
@@ -424,7 +424,7 @@ entirely.
   whenever it's about to retry.
 - Writes `~/.config/docker/daemon.json` with the same log-size cap
   `setup/archive/setup-docker` (now on `archive/rootful-docker`) used to write
-  to `/etc/docker/daemon.json` back when arch-hyprland ran it — rootless dockerd
+  to `/etc/docker/daemon.json` back when arch-workstation ran it — rootless dockerd
   reads its own config in the user's `$DOCKER_CONFIG` (`zsh/.zshenv`), not
   the system one, so carrying the cap over verbatim would otherwise silently
   lose it.
@@ -749,7 +749,7 @@ is silently ignored. The Shared Setup Script inserts the Include at line 1
 is unconditional because it is a no-op wherever the line already exists, which
 is everywhere else.
 
-This replaces `../arch-hyprland/setup-packages/setup-ufw`, which does `ufw deny
+This replaces `../arch-workstation/setup-packages/setup-ufw`, which does `ufw deny
 SSH` and opens the syncthing profile — the opposite of what this box wants.
 
 ## staying awake
@@ -834,7 +834,7 @@ knobs and neither yields:
 
 | | laptop | desktop |
 |---|---|---|
-| tool | TLP (`../arch-hyprland/setup-packages/setup-tlp`) | tuned (`setup-tuned`) |
+| tool | TLP (`../arch-workstation/setup-packages/setup-tlp`) | tuned (`setup-tuned`) |
 | chosen by | `init`'s `is_laptop` branch | `init`'s `else` branch |
 
 TLP is battery-oriented — with no `BAT*` present every `_ON_BAT` setting is dead
@@ -866,7 +866,7 @@ draw.
 Yes — and you don't need an SSH tunnel at all.
 
 **Run the GUI on your laptop, not here.** Both are desktop apps; if arch-devbox
-is the machine you reach *into*, they belong on the arch-hyprland laptop that
+is the machine you reach *into*, they belong on the arch-workstation laptop that
 already has them via flatpak. That's also the honest reason flatpak stays off in
 this directory — not a judgment call about minimalism.
 

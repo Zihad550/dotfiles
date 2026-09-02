@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Undo the side effects of df-arch-hypr-post-install. Idempotent — safe to
+# Undo the side effects of df-arch-workstation-post-install. Idempotent — safe to
 # re-run.
 #
-#   ~/dotfiles/bin/df-arch-hypr-post-install-cleanup
+#   ~/dotfiles/bin/df-arch-workstation-post-install-cleanup
 
 set -u
 

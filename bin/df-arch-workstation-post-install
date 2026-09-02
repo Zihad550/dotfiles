@@ -3,12 +3,12 @@
 # Run the setup steps that must happen AFTER the first reboot, when mise is
 # active and tools (go, deno, uv, ...) are on PATH. Idempotent — safe to re-run.
 #
-#   ~/dotfiles/bin/df-arch-hypr-post-install
+#   ~/dotfiles/bin/df-arch-workstation-post-install
 
 set -u
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-ARCH_HYPR_DIR="$DOTFILES_DIR/setup/arch-hyprland"
+ARCH_WORKSTATION_DIR="$DOTFILES_DIR/setup/arch-workstation"
 
 # Make mise-managed tools available even if this is run from a non-login shell.
 export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$DOTFILES_DIR/bin:$PATH"
@@ -50,7 +50,7 @@ step "Configuring GitHub CLI"
 if ! command -v gh >/dev/null 2>&1; then
     warn "gh not installed; skipping"
 elif gh auth status >/dev/null 2>&1; then
-    "$ARCH_HYPR_DIR/setup-packages/setup-github-cli" && ok "gh configured"
+    "$ARCH_WORKSTATION_DIR/setup-packages/setup-github-cli" && ok "gh configured"
 else
     warn "gh not authenticated. Run 'gh auth login' first, then re-run this script."
 fi

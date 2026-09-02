@@ -10,7 +10,7 @@ targets and ignores lid actions by design.
 
 ## New machine setup
 
-The complete Arch Hyprland setup installs the runtime pieces needed by the
+The complete Arch Workstation setup installs the runtime pieces needed by the
 Session Lock. You do not need a separate lock package installation when using
 the repository installer.
 
@@ -20,7 +20,7 @@ On a new Arch machine, run:
 sudo pacman -S --needed git
 git clone https://github.com/Zihad550/dotfiles.git "$HOME/dotfiles"
 cd "$HOME/dotfiles"
-./setup/boot.sh arch-hyprland
+./setup/boot.sh arch-workstation
 sudo reboot
 ```
 
@@ -34,8 +34,8 @@ For an existing installation that already has this repository:
 ```bash
 cd "$HOME/dotfiles"
 git pull --ff-only
-./setup/arch-hyprland/setup-packages/setup-lock-pam
-./setup/arch-hyprland/setup-packages/setup-sleep-inhibit
+./setup/arch-workstation/setup-packages/setup-lock-pam
+./setup/arch-workstation/setup-packages/setup-sleep-inhibit
 ./scripts/stow/stow-hyprland
 df-qs-restart lock
 sudo reboot

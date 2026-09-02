@@ -17,7 +17,7 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles ~/dotfiles
 
 ```bash
 ~/dotfiles/setup/boot.sh                 # auto-detects distro
-~/dotfiles/setup/boot.sh arch-hyprland   # explicit target
+~/dotfiles/setup/boot.sh arch-workstation   # explicit target
 ~/dotfiles/setup/boot.sh --help          # list targets
 ```
 

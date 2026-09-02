@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# Sanity checks before running an Arch setup. Shared by arch-hyprland and
+# Sanity checks before running an Arch setup. Shared by arch-workstation and
 # arch-devbox — the caller names itself via ARCH_SETUP_NAME.
 # Each check that fails offers a gum-confirm bypass (or plain prompt fallback).
 
-SETUP_NAME="${ARCH_SETUP_NAME:-arch-hyprland}"
+SETUP_NAME="${ARCH_SETUP_NAME:-arch-workstation}"
 
 abort() {
     local what="$1"

@@ -3,7 +3,7 @@
 # The pacman set that is identical on every arch target: the CLI toolkit, the
 # fonts, the coreutils replacements and the compiler.
 #
-# Shared by arch-hyprland and arch-devbox — both run this, then their own
+# Shared by arch-workstation and arch-devbox — both run this, then their own
 # ./pacman-apps for the parts that actually differ (browsers, editors, media,
 # gnome extras). Adding a CLI tool here reaches both machines; that is the
 # point. Before this split the two lists were maintained by hand and had

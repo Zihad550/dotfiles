@@ -4,7 +4,7 @@
 # ../../common/packages/pacman-base, which init runs first.
 #
 # This file is the entire package-level difference between arch-devbox and
-# arch-hyprland — diff it against ../../arch-hyprland/packages/pacman-apps to
+# arch-workstation — diff it against ../../arch-workstation/packages/pacman-apps to
 # see the whole cull. The shared CLI toolkit, fonts, coreutils replacements and
 # gcc are not repeated here on purpose; edit pacman-base to change those on both
 # machines at once.
@@ -12,7 +12,7 @@
 # Culled entries are kept as commented lines with a one-word reason — uncomment
 # to get them back.
 
-# core entries arch-hyprland has and this box drops — none are development:
+# core entries arch-workstation has and this box drops — none are development:
 # xournalpp \       # pdf editor
 # dosfstools \      # fat32
 # rclone \          # cloud sync
