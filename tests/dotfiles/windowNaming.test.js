@@ -1,5 +1,5 @@
 // Mirrors tests/launcher/windows.test.js's coverage of the same rule, against
-// the dotfiles-local duplicate. See .scratch/workspace-window-flyout/spec.md
+// the dotfiles-local duplicate. See docs/adr/0005-workspace-tiled-layout-live-ipc.md
 // for why this is a duplicate module rather than a shared import.
 //
 //     node --test "tests/dotfiles/*.test.js"

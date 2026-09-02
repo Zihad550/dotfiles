@@ -7,7 +7,7 @@
 # "More than one instance starts with...". bin/ is first on PATH
 # (zsh/.zshenv:86, which bash/.bashrc sources), so this shadows the system
 # binary for interactive use; the repo's scripted starts spell the flag out on
-# `quickshell` themselves. See .scratch/launcher/issues/21.
+# `quickshell` themselves. See GitHub issue #33.
 #
 # The flag is appended rather than prepended so the resulting command line
 # still matches the `(quickshell|qs) -c CONFIG` pattern df-qs-restart and

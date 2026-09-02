@@ -10,6 +10,6 @@ The Launcher also cannot show what this needs while it is doing it: a connection
 
 ## Consequences
 
-- `.scratch/launcher/issues/22-wifi-provider.md` — a designed but unbuilt Launcher Wi-Fi Provider — is `wontfix`.
+- GitHub issue #34, the designed but unbuilt Launcher Wi-Fi Provider, is closed as `wontfix`.
 - There is exactly one front door for joining a network, so no shared service was extracted. If a second surface is ever wanted, the logic in the Quick Settings page has to come out into a singleton first (`TailscaleService` is the shape).
 - `nmtui` is retained, not as a leftover but as the deliberate boundary: `connectWithPsk()` covers PSK security only, so WPA-Enterprise, static addressing and VPNs hand off to it.

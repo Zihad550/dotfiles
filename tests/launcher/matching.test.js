@@ -316,7 +316,7 @@ test("Providers earlier in the pool win ties", () => {
 
 // The exact-match rule, added after ticket 09's host round. Typing the whole
 // name of a thing put the running *window* of it first, and the application was
-// what was wanted -- see .scratch/launcher/issues/20.
+// what was wanted -- see GitHub issue #32.
 //
 // The corpora below are the real ones: an application is one text, its own name;
 // a window is three -- title, application id, short id -- and only the third of

@@ -1,6 +1,6 @@
 # A workspace's tiled layout is read via raw IPC, not watched live
 
-The scrolling-workspace window flyout (`.scratch/workspace-window-flyout/`)
+The scrolling-workspace window flyout, implemented in GitHub issues #48-#51,
 needs to know whether a workspace is running Hyprland's scrolling layout
 before it shows its arrow. That field turned out to be reachable only one
 way, and unwatchable at runtime for an unrelated reason surfaced along the

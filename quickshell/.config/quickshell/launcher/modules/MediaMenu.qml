@@ -6,7 +6,7 @@
 // was meant to run, and it's the command now.
 //
 // Duplicates the applications Provider, which already offers pavucontrol
-// with a better icon. Kept rather than deleted -- see .scratch/launcher/issues/08.
+// with a better icon. Kept rather than deleted -- see GitHub issue #20.
 Menu {
     label: "media"
     description: "Playback and volume"

@@ -5,7 +5,7 @@
 -- o.exec_on_start("exec ssh-agent zsh")
 -- o.exec_on_start("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
 -- -n is quickshell's --no-duplicate: an autostart firing twice refuses rather
--- than becoming a second instance. See .scratch/launcher/issues/21.
+-- than becoming a second instance. See GitHub issue #33.
 o.exec_on_start("uwsm-app -- quickshell -c dotfiles -n")
 -- The Launcher, as its own instance so that filtering a large provider cannot
 -- stall the bar's rendering and a fault in it cannot take the notification

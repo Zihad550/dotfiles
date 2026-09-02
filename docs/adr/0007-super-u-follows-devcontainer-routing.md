@@ -18,8 +18,8 @@ whatever host Quick Settings configured. This supersedes
 a "just give me a terminal" keybind should not silently become an SSH session
 because routing happened to be on elsewhere. In practice the reverse bites:
 with routing on, `SUPER+U` is the one place work *isn't* happening, and the
-toggle's central promise — "on" means one consistent thing everywhere (story #4
-of `.scratch/devcontainer-routing-toggle/spec.md`) — is broken by its
+toggle's central promise, "on" means one consistent thing everywhere, recorded
+in GitHub issue #7, is broken by its
 most-pressed keybind. One mental model, one state, everywhere is the same
 argument ADR 0002 used to reject per-tool switches; `--local` was a per-tool
 switch wearing a flag.
@@ -87,6 +87,5 @@ config outside this repo or post-attach keystroke injection.
   `~/.local/bin/herdr` fallback, the state directory, *and* `is_mirrored`'s
   `$HOME/dotfiles` match, so `PATH` alone would let the real herdr on the host
   leak into the run.
-- Story #10 of `.scratch/devcontainer-routing-toggle/spec.md` ("`SUPER+U` with
-  routing off, no SSH attempt at all") is unaffected and still holds; only
-  ADR 0003's `--local` paragraph is superseded.
+- The routing-off behavior remains unchanged; only ADR 0003's `--local`
+  paragraph is superseded.

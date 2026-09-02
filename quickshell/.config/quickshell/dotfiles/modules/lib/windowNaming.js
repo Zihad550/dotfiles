@@ -1,5 +1,5 @@
 // How a window is named, for the workspace flyout. Deliberately duplicated
-// from launcher/lib/windows.js:nameFor -- see .scratch/workspace-window-flyout/spec.md.
+// from launcher/lib/windows.js:nameFor -- see docs/adr/0005-workspace-tiled-layout-live-ipc.md.
 //
 // Free of QML types, no `.pragma library`: that's a syntax error under node.
 

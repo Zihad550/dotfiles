@@ -1,4 +1,4 @@
-// Round two of the foundation probe for .scratch/launcher/issues/01.
+// Round two of the foundation probe for GitHub issue #13.
 //
 //     df-qs-test launcher-probe
 //
@@ -26,7 +26,7 @@
 // round one: a type or signal that does not exist is a compile error for the
 // whole file, which would tell us nothing except that the file is broken.
 //
-// This config is temporary and goes away with ticket 01.
+// This config is temporary and goes away with issue #13.
 
 import QtQuick
 import Quickshell

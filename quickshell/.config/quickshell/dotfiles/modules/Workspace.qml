@@ -8,7 +8,7 @@ import "lib/workspaceLabel.js" as WorkspaceLabel
 // A numbered workspace's bar entry: the name, always click-to-switch
 // regardless of layout or window count, plus an arrow that appears only on
 // scrolling layout with 2+ windows and opens a Flyout of that workspace's
-// windows. See .scratch/workspace-window-flyout/spec.md.
+// windows. See docs/adr/0005-workspace-tiled-layout-live-ipc.md.
 //
 // The text is a Workspace Label. It preserves any non-bare Workspace Name,
 // including a Launcher directory name, and derives only for a bare one. See
