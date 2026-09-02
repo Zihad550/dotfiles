@@ -76,12 +76,13 @@ applicable.
 Verify SDDM after logout.
 
 ```bash
-loginctl terminate-user "$USER"
+uwsm stop
 ```
 
 Pass: the session ends, SDDM appears, the selected account and Omarchy session
 are remembered, and password login starts a working session. On a machine where
-crypttab-based autologin is active, SDDM starts that session automatically.
+crypttab-based autologin is active, SDDM still requires authentication after a
+normal logout because autologin applies at boot.
 
 Verify custom branding, then restore the pinned default. Replace `<logo.png>`
 with a readable, non-symlink PNG.
@@ -97,12 +98,13 @@ Pass: the first test window uses the supplied colors and logo in the Greeter,
 the command rebuilds Plymouth with the same assets, and the second test window
 shows the pinned defaults after reset.
 
-Verify stock Greeter recovery and setup reapplication. Each `loginctl` command
-ends the current graphical session.
+Verify stock Greeter recovery and setup reapplication. Each `uwsm stop` command
+ends the current graphical session through the same path as the Launcher's
+Relaunch action.
 
 ```bash
 df-greeter-reset
-loginctl terminate-user "$USER"
+uwsm stop
 ```
 
 Pass: after the session ends, SDDM uses its stock Greeter. Log in again, open a
@@ -111,7 +113,7 @@ terminal in this repository, and reapply setup.
 ```bash
 repo=$(git rev-parse --show-toplevel)
 DOTFILES_DIR="$repo" "$repo/setup/common/setup-greeter"
-loginctl terminate-user "$USER"
+uwsm stop
 ```
 
 Pass: setup completes without rebooting, logging out, restarting SDDM, or

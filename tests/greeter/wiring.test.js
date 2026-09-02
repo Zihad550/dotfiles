@@ -259,6 +259,9 @@ test("Greeter recovery and host-only verification are documented", () => {
     assert.match(guide, /stock Greeter/i);
     assert.match(guide, /setup\/common\/setup-greeter/);
     assert.match(guide, /not verified/i);
+    assert.match(guide, /uwsm stop/);
+    assert.doesNotMatch(guide, /loginctl terminate-user/,
+        "forced account termination kills SDDM's autologin helper");
 });
 
 test("Boot Branding exposes guarded customization and recovery commands", () => {
