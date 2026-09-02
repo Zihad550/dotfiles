@@ -88,7 +88,8 @@ Usage: df-hypr-display-layout <command> [args]
         `apply` what orientation the user actually chose.
 
   list                 Show every saved display set and its variants.
-  show [variant]       Print the hyprctl eval chunk for a variant.
+  show [variant] [--raw]
+        Print the hyprctl eval chunk for a variant; --raw omits the heading.
   signature            Print the signature of the currently connected displays.
   remove <variant>     Delete a variant from the current display set.
 
@@ -397,13 +398,27 @@ cmd_list() {
 }
 
 cmd_show() {
-    local requested="${1:-}" layouts sig variant chunk
+    local requested="" raw=false arg layouts sig variant chunk
+    for arg in "$@"; do
+        case "$arg" in
+        --raw) raw=true ;;
+        -*) die "unknown option: $arg" ;;
+        *) requested="$arg" ;;
+        esac
+    done
+
     sig=$(signature_of "$(monitors_json)")
     layouts=$(read_layouts)
     variant=$(resolve_variant "$layouts" "$sig" "$requested")
     [[ -n "$variant" ]] || die "no layout saved for $sig"
     variant_exists "$layouts" "$sig" "$variant" || die "no variant '$variant' saved for $sig"
     chunk=$(build_chunk "$layouts" "$sig" "$variant")
+
+    if $raw; then
+        printf '%s\n' "$chunk"
+        return 0
+    fi
+
     printf 'signature: %s\nvariant:   %s\n\n%s\n' "$sig" "$variant" "$chunk"
 }
 

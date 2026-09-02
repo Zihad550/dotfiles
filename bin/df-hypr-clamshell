@@ -5,9 +5,12 @@
 
 set -uo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="$PATH:$SCRIPT_DIR"
+
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hypr"
 CLAMSHELL_FLAG="$STATE_DIR/internal-monitor-clamshell.lua"
-DISPLAY_LAYOUT="${DF_HYPR_DISPLAY_LAYOUT:-$(dirname -- "${BASH_SOURCE[0]}")/df-hypr-display-layout}"
+DISPLAY_LAYOUT="${DF_HYPR_DISPLAY_LAYOUT:-$SCRIPT_DIR/df-hypr-display-layout}"
 
 valid_monitor_name() {
     [[ $1 =~ ^[A-Za-z0-9._-]+$ ]]
@@ -32,15 +35,26 @@ enable_internal() {
 
 disable_internal() {
     local internal="$1"
+    local layout config desired
 
     [[ -n $internal ]] || return 0
     valid_monitor_name "$internal" || return 1
 
     mkdir -p "$STATE_DIR" || return 1
-    local config="hl.monitor({ output = \"$internal\", disabled = true })"
+    config="hl.monitor({ output = \"$internal\", disabled = true })"
+    layout=""
+    if [[ -x "$DISPLAY_LAYOUT" ]]; then
+        layout=$("$DISPLAY_LAYOUT" show --raw 2>/dev/null) || layout=""
+    fi
 
-    if [[ ! -f $CLAMSHELL_FLAG ]] || [[ $(<"$CLAMSHELL_FLAG") != "$config" ]]; then
-        printf '%s\n' "$config" >"$CLAMSHELL_FLAG" || return 1
+    if [[ -n $layout ]]; then
+        desired=$(printf '%s\n%s' "$layout" "$config")
+    else
+        desired=$config
+    fi
+
+    if [[ ! -f $CLAMSHELL_FLAG ]] || [[ $(<"$CLAMSHELL_FLAG") != "$desired" ]]; then
+        printf '%s\n' "$desired" >"$CLAMSHELL_FLAG" || return 1
         hyprctl reload >/dev/null 2>&1 || true
     fi
 }

@@ -3,6 +3,9 @@
 # Lock only the undocked lid-close path. Docked lid closes remain awake and
 # are reconciled by the Hyprland clamshell helper.
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="$PATH:$SCRIPT_DIR"
+
 if df-hw-laptop-closed && ! df-hw-external-monitors; then
     qs -c lock ipc call lock lock >/dev/null 2>&1 || true
 fi

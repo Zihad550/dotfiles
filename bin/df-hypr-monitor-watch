@@ -4,6 +4,9 @@
 
 set -uo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="$PATH:$SCRIPT_DIR"
+
 SOCKET="${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 LOCK="${XDG_RUNTIME_DIR:-/tmp}/df-hypr-monitor-clamshell.lock"
 
