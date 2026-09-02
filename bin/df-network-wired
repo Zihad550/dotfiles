@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Repository-owned NetworkManager seam for the isolated Network Page.
+
+set -uo pipefail
+
+usage() {
+  echo "Usage: df-network-wired profiles | disconnect <interface> | reconnect <interface> | activate <interface> <uuid>" >&2
+  exit 2
+}
+
+action="${1:-}"
+case "$action" in
+  profiles)
+    [[ $# -eq 1 ]] || usage
+    # Keep NetworkManager's escaped terse rows intact. The QML model decodes
+    # them after it has identified the fields, so colons in profile names are
+    # never mistaken for delimiters.
+    # Use the stable connection-list aliases rather than profile-property
+    # names. `nmcli connection show` accepts these aliases across the
+    # NetworkManager versions supported by this setup; the dotted property
+    # names are rejected by newer nmcli releases before any rows are printed.
+    # Keep UUID first because the QML parser consumes UUID, name, type,
+    # interface, and autoconnect in that order.
+    exec nmcli --terse --escape yes \
+      --fields UUID,NAME,TYPE,DEVICE,AUTOCONNECT \
+      connection show
+    ;;
+  disconnect|reconnect)
+    [[ $# -eq 2 && -n "${2:-}" ]] || usage
+    if [[ $action == "disconnect" ]]; then
+      # `device connect`/`disconnect` take the interface as their positional
+      # argument. The `ifname` selector belongs to other nmcli commands (such
+      # as `connection up`); passing it here makes nmcli try to find a device
+      # literally named "ifname".
+      exec nmcli device disconnect "$2"
+    fi
+    # `device connect` asks NetworkManager to apply its normal autoconnect
+    # policy. Explicit profile activation is reserved for a user choice.
+    exec nmcli device connect "$2"
+    ;;
+  activate)
+    [[ $# -eq 3 && -n "${2:-}" && -n "${3:-}" ]] || usage
+    # An explicit UUID is used only after the Page has presented all eligible
+    # profiles, avoiding an arbitrary NetworkManager choice.
+    exec nmcli connection up uuid "$3" ifname "$2"
+    ;;
+  *)
+    usage
+    ;;
+esac

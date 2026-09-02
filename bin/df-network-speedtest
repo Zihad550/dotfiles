@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+# df:summary=Measure live internet speed on one network interface
+# df:group=network
+# df:args=--interface <interface> [down|up]
+
+set -euo pipefail
+
+parallel=8
+url_count=3
+interface=""
+direction=""
+stats_root=${DF_NETWORK_SPEEDTEST_STATS_ROOT:-/sys/class/net}
+cleaned=false
+
+usage() {
+  echo "Usage: df-network-speedtest --interface <interface> [down|up]" >&2
+  echo "       df-network-speedtest --check [--interface <interface>]" >&2
+  exit 2
+}
+
+check_dependencies() {
+  local command_name
+  for command_name in curl jq awk dd; do
+    command -v "$command_name" >/dev/null 2>&1 || return 1
+  done
+
+  if [[ -n $interface ]]; then
+    [[ $interface =~ ^[[:alnum:]_.:@-]+$ ]] || return 1
+    [[ -r $stats_root/$interface/statistics/rx_bytes ]] || return 1
+    [[ -r $stats_root/$interface/statistics/tx_bytes ]] || return 1
+  fi
+}
+
+check=false
+while (($#)); do
+  case "$1" in
+    --check)
+      check=true
+      shift
+      ;;
+    --interface)
+      [[ $# -ge 2 && -n ${2:-} ]] || usage
+      interface=$2
+      shift 2
+      ;;
+    down|up)
+      [[ -z $direction ]] || usage
+      direction=$1
+      shift
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+if [[ $check == true ]]; then
+  check_dependencies
+  exit $?
+fi
+
+[[ -n $interface && -n $direction ]] || usage
+check_dependencies || {
+  echo "Speed test dependencies or interface statistics are unavailable" >&2
+  exit 1
+}
+
+format_mbps() {
+  awk -v value="$1" 'BEGIN {
+    if (value <= 0) print "0.0"
+    else if (value < 10) printf "%.1f\n", value
+    else printf "%.0f\n", value
+  }'
+}
+
+fast_token="YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm"
+fast_api_url="https://api.fast.com/netflix/speedtest/v2?https=true&token=$fast_token&urlCount=$url_count"
+fast_urls=$(curl -fsS --interface "$interface" --connect-timeout 3 --max-time 10 \
+  "$fast_api_url" 2>/dev/null | jq -r '.targets[]?.url // empty') || {
+  echo "Failed to fetch speed test endpoints" >&2
+  exit 1
+}
+
+if [[ -z $fast_urls ]]; then
+  echo "Failed to fetch speed test endpoints" >&2
+  exit 1
+fi
+
+traffic_pids=()
+
+cleanup() {
+  [[ $cleaned == true ]] && return
+  cleaned=true
+
+  local pid
+  for pid in "${traffic_pids[@]}"; do
+    [[ -n $pid ]] || continue
+    pkill -TERM -P "$pid" 2>/dev/null || true
+    kill -TERM "$pid" 2>/dev/null || true
+  done
+  for pid in "${traffic_pids[@]}"; do
+    [[ -n $pid ]] || continue
+    pkill -KILL -P "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  done
+}
+
+on_signal() {
+  cleanup
+  exit 143
+}
+
+trap cleanup EXIT
+trap on_signal INT TERM
+
+traffic_worker() {
+  local urls=("$@")
+  local count=${#urls[@]}
+  local index=$RANDOM
+  local url
+
+  while true; do
+    url=${urls[$((index % count))]}
+    if [[ $direction == down ]]; then
+      curl -fsS --interface "$interface" --connect-timeout 3 --max-time 10 \
+        -o /dev/null "$url" 2>/dev/null || return
+    else
+      dd if=/dev/zero bs=1M count=64 2>/dev/null |
+        curl -fsS --interface "$interface" --connect-timeout 3 --max-time 10 \
+          -o /dev/null -X POST --data-binary @- "$url" 2>/dev/null || return
+    fi
+    index=$((index + 1))
+  done
+}
+
+read_bytes() {
+  local file="$stats_root/$interface/statistics/$1"
+  [[ -r $file ]] || return 1
+  local value
+  value=$(<"$file")
+  [[ $value =~ ^[0-9]+$ ]] || return 1
+  printf '%s\n' "$value"
+}
+
+any_alive() {
+  local pid
+  for pid in "${traffic_pids[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+for ((index = 0; index < parallel; index++)); do
+  mapfile -t endpoints <<<"$fast_urls"
+  traffic_worker "${endpoints[@]}" &
+  traffic_pids+=("$!")
+done
+
+rx_before=$(read_bytes rx_bytes) || {
+  echo "Could not read download counters for $interface" >&2
+  exit 1
+}
+tx_before=$(read_bytes tx_bytes) || {
+  echo "Could not read upload counters for $interface" >&2
+  exit 1
+}
+
+while any_alive; do
+  sleep 1
+  rx_after=$(read_bytes rx_bytes) || {
+    echo "Interface $interface disappeared during the speed test" >&2
+    exit 1
+  }
+  tx_after=$(read_bytes tx_bytes) || {
+    echo "Interface $interface disappeared during the speed test" >&2
+    exit 1
+  }
+
+  if [[ $direction == down ]]; then
+    rate=$(awk -v before="$rx_before" -v after="$rx_after" 'BEGIN {
+      if (after < before) print 0
+      else print (after - before) * 8 / 1000000
+    }')
+  else
+    rate=$(awk -v before="$tx_before" -v after="$tx_after" 'BEGIN {
+      if (after < before) print 0
+      else print (after - before) * 8 / 1000000
+    }')
+  fi
+
+  format_mbps "$rate"
+  rx_before=$rx_after
+  tx_before=$tx_after
+done
+
+echo "Speed test workers stopped before producing a sample" >&2
+exit 1

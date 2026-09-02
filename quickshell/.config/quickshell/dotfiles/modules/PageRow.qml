@@ -11,6 +11,9 @@ Item {
     property string label: ""
     property string detail: ""
     property bool overflowVisible: false
+    property bool interactive: true
+    property bool disclosureVisible: false
+    property bool disclosureOpen: false
     property bool mainFocusVisible: false
     property bool overflowFocusVisible: false
 
@@ -20,6 +23,8 @@ Item {
     signal overflowClicked
 
     function activateMain(event): void {
+        if (!root.enabled || !root.interactive)
+            return;
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
             root.clicked(true);
             event.accepted = true;
@@ -27,6 +32,8 @@ Item {
     }
 
     function activateOverflow(event): void {
+        if (!root.enabled || !root.interactive)
+            return;
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
             root.overflowClicked();
             event.accepted = true;
@@ -34,11 +41,12 @@ Item {
     }
 
     implicitHeight: Theme.quickSettingsRowHeight
-    activeFocusOnTab: root.enabled && root.visible
+    activeFocusOnTab: root.enabled && root.interactive && root.visible
     Keys.onPressed: event => root.activateMain(event)
     onActiveFocusChanged: root.mainFocusVisible = root.activeFocus
     opacity: root.enabled ? 1 : 0.45
-    scale: mainMouse.pressed || overflowMouse.pressed ? 0.99 : 1
+    scale: root.interactive && (mainMouse.pressed || disclosureMouse.pressed || overflowMouse.pressed)
+        ? 0.99 : 1
 
     Behavior on opacity {
         NumberAnimation {
@@ -74,7 +82,8 @@ Item {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.right: root.overflowVisible ? overflowSegment.left : parent.right
+        anchors.right: root.overflowVisible ? overflowSegment.left
+            : root.disclosureVisible ? disclosureSegment.left : parent.right
 
         Text {
             id: glyph
@@ -133,7 +142,7 @@ Item {
             id: mainMouse
 
             anchors.fill: parent
-            enabled: root.enabled
+            enabled: root.enabled && root.interactive
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
@@ -161,6 +170,41 @@ Item {
     }
 
     Item {
+        id: disclosureSegment
+
+        visible: root.disclosureVisible
+        anchors.right: root.overflowVisible ? overflowSegment.left : parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 32
+
+        Text {
+            anchors.centerIn: parent
+            text: root.disclosureOpen ? "⌃" : "⌄"
+            color: Theme.foreground
+            opacity: 0.72
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
+            textFormat: Text.PlainText
+        }
+
+        MouseArea {
+            id: disclosureMouse
+
+            anchors.fill: parent
+            enabled: root.enabled && root.interactive
+            hoverEnabled: true
+
+            onPressed: {
+                root.pressed();
+                root.forceActiveFocus();
+                root.mainFocusVisible = false;
+            }
+            onClicked: root.clicked(false)
+        }
+    }
+
+    Item {
         id: overflowSegment
 
         visible: root.overflowVisible
@@ -169,7 +213,7 @@ Item {
         anchors.bottom: parent.bottom
         width: 40
 
-        activeFocusOnTab: root.enabled && root.overflowVisible && root.visible
+        activeFocusOnTab: root.enabled && root.interactive && root.overflowVisible && root.visible
         Keys.onPressed: event => root.activateOverflow(event)
         onActiveFocusChanged: root.overflowFocusVisible = overflowSegment.activeFocus
 
@@ -186,7 +230,7 @@ Item {
             id: overflowMouse
 
             anchors.fill: parent
-            enabled: root.enabled
+            enabled: root.enabled && root.interactive
             hoverEnabled: true
 
             onPressed: {

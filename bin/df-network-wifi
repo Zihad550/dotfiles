@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Connect to a Wi-Fi profile without putting its secret in process arguments.
+# The caller writes exactly one password line to stdin. The identity for the
+# common PEAP enterprise case is an ordinary, non-secret argument.
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: df-network-wifi connect-psk <interface> <ssid> | connect-enterprise <interface> <ssid> <identity>" >&2
+  exit 2
+}
+
+[[ $# -ge 1 ]] || usage
+action=$1
+shift
+
+case "$action" in
+  connect-psk)
+    [[ $# -eq 2 && -n ${1:-} && -n ${2:-} ]] || usage
+    interface=$1
+    ssid=$2
+    key_management=wpa-psk
+    ;;
+  connect-enterprise)
+    [[ $# -eq 3 && -n ${1:-} && -n ${2:-} && -n ${3:-} ]] || usage
+    interface=$1
+    ssid=$2
+    identity=$3
+    key_management=wpa-eap
+    ;;
+  *)
+    usage
+    ;;
+esac
+
+password=""
+IFS= read -r password || true
+[[ -n $password ]] || {
+  echo "A Wi-Fi password is required" >&2
+  exit 1
+}
+uuid=$(cat /proc/sys/kernel/random/uuid)
+created=false
+
+cleanup() {
+  local status=$?
+  unset password
+  if [[ $created == true && $status -ne 0 ]]; then
+    nmcli connection delete uuid "$uuid" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
+
+if [[ $action == connect-psk ]]; then
+  nmcli connection add type wifi ifname "$interface" con-name "$ssid" ssid "$ssid" \
+    connection.uuid "$uuid" wifi-sec.key-mgmt "$key_management" >/dev/null
+  created=true
+  # nmcli reads this command stream from stdin. The secret is never an argv
+  # value and never appears in shell tracing or the process table.
+  printf 'set wifi-sec.psk %s\nsave\nquit\n' "$password" |
+    nmcli connection edit uuid "$uuid" >/dev/null
+else
+  nmcli connection add type wifi ifname "$interface" con-name "$ssid" ssid "$ssid" \
+    connection.uuid "$uuid" wifi-sec.key-mgmt "$key_management" \
+    802-1x.eap peap 802-1x.phase2-auth mschapv2 802-1x.identity "$identity" \
+    802-1x.auth-timeout 8 >/dev/null
+  created=true
+  printf 'set 802-1x.password %s\nsave\nquit\n' "$password" |
+    nmcli connection edit uuid "$uuid" >/dev/null
+fi
+
+nmcli connection up uuid "$uuid" >/dev/null
+created=false

@@ -13,17 +13,54 @@ test("Primary surface keeps the finished hierarchy and spatial Tile navigation",
     const quickSettings = source("modules/QuickSettings.qml");
     const tile = source("modules/Tile.qml");
     const audioPage = source("modules/AudioPage.qml");
+    const networkTiles = source("modules/NetworkQuickSettings.qml");
 
-    assert.ok(
-        quickSettings.indexOf("WiredStatus {") < quickSettings.indexOf("id: tileGrid"),
-        "Wired status belongs above the Tile grid",
-    );
-    assert.doesNotMatch(quickSettings, /legacyRows|WiredRow/);
-    assert.match(quickSettings, /id:\s*wifiTile[\s\S]*id:\s*bluetoothTile[\s\S]*id:\s*tailscaleTile[\s\S]*id:\s*devcontainerTile/);
-    assert.match(quickSettings, /wifiTile[\s\S]*navigationContainer:\s*tileGrid/);
+    assert.doesNotMatch(quickSettings, /legacyRows|WiredStatus|WifiPage|WiredRow/);
+    assert.match(quickSettings, /NetworkQuickSettings\s*\{[\s\S]*id:\s*networkQuickSettings[\s\S]*controller:\s*networkPage/);
+    assert.match(networkTiles, /id:\s*tileGrid[\s\S]*id:\s*wifiTile/);
+    assert.match(networkTiles, /WiredTile\s*\{/);
+    assert.match(quickSettings, /id:\s*bluetoothTile[\s\S]*id:\s*tailscaleTile[\s\S]*id:\s*devcontainerTile/);
+    assert.match(networkTiles, /wifiTile[\s\S]*navigationContainer:\s*tileGrid/);
     assert.match(tile, /Key_Left[\s\S]*Key_Right[\s\S]*Key_Up[\s\S]*Key_Down/);
     assert.match(tile, /mapToItem\(root\.navigationContainer/);
     assert.match(audioPage, /reconnectTimer\.stop\(\)[\s\S]*sinkList\.running\s*=\s*false/);
+});
+
+test("Network Tiles size from their lexical grid id", () => {
+    const networkTiles = source("modules/NetworkQuickSettings.qml");
+
+    assert.match(
+        networkTiles,
+        /implicitHeight:\s*root\.available\s*\?\s*tileGrid\.implicitHeight\s*:\s*0/,
+        "the root Item must read the Flow id directly, so transport Tiles can render",
+    );
+    assert.doesNotMatch(networkTiles, /root\.tileGrid\.implicitHeight/);
+});
+
+test("read-only PageRows stay legible without accepting interaction", () => {
+    const pageRow = source("modules/PageRow.qml");
+    const networkPage = source("modules/NetworkPage.qml");
+
+    assert.match(pageRow, /property bool interactive: true/);
+    assert.match(pageRow, /property bool disclosureVisible: false/);
+    assert.match(pageRow, /text: root\.disclosureOpen \? "⌃" : "⌄"/);
+    assert.match(pageRow, /activeFocusOnTab: root\.enabled && root\.interactive && root\.visible/);
+    assert.match(pageRow, /enabled: root\.enabled && root\.interactive/);
+    assert.match(pageRow, /opacity: root\.enabled \? 1 : 0\.45/);
+
+    for (const label of ["Address", "Gateway", "Link", "Latency", "Traffic", "Rate"]) {
+        const row = new RegExp(`label: "${label}"[\\s\\S]*?interactive: false[\\s\\S]*?visible: true`);
+        assert.match(networkPage, row);
+    }
+});
+
+test("Quick Settings keeps its parent open while the speed-test overlay owns focus", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+
+    assert.match(
+        quickSettings,
+        /HyprlandFocusGrab\s*\{[\s\S]*active:\s*root\.shown && !networkPage\.speedTestOpen/,
+    );
 });
 
 test("Stay Awake is a persistent, visible Tile in the primary surface", () => {
@@ -70,7 +107,7 @@ test("Quick Settings exposes laptop battery state and immediate header actions",
 test("Power Page keeps existing actions in their established order", () => {
     const quickSettings = source("modules/QuickSettings.qml");
 
-    assert.match(quickSettings, /enum Page \{[\s\S]*Primary,[\s\S]*Wifi,[\s\S]*Power[\s\S]*\}/);
+    assert.match(quickSettings, /enum Page \{[\s\S]*Primary,[\s\S]*Network,[\s\S]*Power[\s\S]*\}/);
     assert.match(quickSettings, /QuickSettingsPage\s*{[\s\S]*id:\s*powerPage[\s\S]*title:\s*"Power"/);
     assert.match(quickSettings, /id:\s*powerPage[\s\S]*onBack:\s*keyboard\s*=>\s*root\.showPrimary\(keyboard\)/);
 
@@ -138,8 +175,8 @@ test("Brightness sits between Volume and Wired, refreshes on open, and never rai
 
     assert.ok(
         quickSettings.indexOf("Volume {") < quickSettings.indexOf("Brightness {")
-            && quickSettings.indexOf("Brightness {") < quickSettings.indexOf("WiredStatus {"),
-        "Brightness belongs immediately after Volume and before Wired status",
+            && quickSettings.indexOf("Brightness {") < quickSettings.indexOf("NetworkQuickSettings {"),
+        "Brightness belongs immediately after Volume and before network Tiles",
     );
     assert.match(quickSettings, /onShownChanged:[\s\S]*BacklightService\.refresh\(\)/);
 
@@ -248,9 +285,9 @@ test("Bluetooth Page operates on paired devices and keeps authenticated pairing 
 test("Tailscale is an availability-aware Tile in the shared grid", () => {
     const quickSettings = source("modules/QuickSettings.qml");
 
-    assert.match(quickSettings, /id:\s*tileGrid[\s\S]*visible:\s*root\.wifiDevice !== null \|\| TailscaleService\.installed/);
+    assert.match(source("modules/NetworkQuickSettings.qml"), /readonly property bool available/);
     assert.match(quickSettings, /id:\s*tileGrid[\s\S]*height:\s*tileGrid\.visible \? tileGrid\.implicitHeight : 0/);
-    assert.match(quickSettings, /id:\s*wifiTile[\s\S]*visible:\s*root\.wifiDevice !== null/);
+    assert.match(source("modules/NetworkQuickSettings.qml"), /id:\s*wifiTile[\s\S]*visible:\s*root\.wifiDevice !== null/);
     assert.match(quickSettings, /id:\s*tailscaleTile[\s\S]*visible:\s*TailscaleService\.installed[\s\S]*icon:\s*TailscaleService\.icon[\s\S]*label:\s*TailscaleService\.tailnet\s*\|\|\s*"Tailscale"[\s\S]*active:\s*TailscaleService\.connected[\s\S]*busy:\s*TailscaleService\.busy[\s\S]*chevronVisible:\s*false[\s\S]*onClicked:\s*TailscaleService\.toggle\(\)/);
     assert.doesNotMatch(quickSettings, /TailscaleRow/);
 });
