@@ -3,5 +3,4 @@ cd ~/dotfiles
 
 stow hypr
 stow quickshell
-# stow rofi
 stow swappy

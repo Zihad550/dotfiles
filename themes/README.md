@@ -9,14 +9,10 @@ themes/
 ├── templates/              # Template files for theme configs
 │   ├── alacritty.toml.tpl
 │   ├── bottom.toml.tpl
-│   ├── btop.theme.tpl
 │   ├── eza.yml.tpl
 │   ├── ghostty.conf.tpl
 │   ├── hyprland.lua.tpl
-│   ├── keyboard.rgb.tpl
-│   ├── kitty.conf.tpl
 │   ├── lazygit.yml.tpl
-│   ├── obsidian.css.tpl
 │   └── quickshell.json.tpl
 ├── .config/themes/         # Theme directories with colors.toml
 │   ├── rose-pine/

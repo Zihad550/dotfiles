@@ -16,7 +16,6 @@ require("lua.bindings.tiling")
 require("lua.bindings.media")
 require("lua.bindings.clipboard")
 require("lua.bindings.utilities")
-require("lua.bindings.old")
 
 -- Theme overrides come last so they win over base looknfeel.
 require("lua.theme")

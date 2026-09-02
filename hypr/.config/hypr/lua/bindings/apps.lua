@@ -2,7 +2,7 @@ local home            = os.getenv("HOME")
 local dotfiles_bin    = home .. "/dotfiles/bin"
 
 local terminal        = "uwsm-app -- ghostty"
-local menu            = "uwsm-app -- rofi -show drun"
+
 local work_browser    =
 "uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland"
 local default_browser = "uwsm-app -- flatpak run app.zen_browser.zen -P dev"

@@ -52,7 +52,8 @@ answers the same question the same way.
 - Two of the four power binds route through a script and two dispatch inline.
   The shapes differ because the actions differ; completing the pattern by
   giving logout a direct branch would reverse this decision's exclusion of it.
-- `SystemMenu.qml` and `rofi/.config/rofi/scripts/power_menu` still disagree
+- `SystemMenu.qml` and the old `power_menu` in
+  `archive/rofi-launcher-predecessor` still disagree
   with `power.js` about these commands (`systemctl poweroff`/`reboot`,
   `uwsm stop`). That divergence predates this change and is left alone —
   reconciling three lists is its own decision, not a side effect of this one.

@@ -53,11 +53,8 @@ tree should describe only what runs.
   is code-that-would-have-run versus prose-about-code-that-does: delete the
   first, keep the second.
 
-- `rofi/` — `hypr/.config/hypr/lua/bindings/apps.lua` still runs
-  `rofi -show drun`. Only the one commented `mako` line inside
-  `rofi/.config/rofi/scripts/select_theme` is in scope.
-- `hypr/.config/hypr/lua/bindings/old.lua` — a deliberate archive file, not
-  live code.
+- **`rofi/` and `hypr/.config/hypr/lua/bindings/old.lua`** — out of scope for
+  this earlier cleanup; both were subsequently retired by #118.
 - `resources/omarchy/` — upstream's vendored copy of a separate tool.
 - The `.scratch/launcher/` tickets and `docs/launcher-spec.md` — the record of
   the migration.

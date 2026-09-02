@@ -26,12 +26,6 @@ sudo pacman -S --noconfirm \
     pavucontrol \
     swaybg
 
-# rofi and application launcher
-
-# rofi\
-# rofi-emoji \
-# rofi-calc \
-
 # Migration from the old Idle Ladder. The package may remain installed until
 # the next package cleanup, but its daemon must not compete with Quickshell.
 systemctl --user disable --now hypridle.service 2>/dev/null || true

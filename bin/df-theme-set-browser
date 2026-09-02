@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Apply the current theme color through managed browser policies. No sudo: setup
-# makes the policy directories writable so this can run from rofi.
+# makes the policy directories writable so this can run from the launcher.
 
 CHROMIUM_THEME=~/.config/theme/chromium.theme
 
