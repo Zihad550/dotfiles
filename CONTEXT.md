@@ -126,6 +126,10 @@ point for Quick Settings. `SUPER+CTRL+A` opens the same panel without it, on
 whichever monitor is focused.
 _Avoid_: gear, tray, system tray, indicator group, status icons
 
+**Calendar Panel**:
+The read-only month overview anchored beneath the Bar's central clock.
+_Avoid_: calendar popup, calendar flyout, date picker
+
 **Row**:
 One line in a Quick Settings Page: leading glyph, label, trailing detail, and
 whatever control it owns. Rows form lists; the primary Quick Settings surface
@@ -228,12 +232,24 @@ _Avoid_: workspace title, label, workspace id
 
 **Workspace Label**:
 What the Bar displays for a workspace, derived from the windows on it rather
-than stored anywhere. It contains the representative window's application,
-with no directory suffix. Falls back to the Workspace Name whenever that Name
-is anything other than the bare id, so a manual rename always wins. Never
-written back to the compositor; see
+than stored anywhere when the Workspace Name is bare. That derivation contains
+the representative window's application only; any non-bare Workspace Name,
+whether manual or Launcher-owned, wins unchanged. Never written back to the
+compositor; see
 `docs/adr/0013-workspace-labels-derived-in-bar.md`.
 _Avoid_: workspace name, display name, derived name, caption
+
+**Launcher Workspace Name**:
+A persistent Workspace Name the Launcher assigns after opening a Directory in
+an application, formatted as the workspace id plus application and Directory
+Hint. It has the same standing as an explicit rename, except every later
+Directories Provider launch replaces the target workspace's existing Name.
+_Avoid_: automatic label, project label, directory label, generated name
+
+**Directory Hint**:
+The compact, issue-aware form of a directory basename shown inside a Launcher
+Workspace Name, such as `front` for `frontend` or `fr212` for `fr212`.
+_Avoid_: project name, directory suffix, folder tag
 
 **Devcontainer Routing**:
 The persisted, default-off switch that makes Herdr (`SUPER+U` and the
