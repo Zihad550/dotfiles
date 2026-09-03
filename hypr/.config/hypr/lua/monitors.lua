@@ -48,28 +48,34 @@ hl.monitor({
 -- HDMI-A-1 is rotated, so it spans 1080x1920 from 0x0; eDP-1 starts where it ends.
 hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1920", scale = "1" })
 
--- show workspace 3-10 on monitor hdmi-a-1 (primary)
-hl.workspace_rule({ workspace = "3", monitor = "HDMI-A-1", default = true })
-for i = 4, 10 do
-    hl.workspace_rule({ workspace = tostring(i), monitor = "HDMI-A-1" })
+local function has_laptop_chassis()
+    local chassis_file = io.open("/sys/class/dmi/id/chassis_type", "r")
+    if not chassis_file then
+        return false
+    end
+
+    local chassis = tonumber(chassis_file:read("*l"))
+    chassis_file:close()
+    return chassis == 8 or chassis == 9 or chassis == 10 or chassis == 14
+        or chassis == 30 or chassis == 31 or chassis == 32
 end
 
--- show workspace 1,2 on monitor eDP-1 (secondary)
-hl.workspace_rule({ workspace = "1", monitor = "eDP-1", default = true })
-hl.workspace_rule({ workspace = "2", monitor = "eDP-1" })
+if has_laptop_chassis() then
+    -- show workspace 3-10 on monitor hdmi-a-1 (primary)
+    hl.workspace_rule({ workspace = "3", monitor = "HDMI-A-1", default = true })
+    for i = 4, 10 do
+        hl.workspace_rule({ workspace = tostring(i), monitor = "HDMI-A-1" })
+    end
 
--- dp-1 (alternate setup — single monitor)
--- hl.workspace_rule({ workspace = "1",  monitor = "DP-1", default = true })
--- hl.workspace_rule({ workspace = "2",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "3",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "4",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "5",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "6",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "7",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "8",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "9",  monitor = "DP-1" })
--- hl.workspace_rule({ workspace = "10", monitor = "DP-1" })
-
+    -- show workspace 1,2 on monitor eDP-1 (secondary)
+    hl.workspace_rule({ workspace = "1", monitor = "eDP-1", default = true })
+    hl.workspace_rule({ workspace = "2", monitor = "eDP-1" })
+else
+    hl.workspace_rule({ workspace = "1", monitor = "DP-1", default = true })
+    for i = 2, 10 do
+        hl.workspace_rule({ workspace = tostring(i), monitor = "DP-1" })
+    end
+end
 
 ----------------------------------------------
 -- eDP-1 (primary) & hdmi-a-1 (secondary)
