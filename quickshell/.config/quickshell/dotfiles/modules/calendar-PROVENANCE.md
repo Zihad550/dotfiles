@@ -14,7 +14,8 @@ The calendar arithmetic and panel behavior are adapted from Omarchy
   entry point and popup handoff.
 - `shell/plugins/panels/clock/Panel.qml` →
   `quickshell/.config/quickshell/dotfiles/modules/CalendarPanel.qml` for the
-  read-only six-week view.
+  browsable six-week view, ISO week column, year progress indicator, and
+  keyboard and wheel controls.
 
 The adapted source is distributed under the MIT license:
 
@@ -49,11 +50,17 @@ SOFTWARE.
   widget frameworks.
 - The panel opens at the current month, uses six fixed rows, marks today, and
   leaves day cells display-only. It refreshes the current month whenever it
-  opens.
+  opens, while navigation can browse across years.
+- ISO week numbers are computed from the Thursday-owned ISO week and retain
+  the ISO year at calendar-year boundaries. The year-progress bar is pinned
+  to today's date and handles leap years and both endpoints.
+- `CalendarState.qml` is a shared singleton. It follows the locale's first day
+  until the W heading is activated, then persists the explicit Sunday/Monday
+  choice in `~/.local/state/dotfiles/calendar-week-start` for every monitor.
 
 ## Omitted upstream behavior
 
 This port does not include clock-format cycling, the timezone selector,
-Omarchy IPC and plugin registration, persisted panel settings, or the
-Memento Mori life-progress feature. No installed runtime path depends on the
-ignored `resources/omarchy` checkout.
+Omarchy IPC and plugin registration, or the Memento Mori life-progress
+feature. No installed runtime path depends on the ignored `resources/omarchy`
+checkout.

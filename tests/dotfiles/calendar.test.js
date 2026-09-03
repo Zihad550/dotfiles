@@ -64,6 +64,47 @@ test("monthGrid marks a leap day and supports Sunday-first ordering", () => {
     assert.deepStrictEqual(calendar.weekdayOrder(1), [1, 2, 3, 4, 5, 6, 0]);
 });
 
+test("calendar navigation rolls across years", () => {
+    assert.deepStrictEqual(calendar.stepMonth(2026, 0, -1), { year: 2025, month: 11 });
+    assert.deepStrictEqual(calendar.stepMonth(2026, 11, 1), { year: 2027, month: 0 });
+    assert.deepStrictEqual(calendar.stepMonth(2026, 6, 12), { year: 2027, month: 6 });
+});
+
+test("week start preferences follow locale until explicitly set", () => {
+    assert.equal(calendar.normalizedWeekStart(undefined, 0), 0);
+    assert.equal(calendar.normalizedWeekStart("garbage", 0), 0);
+    assert.equal(calendar.normalizedWeekStart("monday", 0), 1);
+    assert.equal(calendar.normalizedWeekStart("SUN", 1), 0);
+    assert.equal(calendar.weekStartSettingName(0), "sunday");
+    assert.equal(calendar.weekStartSettingName(1), "monday");
+    assert.equal(calendar.toggledWeekStart(0), 1);
+    assert.equal(calendar.toggledWeekStart(1), 0);
+});
+
+test("ISO weeks carry their ISO year at both calendar-year boundaries", () => {
+    assert.deepStrictEqual(calendar.isoWeekInfo(2021, 0, 1), { week: 53, year: 2020 });
+    assert.deepStrictEqual(calendar.isoWeekInfo(2022, 0, 1), { week: 52, year: 2021 });
+    assert.deepStrictEqual(calendar.isoWeekInfo(2026, 0, 1), { week: 1, year: 2026 });
+    assert.deepStrictEqual(calendar.monthGrid(2021, 0, 0, "")[0], {
+        week: 53,
+        isoWeek: 53,
+        isoYear: 2020,
+        days: calendar.monthGrid(2021, 0, 0, "")[0].days,
+    });
+});
+
+test("year progress uses the supplied year, including leap years and endpoints", () => {
+    assert.equal(calendar.daysInYear(2024), 366);
+    assert.equal(calendar.daysInYear(2026), 365);
+    assert.equal(calendar.yearProgress(2026, 0, 1), 0);
+    assert.equal(calendar.yearProgress(2026, 11, 31), 1);
+    assert.equal(calendar.yearProgress(2024, 0, 1), 0);
+    assert.equal(calendar.yearProgress(2024, 11, 31), 1);
+    assert.equal(calendar.yearProgressPercent(2026, 0, 1), 0);
+    assert.equal(calendar.yearProgressPercent(2026, 11, 31), 100);
+    assert.equal(calendar.yearProgressPercent(2024, 11, 31), 100);
+});
+
 test("the clock preserves its presentation and only left click opens Calendar Panel", () => {
     const clock = source("modules/Clock.qml");
     assert.match(clock, /horizontalCenterOffset:\s*8\.75/);
@@ -74,7 +115,7 @@ test("the clock preserves its presentation and only left click opens Calendar Pa
     assert.doesNotMatch(clock, /onEntered|hover.*open|Qt\.RightButton|Qt\.MiddleButton/);
 });
 
-test("Calendar Panel is themed, anchored, dismissible, and keeps day cells read-only", () => {
+test("Calendar Panel browses, persists week ordering, and keeps day cells read-only", () => {
     const panel = source("modules/CalendarPanel.qml");
     assert.match(panel, /anchor\.item:\s*root\.target/);
     assert.match(panel, /anchor\.rect\.y:\s*root\.target \? root\.target\.height/);
@@ -87,11 +128,54 @@ test("Calendar Panel is themed, anchored, dismissible, and keeps day cells read-
     assert.match(panel, /root\.labelLocale\.dayName/);
     assert.match(panel, /opacity:\s*modelData\.inMonth \? 1 : 0\.38/);
     assert.match(panel, /border\.width:\s*modelData\.today \? 1 : 0/);
-    assert.doesNotMatch(panel, /moveMonth|viewYear|viewMonth|Key_Left|Key_Right|Key_Up|Key_Down|ISO|weekColumn|yearProgress/);
+    assert.match(panel, /property int viewYear/);
+    assert.match(panel, /property int viewMonth/);
+    assert.match(panel, /function moveMonth\(delta/);
+    assert.match(panel, /function moveYear\(delta/);
+    assert.match(panel, /Keys\.onPressed/);
+    assert.match(panel, /Qt\.Key_Left/);
+    assert.match(panel, /Qt\.Key_Right/);
+    assert.match(panel, /Qt\.Key_Up/);
+    assert.match(panel, /Qt\.Key_Down/);
+    assert.match(panel, /Qt\.Key_T/);
+    assert.match(panel, /Qt\.Key_W/);
+    assert.match(panel, /if \(event\.angleDelta\.y === 0\)/);
+    assert.match(panel, /event\.angleDelta\.y > 0 \? -1 : 1/);
+    assert.match(panel, /modelData\.week/);
+    assert.match(panel, /yearDone: Calendar\.yearProgress\(/);
+    assert.match(panel, /function toggleWeekStart\(\)/);
+    assert.match(panel, /CalendarState\.setWeekStart/);
+    assert.match(panel, /root\.viewYear = root\.today\.getFullYear\(\)/);
+    assert.match(panel, /root\.viewMonth = root\.today\.getMonth\(\)/);
+    assert.match(panel, /weekStartToggleLabel/);
 
-    const dayCell = panel.slice(panel.lastIndexOf("model: modelData"));
+    const gridStart = panel.indexOf("model: modelData.days");
+    const gridEnd = panel.indexOf("height: 24", gridStart);
+    const dayCell = panel.slice(gridStart, gridEnd);
     assert.doesNotMatch(dayCell, /MouseArea|TapHandler|onClicked/);
 });
+
+test("CalendarState is a shared file-backed singleton in the dotfiles state directory", () => {
+    const state = source("CalendarState.qml");
+    const panel = panelSourceForState();
+    const bar = source("modules/Bar.qml");
+    assert.match(state, /pragma Singleton/);
+    assert.match(state, /\.local\/state\/dotfiles/);
+    assert.match(state, /calendar-week-start/);
+    assert.match(state, /watchChanges:\s*true/);
+    assert.match(state, /function setWeekStart\(value/);
+    assert.match(state, /mkdir -p/);
+    assert.match(state, /onFileChanged:\s*reload\(\)/);
+    assert.doesNotMatch(state, /root\.(writeProcess|weekStartFile)\b/);
+    assert.match(panel, /CalendarState\.weekStartSetting/);
+    assert.match(panel, /CalendarState\.setWeekStart/);
+    assert.doesNotMatch(panel, /property\s+(?:string|int|bool)\s+(?:saved)?WeekStart/);
+    assert.match(bar, /Clock\s*\{/);
+});
+
+function panelSourceForState() {
+    return source("modules/CalendarPanel.qml");
+}
 
 test("the calendar port records the pinned Omarchy source boundary", () => {
     const provenance = source("modules/calendar-PROVENANCE.md");
