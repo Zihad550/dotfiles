@@ -167,7 +167,7 @@ function runProfiles(fakeDirectory, options = {}) {
     if (options.elevatedStdout !== undefined) env.FAKE_TAILSCALE_ELEVATED_STDOUT = options.elevatedStdout;
     if (options.elevatedStderr !== undefined) env.FAKE_TAILSCALE_ELEVATED_STDERR = options.elevatedStderr;
     if (options.elevatedExitCode !== undefined) env.FAKE_TAILSCALE_ELEVATED_EXIT = String(options.elevatedExitCode);
-    return childProcess.spawnSync(tailscaleCommand, ["profiles"], {
+    return childProcess.spawnSync(tailscaleCommand, ["profiles"].concat(options.extraArgs || []), {
         cwd: repoRoot,
         env,
         encoding: "utf8",
@@ -992,4 +992,74 @@ test("a browser-authentication wait that outlives the timeout still reads as nee
     } finally {
         fs.rmSync(fakeDirectory, { recursive: true, force: true });
     }
+});
+
+test("`profiles --no-elevate` refuses to prompt: a permission denial stops at exit 4, pkexec untouched", () => {
+    const fakeDirectory = fakeTailscaleDirectory();
+    addFakePkexec(fakeDirectory);
+    const pkexecLog = path.join(fakeDirectory, "pkexec-log");
+    try {
+        const result = runProfiles(fakeDirectory, {
+            extraArgs: ["--no-elevate"],
+            stderr: "Access denied: profiles access denied\n\nUse 'sudo tailscale switch --list --json'.",
+            exitCode: 1,
+            pkexecLog,
+        });
+
+        assert.equal(result.status, 4);
+        assert.equal(
+            fs.existsSync(pkexecLog),
+            false,
+            "the refresh that follows an authenticated switch must not charge a second password",
+        );
+        assert.doesNotMatch(result.stderr, /--operator/i);
+    } finally {
+        fs.rmSync(fakeDirectory, { recursive: true, force: true });
+    }
+});
+
+test("`profiles --no-elevate` still returns a list when the unprivileged call succeeds", () => {
+    const fakeDirectory = fakeTailscaleDirectory();
+    addFakePkexec(fakeDirectory);
+    const pkexecLog = path.join(fakeDirectory, "pkexec-log");
+    try {
+        const result = runProfiles(fakeDirectory, {
+            extraArgs: ["--no-elevate"],
+            stdout: '[{"id":"p1","tailnet":"one.ts.net","account":"a@example.com","nickname":"","selected":true}]',
+            pkexecLog,
+        });
+
+        assert.equal(result.status, 0);
+        assert.equal(Model.classifyProfiles(result.status, result.stdout, result.stderr).state, "ready");
+        assert.equal(fs.existsSync(pkexecLog), false);
+    } finally {
+        fs.rmSync(fakeDirectory, { recursive: true, force: true });
+    }
+});
+
+test("the daemon's current Tailnet moves the marker when the listing could not be refreshed", () => {
+    const profiles = Model.normalizeProfiles([
+        { id: "p1", tailnet: "one.ts.net", account: "a@example.com", selected: true },
+        { id: "p2", tailnet: "two.ts.net", account: "b@example.com", selected: false },
+    ]);
+
+    const moved = Model.withCurrentTailnet(profiles, "two.ts.net");
+    assert.deepStrictEqual(moved.map(p => p.current), [false, true]);
+    assert.deepStrictEqual(
+        moved.map(p => p.label),
+        profiles.map(p => p.label),
+        "confirming the marker must not disturb the retained list",
+    );
+
+    // nothing confirmed yet, or a name that matches no Profile: a stale
+    // marker beats a guessed one
+    assert.deepStrictEqual(Model.withCurrentTailnet(profiles, "").map(p => p.current), [true, false]);
+    assert.deepStrictEqual(Model.withCurrentTailnet(profiles, "other.ts.net").map(p => p.current), [true, false]);
+
+    // two Profiles on one Tailnet cannot be told apart by Tailnet alone
+    const shared = Model.normalizeProfiles([
+        { id: "p1", tailnet: "one.ts.net", account: "a@example.com", selected: true },
+        { id: "p2", tailnet: "one.ts.net", account: "b@example.com", selected: false },
+    ]);
+    assert.deepStrictEqual(Model.withCurrentTailnet(shared, "one.ts.net").map(p => p.current), [true, false]);
 });

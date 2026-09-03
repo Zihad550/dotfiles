@@ -25,10 +25,13 @@
 set -uo pipefail
 
 TIMEOUT="${DF_TAILSCALE_TIMEOUT:-20}"
+# Cleared by `profiles --no-elevate`: a refresh the user did not ask for must
+# never raise a second prompt for one switch they already authenticated.
+ELEVATE=1
 PKEXEC_LOCK="${XDG_RUNTIME_DIR:-/tmp}/df-tailscale-pkexec.lock"
 
 usage() {
-  echo "Usage: df-tailscale profiles|switch <id>|connect" >&2
+  echo "Usage: df-tailscale profiles [--no-elevate]|switch <id>|connect" >&2
   exit 2
 }
 
@@ -88,6 +91,11 @@ attempt() {
     exit 1
   fi
 
+  if [[ -z $ELEVATE ]]; then
+    echo "$output" >&2
+    exit 4
+  fi
+
   if ! command -v pkexec &>/dev/null; then
     echo "Tailscale needs administrator permission, and pkexec is not installed." >&2
     exit 4
@@ -118,6 +126,10 @@ attempt() {
 action="${1:-}"
 case "$action" in
   profiles)
+    if [[ ${2:-} == "--no-elevate" ]]; then
+      ELEVATE=""
+      shift
+    fi
     [[ $# -eq 1 ]] || usage
     attempt switch --list --json
     ;;

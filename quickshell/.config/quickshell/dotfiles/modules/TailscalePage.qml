@@ -13,7 +13,7 @@ QuickSettingsPage {
 
     onActiveChanged: {
         if (root.active) {
-            TailscaleService.loadProfiles();
+            TailscaleService.openProfiles();
             TailscaleService.pageShown();
         } else {
             TailscaleService.pageHidden();
@@ -109,6 +109,19 @@ QuickSettingsPage {
         enabled: false
         icon: ""
         label: TailscaleService.failedOperationMessage
+    }
+
+    // Only after a quiet refresh was refused: the list stands but may be
+    // older than the daemon's, and this is the one way to ask for a fresh
+    // one -- opening the Page no longer prompts by itself.
+    PageRow {
+        width: root.width
+        visible: TailscaleService.profilesStale && TailscaleService.profiles.length > 0
+        enabled: !TailscaleService.busy
+        icon: "↻"
+        label: "Refresh"
+
+        onClicked: TailscaleService.loadProfiles()
     }
 
     // Reruns only the operation that failed, and only when clicked -- see

@@ -156,6 +156,34 @@ function isRetryableState(state) {
         || state === "malformed";
 }
 
+// Only the privileged listing reports `selected`, so a refresh that could not
+// run unprivileged leaves the daemon's own current Tailnet to decide which Row
+// carries the marker. An empty or ambiguous name moves nothing: a stale marker
+// beats a guessed one.
+function withCurrentTailnet(profiles, tailnet) {
+    var list = Array.isArray(profiles) ? profiles : [];
+    var name = textOr(tailnet, "").trim();
+    if (!name) {
+        return list;
+    }
+
+    var matches = list.filter(function(profile) {
+        return profile.tailnet === name;
+    });
+    if (matches.length !== 1) {
+        return list;
+    }
+
+    return list.map(function(profile) {
+        var copy = {};
+        Object.keys(profile).forEach(function(key) {
+            copy[key] = profile[key];
+        });
+        copy.current = profile.tailnet === name;
+        return copy;
+    });
+}
+
 function currentProfile(profiles) {
     return (Array.isArray(profiles) ? profiles : []).find(function(profile) {
         return profile.current;
@@ -200,6 +228,7 @@ if (typeof module !== "undefined" && module.exports) {
         classifyProfiles: classifyProfiles,
         classifyAction: classifyAction,
         isRetryableState: isRetryableState,
+        withCurrentTailnet: withCurrentTailnet,
         currentProfile: currentProfile,
         isSettledState: isSettledState,
         mergeProfilesResult: mergeProfilesResult

@@ -195,7 +195,7 @@ PopupWindow {
 
     HyprlandFocusGrab {
         windows: [root]
-        active: root.shown && !networkPage.speedTestOpen
+        active: root.shown && !networkPage.speedTestOpen && !TailscaleService.operationRunning
 
         onCleared: {
             root.lastCleared = Date.now();

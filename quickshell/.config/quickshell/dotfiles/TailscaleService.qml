@@ -47,6 +47,18 @@ Singleton {
     property string profilesState: ""
     property string profilesMessage: ""
     readonly property bool profilesLoading: profilesProc.running
+    // Set while the running load is the non-elevating post-operation refresh.
+    property bool quietRefresh: false
+    // Set when a quiet refresh was refused, so the list on screen may be
+    // older than the daemon's. The Page offers an explicit Refresh for this
+    // rather than prompting on its own every time it opens.
+    property bool profilesStale: false
+
+    // True while any Tailscale operation runs, and so while a pkexec prompt
+    // may own the screen. Quick Settings drops its focus grab for this: the
+    // prompt is a window of its own, and letting the grab clear on it takes
+    // the panel, the Page, and the switch the user came for down with it.
+    readonly property bool operationRunning: root.busy || root.profilesLoading
 
     // Which of the four operations most recently failed in a way worth
     // retrying, so a Retry Row can rerun exactly that one -- never more than
@@ -121,12 +133,46 @@ Singleton {
         connectProc.running = true;
     }
 
-    // No polling Timer: refresh happens when the Page opens.
+    // What opening the Page calls. A list already on screen is refreshed
+    // without elevating, so only the first open of a session -- when there is
+    // nothing to show -- can cost a password.
+    function openProfiles(): void {
+        if (root.profiles.length === 0) {
+            root.loadProfiles();
+            return;
+        }
+        root.refreshProfilesQuietly();
+    }
+
+    // No polling Timer: refresh happens when the Page opens. This is the
+    // load the user asked for, so it may raise a prompt.
     function loadProfiles(): void {
         if (!installed || profilesProc.running)
             return;
+        root.quietRefresh = false;
+        profilesProc.command = ["df-tailscale", "profiles"];
         profilesProc.running = true;
     }
+
+    // The refresh that follows an operation the user already authenticated.
+    // It never elevates: charging a second password for one switch is what
+    // --no-elevate exists to prevent, and markCurrentFromStatus() confirms
+    // the new current Profile instead when the listing cannot run.
+    function refreshProfilesQuietly(): void {
+        if (!installed || profilesProc.running)
+            return;
+        root.quietRefresh = true;
+        profilesProc.command = ["df-tailscale", "profiles", "--no-elevate"];
+        profilesProc.running = true;
+    }
+
+    function markCurrentFromStatus(): void {
+        root.profiles = Model.withCurrentTailnet(root.profiles, root.tailnet);
+    }
+
+    // The status stream is unprivileged and already live, so it -- not a
+    // second prompt -- is what confirms a switch landed.
+    onTailnetChanged: root.markCurrentFromStatus()
 
     // Profile ID mid-switch/connect; "" when idle. Owned here, not by the
     // Page, so closing Quick Settings can't cancel it (see class comment).
@@ -135,9 +181,9 @@ Singleton {
 
     // Activating a non-current Profile switches by ID then connects it;
     // activating the current one only (re)connects, and is a true no-op if
-    // it is already connected. Every path ends in loadProfiles() so what
-    // is shown is Tailscale's confirmed state, never an assumed one -- see
-    // switchProc/connectProc's onExited.
+    // it is already connected. Every path ends in refreshProfilesQuietly() so
+    // what is shown is Tailscale's confirmed state, never an assumed one --
+    // see switchProc/connectProc's onExited.
     function switchProfile(id: string): void {
         // busy, not switching: a connect started by the Tile's chevron is a
         // transition too, and must not race a switch.
@@ -228,7 +274,20 @@ Singleton {
         }
 
         onExited: (exitCode, exitStatus) => {
+            const quiet = root.quietRefresh;
+            root.quietRefresh = false;
             const result = Model.classifyProfiles(exitCode, profilesStdout.text, profilesStderr.text);
+
+            // A quiet refresh that could not run unprivileged is not a user-
+            // visible failure: the list stands and the status stream moves
+            // the marker.
+            if (quiet && !Model.isSettledState(result.state)) {
+                root.profilesStale = true;
+                root.markCurrentFromStatus();
+                return;
+            }
+            root.profilesStale = false;
+
             const merged = Model.mergeProfilesResult(
                 { state: root.profilesState, profiles: root.profiles, message: root.profilesMessage },
                 result
@@ -265,7 +324,7 @@ Singleton {
             const result = Model.classifyAction(exitCode, switchStdout.text, switchStderr.text);
             root.reportOperationFailure("switch", root.switchingProfileId, result);
             root.switchingProfileId = "";
-            root.loadProfiles();
+            root.refreshProfilesQuietly();
         }
     }
 
@@ -290,7 +349,7 @@ Singleton {
                 root.reportOperationFailure("connect", root.switchingProfileId, result);
             }
             root.switchingProfileId = "";
-            root.loadProfiles();
+            root.refreshProfilesQuietly();
         }
     }
 }

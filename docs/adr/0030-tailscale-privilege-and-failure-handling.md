@@ -68,6 +68,27 @@ The Page never opens the URL or a browser itself -- authenticating that
 Profile happens outside Quick Settings, and the Retry Row re-runs the same
 operation once it has been.
 
+## One action costs at most one prompt
+
+Where no operator is configured, both `switch --list` and `switch <id>` need
+root, so the refresh that follows a switch would charge a second password for
+one action the user already authorized. `profiles --no-elevate` exists for
+that refresh: it makes the unprivileged attempt and stops at exit 4 rather
+than escalating, and the caller treats that refusal as silence, not failure --
+the retained list stands and no Retry Row appears. The marker still moves only
+on confirmed state, but the confirmation comes from the status stream
+(`tailscale status`'s current Tailnet, already running unprivileged) instead of
+a second privileged listing. Two Profiles sharing a Tailnet cannot be told
+apart that way, so the marker then stays where the last listing put it: a stale
+marker beats a guessed one.
+
+Opening the Page follows the same rule: it re-lists quietly whenever a list is
+already on screen, so only the first open of a session -- when there is nothing
+to show -- can prompt. A refused quiet refresh marks the list stale and the
+Page offers a Refresh Row, which is the one place an open Page asks for an
+elevated listing. Prompting on every open was the alternative, and it charged a
+password for a list that changes only when an account is added or removed.
+
 ## Inline while visible, one notification once not
 
 TailscaleService counts how many Tailscale Page instances currently show

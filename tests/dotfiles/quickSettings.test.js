@@ -59,8 +59,26 @@ test("Quick Settings keeps its parent open while the speed-test overlay owns foc
 
     assert.match(
         quickSettings,
-        /HyprlandFocusGrab\s*\{[\s\S]*active:\s*root\.shown && !networkPage\.speedTestOpen/,
+        /HyprlandFocusGrab\s*\{[\s\S]*active:\s*root\.shown && !networkPage\.speedTestOpen && !TailscaleService\.operationRunning/,
     );
+});
+
+test("Quick Settings survives the pkexec prompt a Tailscale operation raises", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+    const service = source("TailscaleService.qml");
+
+    // The prompt is a window of its own: letting the focus grab clear on it
+    // dismissed the panel and the Page mid-switch.
+    assert.match(
+        quickSettings,
+        /HyprlandFocusGrab\s*\{[\s\S]*active:[\s\S]*!TailscaleService\.operationRunning/,
+    );
+    assert.match(
+        service,
+        /readonly property bool operationRunning:\s*root\.busy \|\| root\.profilesLoading/,
+    );
+    // every operation that can escalate has to be covered, not just listing
+    assert.match(service, /readonly property bool busy:\s*toggleProc\.running \|\| connectProc\.running \|\| switching/);
 });
 
 test("Stay Awake is a persistent, visible Tile in the primary surface", () => {
@@ -327,7 +345,7 @@ test("TailscaleService, not the Page, owns Profile loading and normalized Profil
 
     assert.doesNotMatch(page, /property var profiles:\s*\[\]/,
         "the Page must read Profile state from the singleton, not keep its own copy");
-    assert.match(page, /TailscaleService\.loadProfiles\(\)/);
+    assert.match(page, /TailscaleService\.openProfiles\(\)/);
     assert.match(page, /TailscaleService\.profiles/);
     assert.match(page, /TailscaleService\.profilesState/);
 });
@@ -336,7 +354,7 @@ test("Tailscale Page renders Rows for every visible Profile state", () => {
     const page = source("modules/TailscalePage.qml");
 
     assert.match(page, /title:\s*"Tailscale"/);
-    assert.match(page, /onActiveChanged:\s*\{[\s\S]*if \(root\.active\)[\s\S]*TailscaleService\.loadProfiles\(\)/);
+    assert.match(page, /onActiveChanged:\s*\{[\s\S]{0,120}if \(root\.active\)[\s\S]{0,80}TailscaleService\.openProfiles\(\)/);
 
     assert.match(
         page,
@@ -379,11 +397,11 @@ test("TailscaleService owns the switch/connect transition, unbound from any Page
     // refresh after every attempt: both Processes' onExited call loadProfiles()
     assert.match(
         service,
-        /id:\s*switchProc[\s\S]*onExited:[\s\S]*if \(exitCode === 0\)\s*\{[\s\S]*connectProc\.running = true;[\s\S]*return;[\s\S]*\}[\s\S]*root\.switchingProfileId = "";[\s\S]*root\.loadProfiles\(\);/,
+        /id:\s*switchProc[\s\S]*onExited:[\s\S]*if \(exitCode === 0\)\s*\{[\s\S]*connectProc\.running = true;[\s\S]*return;[\s\S]*\}[\s\S]*root\.switchingProfileId = "";[\s\S]*root\.refreshProfilesQuietly\(\);/,
     );
     assert.match(
         service,
-        /id:\s*connectProc[\s\S]*command:\s*\["df-tailscale", "connect"\][\s\S]*onExited:[\s\S]*root\.switchingProfileId = "";[\s\S]*root\.loadProfiles\(\);/,
+        /id:\s*connectProc[\s\S]*command:\s*\["df-tailscale", "connect"\][\s\S]*onExited:[\s\S]*root\.switchingProfileId = "";[\s\S]*root\.refreshProfilesQuietly\(\);/,
     );
 
     // failure reconciliation: neither Process assigns root.profiles itself --
@@ -556,6 +574,64 @@ test("Page visibility is counted, not a single flag, so a two-monitor session ca
         page,
         /Component\.onDestruction:\s*\{\s*\n\s*if \(root\.active\)\s*\n\s*TailscaleService\.pageHidden\(\);/,
     );
+});
+
+test("the refresh after a switch never raises a second prompt for the same action", () => {
+    const service = source("TailscaleService.qml");
+    const model = source("modules/lib/tailscale.js");
+
+    // the load the user asked for may elevate; the one that follows it may not
+    assert.match(service, /function loadProfiles\(\): void \{[\s\S]{0,300}profilesProc\.command = \["df-tailscale", "profiles"\];/);
+    assert.match(
+        service,
+        /function refreshProfilesQuietly\(\): void \{[\s\S]{0,400}profilesProc\.command = \["df-tailscale", "profiles", "--no-elevate"\];/,
+    );
+    assert.match(service, /root\.quietRefresh = true;/);
+
+    // a quiet refusal is not a user-visible failure: the list stands and the
+    // status stream is what moves the marker
+    assert.match(
+        service,
+        /if \(quiet && !Model\.isSettledState\(result\.state\)\) \{[\s\S]{0,160}root\.markCurrentFromStatus\(\);[\s\S]{0,40}return;/,
+    );
+    assert.match(service, /onTailnetChanged:\s*root\.markCurrentFromStatus\(\)/);
+    assert.match(service, /Model\.withCurrentTailnet\(root\.profiles, root\.tailnet\)/);
+    assert.match(model, /function withCurrentTailnet\(profiles, tailnet\) \{/);
+
+    // a user-initiated retry is still allowed to prompt
+    assert.match(service, /if \(operation === "profiles"\) \{[\s\S]{0,80}root\.loadProfiles\(\);/);
+});
+
+test("opening the Page re-lists without prompting once a list is already on screen", () => {
+    const service = source("TailscaleService.qml");
+    const page = source("modules/TailscalePage.qml");
+
+    // only the first open of a session -- nothing to show -- may elevate
+    assert.match(
+        service,
+        /function openProfiles\(\): void \{\s*\n\s*if \(root\.profiles\.length === 0\) \{\s*\n\s*root\.loadProfiles\(\);\s*\n\s*return;\s*\n\s*\}\s*\n\s*root\.refreshProfilesQuietly\(\);/,
+    );
+    assert.match(page, /onActiveChanged:[\s\S]{0,200}TailscaleService\.openProfiles\(\)/);
+    assert.doesNotMatch(
+        page,
+        /onActiveChanged:[\s\S]{0,200}TailscaleService\.loadProfiles\(\)/,
+        "opening the Page must not run the elevating listing directly",
+    );
+
+    // a refused quiet refresh marks the list stale rather than failing
+    assert.match(service, /root\.profilesStale = true;[\s\S]{0,120}root\.markCurrentFromStatus\(\);/);
+    assert.match(service, /root\.profilesStale = false;/);
+});
+
+test("a Refresh Row is the only way an open Page asks for a fresh listing", () => {
+    const page = source("modules/TailscalePage.qml");
+
+    assert.match(
+        page,
+        /visible:\s*TailscaleService\.profilesStale && TailscaleService\.profiles\.length > 0\s*\n\s*enabled:\s*!TailscaleService\.busy[\s\S]{0,120}label:\s*"Refresh"[\s\S]{0,80}onClicked:\s*TailscaleService\.loadProfiles\(\)/,
+    );
+    // it appears only when the quiet refresh was refused, never as decoration
+    assert.doesNotMatch(page, /visible:\s*true[\s\S]{0,80}label:\s*"Refresh"/);
 });
 
 test("a Retry Row appears only once an operation has failed and reruns it on click, never automatically", () => {
