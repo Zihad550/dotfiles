@@ -1,0 +1,156 @@
+#!/bin/bash
+
+# Repository-owned Tailscale seam for the isolated Tailscale Page.
+#
+# Exit-code contract (stable; later subcommands extend it, do not renumber):
+#   0  success, payload on stdout
+#   1  other failure, tailscale's message on stderr
+#   2  usage error
+#   3  requested operation unsupported by this Tailscale version
+#   4  permission denied: graphical authentication was cancelled or denied,
+#      or pkexec is unavailable
+#   5  operation timed out
+#
+# Caller-controlled: DF_TAILSCALE_TIMEOUT (seconds, default 20) bounds every
+# `tailscale` invocation below, direct or elevated.
+#
+# `switch` and `connect`'s `up` need root unless `tailscale set
+# --operator=$USER` has been run, which this script never does (see
+# docs/adr/0030-tailscale-privilege-and-failure-handling.md). Each tries
+# unprivileged first; only a recognized permission denial (the wording
+# tailscale-toggle.sh already trusts) retries the identical argv, verbatim,
+# under pkexec, serialized with flock since Quick Settings runs one instance
+# per monitor and can otherwise raise overlapping password prompts.
+
+set -uo pipefail
+
+TIMEOUT="${DF_TAILSCALE_TIMEOUT:-20}"
+PKEXEC_LOCK="${XDG_RUNTIME_DIR:-/tmp}/df-tailscale-pkexec.lock"
+
+usage() {
+  echo "Usage: df-tailscale profiles|switch <id>|connect" >&2
+  exit 2
+}
+
+is_unsupported() {
+  [[ $1 == *"unknown subcommand"* || $1 == *"flag provided but not defined"* ]]
+}
+
+# The wording tailscale-toggle.sh's own fallback already trusts: everything
+# else (not authenticated, no network, daemon down) is a real failure, and
+# only this is worth retrying elevated.
+is_permission_denied() {
+  grep -qiE "permission denied|access denied|must be root|operator" <<<"$1"
+}
+
+# Shared by every subcommand: an older `tailscale switch`/`up` predates a
+# documented exit-code contract of its own, so an unsupported binary is told
+# apart from a live daemon failure by pattern-matching its fixed error
+# wording rather than trusting its exit code alone.
+report() {
+  local output="$1" exit_code="$2"
+  if [[ $exit_code -eq 0 ]]; then
+    printf '%s\n' "$output"
+    exit 0
+  fi
+  if is_unsupported "$output"; then
+    exit 3
+  fi
+  echo "$output" >&2
+  exit 1
+}
+
+# Runs a mutating tailscale operation unprivileged first; a recognized
+# permission denial retries the identical argv, verbatim, under pkexec.
+# Never re-execs this script and never wraps the elevated call in anything
+# beyond flock -- nothing but the one requested operation runs as root.
+attempt() {
+  local output exit_code
+  output=$(timeout "$TIMEOUT" tailscale "$@" 2>&1)
+  exit_code=$?
+  if [[ $exit_code -eq 124 ]]; then
+    # `tailscale up` blocks on a browser login after printing its "To
+    # authenticate, visit" line, so the killed call's output is forwarded:
+    # without it that Profile reads as a plain stall, not as needing login.
+    [[ -n $output ]] && echo "$output" >&2
+    echo "Tailscale operation timed out." >&2
+    exit 5
+  fi
+  if [[ $exit_code -eq 0 ]]; then
+    printf '%s\n' "$output"
+    exit 0
+  fi
+  if is_unsupported "$output"; then
+    exit 3
+  fi
+  if ! is_permission_denied "$output"; then
+    echo "$output" >&2
+    exit 1
+  fi
+
+  if ! command -v pkexec &>/dev/null; then
+    echo "Tailscale needs administrator permission, and pkexec is not installed." >&2
+    exit 4
+  fi
+
+  output=$(timeout "$TIMEOUT" flock "$PKEXEC_LOCK" pkexec tailscale "$@" 2>&1)
+  exit_code=$?
+  if [[ $exit_code -eq 0 ]]; then
+    printf '%s\n' "$output"
+    exit 0
+  fi
+  if [[ $exit_code -eq 124 ]]; then
+    [[ -n $output ]] && echo "$output" >&2
+    echo "Tailscale operation timed out." >&2
+    exit 5
+  fi
+  # pkexec's own contract: 126 means the graphical prompt was dismissed, 127
+  # means authorization could not be obtained -- both read as "denied" here,
+  # distinct from `flock`/pkexec being merely absent above.
+  if [[ $exit_code -eq 126 || $exit_code -eq 127 ]]; then
+    echo "Tailscale authentication was cancelled or denied." >&2
+    exit 4
+  fi
+  echo "$output" >&2
+  exit 1
+}
+
+action="${1:-}"
+case "$action" in
+  profiles)
+    [[ $# -eq 1 ]] || usage
+    attempt switch --list --json
+    ;;
+  switch)
+    [[ $# -eq 2 && -n "$2" ]] || usage
+    # Always the stable Profile ID (never a name): the caller-facing
+    # contract, so a Profile rename in Tailscale can't switch the wrong one.
+    attempt switch "$2"
+    ;;
+  connect)
+    [[ $# -eq 1 ]] || usage
+    # Decided here, not by the caller: `tailscale up` is only issued when the
+    # daemon isn't already Running, so a caller can call `connect`
+    # unconditionally and never risk an extra up/down command. Also serves
+    # TailscaleService.enable(): bringing Tailscale on and connecting the
+    # current Profile are the same daemon operation.
+    status_output=$(timeout "$TIMEOUT" tailscale status --json 2>&1)
+    status_exit=$?
+    if [[ $status_exit -eq 124 ]]; then
+      echo "Tailscale operation timed out." >&2
+      exit 5
+    fi
+    if [[ $status_exit -ne 0 ]]; then
+      report "$status_output" "$status_exit"
+    fi
+    backend=$(jq -r '.BackendState // ""' <<<"$status_output" 2>/dev/null)
+    if [[ $backend == "Running" ]]; then
+      printf '%s\n' "$status_output"
+      exit 0
+    fi
+    attempt up
+    ;;
+  *)
+    usage
+    ;;
+esac
