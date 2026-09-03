@@ -189,6 +189,26 @@ the MagicDNS suffix that addresses resolve under. Each of those three is a
 different string, so say which one is meant.
 _Avoid_: tailscale network, magicdns suffix, node name, hostname
 
+**Tailscale Profile**:
+A login already authenticated on this machine that can connect it to one
+Tailnet. Only one Profile is current at a time.
+_Avoid_: available tailnet, connection, account, identity
+
+**Tailscale Page**:
+The Page reached from the Tailscale Tile's chevron. Lists every Profile
+already authenticated on this machine, in Tailscale's own order, with the
+current Profile marked. Enabling, listing, switching, and connecting all try
+unprivileged execution first and elevate through pkexec only on a recognized
+permission denial; see
+`docs/adr/0030-tailscale-privilege-and-failure-handling.md`.
+_Avoid_: Tailscale menu, accounts page, profile switcher
+
+**Retry Row**:
+The Row that appears only once one of the Tailscale Page's operations has
+failed, and reruns exactly that failed operation when activated. Never starts
+on its own and never repeats a password prompt without another activation.
+_Avoid_: retry button, error row, try again
+
 # Desktop
 
 The Hyprland desktop's application and workspace conventions.
