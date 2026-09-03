@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Services.UPower
 import qs
 import "lib/statusCluster.js" as Status
+import "lib/barPanel.js" as BarPanel
 
 // The per-monitor Quick Settings panel beneath the Status Cluster.
 PopupWindow {
@@ -159,26 +160,31 @@ PopupWindow {
     }
 
     function toggle(keyboardFocus: bool): void {
-        if (!root.shown && Date.now() - root.lastCleared < 200)
+        if (!root.shown && BarPanel.shouldSuppressReopen(root.lastCleared, Date.now()))
             return;
         if (root.shown) {
             root.shown = false;
         } else {
             root.keyboardFocusRequested = keyboardFocus;
+            BarPanelCoordinator.claim(root);
             root.shown = true;
         }
     }
 
     onShownChanged: {
         if (!root.shown) {
+            BarPanelCoordinator.release(root);
             root.currentPage = QuickSettings.Primary;
         } else {
+            BarPanelCoordinator.claim(root);
             // The shared module never polls; opening is the deliberate
             // moment to pick up brightness changed while the panel was closed.
             BacklightService.refresh();
             Qt.callLater(() => root.focusCurrentSurface());
         }
     }
+
+    Component.onDestruction: BarPanelCoordinator.release(root)
 
     onCurrentPageChanged: Qt.callLater(() => root.focusCurrentSurface())
 

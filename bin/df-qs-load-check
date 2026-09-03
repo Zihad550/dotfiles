@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Check that a Quickshell config reaches its loaded state without taking over
+# the running bar. No Wayland session is an unavailable host check, not a pass.
+
+set -u
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+CONFIG="${1:-$DOTFILES_DIR/quickshell/.config/quickshell/dotfiles}"
+
+if ! command -v quickshell >/dev/null 2>&1; then
+   echo "UNAVAILABLE: quickshell binary not found"
+   exit 0
+fi
+
+if [[ ! -f "$CONFIG/shell.qml" ]]; then
+   echo "FAIL: no shell.qml in $CONFIG" >&2
+   exit 1
+fi
+
+if [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
+   echo "UNAVAILABLE: WAYLAND_DISPLAY is unset"
+   exit 0
+fi
+
+if [[ -z "${XDG_RUNTIME_DIR:-}" || ! -d "$XDG_RUNTIME_DIR" || ! -w "$XDG_RUNTIME_DIR" ]]; then
+   echo "UNAVAILABLE: XDG_RUNTIME_DIR is not a writable user runtime directory"
+   exit 0
+fi
+
+if ! command -v timeout >/dev/null 2>&1; then
+   echo "UNAVAILABLE: timeout command not found"
+   exit 0
+fi
+
+log_file=$(mktemp)
+trap 'rm -f "$log_file"' EXIT
+
+set +e
+timeout --signal=TERM --kill-after=2 8 quickshell -p "$CONFIG" >"$log_file" 2>&1
+exit_code=$?
+set -e
+
+if grep -Eiq 'failed to load configuration|fatal:|type .* unavailable|no .* backend loaded|cannot set screen of popup' "$log_file"; then
+   echo "FAIL: Quickshell reported a configuration load error" >&2
+   sed -n '1,120p' "$log_file" >&2
+   exit 1
+fi
+
+if ! grep -q 'Configuration Loaded' "$log_file"; then
+   echo "FAIL: Quickshell did not report Configuration Loaded (exit $exit_code)" >&2
+   sed -n '1,120p' "$log_file" >&2
+   exit 1
+fi
+
+echo "PASS: Quickshell loaded $CONFIG (bounded run exit $exit_code)"

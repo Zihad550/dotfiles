@@ -1,8 +1,10 @@
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Hyprland
 import qs
 import "lib/calendar.js" as Calendar
+import "lib/barPanel.js" as BarPanel
 
 // A browsable month overview anchored to the central clock.
 PopupWindow {
@@ -54,7 +56,7 @@ PopupWindow {
     readonly property int weekColumnWidth: 28
     readonly property int gutterWidth: 8
     readonly property int gridWidth: root.weekColumnWidth + root.gutterWidth
-        + 7 * root.cellWidth + 7 * root.cellSpacing
+        + 7 * root.cellWidth + 8 * root.cellSpacing
     readonly property int panelContentHeight: calendarColumn.implicitHeight
         + 2 * root.panelPadding
     readonly property int availableWidth: root.screen
@@ -97,6 +99,7 @@ PopupWindow {
 
     function open(): void {
         root.refresh();
+        BarPanelCoordinator.claim(root);
         root.shown = true;
         Qt.callLater(() => keyCatcher.forceActiveFocus());
     }
@@ -105,8 +108,12 @@ PopupWindow {
         root.shown = false;
     }
 
+    function dismiss(): void {
+        root.close();
+    }
+
     function toggle(): void {
-        if (!root.shown && Date.now() - root.lastCleared < 200)
+        if (!root.shown && BarPanel.shouldSuppressReopen(root.lastCleared, Date.now()))
             return;
         if (root.shown)
             root.close();
@@ -124,6 +131,7 @@ PopupWindow {
     }
 
     anchor.item: root.target
+    anchor.adjustment: PopupAdjustment.Slide
     anchor.rect.x: root.target ? (root.target.width - root.width) / 2 : 0
     anchor.rect.y: root.target ? root.target.height : 0
 
@@ -132,6 +140,15 @@ PopupWindow {
     color: "transparent"
     implicitWidth: Math.min(root.gridWidth + 2 * root.panelPadding, root.availableWidth)
     implicitHeight: Math.min(root.panelContentHeight, root.availableHeight)
+
+    onShownChanged: {
+        if (root.shown)
+            BarPanelCoordinator.claim(root);
+        else
+            BarPanelCoordinator.release(root);
+    }
+
+    Component.onDestruction: BarPanelCoordinator.release(root)
 
     SystemClock {
         id: clock
@@ -210,6 +227,8 @@ PopupWindow {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: contentWidth > width || contentHeight > height
+                ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                 WheelHandler {
                     onWheel: event => {
