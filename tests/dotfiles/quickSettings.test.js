@@ -288,6 +288,314 @@ test("Tailscale is an availability-aware Tile in the shared grid", () => {
     assert.match(source("modules/NetworkQuickSettings.qml"), /readonly property bool available/);
     assert.match(quickSettings, /id:\s*tileGrid[\s\S]*height:\s*tileGrid\.visible \? tileGrid\.implicitHeight : 0/);
     assert.match(source("modules/NetworkQuickSettings.qml"), /id:\s*wifiTile[\s\S]*visible:\s*root\.wifiDevice !== null/);
-    assert.match(quickSettings, /id:\s*tailscaleTile[\s\S]*visible:\s*TailscaleService\.installed[\s\S]*icon:\s*TailscaleService\.icon[\s\S]*label:\s*TailscaleService\.tailnet\s*\|\|\s*"Tailscale"[\s\S]*active:\s*TailscaleService\.connected[\s\S]*busy:\s*TailscaleService\.busy[\s\S]*chevronVisible:\s*false[\s\S]*onClicked:\s*TailscaleService\.toggle\(\)/);
+    assert.match(quickSettings, /id:\s*tailscaleTile[\s\S]*visible:\s*TailscaleService\.installed[\s\S]*icon:\s*TailscaleService\.icon[\s\S]*label:\s*TailscaleService\.tailnet\s*\|\|\s*"Tailscale"[\s\S]*active:\s*TailscaleService\.connected[\s\S]*busy:\s*TailscaleService\.busy[\s\S]*chevronVisible:\s*true[\s\S]*onClicked:\s*TailscaleService\.toggle\(\)/);
     assert.doesNotMatch(quickSettings, /TailscaleRow/);
+});
+
+test("The Tailscale Tile's chevron opens the Page and requests enable without gating on it", () => {
+    const quickSettings = source("modules/QuickSettings.qml");
+
+    assert.match(
+        quickSettings,
+        /id:\s*tailscaleTile[\s\S]*onChevronClicked:\s*keyboard\s*=>\s*\{[\s\S]*root\.navigate\(QuickSettings\.Tailscale,\s*keyboard\)[\s\S]*TailscaleService\.enable\(\)[\s\S]*\}/,
+    );
+    assert.match(quickSettings, /enum Page \{[\s\S]*Tailscale[\s\S]*\}/);
+    assert.match(quickSettings, /TailscalePage\s*\{[\s\S]*id:\s*tailscalePage/);
+    assert.match(
+        quickSettings,
+        /id:\s*tailscalePage[\s\S]*active:\s*root\.shown && root\.currentPage === QuickSettings\.Tailscale[\s\S]*onBack:\s*keyboard\s*=>\s*root\.showPrimary\(keyboard\)/,
+    );
+    assert.match(quickSettings, /root\.currentPage === QuickSettings\.Tailscale[\s\S]*return tailscalePage\.implicitHeight/);
+    assert.match(quickSettings, /root\.currentPage === QuickSettings\.Tailscale\s*\)\s*\n\s*tailscalePage\.focusHeader\(\)/);
+});
+
+test("TailscaleService, not the Page, owns Profile loading and normalized Profile state", () => {
+    const service = source("TailscaleService.qml");
+    const page = source("modules/TailscalePage.qml");
+
+    assert.match(service, /property var profiles: \[\]/);
+    assert.match(service, /property string profilesState: ""/);
+    assert.match(service, /property string profilesMessage: ""/);
+    assert.match(service, /readonly property bool profilesLoading:\s*profilesProc\.running/);
+    assert.match(service, /function loadProfiles\(\): void \{/);
+    assert.match(service, /function enable\(\): void \{/);
+    assert.match(service, /id:\s*profilesProc[\s\S]*command:\s*\["df-tailscale", "profiles"\]/);
+    assert.match(service, /Model\.classifyProfiles\(exitCode, profilesStdout\.text, profilesStderr\.text\)/);
+    assert.match(service, /Model\.mergeProfilesResult\(/);
+    assert.doesNotMatch(service, /Timer\s*\{[\s\S]*profilesProc\.running\s*=\s*true/,
+        "Profile loading must not be polled; it refreshes only when the Page opens");
+
+    assert.doesNotMatch(page, /property var profiles:\s*\[\]/,
+        "the Page must read Profile state from the singleton, not keep its own copy");
+    assert.match(page, /TailscaleService\.loadProfiles\(\)/);
+    assert.match(page, /TailscaleService\.profiles/);
+    assert.match(page, /TailscaleService\.profilesState/);
+});
+
+test("Tailscale Page renders Rows for every visible Profile state", () => {
+    const page = source("modules/TailscalePage.qml");
+
+    assert.match(page, /title:\s*"Tailscale"/);
+    assert.match(page, /onActiveChanged:\s*\{[\s\S]*if \(root\.active\)[\s\S]*TailscaleService\.loadProfiles\(\)/);
+
+    assert.match(
+        page,
+        /Repeater\s*\{[\s\S]*model:\s*TailscaleService\.profiles\b[\s\S]*delegate:\s*PageRow\s*\{/,
+    );
+    assert.doesNotMatch(page, /model:\s*TailscaleService\.profilesState === "ready"/,
+        "a failed refresh retains the last useful list, so Rows are not gated on the state");
+    assert.match(page, /icon:\s*modelData\.current \? "✓" : "○"/);
+    assert.match(page, /label:\s*modelData\.label[\s\S]*current:\s*modelData\.current/);
+
+    assert.match(page, /visible:\s*TailscaleService\.profilesState === "empty"[\s\S]*label:\s*TailscaleService\.profilesMessage/);
+    assert.match(page, /visible:\s*TailscaleService\.profilesState === "unsupported"[\s\S]*label:\s*TailscaleService\.profilesMessage/);
+    assert.match(page, /visible:\s*TailscaleService\.profilesState === "daemon-failure"[\s\S]*label:\s*TailscaleService\.profilesMessage/);
+    assert.match(page, /visible:\s*TailscaleService\.profilesState === "malformed"[\s\S]*label:\s*TailscaleService\.profilesMessage/);
+
+    const code = page.split("\n").filter(line => !line.trim().startsWith("//")).join("\n");
+    assert.doesNotMatch(code, /login|Login|account.?management|peer|exit.?node|Taildrop/i);
+});
+
+test("TailscaleService owns the switch/connect transition, unbound from any Page's lifetime", () => {
+    const service = source("TailscaleService.qml");
+
+    assert.match(service, /property string switchingProfileId: ""/);
+    assert.match(service, /readonly property bool switching:\s*switchingProfileId !== ""/);
+    assert.match(service, /function switchProfile\(id: string\): void \{/);
+
+    // transition locking: a second activation while any transition is running
+    // is refused -- busy, not switching, so a chevron-started connect counts
+    assert.match(service, /function switchProfile\(id: string\): void \{[\s\S]{0,200}if \(busy \|\| !id\)\s*\n\s*return;/);
+    assert.doesNotMatch(service, /if \(switching \|\| !id\)/);
+
+    // activating the current Profile only (re)connects, and is a true no-op once connected
+    assert.match(
+        service,
+        /const current = Model\.currentProfile\(root\.profiles\);[\s\S]*if \(current && current\.id === id\) \{[\s\S]*if \(root\.connected\)[\s\S]*return;[\s\S]*connectProc\.running = true;/,
+    );
+    // a non-current Profile switches by ID first
+    assert.match(service, /switchProc\.command = \["df-tailscale", "switch", id\];[\s\S]*switchProc\.running = true;/);
+
+    // refresh after every attempt: both Processes' onExited call loadProfiles()
+    assert.match(
+        service,
+        /id:\s*switchProc[\s\S]*onExited:[\s\S]*if \(exitCode === 0\)\s*\{[\s\S]*connectProc\.running = true;[\s\S]*return;[\s\S]*\}[\s\S]*root\.switchingProfileId = "";[\s\S]*root\.loadProfiles\(\);/,
+    );
+    assert.match(
+        service,
+        /id:\s*connectProc[\s\S]*command:\s*\["df-tailscale", "connect"\][\s\S]*onExited:[\s\S]*root\.switchingProfileId = "";[\s\S]*root\.loadProfiles\(\);/,
+    );
+
+    // failure reconciliation: neither Process assigns root.profiles itself --
+    // only the mandatory loadProfiles() refresh may change what is shown
+    assert.doesNotMatch(service, /switchProc[\s\S]{0,400}root\.profiles\s*=/);
+    assert.doesNotMatch(service, /connectProc[\s\S]{0,400}root\.profiles\s*=/);
+
+    // closure survival: switchProc/connectProc's `running` is only ever set
+    // imperatively from switchProfile(), never bound to a Page's `active`
+    assert.doesNotMatch(service, /switchProc\.running:\s*/);
+    assert.doesNotMatch(service, /connectProc\.running:\s*/);
+    assert.doesNotMatch(service, /\bactive\b/);
+});
+
+test("Tailscale Page Rows are activatable, disabled during a transition, and show progress only on the selected Row", () => {
+    const page = source("modules/TailscalePage.qml");
+
+    // busy covers a connect started by the Tile's chevron, not just a Row switch
+    assert.match(page, /delegate:\s*PageRow\s*\{[\s\S]*enabled:\s*!TailscaleService\.busy/);
+    assert.match(page, /onClicked:\s*TailscaleService\.switchProfile\(modelData\.id\)/);
+    assert.match(
+        page,
+        /detail:\s*modelData\.id === TailscaleService\.switchingProfileId \? "Switching…"/,
+    );
+    // a Profile stuck on browser authentication shows exactly this, and
+    // only on its own Row -- every other Row keeps reading modelData.detail
+    assert.match(
+        page,
+        /modelData\.id === TailscaleService\.failedOperationProfileId && TailscaleService\.failedOperationState === "authentication-required"\) \? "This Profile needs authentication"\s*\n\s*: modelData\.detail/,
+    );
+    // the current marker itself is untouched by activation -- it only ever
+    // reads modelData.current, which comes from the refreshed Profile list
+    assert.match(page, /current:\s*modelData\.current/);
+    assert.doesNotMatch(page, /current:\s*modelData\.id === TailscaleService\.switchingProfileId/);
+});
+
+test("PageRow's current styling layers accent color without dropping the trailing detail", () => {
+    const pageRow = source("modules/PageRow.qml");
+
+    assert.match(pageRow, /property bool current: false/);
+    assert.match(pageRow, /text:\s*root\.icon\s*\n\s*color:\s*root\.current \? Theme\.accent : Theme\.foreground/);
+    assert.match(pageRow, /text:\s*root\.label\s*\n\s*color:\s*root\.current \? Theme\.accent : Theme\.foreground/);
+    assert.match(pageRow, /id:\s*detailText[\s\S]*text:\s*root\.detail/,
+        "current styling must not remove the detail Text element");
+});
+
+// #143: privilege and failure handling for enabling, listing, switching, and
+// connecting. See docs/adr/0030-tailscale-privilege-and-failure-handling.md.
+// TailscaleService.qml/TailscalePage.qml drive Quickshell, which does not run
+// in this test environment (see docs/agents/issue-tracker.md's Host
+// verification), so these assert on source shape the same way #142's tests
+// already do.
+
+test("TailscaleService tracks a single failed operation for the Retry Row, distinct from Profile-list state", () => {
+    const service = source("TailscaleService.qml");
+
+    assert.match(service, /property string failedOperation: ""/);
+    assert.match(service, /property string failedOperationProfileId: ""/);
+    assert.match(service, /property string failedOperationState: ""/);
+    assert.match(service, /property string failedOperationMessage: ""/);
+    assert.match(service, /function reportOperationFailure\(operation: string, profileId: string, result: var\): void \{/);
+});
+
+test("retryFailedOperation reruns exactly the failed operation, once, and only when called", () => {
+    const service = source("TailscaleService.qml");
+
+    assert.match(service, /function retryFailedOperation\(\): void \{/);
+    // guarded: refuses while busy, and when there is nothing to retry
+    assert.match(
+        service,
+        /function retryFailedOperation\(\): void \{\s*\n\s*if \(root\.busy \|\| root\.failedOperation === ""\)\s*\n\s*return;/,
+    );
+    // clears the failure before dispatching, so a second activation before
+    // this one resolves finds nothing left to retry
+    assert.match(
+        service,
+        /const operation = root\.failedOperation;[\s\S]*const profileId = root\.failedOperationProfileId;[\s\S]*root\.failedOperation = "";/,
+    );
+    assert.match(service, /if \(operation === "profiles"\) \{[\s\S]*root\.loadProfiles\(\);/);
+    assert.match(
+        service,
+        /else if \(operation === "switch"\) \{[\s\S]*switchProc\.command = \["df-tailscale", "switch", profileId\];[\s\S]*switchProc\.running = true;/,
+    );
+    assert.match(
+        service,
+        /else if \(operation === "connect"\) \{[\s\S]*connectProc\.running = true;/,
+    );
+
+    // no automatic retry loop: nothing but retryFailedOperation() itself
+    // ever clears a set failedOperation back through this path, and no
+    // Timer calls it
+    assert.doesNotMatch(service, /Timer\s*\{[\s\S]*retryFailedOperation\(\)/);
+});
+
+test("a Profile-list permission or timeout failure is retained and retryable, distinct from #142's own inline states", () => {
+    const service = source("TailscaleService.qml");
+    const model = fs.readFileSync(
+        path.join(dotfilesRoot, "modules/lib/tailscale.js"),
+        "utf8",
+    );
+
+    assert.match(
+        service,
+        /if \(Model\.isRetryableState\(result\.state\)\) \{[\s\S]*root\.reportOperationFailure\("profiles", "", result\);[\s\S]*\} else if \(root\.failedOperation === "profiles"\) \{[\s\S]*root\.failedOperation = "";/,
+    );
+    assert.match(model, /function isRetryableState\(state\) \{/);
+    // retryable is "a later attempt could answer differently": a version fact
+    // ("unsupported") and a successful answer ("empty") are not
+    assert.match(model, /function isRetryableState\(state\) \{[\s\S]{0,240}state === "permission-cancelled"[\s\S]{0,240}state === "timeout"[\s\S]{0,240}state === "authentication-required"[\s\S]{0,240}state === "daemon-failure"[\s\S]{0,240}state === "malformed"/);
+    assert.doesNotMatch(model, /isRetryableState[\s\S]{0,300}state === "unsupported"/);
+});
+
+test("switch and connect failures are classified with Model.classifyAction and reported, never silently discarded", () => {
+    const service = source("TailscaleService.qml");
+
+    // #143: both Processes now collect stdout/stderr to classify failures,
+    // where before neither parsed them at all
+    assert.match(service, /id:\s*switchProc[\s\S]{0,200}stdout:\s*StdioCollector\s*\{[\s\S]{0,50}id:\s*switchStdout/);
+    assert.match(service, /id:\s*switchProc[\s\S]{0,300}stderr:\s*StdioCollector\s*\{[\s\S]{0,50}id:\s*switchStderr/);
+    assert.match(service, /id:\s*connectProc[\s\S]{0,300}stdout:\s*StdioCollector\s*\{[\s\S]{0,50}id:\s*connectStdout/);
+    assert.match(service, /id:\s*connectProc[\s\S]{0,400}stderr:\s*StdioCollector\s*\{[\s\S]{0,50}id:\s*connectStderr/);
+
+    assert.match(
+        service,
+        /Model\.classifyAction\(exitCode, switchStdout\.text, switchStderr\.text\)[\s\S]*root\.reportOperationFailure\("switch", root\.switchingProfileId, result\);/,
+    );
+    assert.match(
+        service,
+        /Model\.classifyAction\(exitCode, connectStdout\.text, connectStderr\.text\)[\s\S]*root\.reportOperationFailure\("connect", root\.switchingProfileId, result\);/,
+    );
+});
+
+test("enabling Tailscale and the Tile's own toggle-on both funnel through connect(), reusing df-tailscale's connect subcommand", () => {
+    const service = source("TailscaleService.qml");
+
+    assert.match(service, /function connect\(\): void \{[\s\S]*connectProc\.running = true;/);
+    assert.match(service, /function enable\(\): void \{[\s\S]*root\.connect\(\);/);
+    assert.match(
+        service,
+        /function toggle\(\): void \{[\s\S]*if \(root\.connected\) \{[\s\S]*"down"[\s\S]*return;[\s\S]*\}\s*\n\s*root\.connect\(\);/,
+    );
+    // busy now also covers connectProc and mid-switch, so an enable/toggle
+    // cannot overlap a switch or another connect already in flight
+    assert.match(service, /readonly property bool busy:\s*toggleProc\.running \|\| connectProc\.running \|\| switching/);
+});
+
+test("Page visibility is counted, not a single flag, so a two-monitor session cannot double-notify", () => {
+    const service = source("TailscaleService.qml");
+    const page = source("modules/TailscalePage.qml");
+
+    assert.match(service, /property int visiblePageCount: 0/);
+    assert.match(service, /function pageShown\(\): void \{\s*\n\s*root\.visiblePageCount \+= 1;/);
+    assert.match(
+        service,
+        /function pageHidden\(\): void \{\s*\n\s*root\.visiblePageCount = Math\.max\(0, root\.visiblePageCount - 1\);/,
+    );
+    assert.match(
+        service,
+        /function notifyIfHidden\(message: string\): void \{\s*\n\s*if \(root\.visiblePageCount > 0\)\s*\n\s*return;\s*\n\s*Quickshell\.execDetached\(\["notify-send", "-u", "critical", "Tailscale", message\]\);/,
+    );
+
+    // every Page instance (one per monitor) registers and unregisters itself
+    assert.match(
+        page,
+        /onActiveChanged:\s*\{\s*\n\s*if \(root\.active\) \{[\s\S]*TailscaleService\.pageShown\(\);[\s\S]*\} else \{[\s\S]*TailscaleService\.pageHidden\(\);/,
+    );
+    // a monitor unplugged mid-Page must not leave the count stuck above zero,
+    // which would mute every later notification
+    assert.match(
+        page,
+        /Component\.onDestruction:\s*\{\s*\n\s*if \(root\.active\)\s*\n\s*TailscaleService\.pageHidden\(\);/,
+    );
+});
+
+test("a Retry Row appears only once an operation has failed and reruns it on click, never automatically", () => {
+    const page = source("modules/TailscalePage.qml");
+
+    assert.match(
+        page,
+        /visible:\s*TailscaleService\.failedOperation !== ""\s*\n\s*enabled:\s*!TailscaleService\.busy[\s\S]{0,120}label:\s*"Retry"[\s\S]{0,80}onClicked:\s*TailscaleService\.retryFailedOperation\(\)/,
+        "the Retry Row is inert while the operation it would rerun is still running",
+    );
+});
+
+test("switch/connect/enable failures render inline on the Page, without duplicating the Profile-list Row", () => {
+    const page = source("modules/TailscalePage.qml");
+
+    assert.match(
+        page,
+        /visible:\s*TailscaleService\.failedOperation !== "" && TailscaleService\.failedOperation !== "profiles"[\s\S]{0,260}label:\s*TailscaleService\.failedOperationMessage/,
+    );
+    // a Profile's own Row already says "This Profile needs authentication";
+    // the generic Row must not repeat it underneath
+    assert.match(
+        page,
+        /&& !\(TailscaleService\.failedOperationState === "authentication-required"\s*\n\s*&& TailscaleService\.failedOperationProfileId !== ""\)/,
+    );
+    assert.match(
+        page,
+        /visible:\s*TailscaleService\.profilesState === "permission-cancelled" \|\| TailscaleService\.profilesState === "timeout"/,
+    );
+});
+
+test("TailscaleService, bin/df-tailscale, and the Tailscale Page never grant standing operator access", () => {
+    const service = source("TailscaleService.qml");
+    const page = source("modules/TailscalePage.qml");
+    const command = fs.readFileSync(path.join(dotfilesRoot, "../../../../bin/df-tailscale"), "utf8");
+
+    for (const text of [service, page, command]) {
+        assert.doesNotMatch(text, /set\s+--operator/);
+        assert.doesNotMatch(text, /NOPASSWD/i);
+    }
+    // the Page never opens an authentication URL or a browser itself
+    assert.doesNotMatch(page, /xdg-open|Qt\.openUrlExternally|login\.tailscale\.com/i);
 });

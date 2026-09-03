@@ -15,7 +15,8 @@ PopupWindow {
         Audio,
         Bluetooth,
         Power,
-        Devcontainer
+        Devcontainer,
+        Tailscale
     }
 
     DevcontainerRoutingState {
@@ -96,6 +97,8 @@ PopupWindow {
             return powerPage.implicitHeight;
         if (root.currentPage === QuickSettings.Devcontainer)
             return devcontainerPage.implicitHeight;
+        if (root.currentPage === QuickSettings.Tailscale)
+            return tailscalePage.implicitHeight;
         return primaryContent.implicitHeight;
     }
 
@@ -126,6 +129,8 @@ PopupWindow {
             powerPage.focusHeader();
         else if (root.currentPage === QuickSettings.Devcontainer)
             devcontainerPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Tailscale)
+            tailscalePage.focusHeader();
         else if (lockAction.visible)
             lockAction.forceActiveFocus();
         else if (networkQuickSettings.available)
@@ -137,7 +142,7 @@ PopupWindow {
     function navigate(page: int, keyboardFocus: bool): void {
         if (page === QuickSettings.Bluetooth && !root.bluetoothAvailable)
             return;
-        if (page !== QuickSettings.Primary && page !== QuickSettings.Network && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer) {
+        if (page !== QuickSettings.Primary && page !== QuickSettings.Network && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer && page !== QuickSettings.Tailscale) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
@@ -476,9 +481,13 @@ PopupWindow {
                                 label: TailscaleService.tailnet || "Tailscale"
                                 active: TailscaleService.connected
                                 busy: TailscaleService.busy
-                                chevronVisible: false
+                                chevronVisible: true
 
                                 onClicked: TailscaleService.toggle()
+                                onChevronClicked: keyboard => {
+                                    root.navigate(QuickSettings.Tailscale, keyboard);
+                                    TailscaleService.enable();
+                                }
                             }
 
                             DevcontainerRoutingTile {
@@ -686,6 +695,39 @@ PopupWindow {
                     anchors.fill: parent
                     routingState: devcontainerRouting
                     active: root.shown && root.currentPage === QuickSettings.Devcontainer
+                    onBack: keyboard => root.showPrimary(keyboard)
+                }
+            }
+
+            Item {
+                id: tailscaleSurface
+
+                x: root.currentPage === QuickSettings.Tailscale ? 0 : 8
+                width: parent.width
+                height: parent.height
+                visible: opacity > 0
+                enabled: root.currentPage === QuickSettings.Tailscale
+                opacity: root.currentPage === QuickSettings.Tailscale ? 1 : 0
+
+                Behavior on x {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.quickSettingsPageMotion
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                TailscalePage {
+                    id: tailscalePage
+
+                    anchors.fill: parent
+                    active: root.shown && root.currentPage === QuickSettings.Tailscale
                     onBack: keyboard => root.showPrimary(keyboard)
                 }
             }

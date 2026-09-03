@@ -16,6 +16,10 @@ Item {
     property bool disclosureOpen: false
     property bool mainFocusVisible: false
     property bool overflowFocusVisible: false
+    // Accent styling for the one Row representing a current selection (e.g.
+    // the current Tailscale Profile), layered on top of icon and label
+    // without touching the trailing detail's own styling.
+    property bool current: false
 
     signal clicked(bool keyboard)
     signal pressed
@@ -94,7 +98,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             text: root.icon
-            color: Theme.foreground
+            color: root.current ? Theme.accent : Theme.foreground
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
             textFormat: Text.PlainText
@@ -110,7 +114,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             text: root.label
-            color: Theme.foreground
+            color: root.current ? Theme.accent : Theme.foreground
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
             textFormat: Text.PlainText
