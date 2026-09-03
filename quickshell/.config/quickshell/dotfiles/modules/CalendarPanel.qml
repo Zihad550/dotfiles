@@ -218,6 +218,21 @@ PopupWindow {
                 }
             }
 
+            // A WheelHandler here never fires: on this Wayland/Qt build wheel
+            // events reach MouseArea.onWheel only. Sits behind the Flickable so
+            // a scrollable panel keeps the wheel for scrolling.
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+
+                onWheel: event => {
+                    // A horizontal-only wheel event has no month meaning.
+                    if (event.angleDelta.y === 0)
+                        return;
+                    root.moveMonth(event.angleDelta.y > 0 ? -1 : 1);
+                }
+            }
+
             Flickable {
                 id: calendarScroll
 
@@ -229,15 +244,6 @@ PopupWindow {
                 interactive: contentWidth > width || contentHeight > height
                 ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-
-                WheelHandler {
-                    onWheel: event => {
-                        // A horizontal-only wheel event has no month meaning.
-                        if (event.angleDelta.y === 0)
-                            return;
-                        root.moveMonth(event.angleDelta.y > 0 ? -1 : 1);
-                    }
-                }
 
                 Column {
                     id: calendarColumn

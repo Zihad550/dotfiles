@@ -141,6 +141,9 @@ test("Calendar Panel browses, persists week ordering, and keeps day cells read-o
     assert.match(panel, /Qt\.Key_W/);
     assert.match(panel, /if \(event\.angleDelta\.y === 0\)/);
     assert.match(panel, /event\.angleDelta\.y > 0 \? -1 : 1/);
+    // WheelHandler never fires on this Wayland/Qt build; only MouseArea.onWheel does.
+    assert.doesNotMatch(panel, /WheelHandler\s*\{/);
+    assert.match(panel, /MouseArea \{[\s\S]*?acceptedButtons: Qt\.NoButton[\s\S]*?onWheel:[\s\S]*?root\.moveMonth/);
     assert.match(panel, /modelData\.week/);
     assert.match(panel, /yearDone: Calendar\.yearProgress\(/);
     assert.match(panel, /function toggleWeekStart\(\)/);
