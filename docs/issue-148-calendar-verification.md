@@ -113,14 +113,18 @@ inside the monitor that owns the clock.
 set -eu
 cd "$HOME/dotfiles"
 hyprctl monitors -j
-# Temporarily select the smallest usable mode for one connected monitor in the
-# host's display settings, then click that monitor's clock and Status Cluster.
-# Restore the previous display mode after observing both panels.
+# A headless output gives a small display without disturbing a real one, and
+# doubles as the second monitor step 7 needs:
+hyprctl output create headless
+hyprctl eval "hl.monitor({ output = 'HEADLESS-1', mode = '720x400@60', position = '1920x0', scale = '1' })"
+# Click that monitor's clock and Status Cluster, scroll both panels, then:
+hyprctl output remove HEADLESS-1
 ```
 
 Pass: both panels remain within that monitor's usable area. Content that does
-not fit remains reachable by vertical or horizontal scrolling, and no popup is
-cut off or placed on a different display.
+not fit remains reachable by vertical or horizontal scrolling, a thumb marks
+the clipped edge while it is clipped, and no popup is cut off or placed on a
+different display.
 
 ## needs-info action
 

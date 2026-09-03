@@ -52,8 +52,12 @@ test("both popups bound their size to the monitor and keep overflow scrollable",
     assert.match(calendar, /implicitWidth\s*:\s*Math\.min\([\s\S]*root\.availableWidth/);
     assert.match(calendar, /implicitHeight\s*:\s*Math\.min\([\s\S]*root\.availableHeight/);
     assert.match(calendar, /Flickable\s*\{[\s\S]*contentWidth\s*:\s*calendarColumn\.width[\s\S]*contentHeight\s*:\s*calendarColumn\.implicitHeight[\s\S]*clip\s*:\s*true/);
-    assert.match(calendar, /ScrollBar\.horizontal:[\s\S]*ScrollBar\.AsNeeded/);
-    assert.match(calendar, /ScrollBar\.vertical:[\s\S]*ScrollBar\.AsNeeded/);
+    assert.doesNotMatch(calendar, /ScrollBar\s*\{|ScrollBar\.\w+\s*:/,
+        "a Controls ScrollBar is invisible at rest, so a clipped panel looks complete");
+    assert.match(calendar, /visible:\s*calendarScroll\.contentHeight > calendarScroll\.height[\s\S]*calendarScroll\.visibleArea\.heightRatio/);
+    assert.match(calendar, /visible:\s*calendarScroll\.contentWidth > calendarScroll\.width[\s\S]*calendarScroll\.visibleArea\.widthRatio/);
+    assert.match(calendar, /function open\(\)[\s\S]*calendarScroll\.contentY = 0/,
+        "a panel reopened after scrolling must start at the top");
 
     assert.match(quickSettings, /monitorWidth[\s\S]*screen\.width[\s\S]*Math\.max\(1/);
     assert.match(quickSettings, /monitorAvailableHeight[\s\S]*screen\.height[\s\S]*Theme\.barHeight/);

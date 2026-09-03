@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Hyprland
 import qs
@@ -99,6 +98,7 @@ PopupWindow {
 
     function open(): void {
         root.refresh();
+        calendarScroll.contentY = 0;
         BarPanelCoordinator.claim(root);
         root.shown = true;
         Qt.callLater(() => keyCatcher.forceActiveFocus());
@@ -219,8 +219,7 @@ PopupWindow {
             }
 
             // A WheelHandler here never fires: on this Wayland/Qt build wheel
-            // events reach MouseArea.onWheel only. Sits behind the Flickable so
-            // a scrollable panel keeps the wheel for scrolling.
+            // events reach MouseArea.onWheel only.
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.NoButton
@@ -228,6 +227,10 @@ PopupWindow {
                 onWheel: event => {
                     // A horizontal-only wheel event has no month meaning.
                     if (event.angleDelta.y === 0)
+                        return;
+                    // A clipped panel spends the wheel on reaching its own
+                    // content instead; the arrows and Left/Right still browse.
+                    if (calendarScroll.contentHeight > calendarScroll.height)
                         return;
                     root.moveMonth(event.angleDelta.y > 0 ? -1 : 1);
                 }
@@ -242,8 +245,6 @@ PopupWindow {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: contentWidth > width || contentHeight > height
-                ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                 Column {
                     id: calendarColumn
@@ -543,6 +544,31 @@ PopupWindow {
                         }
                     }
                 }
+            }
+
+            // Plain thumbs, as in Quick Settings: a QtQuick.Controls ScrollBar
+            // fades out at rest, so a clipped panel looks like it has no more
+            // content rather than like something to scroll.
+            Rectangle {
+                visible: calendarScroll.contentHeight > calendarScroll.height
+                anchors.right: parent.right
+                width: 3
+                height: Math.max(24, calendarScroll.height * calendarScroll.visibleArea.heightRatio)
+                y: calendarScroll.visibleArea.yPosition * calendarScroll.height
+                radius: width / 2
+                color: Theme.foreground
+                opacity: 0.35
+            }
+
+            Rectangle {
+                visible: calendarScroll.contentWidth > calendarScroll.width
+                anchors.bottom: parent.bottom
+                height: 3
+                width: Math.max(24, calendarScroll.width * calendarScroll.visibleArea.widthRatio)
+                x: calendarScroll.visibleArea.xPosition * calendarScroll.width
+                radius: height / 2
+                color: Theme.foreground
+                opacity: 0.35
             }
         }
     }
