@@ -2,6 +2,12 @@
   ////////////////////////
   // ai
   ///////////////////////
+  "search": {
+    "include_ignored": true
+  },
+  "file_finder": {
+    "include_ignored": "all"
+  },
   "ssh_connections": [
     {
       "host": "devcontainer.devpod",
@@ -197,6 +203,7 @@
     "max_width_columns": 40,
     "current_line_highlight": "all",
   },
+
 
   ///////////////////////
   // languages
