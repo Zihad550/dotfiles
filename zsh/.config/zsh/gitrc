@@ -12,7 +12,90 @@ alias gcl='git clone'
 # ghq keeps clones in a $GOPATH-style tree, so it shadows the real `git clone`.
 alias git-clone='ghq get'
 alias lg='lazygit'
-alias tpr='tea pr rc -o simple'
+# alias tpr='tea pr rc -o simple --comments'
+tpr() {
+  tea pr $1 --comments
+  tea pr rc -o simple $1
+  tprr $1
+}
+
+# Print the review bodies on a PR. tea has no command for these: `tea pr --comments`
+# reads issue comments, `tea pr rc` reads inline code comments, and `tea pr <n>` prints
+# only a review's state line, so a reviewer who typed their feedback into the review box
+# is invisible to all three.
+# Usage: tprr <pr index> [owner/repo]
+tprr() {
+  local pr=$1 slug=$2 cfg=${TEA_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/tea/config.yml}
+  if [ -z "$pr" ]; then
+    print -u2 "usage: tprr <pr index> [owner/repo]"
+    return 2
+  fi
+
+  # NB: never name a local `path` here -- zsh ties it to $PATH and blanks it for the
+  # whole function, so every command in it stops resolving.
+  local remote bare host repo
+  remote=$(git remote get-url origin 2>/dev/null) ||
+    remote=$(git remote 2>/dev/null | head -1 | xargs -r git remote get-url 2>/dev/null)
+  if [ -z "$remote" ]; then
+    print -u2 "tprr: not in a git repo with a remote"
+    return 1
+  fi
+
+  # scp-style (git@host:owner/repo) and url-style (proto://host/owner/repo) both reduce
+  # to host + repo once the scheme and any user@ prefix are stripped.
+  bare=${remote##*://}
+  bare=${bare#*@}
+  host=${bare%%[:/]*}
+  repo=${bare#*[:/]}
+  repo=${repo%.git}
+  repo=${repo%/}
+  # Take the last two segments so an ssh port (:2222/owner/repo) or a subpath install
+  # (host/gitea/owner/repo) does not end up glued to the owner.
+  local -a parts=(${(s:/:)repo})
+  if (( $#parts < 2 )); then
+    print -u2 "tprr: cannot read owner/repo from $remote"
+    return 1
+  fi
+  repo="${parts[-2]}/${parts[-1]}"
+  [ -n "$slug" ] && repo=$slug
+
+  # tea keeps the token only in config.yml; `tea login list` knows which host it is for.
+  local login url
+  IFS=$'\t' read -r login url < <(
+    tea login list -o json 2>/dev/null |
+      jq -r --arg h "$host" '
+        .[] | select((.url | sub("^[a-z]+://";"") | sub("/.*$";"") | sub(":[0-9]+$";"")) == $h
+                     or (.ssh_host | sub(":[0-9]+$";"")) == $h)
+        | [.name, .url] | @tsv' | head -1
+  )
+  if [ -z "$login" ]; then
+    print -u2 "tprr: no tea login for host $host"
+    return 1
+  fi
+
+  local token
+  token=$(awk -v n="$login" '
+    $1=="-" && $2=="name:" && $3==n {f=1; next}
+    f && $1=="token:" {print $2; exit}' "$cfg")
+  if [ -z "$token" ]; then
+    print -u2 "tprr: no token for login $login in $cfg"
+    return 1
+  fi
+
+  local body
+  body=$(curl -s -H "Authorization: token $token" \
+    "$url/api/v1/repos/$repo/pulls/$pr/reviews")
+  if ! print -r -- "$body" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    print -u2 "tprr: $repo!$pr -- $(print -r -- "$body" | jq -r '.message // .' 2>/dev/null)"
+    return 1
+  fi
+
+  print -r -- "$body" | jq -r '
+    [.[] | select(.body != "" and .dismissed == false)] as $r
+    | if ($r | length) == 0 then "(no review bodies)"
+      else $r[] | "\(.user.login) [\(.state)] \(.submitted_at[0:10]):\n\(.body)\n"
+      end'
+}
 alias gpr='gh pr view --comments'
 alias ti='tea issue --comments -o simple'
 alias gi='gh issue view --comments'
