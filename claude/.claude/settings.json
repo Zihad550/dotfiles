@@ -61,9 +61,10 @@
   },
   "tui": "fullscreen",
   "voice": {
-    "enabled": true,
+    "enabled": false,
     "mode": "tap"
   },
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "autoMode": {
@@ -93,5 +94,6 @@
       "**Org-specific CLIs**: None configured",
       "routine under /home/jehad/dev/work/mamacrm/backend/ prefix: build, lint, test, and run tasks via just/go/templ/tparse/golangci-lint, and psql access to the project's local postgres per README runtime dependencies"
     ]
-  }
+  },
+  "voiceEnabled": false
 }
