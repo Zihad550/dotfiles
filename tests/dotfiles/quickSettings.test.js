@@ -350,6 +350,19 @@ test("TailscaleService, not the Page, owns Profile loading and normalized Profil
     assert.match(page, /TailscaleService\.profilesState/);
 });
 
+test("Tailscale processes finish collecting output before their exit handlers parse it", () => {
+    const service = source("TailscaleService.qml");
+
+    for (const processId of ["profilesProc", "switchProc", "connectProc"]) {
+        const process = service.slice(service.indexOf(`id: ${processId}`));
+        assert.match(
+            process,
+            /stdout:\s*StdioCollector\s*\{[\s\S]{0,100}waitForEnd:\s*true[\s\S]*stderr:\s*StdioCollector\s*\{[\s\S]{0,100}waitForEnd:\s*true[\s\S]*onExited:/,
+            `${processId} must not parse partial or empty output in onExited`,
+        );
+    }
+});
+
 test("Tailscale Page renders Rows for every visible Profile state", () => {
     const page = source("modules/TailscalePage.qml");
 

@@ -268,9 +268,11 @@ Singleton {
 
         stdout: StdioCollector {
             id: profilesStdout
+            waitForEnd: true
         }
         stderr: StdioCollector {
             id: profilesStderr
+            waitForEnd: true
         }
 
         onExited: (exitCode, exitStatus) => {
@@ -309,9 +311,11 @@ Singleton {
 
         stdout: StdioCollector {
             id: switchStdout
+            waitForEnd: true
         }
         stderr: StdioCollector {
             id: switchStderr
+            waitForEnd: true
         }
 
         // A failed switch never reaches connectProc; the refresh below shows
@@ -335,9 +339,11 @@ Singleton {
 
         stdout: StdioCollector {
             id: connectStdout
+            waitForEnd: true
         }
         stderr: StdioCollector {
             id: connectStderr
+            waitForEnd: true
         }
 
         onExited: exitCode => {
