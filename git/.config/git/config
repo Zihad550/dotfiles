@@ -30,6 +30,9 @@
 	showStash = true
 [url "git@github.com:Zihad550/"]
 	insteadOf = "z5:"
+[url "https://github.com/"]
+	insteadOf = ssh://git@github.com/
+	insteadOf = git@github.com:
 [url "git@github.com:"]
 	insteadOf = "gh:"
 [branch]
