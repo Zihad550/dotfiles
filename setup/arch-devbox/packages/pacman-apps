@@ -3,11 +3,8 @@
 # arch-devbox's own pacman set: everything that is NOT in
 # ../../common/packages/pacman-base, which init runs first.
 #
-# This file is the entire package-level difference between arch-devbox and
-# arch-workstation — diff it against ../../arch-workstation/packages/pacman-apps to
-# see the whole cull. The shared CLI toolkit, fonts, coreutils replacements and
-# gcc are not repeated here on purpose; edit pacman-base to change those on both
-# machines at once.
+# The development CLI toolkit, fonts, coreutils replacements, and gcc are not
+# repeated here. They come from ../../common/packages/pacman-base.
 #
 # Culled entries are kept as commented lines with a one-word reason — uncomment
 # to get them back.

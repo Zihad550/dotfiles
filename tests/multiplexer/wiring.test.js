@@ -28,6 +28,7 @@ const stowScripts = [
 
 const packageLists = [
     "setup/common/packages/pacman-base",
+    "setup/arch-workstation/packages/pacman-base",
     "setup/arch-devbox/packages/pacman-apps",
     "setup/arch-workstation/packages/pacman-apps",
     "setup/ubuntu-devbox/packages",

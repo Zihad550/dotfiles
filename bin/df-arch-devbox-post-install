@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Run the setup steps that need an authenticated GitHub CLI.
+
+set -u
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+ARCH_DEVBOX_DIR="$DOTFILES_DIR/setup/arch-devbox"
+
+step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
+ok() { printf '\033[1;32mok:\033[0m %s\n' "$1"; }
+warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$1"; }
+
+step "Allowing SSH via ufw"
+if ! command -v ufw >/dev/null 2>&1; then
+    warn "ufw not installed; skipping"
+else
+    sudo ufw allow SSH && sudo systemctl restart ufw.service && sudo ufw reload && ok "SSH allowed"
+fi
+
+step "Enabling sshd"
+if ! command -v sshd >/dev/null 2>&1 && [ ! -e /usr/lib/systemd/system/sshd.service ]; then
+    warn "openssh not installed; skipping"
+elif systemctl is-enabled --quiet sshd.service 2>/dev/null && systemctl is-active --quiet sshd.service; then
+    ok "sshd already enabled and running"
+else
+    sudo systemctl enable --now sshd.service && ok "sshd enabled and started"
+fi
+
+step "Configuring GitHub CLI"
+if ! command -v gh >/dev/null 2>&1; then
+    warn "gh not installed; skipping"
+elif gh auth status >/dev/null 2>&1; then
+    "$ARCH_DEVBOX_DIR/setup-github-cli" && ok "gh configured"
+else
+    warn "gh not authenticated. Run 'gh auth login' first, then re-run this script."
+fi
+
+printf '\n\033[1;32mPost-install complete.\033[0m\n'

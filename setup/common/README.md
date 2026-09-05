@@ -24,11 +24,11 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Workstation, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu server, Alpine |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
-| [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch Workstation and Arch devbox |
+| [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch devbox |
 | [`setup-skills`](setup-skills) | Installs the shared agent skill set. | Arch, Ubuntu, and devcontainer setup |
 | [`setup-snapper`](setup-snapper) | Applies the root filesystem snapshot-retention policy. | Arch devbox |
 | [`setup-tailscale`](setup-tailscale) | Joins a box to the tailnet after its wrapper installs Tailscale. | Arch and Ubuntu wrappers |
-| [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch Workstation, Arch devbox |
+| [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch devbox |
 | [`setup-tuned`](setup-tuned) | Installs the always-on bare-metal power profile. | Arch and Ubuntu wrappers |
 
 ### Support and package input
@@ -44,10 +44,10 @@ here when the explanation does not belong beside the command it protects.
 
   | List | Installs | Current callers |
   | --- | --- | --- |
-  | [`pacman-base`](packages/pacman-base) | The CLI toolkit, fonts, coreutils replacements and gcc. | Arch Workstation, Arch devbox |
-  | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch Workstation, Arch devbox |
+  | [`pacman-base`](packages/pacman-base) | The development CLI toolkit, fonts, coreutils replacements and gcc. | Arch devbox |
+  | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch devbox |
   | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Workstation (Arch devbox keeps it off) |
-  | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch Workstation, Arch devbox |
+  | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch devbox |
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Workstation, Arch devbox |
   | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
 

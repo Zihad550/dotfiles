@@ -73,15 +73,68 @@ test("every target Herdr config call site reaches the shared installer", () => {
     }
 });
 
-test("Arch installs Herdr with pacman and retires user-level copies", () => {
-    const packages = source("setup/common/packages/pacman-base");
+test("both Arch profiles install Herdr with pacman", () => {
+    const devbox = source("setup/common/packages/pacman-base");
+    const workstation = source("setup/arch-workstation/packages/pacman-base");
 
-    assert.match(packages, /^\s*herdr \\/m,
-        "the shared Arch package list does not install Herdr");
-    assert.match(packages, /rm -f "\$HOME\/\.local\/bin\/herdr"/,
-        "a user-level Herdr binary can still shadow pacman's package");
-    assert.match(packages, /mise uninstall -a herdr/,
-        "the old mise-managed Herdr release is not retired");
+    assert.match(devbox, /^\s*herdr \\/m);
+    assert.match(workstation, /^\s*herdr$/m);
+    assert.doesNotMatch(workstation, /mise (unuse|uninstall)|rm -[fr]+[^\n]*herdr/);
+});
+
+test("Arch workstation is a remote-development client", () => {
+    const init = source("setup/arch-workstation/init");
+    const packages = source("setup/arch-workstation/packages/pacman-base");
+    const apps = source("setup/arch-workstation/packages/pacman-apps");
+    const yayPackages = source("setup/arch-workstation/packages/yay-packages");
+    const flatpaks = source("setup/common/packages/flatpak-packages");
+    const stow = source("setup/arch-workstation/stow");
+    const syncthing = source("setup/arch-workstation/setup-packages/setup-syncthing");
+    const ufw = source("setup/arch-workstation/setup-packages/setup-ufw");
+    const workstationGitHub = source("setup/arch-workstation/setup-packages/setup-github-cli");
+    const devboxGitHub = source("setup/arch-devbox/setup-github-cli");
+
+    assert.doesNotMatch(init,
+        /setup-rootless-docker|go-packages|setup-file-watchers|setup-ts-serve|df-gen-completions/);
+    assert.doesNotMatch(packages,
+        /^\s*(gcc|base-devel|docker|docker-compose|go|nodejs|npm|pnpm|python|rust)(?:\s|\\|$)/m);
+    assert.match(packages, /^\s*openssh \\/m);
+    assert.match(packages, /^\s*tailscale \\/m);
+    assert.match(packages, /^\s*herdr$/m);
+    assert.match(packages, /^\s*github-cli \\/m);
+    assert.match(packages, /systemctl enable --now tailscaled\.service/);
+    assert.match(apps, /^\s*zed \\/m);
+    assert.match(apps, /^\s*neovim \\/m);
+    assert.match(yayPackages, /yay -S --noconfirm --needed helium-browser-bin/);
+    assert.doesNotMatch(`${init}\n${packages}\n${apps}\n${yayPackages}\n${flatpaks}`,
+        /(^|\s)chromium(?:\s|\\|$)/m);
+    assert.match(flatpaks, /com\.mongodb\.Compass/);
+    assert.match(flatpaks, /io\.beekeeperstudio\.Studio/);
+    assert.match(stow, /^stow zed$/m);
+    assert.match(stow, /^stow kanata$/m);
+    assert.match(init, /setup-packages\/setup-kanata/);
+    assert.match(init, /setup-packages\/setup-syncthing/);
+    assert.match(syncthing, /systemctl --user enable --now syncthing\.service/);
+    assert.doesNotMatch(syncthing, /~\/dev|\.stignore_dev/);
+    assert.match(ufw, /sudo ufw deny SSH/);
+    assert.doesNotMatch(ufw, /ufw allow (SSH|syncthing)/);
+    assert.doesNotMatch(init, /systemctl[^\n]*sshd|run_step[^\n]*sshd/);
+    assert.match(workstationGitHub, /gh config set git_protocol ssh/);
+    assert.match(workstationGitHub, /gh extension install dlvhdr\/gh-dash/);
+    assert.doesNotMatch(devboxGitHub, /gh config set git_protocol/);
+    assert.match(devboxGitHub, /gh extension install dlvhdr\/gh-dash/);
+    assert.doesNotMatch(stow, /stow (git|lazygit|worktrunk)|stow-ai/);
+});
+
+test("Arch devbox does not install Syncthing", () => {
+    const init = source("setup/arch-devbox/init");
+    const packages = [
+        source("setup/common/packages/pacman-base"),
+        source("setup/arch-devbox/packages/pacman-apps"),
+    ].join("\n");
+
+    assert.doesNotMatch(init, /run_step[^\n]*syncthing/i);
+    assert.doesNotMatch(packages, /^\s*syncthing(?:\s|\\|$)/m);
 });
 
 test("the shared installer uses pacman on Arch and mise elsewhere", () => {

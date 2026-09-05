@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
 
-# arch-workstation's own pacman set: everything that is NOT in
-# ../../common/packages/pacman-base.
-#
-# The shared toolkit (CLI tools, fonts, coreutils replacements, gcc) lives in
-# ../../common/packages/pacman-base, which init runs first. What's left here is the app layer and
-# the handful of core entries arch-devbox deliberately drops — so the diff
-# against arch-devbox/packages/pacman-apps is now the *whole* difference
-# between the two machines.
+# Graphical applications for the client workstation. Editors stay local so
+# they can connect to a devbox; build tools and language runtimes do not.
 
 #  core, desktop-only
 # xournalpp - pdf editor
@@ -57,16 +51,6 @@ sudo pacman -S --noconfirm \
 # gnome-calculator \
 # gnome-characters \
 # gnome-dictionary - doesn't has any bangla dictionary
-
-# sudo pacman -S --noconfirm gitg # git ui
-# sudo pacman -S --noconfirm podman
-
-# ai
-# sudo pacman -S --noconfirm ollama
-# sudo pacman -S --noconfirm lmstudio-bin
-
-# sql client
-# sudo pacman -S --noconfirm dbeaver
 
 # backup # not needed if you choose snapshot from the archinstall disk setup
 

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+cd "$DOTFILES_DIR"
+
+stow ghostty
+stow kanata
+stow zsh
+stow zed
+mkdir -p "$HOME/.local/share/zed/extensions"
+ln -snf "$HOME/.config/zed/backup/extensions/index.json" \
+    "$HOME/.local/share/zed/extensions/index.json"
+stow themes
+stow starship
+stow yazi
+stow voxtype
+stow procs
+stow atuin
+
+# Herdr keeps sessions and sockets beside its config, so stow only the file.
+mkdir -p "$HOME/.config/herdr"
+ln -snf "$DOTFILES_DIR/herdr/.config/herdr/config.toml" \
+    "$HOME/.config/herdr/config.toml"
+
+rm -rf "$HOME/.bashrc"
+stow bash

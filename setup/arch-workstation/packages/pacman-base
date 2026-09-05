@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+# Local desktop and remote-access tools. Development runtimes, container
+# engines, source-control frontends, and coding agents belong on the devbox.
+# Helium's AUR build dependencies and Zed's package dependencies are declared
+# separately with those client applications.
+
+sudo pacman -S --noconfirm \
+    openssh \
+    tailscale \
+    curl \
+    less \
+    jq \
+    fzf \
+    man-db \
+    man-pages \
+    starship \
+    gum \
+    atuin \
+    pastel \
+    7zip trash-cli \
+    rsync \
+    github-cli \
+    herdr
+
+sudo systemctl enable --now tailscaled.service
+
+sudo pacman -S --noconfirm \
+    ttf-jetbrains-mono \
+    ttf-hack-nerd \
+    noto-fonts \
+    ttf-nerd-fonts-symbols-mono \
+    noto-fonts-emoji \
+    ttf-dejavu
+
+sudo pacman -S --noconfirm \
+    zoxide \
+    eza \
+    ripgrep \
+    bat \
+    fd \
+    dust \
+    procs \
+    bottom \
+    tealdeer

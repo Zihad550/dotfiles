@@ -1,17 +1,11 @@
 #!/usr/bin/env bash
 
-# Undo the side effects of df-arch-workstation-post-install. Idempotent — safe to
-# re-run.
-#
-#   ~/dotfiles/bin/df-arch-workstation-post-install-cleanup
-
 set -u
 
 step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
 ok() { printf '\033[1;32mok:\033[0m %s\n' "$1"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$1"; }
 
-# Deny SSH (replaces the matching allow rule added by post-install) -----------
 step "Denying SSH via ufw"
 if ! command -v ufw >/dev/null 2>&1; then
     warn "ufw not installed; skipping"
@@ -19,7 +13,6 @@ else
     sudo ufw deny SSH && sudo systemctl restart ufw.service && sudo ufw reload && ok "SSH denied"
 fi
 
-# Disable SSH daemon ---------------------------------------------------------
 step "Disabling sshd"
 if [ ! -e /usr/lib/systemd/system/sshd.service ]; then
     warn "sshd.service not present; skipping"

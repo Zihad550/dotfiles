@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-# sudo ufw app list -> displays all apps
-# sudo ufw limit SSH  -> instead of using sudo ufw allow SSH
-# Rootless docker (../../common/setup-rootless-docker, run earlier by init)
-# needs no docker0/ufw-docker carve-out here -- see setup/archive/setup-ufw
-# on the archive/rootful-docker branch
-# for the rootful counterpart this replaced (#95).
-
 set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,10 +10,5 @@ ufw_bootstrap
 
 # Allow nothing in, everything out
 sudo ufw deny SSH
-# The syncthing app profile only exists once syncthing is installed, and
-# arch-devbox drops it — opening a profile that isn't there just errors.
-if sudo ufw app info syncthing &>/dev/null; then
-    sudo ufw allow syncthing
-fi
 
 ufw_commit

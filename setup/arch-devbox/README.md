@@ -98,23 +98,18 @@ The shared files have these compatibility changes:
 - `preflight` and `utils/logging` take the installer's name from
   `$ARCH_SETUP_NAME`, and the error screen's *Retry* re-execs `$ARCH_SETUP_INIT`
   instead of a hardcoded arch-workstation path.
-- `setup-ufw` guards `ufw allow syncthing` behind `ufw app info syncthing`. That
-  app profile only exists once syncthing is installed, and arch-devbox drops it.
+- Desktop setup helpers remain shared where both profiles still use them.
 
-Four package files this directory used to own are gone, because they carried no
-difference:
+The devbox still owns its development package lists. The workstation now has a
+separate client-only base, so adding a tool to
+[`../common/packages/pacman-base`](../common/packages/pacman-base) affects the
+devbox only.
 
-- **`packages/pacman-packages`** → split. The CLI toolkit, fonts, coreutils
-  replacements and `gcc` were byte-identical to arch-workstation's and now live once
-  in [`../common/packages/pacman-base`](../common/packages/pacman-base);
-  only `packages/pacman-apps` is still local. Adding a CLI tool to `pacman-base`
-  now reaches both machines — which is the failure this prevents. `ubuntu-devbox`
-  is a third hand-maintained copy of the same toolkit and has already drifted:
-  commit `f362aa2` dropped `aichat`, `worktrunk` and `lazydocker` there only, and
-  it lists `git-delta` twice.
+- **`packages/pacman-packages`** was split into the shared devbox CLI toolkit
+  and this directory's graphical app list.
 - **`packages/yay-packages`** → the old local file was deleted because its body
   was `exit 0`; the current local file holds devbox-only opt-in GUI editors.
-  `yay` itself is still installed by `setup-packages/setup-yay`.
+  `yay` itself is still installed by `setup-yay`.
 - **`packages/flatpak-packages`** → deleted. Every install line in *this box's*
   copy was commented out. The shared list at
   [`../common/packages/flatpak-packages`](../common/packages/flatpak-packages)

@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 
-# The pacman set that is identical on every arch target: the CLI toolkit, the
-# fonts, the coreutils replacements and the compiler.
-#
-# Shared by arch-workstation and arch-devbox — both run this, then their own
-# ./pacman-apps for the parts that actually differ (browsers, editors, media,
-# gnome extras). Adding a CLI tool here reaches both machines; that is the
-# point. Before this split the two lists were maintained by hand and had
-# already drifted (setup/ubuntu-devbox/packages, a third copy of the same
-# toolkit, dropped aichat/worktrunk/lazydocker while both arch lists kept them).
+# The Arch devbox CLI toolkit, fonts, coreutils replacements, and compiler.
+# The client workstation has its own package base so changes here do not put
+# development tools on the laptop.
 #
 # NOTE: opencode, worktrunk, tea, claude-code and herdr come from the omarchy
 # repo, not official Arch. `setup-omarchy-repos` must run before this.

@@ -84,7 +84,7 @@ run_step "gnome-theme" "$ARCH_WORKSTATION_DIR/gnome-theme"
 # tea and quickshell all come from it.
 run_step "omarchy repos" "$ARCH_WORKSTATION_DIR/setup-omarchy-repos"
 run_step "mise" "$ARCH_DEVBOX_DIR/setup-mise"
-run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
+run_step "yay" "$ARCH_DEVBOX_DIR/setup-yay"
 
 # flatpak dropped — its only dev-relevant apps were MongoDB Compass and
 # Beekeeper Studio. Two lines turn it back on, and both are needed: this one
@@ -93,9 +93,8 @@ run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
 # `flatpak install` against a missing command.
 # run_step "flatpak" "$ARCH_WORKSTATION_DIR/setup-packages/setup-flatpak"
 
-# Only the app layer is overridden. The CLI toolkit, fonts, coreutils
-# replacements and gcc come from the shared pacman-base unchanged, so a tool
-# added there lands on both machines.
+# The CLI toolkit, fonts, coreutils replacements, and gcc come from the devbox
+# package base. The client workstation no longer uses it.
 run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
 # Before yay-packages, not after: makepkg fetches an AUR package's validpgpkeys
@@ -134,7 +133,6 @@ run_step "sshd" "$ARCH_DEVBOX_DIR/setup-sshd"
 run_step "ufw baseline" "$ARCH_DEVBOX_DIR/setup-ufw-base"
 
 # syncthing dropped — file sync, not development.
-# run_step "syncthing" "$ARCH_WORKSTATION_DIR/setup-packages/setup-syncthing"
 
 # Guard zsh: usermod -s is non-idempotent (records a change every run).
 CURRENT_STEP="zsh"
@@ -160,7 +158,7 @@ run_step "herdr" "$DOTFILES_DIR/setup/common/setup-herdr"
 run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
 
 # setup-github-cli intentionally not run — needs `gh auth login` first.
-# Run manually after login: ~/dotfiles/bin/df-arch-workstation-post-install
+# Run manually after login: ~/dotfiles/bin/df-arch-devbox-post-install
 
 # setup-voxtype intentionally not run — uncomment to enable.
 # run_step "voxtype" "$ARCH_WORKSTATION_DIR/setup-packages/setup-voxtype"
@@ -177,7 +175,7 @@ else
 fi
 
 # System-wide QoL tweaks (sysctl, sudoers, systemd timeouts).
-run_step "file watchers" "$ARCH_WORKSTATION_DIR/setup-packages/setup-file-watchers"
+run_step "file watchers" "$ARCH_DEVBOX_DIR/setup-file-watchers"
 # The Session Lock authenticates against its own PAM service; without this it
 # rejects every password.
 run_step "lock pam" "$ARCH_WORKSTATION_DIR/setup-packages/setup-lock-pam"
@@ -234,7 +232,7 @@ echo "      Tailscale SSH is off; sshd is the tailnet access path. The port"
 echo "      move is optional, so SSH_PORT=keep is valid.)"
 echo
 echo "Then:"
-echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-workstation-post-install"
+echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-devbox-post-install"
 echo "    (configures GitHub CLI; completions + go tools already ran during setup)"
 echo "  • AI CLIs already installed by 'ai tools' — several need a login on"
 echo "    first run (claude, opencode, gemini, kilo)."
