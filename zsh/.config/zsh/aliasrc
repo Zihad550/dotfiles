@@ -24,6 +24,7 @@ alias z='zeditor'
 alias cl='claude'
 alias cx='codex'
 alias hr='herdr'
+alias ts='tailscale'
 
 # short aliases
 # cat="bat" \
