@@ -103,6 +103,7 @@ run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
 # DNS path. See setup/common/setup-dirmngr.
 run_step "dirmngr resolver" "$DOTFILES_DIR/setup/common/setup-dirmngr"
 run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
+run_step "devbox yay packages" "$ARCH_DEVBOX_DIR/packages/yay-packages"
 # Off with setup-flatpak above, not independently of it — the shared list has
 # live install lines, so leaving this on with flatpak uninstalled failed the
 # step and dropped the run into the retry UI.

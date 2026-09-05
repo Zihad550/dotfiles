@@ -34,15 +34,6 @@ yay -S --noconfirm \
 # yay -S --noconfirm t3code-bin
 # pnpm install -g @augmentcode/auggie
 
-# code editors
-# yay -S --noconfirm \
-# visual-studio-code-bin
-# cursor-bin
-# yay -S --noconfirm android-studio
-# yay -S --noconfirm windsurf
-# yay -S --noconfirm webstorm webstorm-jre
-# yay -S --noconfirm kiro-bin
-
 # aicommits
 # yay -S aicommits -> meybe check zed git commit or create a plugin with opencode
 

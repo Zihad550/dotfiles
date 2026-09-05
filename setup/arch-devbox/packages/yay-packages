@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+# Development editors kept as opt-in packages for arch-devbox.
+# Uncomment only the editor(s) wanted on the devbox.
+# yay -S --noconfirm \
+#     visual-studio-code-bin \
+#     cursor-bin
+# yay -S --noconfirm android-studio
+# yay -S --noconfirm windsurf
+# yay -S --noconfirm webstorm webstorm-jre
+# yay -S --noconfirm kiro-bin

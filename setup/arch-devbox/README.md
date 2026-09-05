@@ -59,6 +59,7 @@ so a fix there lands on both targets.
 |---|---|
 | `init` | entrypoint; the arch-workstation run order with the culled steps removed |
 | `packages/pacman-apps` | the cull — this box's app layer, the *whole* package difference from arch-workstation |
+| `packages/yay-packages` | opt-in GUI code editors that should not be offered by the workstation profile |
 | `post-install` | same as arch-workstation's, but sets chromium as default browser |
 | `setup-mise` | installs mise for this profile's development-tool package list |
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
@@ -79,10 +80,11 @@ Borrowed unchanged from `../arch-workstation`: `utils/*`, `preflight`, `theme`,
 installs it, so this profile owns `setup-mise`. `setup-packages/setup-ufw`
 does `ufw deny SSH` and opens the syncthing profile (see
 [firewall](#firewall)).
-The package lists this box runs live in
+The shared package lists this box runs live in
 [`../common/packages`](../common/packages): `pacman-base`, `yay-packages`,
-`go-packages` and `quickshell-packages`. `flatpak-packages` is there too but
-this box leaves it off (see [flatpak](#flatpak-is-off-by-default)).
+`go-packages` and `quickshell-packages`. The devbox also has a local
+`packages/yay-packages` file for opt-in GUI code editors. `flatpak-packages` is
+there too but this box leaves it off (see [flatpak](#flatpak-is-off-by-default)).
 Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
 directly on both boxes, not from `setup-packages/` at all.
 
@@ -110,8 +112,9 @@ difference:
   is a third hand-maintained copy of the same toolkit and has already drifted:
   commit `f362aa2` dropped `aichat`, `worktrunk` and `lazydocker` there only, and
   it lists `git-delta` twice.
-- **`packages/yay-packages`** → deleted. Its body was `exit 0`. `yay` itself is
-  still installed by `setup-packages/setup-yay`.
+- **`packages/yay-packages`** → the old local file was deleted because its body
+  was `exit 0`; the current local file holds devbox-only opt-in GUI editors.
+  `yay` itself is still installed by `setup-packages/setup-yay`.
 - **`packages/flatpak-packages`** → deleted. Every install line in *this box's*
   copy was commented out. The shared list at
   [`../common/packages/flatpak-packages`](../common/packages/flatpak-packages)
