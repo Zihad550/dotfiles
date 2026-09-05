@@ -105,13 +105,16 @@ test("Arch workstation is a remote-development client", () => {
     assert.match(packages, /systemctl enable --now tailscaled\.service/);
     assert.match(apps, /^\s*zed \\/m);
     assert.match(apps, /^\s*neovim \\/m);
-    assert.match(yayPackages, /yay -S --noconfirm --needed helium-browser-bin/);
+    assert.match(yayPackages, /helium-browser-bin/);
+    assert.doesNotMatch(yayPackages, /dragon-drop/);
+    assert.doesNotMatch(apps, /^\s*(yazi|resvg)(?:\s|\\|$)/m);
     assert.doesNotMatch(`${init}\n${packages}\n${apps}\n${yayPackages}\n${flatpaks}`,
         /(^|\s)chromium(?:\s|\\|$)/m);
     assert.match(flatpaks, /com\.mongodb\.Compass/);
     assert.match(flatpaks, /io\.beekeeperstudio\.Studio/);
     assert.match(stow, /^stow zed$/m);
     assert.match(stow, /^stow kanata$/m);
+    assert.doesNotMatch(stow, /^stow yazi$/m);
     assert.match(init, /setup-packages\/setup-kanata/);
     assert.match(init, /setup-packages\/setup-syncthing/);
     assert.match(syncthing, /systemctl --user enable --now syncthing\.service/);
@@ -126,15 +129,20 @@ test("Arch workstation is a remote-development client", () => {
     assert.doesNotMatch(stow, /stow (git|lazygit|worktrunk)|stow-ai/);
 });
 
-test("Arch devbox does not install Syncthing", () => {
+test("Arch devbox excludes workstation sync and browser", () => {
     const init = source("setup/arch-devbox/init");
     const packages = [
         source("setup/common/packages/pacman-base"),
         source("setup/arch-devbox/packages/pacman-apps"),
+        source("setup/arch-devbox/packages/yay-packages"),
     ].join("\n");
 
     assert.doesNotMatch(init, /run_step[^\n]*syncthing/i);
     assert.doesNotMatch(packages, /^\s*syncthing(?:\s|\\|$)/m);
+    assert.doesNotMatch(init, /setup\/common\/packages\/yay-packages/);
+    assert.doesNotMatch(packages, /helium-browser-bin/);
+    assert.match(packages, /^\s*yazi resvg \\/m);
+    assert.match(packages, /dragon-drop/);
 });
 
 test("the shared installer uses pacman on Arch and mise elsewhere", () => {

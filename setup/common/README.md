@@ -45,7 +45,6 @@ here when the explanation does not belong beside the command it protects.
   | List | Installs | Current callers |
   | --- | --- | --- |
   | [`pacman-base`](packages/pacman-base) | The development CLI toolkit, fonts, coreutils replacements and gcc. | Arch devbox |
-  | [`yay-packages`](packages/yay-packages) | AUR packages. | Arch devbox |
   | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Workstation (Arch devbox keeps it off) |
   | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch devbox |
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Workstation, Arch devbox |

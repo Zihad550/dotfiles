@@ -97,11 +97,10 @@ run_step "yay" "$ARCH_DEVBOX_DIR/setup-yay"
 # package base. The client workstation no longer uses it.
 run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
-# Before yay-packages, not after: makepkg fetches an AUR package's validpgpkeys
-# with `gpg --recv-keys`, and dirmngr's own resolver cannot follow this box's
-# DNS path. See setup/common/setup-dirmngr.
+# Before the devbox AUR list, not after: makepkg may fetch an AUR package's
+# validpgpkeys with `gpg --recv-keys`, and dirmngr's own resolver cannot follow
+# this box's DNS path. See setup/common/setup-dirmngr.
 run_step "dirmngr resolver" "$DOTFILES_DIR/setup/common/setup-dirmngr"
-run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
 run_step "devbox yay packages" "$ARCH_DEVBOX_DIR/packages/yay-packages"
 # Off with setup-flatpak above, not independently of it — the shared list has
 # live install lines, so leaving this on with flatpak uninstalled failed the
@@ -128,8 +127,8 @@ run_step "sshd" "$ARCH_DEVBOX_DIR/setup-sshd"
 # from ./setup-tailscale and ./setup-ufw, which must be run by hand
 # after this — setup-tailscale is interactive (a login URL) and run_step gives
 # steps stdin /dev/null, and setup-ufw needs tailscale0 to already exist.
-# NOT ../arch-workstation/setup-packages/setup-ufw: that one opens the syncthing
-# profile and does `ufw deny SSH`, the opposite of what this box wants.
+# NOT ../arch-workstation/setup-packages/setup-ufw: that one denies all inbound
+# traffic, while this box must accept SSH over the tailnet.
 run_step "ufw baseline" "$ARCH_DEVBOX_DIR/setup-ufw-base"
 
 # syncthing dropped — file sync, not development.

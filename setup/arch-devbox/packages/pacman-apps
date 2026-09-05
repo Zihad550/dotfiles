@@ -14,11 +14,10 @@
 # dosfstools \      # fat32
 # rclone \          # cloud sync
 # veracrypt \       # disk encryption
-# yazi \            # tui file browser — nautilus covers it (frees SUPER+F)
-# resvg \           # only here to render svg previews inside yazi
 # xorg-xhost \      # timeshift only
 
-# apps — one browser, two editors, and the bits the desktop needs
+# apps — one browser, two editors, a terminal file browser, and the bits the
+# desktop needs
 # chromium - the only browser; df-theme-set-browser already themes it
 # swappy slurp grim - screenshot (used by the hypr keybindings)
 #
@@ -28,6 +27,7 @@ sudo pacman -S --noconfirm \
     chromium \
     zed \
     neovim \
+    yazi resvg \
     ghostty \
     swappy slurp grim
 

@@ -59,7 +59,7 @@ so a fix there lands on both targets.
 |---|---|
 | `init` | entrypoint; the arch-workstation run order with the culled steps removed |
 | `packages/pacman-apps` | the cull — this box's app layer, the *whole* package difference from arch-workstation |
-| `packages/yay-packages` | opt-in GUI code editors that should not be offered by the workstation profile |
+| `packages/yay-packages` | Dragon Drop plus opt-in GUI code editors |
 | `post-install` | same as arch-workstation's, but sets chromium as default browser |
 | `setup-mise` | installs mise for this profile's development-tool package list |
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
@@ -75,18 +75,17 @@ so a fix there lands on both targets.
 | `setup-ufw` | step 2: allow the tailnet, delete the LAN hole, cut the box off from the rest of the VLAN |
 
 Borrowed unchanged from `../arch-workstation`: `utils/*`, `preflight`, `theme`,
-`gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos` and
-`setup-packages/`. Mise is the other exception: Arch workstation no longer
-installs it, so this profile owns `setup-mise`. `setup-packages/setup-ufw`
-does `ufw deny SSH` and opens the syncthing profile (see
-[firewall](#firewall)).
+`gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos`, and the desktop
+setup helpers. The workstation-specific Syncthing and firewall steps are not
+shared. Mise is another exception: Arch workstation no longer installs it, so
+this profile owns `setup-mise`.
 The shared package lists this box runs live in
-[`../common/packages`](../common/packages): `pacman-base`, `yay-packages`,
-`go-packages` and `quickshell-packages`. The devbox also has a local
+[`../common/packages`](../common/packages): `pacman-base`, `go-packages`, and
+`quickshell-packages`. The devbox has a local
 `packages/yay-packages` file for opt-in GUI code editors. `flatpak-packages` is
 there too but this box leaves it off (see [flatpak](#flatpak-is-off-by-default)).
 Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
-directly on both boxes, not from `setup-packages/` at all.
+directly on the devbox, not from `setup-packages/`.
 
 Hardware detection is the exception: it used to be `../arch-workstation/utils/hw-detect`
 and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
@@ -107,9 +106,8 @@ devbox only.
 
 - **`packages/pacman-packages`** was split into the shared devbox CLI toolkit
   and this directory's graphical app list.
-- **`packages/yay-packages`** → the old local file was deleted because its body
-  was `exit 0`; the current local file holds devbox-only opt-in GUI editors.
-  `yay` itself is still installed by `setup-yay`.
+- **`packages/yay-packages`** now installs Dragon Drop and holds devbox-only
+  opt-in GUI editors. `yay` itself is installed by `setup-yay`.
 - **`packages/flatpak-packages`** → deleted. Every install line in *this box's*
   copy was commented out. The shared list at
   [`../common/packages/flatpak-packages`](../common/packages/flatpak-packages)
@@ -127,19 +125,11 @@ one-word reason** — uncomment to get any of them back.
 
 **Apps (not development):** discord, obs-studio, transmission-gtk, obsidian,
 mpv, converseen, xournalpp, veracrypt, rclone, net-tools, dosfstools,
-xorg-xhost, nautilus-image-converter, gnome-font-viewer, dragon-drop,
-helium-browser-bin, zen-browser, and the syncthing step.
+xorg-xhost, nautilus-image-converter, gnome-font-viewer, helium-browser-bin,
+zen-browser, and the syncthing step.
 
-**yazi** (and `resvg`, which was only there to render svg previews inside it) —
-nautilus covers file browsing. Two loose ends this leaves, both in files shared
-with arch-workstation and so deliberately not edited:
-
-- `hypr/.config/hypr/lua/bindings/apps.lua:25` binds **SUPER+F** to
-  `df-launch-tui yazi`. That keybinding is now dead — rebind or ignore it.
-- `scripts/stow/stow-base` still runs `stow yazi`, which just leaves config
-  behind for a program that isn't installed. Harmless.
-
-`7zip` stays; it's useful on its own.
+Yazi, its `resvg` preview dependency, Dragon Drop, and `7zip` stay on the
+devbox.
 
 **Kept even though it isn't "web dev":** the whole Hyprland layer (uwsm,
 quickshell, hyprpolkitagent, the portal,
@@ -287,19 +277,10 @@ switches it back once the TLS fault is understood. Note the script leaves an
 existing `keyserver` line alone, so flipping it on a box that already ran means
 editing `~/.gnupg/dirmngr.conf` by hand.
 
-It runs in `init` **immediately before `yay packages`**, which is the step that
-needs it: makepkg verifies AUR source signatures against the PKGBUILD's
-`validpgpkeys` and fetches missing keys with `gpg --recv-keys`, so
-`helium-browser-bin` fails at the verify step on a box where every other network
-operation is fine. Existing settings are left alone, so a hand-picked keyserver
-survives a re-run.
-
-**`../arch-workstation/init` deliberately does not run it**, even though it runs the
-same `packages/yay-packages` with the same `helium-browser-bin`. That box is not
-isolated — no VLAN boundary, no public-resolver override, so its lookups take the
-plain path dirmngr can follow. The script is in `../common/` rather than this
-directory because that is where shared implementations live, not because both
-inits call it; adding the `run_step` there is one line if it ever does bite.
+It runs in `init` immediately before the devbox AUR package list. The list is
+opt-in today, but signed AUR packages may declare `validpgpkeys`, which makes
+makepkg fetch missing keys with `gpg --recv-keys`. Existing dirmngr settings are
+left alone, so a hand-picked keyserver survives a re-run.
 
 If it still fails after that, the problem is below gpg — check egress, not
 dirmngr:
@@ -746,8 +727,8 @@ is silently ignored. The Shared Setup Script inserts the Include at line 1
 is unconditional because it is a no-op wherever the line already exists, which
 is everywhere else.
 
-This replaces `../arch-workstation/setup-packages/setup-ufw`, which does `ufw deny
-SSH` and opens the syncthing profile — the opposite of what this box wants.
+This replaces `../arch-workstation/setup-packages/setup-ufw`, which denies all
+inbound traffic. The devbox must accept SSH over the tailnet.
 
 ## staying awake
 

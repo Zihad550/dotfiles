@@ -6,13 +6,11 @@
 #  core, desktop-only
 # xournalpp - pdf editor
 # dosfstools - fat32 support
-# yazi - terminal file browser, resvg - its svg previewer
 sudo pacman -S --noconfirm \
     xournalpp \
     dosfstools \
     rclone \
     veracrypt \
-    yazi resvg \
     pass
 
 # xorg-xhost \      # needed for running timeshift
