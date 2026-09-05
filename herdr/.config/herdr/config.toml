@@ -43,8 +43,8 @@ prefix = "ctrl+space"
 # prefix = "ctrl+f"          # your old commented-out `set -g prefix ^F`
 
 # --- tabs (tmux windows) ------------------------------------------------
-new_tab       = "prefix+ctrl+c"              # tmux: bind ^C new-window
-close_tab     = "prefix+shift+x"             # tmux: default & kill-window
+new_tab       = "prefix+ctrl+t"
+close_tab     = "prefix+ctrl+w"
 rename_tab    = "prefix+r"                   # tmux: bind r rename-window
 next_tab      = ["prefix+shift+l", "prefix+n"]   # tmux: bind L next-window
 previous_tab  = "prefix+shift+h"             # tmux: bind H previous-window
@@ -90,7 +90,7 @@ navigate_pane_right = "l"
 new_workspace      = "prefix+shift+n"
 rename_workspace   = "prefix+shift+w"
 close_workspace    = "prefix+shift+d"        # closes only the current workspace
-# prefix+ctrl+w is bound below (see [[keys.command]]) to actually kill the
+# prefix+ctrl+q is bound below (see [[keys.command]]) to actually kill the
 # session -- close_workspace alone leaves the client/window running with
 # zero workspaces. tmux: bind ^W kill-session.
 previous_workspace = "prefix+ctrl+p"
@@ -125,7 +125,7 @@ open_notification_target = "prefix+o"
 # session outright, which does close the window. No confirm prompt, same as
 # tmux's ^W kill-session.
 [[keys.command]]
-key = "prefix+ctrl+w"
+key = "prefix+ctrl+q"
 type = "shell"
 # Hyprland's exec PATH lacks ~/.local/bin (see df-herdr-session), so bare
 # `herdr` isn't found here -- use the absolute path herdr injects itself.
