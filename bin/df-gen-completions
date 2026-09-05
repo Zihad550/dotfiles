@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Generate zsh completions for tools installed via mise (deno/uv/uvx/gt/bun).
+# Generate zsh completions for installed command-line tools.
 #
 # Run this AFTER the first reboot following `setup/boot`, when mise has
 # activated and the tools are on PATH. It writes user-owned completion files
@@ -46,6 +46,10 @@ gen deno deno completions zsh
 gen uvx  uvx --generate-shell-completion zsh
 gen uv   uv  --generate-shell-completion zsh
 gen gt   gt  completion
+gen mise mise completion zsh
+gen kilo kilo completion
+gen kubectl kubectl completion zsh
+gen herdr herdr completion zsh
 
 # Drop the compdump so the next zsh runs a full compinit and picks up the new
 # completions immediately (the .zshrc fast path otherwise reuses a <24h cached

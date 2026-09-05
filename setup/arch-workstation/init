@@ -62,7 +62,6 @@ run_step "gnome-theme" "$ARCH_WORKSTATION_DIR/gnome-theme"
 # package managers
 run_step "omarchy repos" "$ARCH_WORKSTATION_DIR/setup-omarchy-repos"
 run_step "flatpak" "$ARCH_WORKSTATION_DIR/setup-packages/setup-flatpak"
-run_step "mise" "$ARCH_WORKSTATION_DIR/setup-packages/setup-mise"
 run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
 
 # packages
@@ -73,7 +72,6 @@ run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
 run_step "pacman apps" "$ARCH_WORKSTATION_DIR/packages/pacman-apps"
 run_step "yay packages" "$DOTFILES_DIR/setup/common/packages/yay-packages"
 run_step "flatpak packages" "$DOTFILES_DIR/setup/common/packages/flatpak-packages"
-run_step "mise packages" "$ARCH_WORKSTATION_DIR/packages/mise-packages"
 
 run_step "hyprland" "$ARCH_WORKSTATION_DIR/setup-packages/setup-hyprland"
 # After hyprland: quickshell is the shell for that desktop, and shares this list

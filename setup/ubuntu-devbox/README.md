@@ -56,7 +56,7 @@ be verified with an on-console reboot.
 | `setup-tuned` | power management — a `ubuntu-devbox` tuned profile (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
 | `tools` | global mise toolchain — copy of `devcontainer/tools` |
 | `stow` | dotfile symlinks — `devcontainer/stow` plus the bind-mounted paths it assumed |
-| `../common/setup-herdr` | installs the mise-managed Herdr binary and its existing agent integrations |
+| `../common/setup-herdr` | installs the Herdr binary through mise and adds its existing agent integrations |
 | `setup-tailscale` | install tailscale and join the tailnet; sshd stays the access path (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-ufw` | deny all in; allow the tailnet, plus ssh from `$LAN_SSH_SRC` |
 | `harden-ssh` | key-only sshd, no root, random high port, modern crypto only (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |

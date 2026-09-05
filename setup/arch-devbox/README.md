@@ -60,6 +60,7 @@ so a fix there lands on both targets.
 | `init` | entrypoint; the arch-workstation run order with the culled steps removed |
 | `packages/pacman-apps` | the cull — this box's app layer, the *whole* package difference from arch-workstation |
 | `post-install` | same as arch-workstation's, but sets chromium as default browser |
+| `setup-mise` | installs mise for this profile's development-tool package list |
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
 | `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
@@ -74,8 +75,10 @@ so a fix there lands on both targets.
 
 Borrowed unchanged from `../arch-workstation`: `utils/*`, `preflight`, `theme`,
 `gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos` and
-`setup-packages/` — except `setup-packages/setup-ufw`, which does `ufw
-deny SSH` and opens the syncthing profile (see [firewall](#firewall)).
+`setup-packages/`. Mise is the other exception: Arch workstation no longer
+installs it, so this profile owns `setup-mise`. `setup-packages/setup-ufw`
+does `ufw deny SSH` and opens the syncthing profile (see
+[firewall](#firewall)).
 The package lists this box runs live in
 [`../common/packages`](../common/packages): `pacman-base`, `yay-packages`,
 `go-packages` and `quickshell-packages`. `flatpak-packages` is there too but
@@ -88,15 +91,11 @@ and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
 three installers. It is not arch-specific, and `../ubuntu-devbox` needs
 `is_laptop` too.
 
-Four small changes were made there so both installers can share them:
+The shared files have these compatibility changes:
 
 - `preflight` and `utils/logging` take the installer's name from
   `$ARCH_SETUP_NAME`, and the error screen's *Retry* re-execs `$ARCH_SETUP_INIT`
   instead of a hardcoded arch-workstation path.
-- `setup-mise` guards its `kilo completion` call. `kilo` is installed by
-, which `init` never runs, so on a fresh box that line installed an
-  **empty** `_kilo` completion file system-wide (the redirect created the file
-  before the missing command failed, and the following `mv` then succeeded).
 - `setup-ufw` guards `ufw allow syncthing` behind `ufw app info syncthing`. That
   app profile only exists once syncthing is installed, and arch-devbox drops it.
 

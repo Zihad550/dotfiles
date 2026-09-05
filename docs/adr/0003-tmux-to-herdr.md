@@ -105,17 +105,12 @@ mirrored directory from the Launcher still routes when the toggle is on.
   case opens wherever the remote server's own session defaults to, not
   necessarily `path`. Not solved here; noted in `bin/df-herdr-session` as a
   known gap.
-- `bin/df-herdr-session` cannot rely on `PATH` to find `herdr` at all.
-  Hyprland's own exec (`hl.dsp.exec_cmd`, what both `SUPER+U` and the
-  Launcher route through) hands spawned processes a bare `/usr/bin`-only
-  `PATH` — `~/.local/bin`, where mise's `herdr` shim lives (`zsh/.zshenv`),
-  is never on it, unlike a shell-launched command. `/usr/bin/tmux` being on
-  that minimal `PATH` is exactly why tmux never had this problem. Under
-  `set -e` this failed completely silently — empty `HERDR_BIN`, script exits
-  before printing anything, ghostty shows a blank window with just a generic
-  "Command failed" banner — so `bin/df-herdr-session` now falls back to
-  known install paths and errors loudly (exit 127, message on stderr) if
-  `herdr` truly can't be found, rather than dying silent.
+- At the time of the migration, `bin/df-herdr-session` could not rely on
+  `PATH`. Hyprland's exec handed spawned processes a bare `/usr/bin`-only
+  `PATH`, while mise put Herdr in `~/.local/bin`. The script therefore gained
+  explicit fallback paths and an exit-127 error instead of failing silently.
+  Both Arch profiles now install Herdr from pacman, so `/usr/bin/herdr` fixes
+  the original mismatch. The fallback remains for older installations.
 - Live host probing confirmed that a bare `--class=herdr` remains ineffective:
   Ghostty rejects a non-dotted application identity and Hyprland reports the generic
   `com.mitchellh.ghostty` class. A valid dotted identity does work, however.

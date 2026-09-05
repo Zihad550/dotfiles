@@ -83,7 +83,7 @@ run_step "gnome-theme" "$ARCH_WORKSTATION_DIR/gnome-theme"
 # The omarchy repo is required, not optional: worktrunk, opencode, claude-code,
 # tea and quickshell all come from it.
 run_step "omarchy repos" "$ARCH_WORKSTATION_DIR/setup-omarchy-repos"
-run_step "mise" "$ARCH_WORKSTATION_DIR/setup-packages/setup-mise"
+run_step "mise" "$ARCH_DEVBOX_DIR/setup-mise"
 run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
 
 # flatpak dropped — its only dev-relevant apps were MongoDB Compass and

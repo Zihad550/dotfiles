@@ -331,10 +331,11 @@ appropriate install block; add repository-owned skills to
 
 The Ubuntu devbox, Ubuntu server, and Alpine call
 [`setup-herdr`](setup-herdr) directly. The shared installer gets the binary
-from mise, registers the existing agent integrations, and keeps the install
-non-interactive. Their stow scripts link only
+from mise on those profiles. Arch devbox gets the binary from the shared
+pacman package list, then calls the same installer for integrations and the
+Herdr skill. The install stays non-interactive. Their stow scripts link only
 `herdr/.config/herdr/config.toml`; session state stays on the host. The
-integration list is shared with the Arch devbox because no host evidence shows
+integration list remains shared because no host evidence shows
 that a lean server-only list is needed. The owner verified Herdr's session,
 detach/reattach, and prefix-key workflow on all three target profiles. See
 [ADR 0029](../../docs/adr/0029-headless-profiles-use-herdr.md).

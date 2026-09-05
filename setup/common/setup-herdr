@@ -6,7 +6,15 @@ set -euo pipefail
 # shared skill sync. Keep its one dependency here so the standalone path is
 # complete and non-interactive.
 mise use -g npm:skills
-mise use -g github:herdrdev/herdr
+
+if command -v pacman &>/dev/null; then
+    if ! pacman -Q herdr &>/dev/null; then
+        echo "Herdr must be installed by the shared Arch pacman package list" >&2
+        exit 1
+    fi
+else
+    mise use -g github:herdrdev/herdr
+fi
 
 eval "$(mise activate bash)"
 

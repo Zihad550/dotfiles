@@ -10,8 +10,8 @@
 # already drifted (setup/ubuntu-devbox/packages, a third copy of the same
 # toolkit, dropped aichat/worktrunk/lazydocker while both arch lists kept them).
 #
-# NOTE: opencode, worktrunk, tea and claude-code come from the omarchy repo,
-# not official Arch. `setup-omarchy-repos` must run before this.
+# NOTE: opencode, worktrunk, tea, claude-code and herdr come from the omarchy
+# repo, not official Arch. `setup-omarchy-repos` must run before this.
 
 #  core
 # gum - shell script UI, also drives the installer
@@ -49,11 +49,20 @@ sudo pacman -S --noconfirm \
     rsync \
     bubblewrap socat \
     claude-code \
+    herdr \
     ghq \
     mkcert
 
+# Retire user-level Herdr installs after pacman has put the replacement in
+# /usr/bin. Otherwise ~/.local/bin wins on PATH and hides pacman's version.
+rm -f "$HOME/.local/bin/herdr"
+if command -v mise &>/dev/null && mise ls herdr 2>/dev/null | grep -q herdr; then
+    mise unuse -g herdr &>/dev/null || true
+    mise uninstall -a herdr &>/dev/null || true
+fi
+rm -rf "$HOME/.local/share/mise/installs/herdr" "$HOME/.local/share/mise/shims/herdr"
+
 # net-tools \       # deprecated, ip/ss cover it
-# mise \            # installed by setup-packages/setup-mise
 # mission-center \
 # atac \            # terminal api client
 # termdown \        # terminal counter

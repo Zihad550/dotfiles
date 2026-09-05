@@ -73,14 +73,53 @@ test("every target Herdr config call site reaches the shared installer", () => {
     }
 });
 
-test("the shared installer is mise-backed and non-interactive", () => {
+test("Arch installs Herdr with pacman and retires user-level copies", () => {
+    const packages = source("setup/common/packages/pacman-base");
+
+    assert.match(packages, /^\s*herdr \\/m,
+        "the shared Arch package list does not install Herdr");
+    assert.match(packages, /rm -f "\$HOME\/\.local\/bin\/herdr"/,
+        "a user-level Herdr binary can still shadow pacman's package");
+    assert.match(packages, /mise uninstall -a herdr/,
+        "the old mise-managed Herdr release is not retired");
+});
+
+test("the shared installer uses pacman on Arch and mise elsewhere", () => {
     const setup = source("setup/common/setup-herdr");
 
+    assert.match(setup, /command -v pacman/);
+    assert.match(setup, /pacman -Q herdr/);
     assert.match(setup, /mise use -g github:herdrdev\/herdr/);
     assert.match(setup, /skills add [^\n]* -y\s*$/m,
         "the global skill install would otherwise prompt during init");
     assert.doesNotMatch(setup, /lean/i,
         "no lean integration mode is justified without host evidence");
+});
+
+test("mise installation belongs to Arch devbox, not Arch workstation", () => {
+    const workstation = source("setup/arch-workstation/init");
+    const devbox = source("setup/arch-devbox/init");
+
+    assert.doesNotMatch(workstation, /setup-mise|mise packages/);
+    assert.match(devbox, /\$ARCH_DEVBOX_DIR\/setup-mise/);
+    assert.ok(fs.existsSync(path.join(repoRoot, "setup/arch-devbox/setup-mise")));
+    assert.ok(!fs.existsSync(path.join(repoRoot,
+        "setup/arch-workstation/setup-packages/setup-mise")));
+    assert.ok(!fs.existsSync(path.join(repoRoot,
+        "setup/arch-workstation/packages/mise-packages")));
+});
+
+test("generated completions replace shell-startup generators", () => {
+    const generator = source("bin/df-gen-completions");
+    const zshrc = source("zsh/.config/zsh/.zshrc");
+    const setupMise = source("setup/arch-devbox/setup-mise");
+
+    assert.match(generator, /^gen mise mise completion zsh$/m);
+    assert.match(generator, /^gen kilo kilo completion$/m);
+    assert.match(generator, /^gen kubectl kubectl completion zsh$/m);
+    assert.match(generator, /^gen herdr herdr completion zsh$/m);
+    assert.doesNotMatch(zshrc, /kubectl completion zsh|herdr completion zsh/);
+    assert.doesNotMatch(setupMise, /mise completion zsh|site-functions/);
 });
 
 test("the ADR records completed feasibility and per-host runtime checks", () => {

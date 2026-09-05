@@ -2,7 +2,7 @@
 
 The headless carve-out in
 [ADR 0003](0003-tmux-to-herdr.md) is superseded. `ubuntu-devbox`, the
-`ubuntu-server` setup paths, and `alpine` use Herdr through the shared
+`ubuntu-server` setup paths, `alpine`, and Arch devbox use Herdr through the shared
 [`setup/common/setup-herdr`](../../setup/common/setup-herdr) installer, and
 their stow scripts manage only Herdr's `config.toml`. They no longer install
 or stow tmux.
@@ -22,19 +22,30 @@ profile installing or stowing tmux; the old config is retained on
 The original carve-out described headless boxes as having no Herdr integration
 surface. That boundary no longer matches the repository: the remote boxes run
 the same agent workflows, and `ubuntu-devbox` had already linked Herdr's config
-while still installing and stowing tmux. A mise-managed Herdr release is
-already available on the Ubuntu paths, so keeping two multiplexers creates
+while still installing and stowing tmux. Herdr releases are available through
+mise on Ubuntu and Alpine and through the Omarchy pacman repository on Arch,
+so keeping two multiplexers creates
 configuration drift without preserving a useful distinction.
 
 ## Shared installer and integration boundary
 
-Each target entrypoint calls the same shared installer. It installs Herdr via
-mise, registers the existing agent integrations, and does not add a GUI
-dependency. The integration list stays unchanged and there is no headless
+Each target entrypoint calls the same shared installer. On Ubuntu and Alpine it
+installs Herdr via mise. On Arch it requires the Herdr package installed by the
+shared pacman list. The installer then registers the existing agent
+integrations and does not add a GUI dependency. The integration list stays
+unchanged and there is no headless
 "lean" mode: no integration has been shown to fail or impose meaningful cost
 on a server, and a split list would create an unverified divergence. The
 installer is self-contained and non-interactive so it can run inside an
 unattended setup sequence.
+
+Both Arch profiles install Herdr from pacman. The package manager now owns the
+binary and its upgrades. The package step removes old user-level and
+mise-managed Herdr copies because `~/.local/bin` precedes `/usr/bin` on these
+profiles and would otherwise hide the pacman binary. Arch devbox still uses
+mise for its development tools and for the `skills` CLI; only Herdr's binary
+moves to pacman. Arch workstation does not add the integration step as part of
+this change.
 
 Only `config.toml` is linked into `~/.config/herdr/`. Herdr's sessions, sockets,
 logs and other runtime state stay on the host, as they do on the Arch desktop
