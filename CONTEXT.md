@@ -115,10 +115,10 @@ Settings.
 _Avoid_: gear menu, settings menu, control centre, tray
 
 Its primary surface is ordered as header actions and battery summary, the
-full-width volume and brightness controls, then the reflowing
-Wi-Fi/Wired/Bluetooth/Tailscale/Devcontainer Tile grid. Wi-Fi and Wired are
-separate transport Tiles when both are available; unavailable controls are
-omitted so the remaining content reflows without placeholders.
+full-width volume and brightness controls, passive Wired status when connected,
+then the reflowing Wi-Fi/Bluetooth/Tailscale/Devcontainer Tile grid. Wired is
+transport state, not a Tile; unavailable controls are omitted so the remaining
+content reflows without placeholders.
 
 **Status Cluster**:
 The grouped at-a-glance indicators at the right of the bar and the mouse entry
@@ -149,30 +149,6 @@ Content that replaces the primary Quick Settings surface in the same window,
 reached from a Tile or Row and left by a back arrow. Not a second window and
 not a submenu — the panel is showing something else for a while.
 _Avoid_: popup, submenu, screen, view, flyout
-
-**Network Page**:
-The Page reached from either network transport Tile's chevron. It owns the
-complete network experience: connection status and Wi-Fi management together
-with band, DNS, Wi-Fi sharing, and connection-speed controls. Route-dependent
-controls act on the Default Route while transport controls remain independent.
-_Avoid_: Wi-Fi menu, network menu, Wi-Fi popup, second menu
-
-**Wired Tile**:
-The Tile for the active wired transport. Its main segment disconnects or
-reconnects the eligible saved profile NetworkManager chooses by its own
-autoconnect policy; its chevron opens the Network Page.
-_Avoid_: wired status, Ethernet row, network tile
-
-**Default Route**:
-The interface selected by the kernel for ordinary outbound traffic. It is the
-Network Page's primary connection and the target for its hero, statistics, DNS,
-and connection-speed controls, even when another transport is also connected.
-_Avoid_: preferred connection, active network, primary adapter
-
-**Automatic DNS**:
-DNS configuration supplied by the active network, normally advertised by the
-router through DHCP, with no user-selected public or custom provider override.
-_Avoid_: default DNS, router DNS, DHCP DNS
 
 **Flyout**:
 A popup anchored under the bar entry that opened it, listing rows to act on,

@@ -104,7 +104,6 @@ run_step "hyprland" "$ARCH_WORKSTATION_DIR/setup-packages/setup-hyprland"
 # Shared with arch-workstation, not overridden: the shell is identical on both
 # targets, so its runtime dependencies are too.
 run_step "quickshell packages" "$DOTFILES_DIR/setup/common/packages/quickshell-packages"
-run_step "network page validation" "$DOTFILES_DIR/setup/common/setup-network-page"
 
 # Rootless -- this box runs AI harnesses against text pulled off the internet.
 # See ../common/setup-rootless-docker and README.md "docker".

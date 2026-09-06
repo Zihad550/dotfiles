@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Networking
 import Quickshell.Services.UPower
 import qs
 import "lib/statusCluster.js" as Status
@@ -12,7 +13,7 @@ PopupWindow {
 
     enum Page {
         Primary,
-        Network,
+        Wifi,
         Audio,
         Bluetooth,
         Power,
@@ -32,6 +33,12 @@ PopupWindow {
     // impossible combinations.
     property int currentPage: QuickSettings.Primary
 
+    readonly property var wifiDevice: Networking.devices.values.find(device => device.type === DeviceType.Wifi) ?? null
+    readonly property var wifiNetwork: root.wifiDevice
+        ? (root.wifiDevice.networks.values.find(network => network.connected) ?? null)
+        : null
+    readonly property bool wifiConnecting: root.wifiDevice?.state === ConnectionState.Connecting
+    readonly property var wifiIcons: ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
     readonly property var bluetoothRuntime: bluetoothLoader.item
     readonly property var bluetoothAdapter: root.bluetoothRuntime?.adapter ?? null
     readonly property var bluetoothConnectedDevices: root.bluetoothRuntime?.connectedDevices ?? []
@@ -88,8 +95,8 @@ PopupWindow {
     }
 
     readonly property real surfaceImplicitHeight: {
-        if (root.currentPage === QuickSettings.Network)
-            return networkPage.implicitHeight;
+        if (root.currentPage === QuickSettings.Wifi)
+            return wifiPage.implicitHeight;
         if (root.currentPage === QuickSettings.Audio)
             return audioPage.implicitHeight;
         if (root.currentPage === QuickSettings.Bluetooth)
@@ -108,6 +115,16 @@ PopupWindow {
     // resulting immediate reopen.
     property double lastCleared: 0
 
+    function wifiGlyph(): string {
+        if (!Networking.wifiHardwareEnabled || !Networking.wifiEnabled)
+            return "󰤭";
+        if (!root.wifiNetwork)
+            return "󰤮";
+        const strength = root.wifiNetwork.signalStrength ?? 0;
+        const index = Math.min(root.wifiIcons.length - 1, Math.floor(strength * root.wifiIcons.length));
+        return root.wifiIcons[index];
+    }
+
     function setBluetoothEnabled(enabled: bool): void {
         if (!root.bluetoothRuntime || root.bluetoothTogglePending || root.bluetoothTransitioning)
             return;
@@ -120,8 +137,8 @@ PopupWindow {
             return;
         if (!root.keyboardFocusRequested)
             panelFocus.forceActiveFocus();
-        else if (root.currentPage === QuickSettings.Network)
-            networkPage.focusHeader();
+        else if (root.currentPage === QuickSettings.Wifi)
+            wifiPage.focusHeader();
         else if (root.currentPage === QuickSettings.Audio)
             audioPage.focusHeader();
         else if (root.currentPage === QuickSettings.Bluetooth && bluetoothPageLoader.item)
@@ -134,8 +151,8 @@ PopupWindow {
             tailscalePage.focusHeader();
         else if (lockAction.visible)
             lockAction.forceActiveFocus();
-        else if (networkQuickSettings.available)
-            networkQuickSettings.focusFirstTile();
+        else if (wifiTile.visible)
+            wifiTile.forceActiveFocus();
         else
             panelFocus.forceActiveFocus();
     }
@@ -143,7 +160,7 @@ PopupWindow {
     function navigate(page: int, keyboardFocus: bool): void {
         if (page === QuickSettings.Bluetooth && !root.bluetoothAvailable)
             return;
-        if (page !== QuickSettings.Primary && page !== QuickSettings.Network && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer && page !== QuickSettings.Tailscale) {
+        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer && page !== QuickSettings.Tailscale) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
@@ -201,7 +218,7 @@ PopupWindow {
 
     HyprlandFocusGrab {
         windows: [root]
-        active: root.shown && !networkPage.speedTestOpen && !TailscaleService.operationRunning
+        active: root.shown && !TailscaleService.operationRunning
 
         onCleared: {
             root.lastCleared = Date.now();
@@ -410,19 +427,14 @@ PopupWindow {
                             width: parent.width
                         }
 
-                        NetworkQuickSettings {
-                            id: networkQuickSettings
-
+                        WiredStatus {
                             width: parent.width
-                            controller: networkPage
-
-                            onPageRequested: keyboard => root.navigate(QuickSettings.Network, keyboard)
                         }
 
                         Flow {
                             id: tileGrid
 
-                            visible: TailscaleService.installed || root.bluetoothAvailable || devcontainerTile.visible
+                            visible: root.wifiDevice !== null || TailscaleService.installed || root.bluetoothAvailable || devcontainerTile.visible
                             width: parent.width
                             height: tileGrid.visible ? tileGrid.implicitHeight : 0
                             spacing: Theme.quickSettingsGap
@@ -430,6 +442,28 @@ PopupWindow {
                             readonly property real tileWidth: width >= 330
                                 ? (width - Theme.quickSettingsGap) / 2
                                 : width
+
+                            Tile {
+                                id: wifiTile
+
+                                visible: root.wifiDevice !== null
+                                width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
+                                enabled: Networking.wifiHardwareEnabled
+
+                                icon: root.wifiGlyph()
+                                label: root.wifiNetwork ? root.wifiNetwork.name : "Wi-Fi"
+                                active: Networking.wifiHardwareEnabled && Networking.wifiEnabled
+                                busy: root.wifiConnecting
+                                chevronVisible: true
+
+                                onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
+                                onChevronClicked: keyboard => {
+                                    if (!Networking.wifiEnabled)
+                                        Networking.wifiEnabled = true;
+                                    root.navigate(QuickSettings.Wifi, keyboard);
+                                }
+                            }
 
                             Tile {
                                 id: stayAwakeTile
@@ -512,14 +546,14 @@ PopupWindow {
             }
 
             Item {
-                id: networkSurface
+                id: wifiSurface
 
-                x: root.currentPage === QuickSettings.Network ? 0 : 8
+                x: root.currentPage === QuickSettings.Wifi ? 0 : 8
                 width: parent.width
                 height: parent.height
                 visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Network
-                opacity: root.currentPage === QuickSettings.Network ? 1 : 0
+                enabled: root.currentPage === QuickSettings.Wifi
+                opacity: root.currentPage === QuickSettings.Wifi ? 1 : 0
 
                 Behavior on x {
                     NumberAnimation {
@@ -535,11 +569,11 @@ PopupWindow {
                     }
                 }
 
-                NetworkPage {
-                    id: networkPage
+                WifiPage {
+                    id: wifiPage
 
                     anchors.fill: parent
-                    active: root.shown && root.currentPage === QuickSettings.Network
+                    active: root.shown && root.currentPage === QuickSettings.Wifi
 
                     onBack: keyboard => root.showPrimary(keyboard)
                     onCloseRequested: root.dismiss()

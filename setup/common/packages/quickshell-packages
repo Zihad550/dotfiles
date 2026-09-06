@@ -32,19 +32,11 @@
 # libnotify - notify-send. The shell's NotificationDaemon.qml is what displays
 #     these; the bin/df-* scripts send them too.
 # playerctl - OsdService.qml's media keys (play-pause/next/previous + status)
-# networkmanager - NetworkManager and nmcli, the Network Page's transport
-#     control and profile boundary
-# iproute2 inetutils gawk iw - route, ping, parsing, and Wi-Fi link details
-# curl jq - df-network-speedtest fetches endpoints and streams traffic
 # qt6-imageformats - webp decoding for the Session Lock's wallpaper
 #     (lock/LockSurface.qml draws ~/.config/theme/background, and the shipped
 #     backgrounds are webp). Qt renders the theme background colour instead
 #     without it, which looks deliberate rather than broken -- so its absence
 #     shows up as a missing wallpaper, not as an error.
-#
-# Optional network feature:
-# qrencode - df-network-qr renders the shareable Wi-Fi matrix. Install it only
-#     when QR sharing is wanted: `sudo pacman -S --needed qrencode`.
 sudo pacman -S --noconfirm \
     quickshell \
     ttf-fira-code \
@@ -53,11 +45,4 @@ sudo pacman -S --noconfirm \
     wl-clipboard \
     libnotify \
     playerctl \
-    networkmanager \
-    iproute2 \
-    inetutils \
-    gawk \
-    iw \
-    curl \
-    jq \
     qt6-imageformats

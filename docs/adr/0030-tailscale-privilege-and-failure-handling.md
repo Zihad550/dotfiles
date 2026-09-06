@@ -6,11 +6,9 @@ first. Only a recognized permission-denied result retries the identical
 operation, verbatim, under `pkexec`, so hyprpolkitagent draws the prompt --
 the same reasoning `scripts/tailscale-toggle.sh` already established for the
 Quick Settings toggle (its permission-detection wording is reused verbatim in
-`bin/df-tailscale`'s `is_permission_denied`). This is the Tailscale
-counterpart to [ADR 0028](0028-network-changes-use-networkmanager-polkit.md):
-no passwordless sudo rule, no relaxed polkit policy, and `tailscale set
---operator` is never run, so root access stays a per-operation, per-prompt
-grant rather than a standing one.
+`bin/df-tailscale`'s `is_permission_denied`). No passwordless sudo rule or
+relaxed polkit policy is added, and `tailscale set --operator` is never run, so
+root access stays a per-operation, per-prompt grant rather than a standing one.
 
 ## Why not `tailscale set --operator`
 

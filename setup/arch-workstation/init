@@ -68,7 +68,6 @@ run_step "hyprland" "$ARCH_WORKSTATION_DIR/setup-packages/setup-hyprland"
 # After hyprland: quickshell is the shell for that desktop, and shares this list
 # with arch-devbox — hence setup/common/packages/.
 run_step "quickshell packages" "$DOTFILES_DIR/setup/common/packages/quickshell-packages"
-run_step "network page validation" "$DOTFILES_DIR/setup/common/setup-network-page"
 
 run_step "syncthing" "$ARCH_WORKSTATION_DIR/setup-packages/setup-syncthing"
 run_step "ufw" "$ARCH_WORKSTATION_DIR/setup-packages/setup-ufw"
