@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+die() {
+    echo "df-launch-role: $*" >&2
+    exit 1
+}
+
+[[ $# -ge 1 ]] || die "usage: df-launch-role <role> [args...]"
+role="$1"
+shift
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+resolved=$("$script_dir/df-default-app" get --json "$role") || exit $?
+desktop=$(jq -r '.candidate.desktop // empty' <<<"$resolved")
+
+if [[ "$role" == file-manager && $# == 0 ]]; then
+    set -- "$HOME"
+fi
+
+if [[ -n "$desktop" ]]; then
+    exec uwsm-app -- "$desktop" "$@"
+fi
+
+mapfile -t command_argv < <(jq -r '.candidate.command[]' <<<"$resolved")
+[[ ${#command_argv[@]} -gt 0 ]] || die "resolved candidate has no launch command"
+exec "$script_dir/df-launch-tui" "${command_argv[@]}" "$@"

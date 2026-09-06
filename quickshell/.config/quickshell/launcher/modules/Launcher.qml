@@ -79,7 +79,7 @@ PanelWindow {
     // screenshots is kept out for a different reason, see `previewMode`.
     //
     // Themes, backgrounds and the enter-only Providers (processes, webapps,
-    // systemd, workspaces, dev servers) have no prefix of their own -- reached
+    // default apps, systemd, workspaces, dev servers) have no prefix of their own -- reached
     // only through the "?" provider list's enter()/nested mechanism, which is
     // why they must be in this list even without a prefix (`nestedProvider`
     // below reads it). Ranking them against every keystroke would put a row
@@ -87,7 +87,7 @@ PanelWindow {
     // ordinary Query; being enter-only makes that impossible rather than
     // merely unlikely. They keep `refresh()` on every open regardless -- this
     // list is what `open()` walks.
-    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, webapps, systemd, devServers, providerList])
+    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, webapps, defaultApps, systemd, devServers, providerList])
 
     // `root.activePool`, not `root.pool`: a Query routed to one Provider that
     // hasn't populated yet should report pending for *that* Provider only.
@@ -762,6 +762,12 @@ PanelWindow {
         id: webapps
 
         // Same reason as apps' `active` above.
+        active: root.visible
+    }
+
+    DefaultApps {
+        id: defaultApps
+
         active: root.visible
     }
 

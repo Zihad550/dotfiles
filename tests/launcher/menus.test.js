@@ -284,6 +284,13 @@ const audit = [
     {
         file: "OtherMenu.qml",
         menu: "other",
+        elephant: "flatpak run app.zen_browser.zen -P dev",
+        entry: { name: "Zen Browser profile dev", command: ["flatpak", "run", "app.zen_browser.zen", "-P", "dev"] },
+        argv: ["uwsm-app", "--", "flatpak", "run", "app.zen_browser.zen", "-P", "dev"]
+    },
+    {
+        file: "OtherMenu.qml",
+        menu: "other",
         elephant: "",
         entry: { name: "Zen Browser profile webdev", command: ["flatpak", "run", "app.zen_browser.zen", "-P", "webdev"] },
         argv: ["uwsm-app", "--", "flatpak", "run", "app.zen_browser.zen", "-P", "webdev"]
@@ -315,7 +322,7 @@ for (const row of audit) {
     });
 }
 
-test("audit: every one of the fourteen entries renders an icon", () => {
+test("audit: every one of the fifteen entries renders an icon", () => {
     for (const row of audit) {
         const built = Menus.catalogOf({
             name: row.menu,

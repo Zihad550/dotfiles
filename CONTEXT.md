@@ -235,6 +235,58 @@ The compact, issue-aware form of a directory basename shown inside a Launcher
 Workspace Name, such as `front` for `frontend` or `fr212` for `fr212`.
 _Avoid_: project name, directory suffix, folder tag
 
+**Default App Role**:
+A named desktop responsibility whose selected application can change without
+changing the keybinding or caller that uses it.
+_Avoid_: default command, preferred command, app slot
+
+**System Browser**:
+The desktop application registered to open web links for the whole graphical
+session. Browser profiles are separate launch presets, not part of this choice.
+_Avoid_: browser preset, browser profile, default browser command
+
+**System Directory Handler**:
+The desktop application registered to open directories when another application
+asks the system to do so. It must be represented by a desktop application.
+_Avoid_: default file manager, folder command, directory opener
+
+**Preferred File Manager**:
+The application selected for interactive directory browsing from the desktop
+keybinding. It may be graphical or terminal-based and need not be the System
+Directory Handler.
+_Avoid_: system file manager, directory handler, default file manager
+
+**Default App Registry**:
+The curated list of applications eligible for Default App Roles, each carrying
+the roles it can fill and the facts needed to launch and detect it. Discovering
+installed applications automatically is not part of it.
+_Avoid_: app list, catalog, candidate list, app database
+
+**App Candidate**:
+One application in the Default App Registry, offered for a role only while it
+is actually installed.
+_Avoid_: option, choice, app entry
+
+**Role Launcher**:
+The single entry point a keybinding or caller invokes to launch whatever
+currently fills a Default App Role, carrying no application-specific flags.
+_Avoid_: launch script, wrapper, dispatcher
+
+**Role Selection**:
+The current App Candidate for one Default App Role, held outside the dotfiles
+repository so changing it is not a repository edit.
+_Avoid_: setting, preference, config value
+
+**Declared Default**:
+The Role Selection a machine's setup asserts for itself, reapplied on every
+full setup run and overriding whatever was chosen since.
+_Avoid_: seed, initial default, bootstrap value
+
+**Stale Selection**:
+A Role Selection naming an App Candidate that is no longer available. It is
+reported and fallen back from, never silently rewritten.
+_Avoid_: broken default, invalid selection, orphaned choice
+
 **Devcontainer Routing**:
 The persisted, default-off switch that makes Herdr (`SUPER+U` and the
 Launcher's own Herdr chooser row) open a Mirrored Directory on the

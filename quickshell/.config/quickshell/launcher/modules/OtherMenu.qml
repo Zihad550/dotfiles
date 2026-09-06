@@ -25,6 +25,11 @@ Menu {
             command: ["flatpak", "run", "app.zen_browser.zen", "-P", "008"]
         },
         {
+            name: "Zen Browser profile dev",
+            keywords: ["zen dev", "dev browser", "zen dev profile", "development browser"],
+            command: ["flatpak", "run", "app.zen_browser.zen", "-P", "dev"]
+        },
+        {
             name: "Zen Browser profile webdev",
             keywords: ["zen webdev", "webdev", "zen webdev profile", "webdev profile"],
             command: ["flatpak", "run", "app.zen_browser.zen", "-P", "webdev"]

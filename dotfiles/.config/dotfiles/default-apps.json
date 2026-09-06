@@ -1,0 +1,63 @@
+{
+  "roles": [
+    {
+      "key": "browser",
+      "name": "System Browser",
+      "description": "Open web links and SUPER+B",
+      "xdg": "default-web-browser"
+    },
+    {
+      "key": "directory-handler",
+      "name": "System Directory Handler",
+      "description": "Open directories for other applications",
+      "xdg": "inode/directory"
+    },
+    {
+      "key": "file-manager",
+      "name": "Preferred File Manager",
+      "description": "Browse a directory with SUPER+F"
+    }
+  ],
+  "candidates": [
+    {
+      "key": "zen",
+      "name": "Zen Browser",
+      "icon": "app.zen_browser.zen",
+      "roles": ["browser"],
+      "desktop": "app.zen_browser.zen.desktop",
+      "check": {"desktop": "app.zen_browser.zen.desktop"}
+    },
+    {
+      "key": "chromium",
+      "name": "Chromium",
+      "icon": "chromium",
+      "roles": ["browser"],
+      "desktop": "chromium.desktop",
+      "check": {"desktop": "chromium.desktop"}
+    },
+    {
+      "key": "helium",
+      "name": "Helium",
+      "icon": "helium",
+      "roles": ["browser"],
+      "desktop": "helium.desktop",
+      "check": {"desktop": "helium.desktop"}
+    },
+    {
+      "key": "nautilus",
+      "name": "Nautilus",
+      "icon": "org.gnome.Nautilus",
+      "roles": ["directory-handler", "file-manager"],
+      "desktop": "org.gnome.Nautilus.desktop",
+      "check": {"desktop": "org.gnome.Nautilus.desktop"}
+    },
+    {
+      "key": "yazi",
+      "name": "Yazi",
+      "icon": "utilities-terminal",
+      "roles": ["file-manager"],
+      "command": ["yazi"],
+      "check": {"command": "yazi"}
+    }
+  ]
+}

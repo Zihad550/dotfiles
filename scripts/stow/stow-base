@@ -25,6 +25,7 @@ ln -snf ~/dotfiles/herdr/.config/herdr/config.toml ~/.config/herdr/config.toml
 stow gh-dash
 stow procs
 stow atuin
+stow dotfiles
 stow go-timer
 # stow mise
 mkdir -p ~/.config/mise

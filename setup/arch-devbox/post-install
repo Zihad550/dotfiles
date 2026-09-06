@@ -9,11 +9,9 @@ DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
 
 tldr --update
 
-# arch-workstation points this at zen; chromium is the only browser here. Warn
-# rather than fail: a wrong .desktop name would otherwise just silently leave
-# the default browser unset.
-xdg-settings set default-web-browser chromium.desktop ||
-    echo "warn: could not set chromium as default browser — check 'pacman -Ql chromium | grep applications'"
+"$DOTFILES_DIR/bin/df-default-app" set browser chromium
+"$DOTFILES_DIR/bin/df-default-app" set directory-handler nautilus
+"$DOTFILES_DIR/bin/df-default-app" set file-manager yazi
 
 # setup snapper
 run_step "snapper config update" "$DOTFILES_DIR/setup/common/setup-snapper"

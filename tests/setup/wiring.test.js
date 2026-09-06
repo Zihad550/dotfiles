@@ -107,14 +107,14 @@ test("Arch workstation is a remote-development client", () => {
     assert.match(apps, /^\s*neovim \\/m);
     assert.match(yayPackages, /helium-browser-bin/);
     assert.doesNotMatch(yayPackages, /dragon-drop/);
-    assert.doesNotMatch(apps, /^\s*(yazi|resvg)(?:\s|\\|$)/m);
+    assert.match(apps, /^\s*yazi resvg \\/m);
     assert.doesNotMatch(`${init}\n${packages}\n${apps}\n${yayPackages}\n${flatpaks}`,
         /(^|\s)chromium(?:\s|\\|$)/m);
     assert.match(flatpaks, /com\.mongodb\.Compass/);
     assert.match(flatpaks, /io\.beekeeperstudio\.Studio/);
     assert.match(stow, /^stow zed$/m);
     assert.match(stow, /^stow kanata$/m);
-    assert.doesNotMatch(stow, /^stow yazi$/m);
+    assert.match(stow, /^stow dotfiles$/m);
     assert.match(init, /setup-packages\/setup-kanata/);
     assert.match(init, /setup-packages\/setup-syncthing/);
     assert.match(syncthing, /systemctl --user enable --now syncthing\.service/);

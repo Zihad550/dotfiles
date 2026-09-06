@@ -7,7 +7,11 @@
 
 tldr --update
 
-xdg-settings set default-web-browser app.zen_browser.zen.desktop
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
+"$DOTFILES_DIR/bin/df-default-app" set browser zen
+"$DOTFILES_DIR/bin/df-default-app" set directory-handler nautilus
+"$DOTFILES_DIR/bin/df-default-app" set file-manager yazi
 
 # Test if AppArmor is correctly enabled.
 echo "Is app armor enabled: $(aa-enabled 2>/dev/null || echo 'unknown')"

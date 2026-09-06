@@ -17,6 +17,7 @@ stow starship
 stow voxtype
 stow procs
 stow atuin
+stow dotfiles
 
 # Herdr keeps sessions and sockets beside its config, so stow only the file.
 mkdir -p "$HOME/.config/herdr"

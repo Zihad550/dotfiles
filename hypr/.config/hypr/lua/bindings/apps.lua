@@ -2,10 +2,10 @@ local home            = os.getenv("HOME")
 local dotfiles_bin    = home .. "/dotfiles/bin"
 
 local terminal        = "uwsm-app -- ghostty"
+local role_launcher   = dotfiles_bin .. "/df-launch-role"
 
 local work_browser    =
 "uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland"
-local default_browser = "uwsm-app -- flatpak run app.zen_browser.zen -P dev"
 local dev_browser     =
 "uwsm-app -- helium-browser --profile-directory=Default --ozone-platform=wayland --ozone-platform-hint=wayland"
 -- local webapp = browser .. " --app"
@@ -19,10 +19,10 @@ local dev_browser     =
 
 -- GUI apps
 o.bind("SUPER + Return", "Terminal", terminal)
-o.bind("SUPER + B", "Zen Browser dev", default_browser)
+o.bind("SUPER + B", "System Browser", role_launcher .. " browser")
 o.bind("SUPER + SHIFT + B", "Helium default",
     dev_browser)
-o.bind("SUPER + F", "yazi", dotfiles_bin .. "/df-launch-tui yazi")
+o.bind("SUPER + F", "Preferred File Manager", role_launcher .. " file-manager")
 o.bind("SUPER + E", "Zed", terminal .. [[ -e zsh -i -c "zed_open_dir"]])
 
 -- Special / "or-focus" launches
