@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
 # `setup-herdr` is also called directly by headless profiles, before the full
 # shared skill sync. Keep its one dependency here so the standalone path is
 # complete and non-interactive.
@@ -35,6 +37,11 @@ herdr integration install cursor
 # herdr integration install mastracode
 # herdr integration install antigravity-cli
 # herdr integration install grok
+
+######## link local plugins
+# `plugin link` points herdr at the working tree, so the plugin tracks the repo
+# with no install or build step. Re-linking an already-linked plugin is a no-op.
+herdr plugin link "$DOTFILES_DIR/herdr-plugins/tab-namer"
 
 ##### install skill
 skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor pi kilo -y

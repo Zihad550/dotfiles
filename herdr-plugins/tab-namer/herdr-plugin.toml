@@ -1,0 +1,23 @@
+id = "dotfiles.tab-namer"
+name = "Tab Namer"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Name a single-pane tab after the agent session running in it."
+platforms = ["linux"]
+
+# Herdr runs the command per event with the payload in HERDR_PLUGIN_EVENT_JSON,
+# so there is no listener to keep alive and no polling.
+# agent_detected fires when the agent appears, agent_status_changed on every
+# turn boundary -- which is when a session's name changes -- and exited hands
+# the label back.
+[[events]]
+on = "pane.agent_detected"
+command = ["bin/tab-namer"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["bin/tab-namer"]
+
+[[events]]
+on = "pane.exited"
+command = ["bin/tab-namer"]
