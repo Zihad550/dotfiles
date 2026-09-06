@@ -133,6 +133,8 @@ mirrored directory from the Launcher still routes when the toggle is on.
   `HERDR_TAB_ID`/`herdr tab rename`, so it's done in-repo instead of adding
   a plugin dependency. Manual renames (`prefix+r`) are detected and left
   alone by comparing the live label against the one this hook last set.
+  Agent panes are labelled with the agent's own session name instead of the
+  directory; see [ADR 0031](0031-agent-tabs-carry-the-session-name.md).
 
 ## Superseded scope
 
