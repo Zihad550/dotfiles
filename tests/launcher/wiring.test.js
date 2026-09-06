@@ -54,3 +54,21 @@ test("zellij leaves no live Provider, shell, menu, or config surface", () => {
     assert.doesNotMatch(source("zsh/.config/zsh/aliasrc"), /\bzj\s*=/,
         "the retired short alias still exposes a dead command");
 });
+
+test("webapps is routable from the provider list but absent from the default pool", () => {
+    const launcher = source("quickshell/.config/quickshell/launcher/modules/Launcher.qml");
+    const pool = launcher.match(/readonly property var pool: \[[^\n]+\]/)[0];
+    const routable = launcher.match(/readonly property var rankedRoutable:[^\n]+/)[0];
+
+    assert.doesNotMatch(pool, /\bwebapps\b/);
+    assert.match(routable, /\bwebapps\b/);
+    assert.match(launcher, /Webapps\s*\{\s*id: webapps/);
+});
+
+test("webapps keeps one removal in flight and stays open after Return", () => {
+    const webapps = source("quickshell/.config/quickshell/launcher/modules/Webapps.qml");
+
+    assert.match(webapps, /after: "stay"/);
+    assert.match(webapps, /if \(remover\.running\)/);
+    assert.match(webapps, /Web\.notifyArgv\(root\.removingName, exitCode/);
+});

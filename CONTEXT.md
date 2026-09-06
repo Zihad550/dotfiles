@@ -74,6 +74,14 @@ supplied by a provider only when its entries genuinely have one. Absent for
 entries that never recur.
 _Avoid_: id, uid, hash, fingerprint
 
+**Webapp**:
+A site installed as a Desktop Entry by the webapp installer, launched in its
+own browser window and indistinguishable from a native application in the
+Launcher. Not the keybound browser windows opened by the special-webapp
+launcher: those have no Desktop Entry and are reached only by their Hyprland
+binding.
+_Avoid_: PWA, site app, web application, shortcut
+
 **Frecency**:
 How often and how recently an entry has been chosen, accumulated against its
 entry key. The only ranking signal comparable between providers.
