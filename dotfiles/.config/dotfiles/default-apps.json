@@ -38,10 +38,18 @@
     {
       "key": "helium",
       "name": "Helium",
-      "icon": "helium",
+      "icon": "helium-browser",
       "roles": ["browser"],
       "desktop": "helium.desktop",
       "check": {"desktop": "helium.desktop"}
+    },
+    {
+      "key": "brave",
+      "name": "Brave",
+      "icon": "brave-desktop",
+      "roles": ["browser"],
+      "desktop": "brave-browser.desktop",
+      "check": {"desktop": "brave-browser.desktop"}
     },
     {
       "key": "nautilus",

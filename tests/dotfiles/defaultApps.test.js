@@ -83,6 +83,24 @@ test("list offers only installed candidates for each role", t => {
     assert.deepStrictEqual(listing.roles[2].candidates.map(candidate => candidate.key), ["nautilus", "yazi"]);
 });
 
+test("browser candidates use the icon names declared by their desktop entries", t => {
+    const harness = fixture(t, {
+        desktop: [
+            "helium.desktop",
+            "brave-browser.desktop",
+            "org.gnome.Nautilus.desktop"
+        ]
+    });
+    const result = harness.run("list");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    const browsers = JSON.parse(result.stdout).roles[0].candidates;
+    assert.deepStrictEqual(
+        browsers.map(candidate => [candidate.key, candidate.icon]),
+        [["helium", "helium-browser"], ["brave", "brave-desktop"]]
+    );
+});
+
 test("set writes the selection and the matching XDG default", t => {
     const harness = fixture(t);
     const result = harness.run("set", "browser", "zen");
@@ -91,6 +109,22 @@ test("set writes the selection and the matching XDG default", t => {
     assert.strictEqual(fs.readFileSync(path.join(harness.state, "browser"), "utf8"), "zen\n");
     assert.match(fs.readFileSync(harness.xdgLog, "utf8"), /settings set default-web-browser app\.zen_browser\.zen\.desktop/);
     assert.strictEqual(result.stdout.trim(), "zen");
+});
+
+test("an installed Brave browser is listed and can become the XDG default", t => {
+    const harness = fixture(t, {
+        desktop: ["brave-browser.desktop", "org.gnome.Nautilus.desktop"]
+    });
+
+    const listingResult = harness.run("list");
+    assert.strictEqual(listingResult.status, 0, listingResult.stderr);
+    const listing = JSON.parse(listingResult.stdout);
+    assert.deepStrictEqual(listing.roles[0].candidates.map(candidate => candidate.key), ["brave"]);
+
+    const setResult = harness.run("set", "browser", "brave");
+    assert.strictEqual(setResult.status, 0, setResult.stderr);
+    assert.strictEqual(fs.readFileSync(path.join(harness.state, "browser"), "utf8"), "brave\n");
+    assert.match(fs.readFileSync(harness.xdgLog, "utf8"), /settings set default-web-browser brave-browser\.desktop/);
 });
 
 test("set refuses an unavailable candidate and leaves the selection alone", t => {
