@@ -1,51 +1,143 @@
 #!/usr/bin/env bash
 
-if [ "$#" -lt 3 ]; then
+# Create a desktop launcher for a web app.
+#
+#   df-webapp-install <name> <url> [icon-url-or-path] [custom-exec] [mime-types]
+#
+# Two arguments install non-interactively and discover the icon from the site
+# itself; pass an icon only when discovery fails or would leak an internal
+# hostname to the Google fallback. With no arguments, prompts for everything.
+
+set -e
+
+ICON_ROOT="$HOME/.local/share/icons/hicolor"
+ICON_DIR="$ICON_ROOT/256x256/apps"
+
+safe_icon_name() {
+   printf '%s\n' "$1" |
+      tr '[:upper:]' '[:lower:]' |
+      sed 's/[^[:alnum:]]\+/-/g; s/^-//; s/-$//'
+}
+
+# The name becomes a filename, so a slash would place the launcher where
+# df-webapp-remove cannot address it. Most often it means a URL was typed into
+# the name field.
+require_plain_name() {
+   if [[ $1 == */* ]]; then
+      echo "App name cannot contain '/': $1" >&2
+      exit 1
+   fi
+}
+
+update_icon_cache() {
+   gtk-update-icon-cache "$ICON_ROOT" &>/dev/null || true
+}
+
+# Removes the destination on failure: curl -o creates the file before the
+# request, and a leftover empty one would look like a cached icon later.
+download_icon() {
+   if curl -fsSL --max-time 10 -o "$2" "$1" 2>/dev/null &&
+      [[ -s $2 && $(file -b --mime-type "$2") == image/* ]]; then
+      return 0
+   fi
+   rm -f "$2"
+   return 1
+}
+
+# Prefer the site's own apple-touch-icon (typically 180px+), then the
+# well-known path, then Google's favicon service as a last resort.
+fetch_site_icon() {
+   local site_url="$1" dest="$2"
+   local origin page icon_url
+   origin=$(sed -E 's|^(https?://[^/]+).*|\1|' <<<"$site_url")
+
+   page=$(curl -fsSL --max-time 5 "$site_url" 2>/dev/null | head -c 100000 | tr '\n' ' ')
+   icon_url=$(grep -oiE "<link[^>]*rel=[\"'][^\"']*apple-touch-icon[^\"']*[\"'][^>]*>" <<<"$page" |
+      grep -oiE "href=[\"'][^\"']+" | head -1 | sed -E "s/^href=[\"']//")
+
+   case $icon_url in
+      http://* | https://*) ;;
+      //*) icon_url="https:$icon_url" ;;
+      /*) icon_url="$origin$icon_url" ;;
+      ?*) icon_url="$origin/$icon_url" ;;
+   esac
+
+   { [[ -n $icon_url ]] && download_icon "$icon_url" "$dest"; } ||
+      download_icon "$origin/apple-touch-icon.png" "$dest" ||
+      download_icon "https://www.google.com/s2/favicons?domain=${site_url}&sz=256" "$dest"
+}
+
+normalize_url() {
+   if [[ ! $1 =~ ^[a-zA-Z][a-zA-Z0-9+.-]*: ]]; then
+      printf 'https://%s\n' "$1"
+   else
+      printf '%s\n' "$1"
+   fi
+}
+
+if (($# < 2)); then
    echo -e "\e[32mLet's create a new web app you can start with the app launcher.\n\e[0m"
    APP_NAME=$(gum input --prompt "Name> " --placeholder "My favorite web app")
-   APP_URL=$(gum input --prompt "URL> " --placeholder "https://example.com")
-   ICON_REF=$(gum input --prompt "Icon URL> " --placeholder "See https://dashboardicons.com (must use PNG!)")
+   require_plain_name "$APP_NAME"
+   APP_URL=$(normalize_url "$(gum input --prompt "URL> " --placeholder "https://example.com")")
    CUSTOM_EXEC=""
    MIME_TYPES=""
    INTERACTIVE_MODE=true
+
+   ICON_NAME=$(safe_icon_name "$APP_NAME")
+   mkdir -p "$ICON_DIR"
+   if fetch_site_icon "$APP_URL" "$ICON_DIR/$ICON_NAME.png"; then
+      update_icon_cache
+      ICON_REF=""
+   else
+      ICON_REF=$(gum input --prompt "Icon URL/path> " --placeholder "Could not fetch the icon automatically. Enter a PNG URL or file path")
+   fi
 else
    APP_NAME="$1"
-   APP_URL="$2"
-   ICON_REF="$3"
+   require_plain_name "$APP_NAME"
+   APP_URL=$(normalize_url "$2")
+   ICON_REF="$3" # Optional; empty means fetch the icon from the site
    CUSTOM_EXEC="$4" # Optional custom exec command
    MIME_TYPES="$5"  # Optional mime types
    INTERACTIVE_MODE=false
 fi
 
-# Ensure valid execution
-if [[ -z "$APP_NAME" || -z "$APP_URL" || -z "$ICON_REF" ]]; then
-   echo "You must set app name, app URL, and icon URL!"
+if [[ -z $APP_NAME || -z $APP_URL ]]; then
+   echo "You must set app name and app URL!" >&2
    exit 1
 fi
 
-# Refer to local icon or fetch remotely from URL
-ICON_DIR="$HOME/.local/share/applications/icons"
-if [[ $ICON_REF =~ ^https?:// ]]; then
-   ICON_PATH="$ICON_DIR/$APP_NAME.png"
-   if curl -sL -o "$ICON_PATH" "$ICON_REF"; then
-      ICON_PATH="$ICON_DIR/$APP_NAME.png"
-   else
-      echo "Error: Failed to download icon."
+ICON_NAME=$(safe_icon_name "$APP_NAME")
+mkdir -p "$ICON_DIR"
+
+if [[ -z $ICON_REF ]]; then
+   if [[ ! -s "$ICON_DIR/$ICON_NAME.png" ]] && ! fetch_site_icon "$APP_URL" "$ICON_DIR/$ICON_NAME.png"; then
+      echo "Error: failed to fetch an icon for $APP_NAME. Pass an icon URL or path." >&2
       exit 1
    fi
+   update_icon_cache
+elif [[ $ICON_REF =~ ^https?:// ]]; then
+   if ! download_icon "$ICON_REF" "$ICON_DIR/$ICON_NAME.png"; then
+      echo "Error: failed to download icon from $ICON_REF" >&2
+      exit 1
+   fi
+   update_icon_cache
+elif [[ -f $ICON_REF ]]; then
+   ext="${ICON_REF##*.}"
+   [[ $ext == "$ICON_REF" ]] && ext="png"
+   cp "$ICON_REF" "$ICON_DIR/$ICON_NAME.$ext"
+   update_icon_cache
 else
-   ICON_PATH="$ICON_DIR/$ICON_REF"
+   echo "Error: icon '$ICON_REF' is neither an http(s) URL nor an existing file." >&2
+   exit 1
 fi
 
-# Use custom exec if provided, otherwise default behavior
-if [[ -n $CUSTOM_EXEC ]]; then
-   EXEC_COMMAND="$CUSTOM_EXEC"
-else
-   EXEC_COMMAND="~/dotfiles/bin/df-launch-webapp $APP_URL"
-fi
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+EXEC_COMMAND="${CUSTOM_EXEC:-$SCRIPT_DIR/df-launch-webapp $APP_URL}"
 
-# Create application .desktop file
-DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
+DESKTOP_DIR="$HOME/.local/share/applications"
+DESKTOP_FILE="$DESKTOP_DIR/$APP_NAME.desktop"
+mkdir -p "$DESKTOP_DIR"
 
 cat >"$DESKTOP_FILE" <<EOF
 [Desktop Entry]
@@ -55,11 +147,10 @@ Comment=$APP_NAME
 Exec=$EXEC_COMMAND
 Terminal=false
 Type=Application
-Icon=$ICON_PATH
+Icon=$ICON_NAME
 StartupNotify=true
 EOF
 
-# Add mime types if provided
 if [[ -n $MIME_TYPES ]]; then
    echo "MimeType=$MIME_TYPES" >>"$DESKTOP_FILE"
 fi

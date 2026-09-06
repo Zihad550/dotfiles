@@ -1,29 +1,34 @@
-#!/usr/bin/env bash
-~/dotfiles/bin/df-webapp-install "ChatGPT" https://chatgpt.com/ ChatGPT.png
-# ~/dotfiles/bin/df-webapp-install "GitHub" https://github.com/ GitHub.png
-# ~/dotfiles/bin/df-webapp-install "Graphite" https://graphite.com/ graphite.png
-~/dotfiles/bin/df-webapp-install "Figma" https://figma.com/ Figma.png
-~/dotfiles/bin/df-webapp-install "Drive" https://drive.google.com/ google-drive.png
-# ~/dotfiles/bin/df-webapp-install "Perplexity" https://www.perplexity.ai perplexity.png
-~/dotfiles/bin/df-webapp-install "Gemini" https://gemini.google.com/app gemini.png
-~/dotfiles/bin/df-webapp-install "Calendar" https://calendar.google.com/calendar google-calendar.png
-~/dotfiles/bin/df-webapp-install "Mail" https://mail.google.com/mail google-mail.png
-# ~/dotfiles/bin/df-webapp-install "LinkedIn" https://linkedin.com/ linkedin.png
-# ~/dotfiles/bin/df-webapp-install "Facebook" https://facebook.com/ facebook.png
-~/dotfiles/bin/df-webapp-install "Proton Mail" https://mail.proton.me proton-mail.png
-~/dotfiles/bin/df-webapp-install "Proton Drive" https://drive.proton.me proton-drive.png
-~/dotfiles/bin/df-webapp-install "Quran" https://quran.com/ quran.png
-# ~/dotfiles/bin/df-webapp-install "Bitwarden" https://vault.bitwarden.com bitwarden.png
-~/dotfiles/bin/df-webapp-install "Memrise" "https://community-courses.memrise.com/aprender/learn?course_id=5767825" memrise.png
-~/dotfiles/bin/df-webapp-install "Monkey Type" https://monkeytype.com monkeytype.png
-~/dotfiles/bin/df-webapp-install "Claude" https://claude.ai/chat claude.png
-# ~/dotfiles/bin/df-webapp-install "Cambridge Dictionary" https://dictionary.cambridge.org/translate/ cambridge.svg
-~/dotfiles/bin/df-webapp-install "Deepl " https://www.deepl.com/en/translator deepl.svg
-~/dotfiles/bin/df-webapp-install "Pi-hole " https://pihole.home/admin pi-hole.svg
-~/dotfiles/bin/df-webapp-install "Tplink router" http://router.home tplink.png
-~/dotfiles/bin/df-webapp-install "Claude Design" https://claude.ai/design claude.png
+#!/bin/bash
+
+# Icons are discovered from each site, so no icon argument is needed. Pass one
+# only for hosts whose icon cannot be fetched — internal hostnames would fail
+# and leak to the Google favicon fallback.
+
+~/dotfiles/bin/df-webapp-install "ChatGPT" https://chatgpt.com/
+# ~/dotfiles/bin/df-webapp-install "GitHub" https://github.com/
+# ~/dotfiles/bin/df-webapp-install "Graphite" https://graphite.com/
+~/dotfiles/bin/df-webapp-install "Figma" https://figma.com/
+~/dotfiles/bin/df-webapp-install "Drive" https://drive.google.com/
+# ~/dotfiles/bin/df-webapp-install "Perplexity" https://www.perplexity.ai
+~/dotfiles/bin/df-webapp-install "Gemini" https://gemini.google.com/app
+~/dotfiles/bin/df-webapp-install "Calendar" https://calendar.google.com/calendar
+~/dotfiles/bin/df-webapp-install "Mail" https://mail.google.com/mail
+# ~/dotfiles/bin/df-webapp-install "LinkedIn" https://linkedin.com/
+# ~/dotfiles/bin/df-webapp-install "Facebook" https://facebook.com/
+~/dotfiles/bin/df-webapp-install "Proton Mail" https://mail.proton.me
+~/dotfiles/bin/df-webapp-install "Proton Drive" https://drive.proton.me
+~/dotfiles/bin/df-webapp-install "Quran" https://quran.com/
+# ~/dotfiles/bin/df-webapp-install "Bitwarden" https://vault.bitwarden.com
+~/dotfiles/bin/df-webapp-install "Memrise" "https://community-courses.memrise.com/aprender/learn?course_id=5767825"
+~/dotfiles/bin/df-webapp-install "Monkey Type" https://monkeytype.com
+~/dotfiles/bin/df-webapp-install "Claude" https://claude.ai/chat
+# ~/dotfiles/bin/df-webapp-install "Cambridge Dictionary" https://dictionary.cambridge.org/translate/
+~/dotfiles/bin/df-webapp-install "Deepl " https://www.deepl.com/en/translator
+~/dotfiles/bin/df-webapp-install "Pi-hole " https://pihole.home/admin https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png
+~/dotfiles/bin/df-webapp-install "Tplink router" http://router.home https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/tp-link.png
+~/dotfiles/bin/df-webapp-install "Claude Design" https://claude.ai/design
 
 
-# df-webapp-install "YouTube" https://youtube.com/ YouTube.png
-# df-webapp-install "Discord" https://discord.com/channels/@me Discord.png
-# df-webapp-install "Zoom" https://app.zoom.us/wc/home Zoom.png "omarchy-webapp-handler-zoom %u" "x-scheme-handler/zoommtg;x-scheme-handler/zoomus"
+# df-webapp-install "YouTube" https://youtube.com/
+# df-webapp-install "Discord" https://discord.com/channels/@me
+# df-webapp-install "Zoom" https://app.zoom.us/wc/home "" "omarchy-webapp-handler-zoom %u" "x-scheme-handler/zoommtg;x-scheme-handler/zoomus"

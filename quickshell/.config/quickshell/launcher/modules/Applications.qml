@@ -74,9 +74,9 @@ NestableProvider {
         return [];
     }
 
-    // Desktop entries aren't shell input, so a leading `~` (as in the webapp
-    // entries df-webapp-install writes) doesn't expand on its own; this
-    // handles that one case rather than routing exec through a shell.
+    // Desktop entries aren't shell input, so a leading `~` (as older webapp
+    // entries still carry) doesn't expand on its own; this handles that one
+    // case rather than routing exec through a shell.
     function expandHome(part) {
         if (part === "~")
             return root.home;

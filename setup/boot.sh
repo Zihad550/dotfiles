@@ -14,7 +14,7 @@ list_targets() {
       name="$(basename "$d")"
       case "$name" in
          # Not install targets: shared assets and code used by the real ones.
-         systemd|applications|common) ;;
+         systemd|common) ;;
          *) echo "  - $name" ;;
       esac
    done
