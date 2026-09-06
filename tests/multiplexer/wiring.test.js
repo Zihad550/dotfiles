@@ -99,8 +99,6 @@ test("the old config is absent from main", () => {
 test("historical migration mentions remain available outside live wiring", () => {
     assert.match(source("herdr/.config/herdr/config.toml"), /tmux: bind/,
         "Herdr's porting comments were removed with the old config");
-    assert.match(source("zsh/.config/zsh/herdr-rename.zsh"), /tmux's automatic-rename/,
-        "the shell hook no longer explains its origin");
     assert.match(source("docs/adr/0003-tmux-to-herdr.md"), /superseded by issue #121/i,
         "ADR 0003 does not record the final retirement");
 });

@@ -133,8 +133,6 @@ mirrored directory from the Launcher still routes when the toggle is on.
   `HERDR_TAB_ID`/`herdr tab rename`, so it's done in-repo instead of adding
   a plugin dependency. Manual renames (`prefix+r`) are detected and left
   alone by comparing the live label against the one this hook last set.
-  Agent panes are labelled with the agent's own session name instead of the
-  directory; see [ADR 0031](0031-agent-tabs-carry-the-session-name.md).
 
 ## Superseded scope
 
@@ -147,3 +145,8 @@ The remaining desktop fallback clause is superseded by issue #121. No supported
 profile installs or stows tmux now, and the old `tmux/` config is removed from
 `main`. The complete config remains recoverable on the pushed
 `archive/tmux` branch under the archive policy in [ADR 0021](0021-retired-setup-files-move-to-an-archive-branch.md).
+
+The rename hook itself is gone: `zsh/.config/zsh/herdr-rename.zsh` is deleted
+and nothing sources it, so tabs carry Herdr's own labels and the
+`automatic-rename` port above describes no live file. It was never wired into
+`.zshrc`, so it had not been running in any case. Recoverable from `bb9a34c`.
