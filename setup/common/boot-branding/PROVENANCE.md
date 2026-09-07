@@ -12,12 +12,15 @@ The vendored Plymouth theme is copied from Omarchy `4.0.0.alpha` at commit
 - `etc/plymouth/plymouthd.conf`
 
 The theme is copied here so setup and recovery do not depend on the ignored
-`resources/omarchy` checkout. The files remain byte-for-byte pinned assets.
+`resources/omarchy` checkout. The files remain byte-for-byte pinned assets,
+except for the locally branded logo described below.
 
 ## Local adaptations
 
 - The theme is installed for GRUB and the repository's existing `mkinitcpio`
   hook chain; Omarchy's Limine integration is not imported.
+- `plymouth/logo.png` uses the compact `ARCH` wordmark and matches the SDDM
+  logo.
 - `plymouth` is selected through the package's `plymouth-set-default-theme`
   command, then `mkinitcpio -P` and `grub-mkconfig` rebuild the current boot
   artifacts.

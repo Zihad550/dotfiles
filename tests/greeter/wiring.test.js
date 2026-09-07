@@ -24,6 +24,7 @@ const greeterSetup = "setup/common/setup-greeter";
 const greeterRoot = "setup/common/greeter";
 const brandingRoot = "setup/common/boot-branding";
 const pinnedCommit = "83881e979b35468c3e7d60b171e319ede61a88fd";
+const localLogoHash = "02123ea7dbe090c985989c4ff1635d0e27ec25b2fdaf0fa7d2c67cc498945425";
 
 function assertOrdered(sourceText, steps) {
     let previous = -1;
@@ -95,7 +96,7 @@ test("the pinned Omarchy Greeter is vendored instead of reading the ignored chec
     assert.match(provenance, /local adaptation/i);
 });
 
-test("the vendored Greeter contains every pinned upstream asset byte-for-byte", () => {
+test("the vendored Greeter contains its pinned assets and local logo", () => {
     const assets = {
         "hyprland.lua": "353fe59d7d46b21946cdc48000eef7b131e9e577c1d6117f07c3137cdbf0fe67",
         "omarchy/Main.qml": "aa578ec8a6269079e2141842073821fa24940fa4495a13815fa0754652e6027f",
@@ -104,7 +105,7 @@ test("the vendored Greeter contains every pinned upstream asset byte-for-byte", 
         "omarchy/entry.png": "494587957a28b0a69c7e1477a535f7a11d9b1790e9b7db7c77ed5fb231dfce4c",
         "omarchy/lock-failed.png": "e30c49a41e6b2c8d26ea6410c9551ecf927492682d8ba35d7c7543af603f26a9",
         "omarchy/lock.png": "36be04a15773170b656bdadfa129dc14695e296abed3ac62247e23dbf213d836",
-        "omarchy/logo.png": "ba8f1547a02ab5db64fe3923d0b834a220e2c3798c1674374a0eb92a18dfddfb",
+        "omarchy/logo.png": localLogoHash,
         "omarchy/metadata.desktop": "d7a94b02b897c3356c07ee31e6543924baf1a7ee2c2205b97fc4d0db915e5ea2",
         "omarchy/theme.conf": "a371ee2822ab833c1349cbe193bf4b9292d6ab6b49a22b525fc1dcd95aa933c1",
         "etc/sddm.conf.d/10-wayland.conf": "711c05e5cfa836ff25deaf433b521d975f026bc189a3cbb6892b9822297c90b6",
@@ -312,12 +313,12 @@ test("system authentication policy runs after SDDM installation", () => {
     });
 });
 
-test("the Plymouth theme contains the pinned upstream assets", () => {
+test("the Plymouth theme contains its pinned assets and local logo", () => {
     const assets = {
         "plymouth/bullet.png": "875ea8297db71415aeef2e03a5ccd67997a13c16f794d4e4929a9d669aaa7327",
         "plymouth/entry.png": "494587957a28b0a69c7e1477a535f7a11d9b1790e9b7db7c77ed5fb231dfce4c",
         "plymouth/lock.png": "36be04a15773170b656bdadfa129dc14695e296abed3ac62247e23dbf213d836",
-        "plymouth/logo.png": "ba8f1547a02ab5db64fe3923d0b834a220e2c3798c1674374a0eb92a18dfddfb",
+        "plymouth/logo.png": localLogoHash,
         "plymouth/omarchy.plymouth": "e53f4c2f1258b85c6a070219eb335c2970bbb56e9b7a57d2f9913af69a35ffbc",
         "plymouth/omarchy.script": "7f4c1e615759eb72b0787e15b20d06a6b90aa460063227394390f4832322a0fe",
     };

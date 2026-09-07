@@ -14,13 +14,16 @@ The vendored Greeter is copied from Omarchy `4.0.0.alpha` at commit
 
 Those files are copied into this directory so setup and recovery do not depend
 on the ignored `resources/omarchy` checkout. `tests/greeter/wiring.test.js`
-pins their SHA-256 digests to make an upstream refresh explicit.
+pins their SHA-256 digests to make an upstream refresh explicit, except for the
+locally branded logo described below.
 
 ## Local adaptations
 
 - The files are installed into Arch's `/usr/share/sddm` and
   `/etc/sddm.conf.d` paths with root ownership.
+- `omarchy/logo.png` uses the compact `ARCH` wordmark and matches the Plymouth
+  logo.
 - Package installation names the official Arch Qt6 runtime dependencies and
-  `ttf-jetbrains-mono-nerd`; no source code is changed.
+  `ttf-jetbrains-mono-nerd`.
 - `validate`, `df-greeter-refresh`, and `df-greeter-reset` are repository-owned
   safety and recovery wrappers around the pinned files.
