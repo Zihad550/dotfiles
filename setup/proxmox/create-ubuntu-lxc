@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+
+# Create a deterministic Ubuntu LXC on the Proxmox host.
+#
+# Every value below can also be overridden by an environment variable. Leave
+# CT_ID empty to use the next available ID; set it to pin an ID and fail if it
+# is already occupied.
+
+set -Eeuo pipefail
+
+# ─── configuration ───────────────────────────────────────────────────────────
+UBUNTU_VERSION="${UBUNTU_VERSION:-26.04}"
+ARCH="${ARCH:-amd64}"
+
+CT_ID="${CT_ID:-}"
+CT_HOSTNAME="${CT_HOSTNAME:-ubuntu-devbox}"
+
+CPU_COUNT="${CPU_COUNT:-1}"
+RAM_MIB="${RAM_MIB:-1024}"
+SWAP_MIB="${SWAP_MIB:-2048}"
+DISK_GIB="${DISK_GIB:-6}"
+
+TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-local}"
+ROOTFS_STORAGE="${ROOTFS_STORAGE:-local-lvm}"
+BRIDGE="${BRIDGE:-vmbr0}"
+IP_CONFIG="${IP_CONFIG:-dhcp}"
+GATEWAY="${GATEWAY:-}"
+IPV6_CONFIG="${IPV6_CONFIG:-none}"
+
+UNPRIVILEGED="${UNPRIVILEGED:-1}"
+NESTING="${NESTING:-1}"
+KEYCTL="${KEYCTL:-1}"
+TUN="${TUN:-1}"
+
+ONBOOT="${ONBOOT:-0}"
+START_AFTER_CREATE="${START_AFTER_CREATE:-0}"
+UPDATE_TEMPLATE_CATALOG="${UPDATE_TEMPLATE_CATALOG:-1}"
+SSH_AUTHORIZED_KEY_FILE="${SSH_AUTHORIZED_KEY_FILE:-}"
+
+die() {
+    echo "error: $*" >&2
+    exit 1
+}
+
+need_command() {
+    command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+validate_int() {
+    local name="$1" value="$2" minimum="$3"
+    [[ "$value" =~ ^[0-9]+$ ]] || die "$name must be an integer: $value"
+    (( value >= minimum )) || die "$name must be >= $minimum: $value"
+}
+
+validate_bool() {
+    local name="$1" value="$2"
+    [[ "$value" == 0 || "$value" == 1 ]] || die "$name must be 0 or 1: $value"
+}
+
+validate_no_whitespace() {
+    local name="$1" value="$2"
+    [[ "$value" != *[[:space:]]* ]] || die "$name must not contain whitespace: $value"
+}
+
+container_exists() {
+    pct status "$1" >/dev/null 2>&1
+}
+
+resolve_ct_id() {
+    if [[ -n "$CT_ID" ]]; then
+        validate_int CT_ID "$CT_ID" 100
+        container_exists "$CT_ID" && die "container $CT_ID already exists"
+        return
+    fi
+
+    CT_ID="$(pvesh get /cluster/nextid 2>/dev/null | tr -d '[:space:]')"
+    [[ "$CT_ID" =~ ^[0-9]+$ ]] || die "Proxmox did not return a usable next container ID"
+
+    while container_exists "$CT_ID"; do
+        CT_ID=$((CT_ID + 1))
+    done
+
+    validate_int CT_ID "$CT_ID" 100
+}
+
+require_storage() {
+    local storage="$1" role="$2"
+    pvesm status --storage "$storage" >/dev/null 2>&1 ||
+        die "$role storage does not exist or is unavailable: $storage"
+}
+
+find_template() {
+    local available candidate
+    local -a candidates=()
+
+    available="$(pveam available --section system 2>/dev/null || true)"
+    while IFS= read -r candidate; do
+        candidate="${candidate#system/}"
+        case "$candidate" in
+        "ubuntu-${UBUNTU_VERSION}-standard_"*"_${ARCH}.tar."*)
+            candidates+=("$candidate")
+            ;;
+        esac
+    done < <(printf '%s\n' "$available" | awk 'NF {print $NF}')
+
+    ((${#candidates[@]} > 0)) || die "Ubuntu ${UBUNTU_VERSION} ${ARCH} template is unavailable; check: pveam available --section system"
+
+    printf '%s\n' "${candidates[@]}" | sort -V | tail -n 1
+}
+
+validate_config() {
+    [[ "$UBUNTU_VERSION" =~ ^[0-9]+\.[0-9]+$ ]] ||
+        die "UBUNTU_VERSION must look like 26.04: $UBUNTU_VERSION"
+    [[ "$ARCH" == amd64 || "$ARCH" == arm64 ]] || die "unsupported ARCH: $ARCH"
+    [[ "$CT_HOSTNAME" =~ ^[A-Za-z0-9]$ || "$CT_HOSTNAME" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$ ]] ||
+        die "invalid CT_HOSTNAME: $CT_HOSTNAME"
+
+    validate_int CPU_COUNT "$CPU_COUNT" 1
+    validate_int RAM_MIB "$RAM_MIB" 1
+    validate_int SWAP_MIB "$SWAP_MIB" 0
+    validate_int DISK_GIB "$DISK_GIB" 1
+
+    validate_bool UNPRIVILEGED "$UNPRIVILEGED"
+    validate_bool NESTING "$NESTING"
+    validate_bool KEYCTL "$KEYCTL"
+    validate_bool TUN "$TUN"
+    validate_bool ONBOOT "$ONBOOT"
+    validate_bool START_AFTER_CREATE "$START_AFTER_CREATE"
+    validate_bool UPDATE_TEMPLATE_CATALOG "$UPDATE_TEMPLATE_CATALOG"
+
+    validate_no_whitespace TEMPLATE_STORAGE "$TEMPLATE_STORAGE"
+    validate_no_whitespace ROOTFS_STORAGE "$ROOTFS_STORAGE"
+    validate_no_whitespace BRIDGE "$BRIDGE"
+    validate_no_whitespace IP_CONFIG "$IP_CONFIG"
+    validate_no_whitespace GATEWAY "$GATEWAY"
+    validate_no_whitespace IPV6_CONFIG "$IPV6_CONFIG"
+
+    [[ "$IP_CONFIG" != *,* ]] || die "IP_CONFIG must not contain commas: $IP_CONFIG"
+    [[ "$GATEWAY" != *,* ]] || die "GATEWAY must not contain commas: $GATEWAY"
+    [[ "$IPV6_CONFIG" != *,* ]] || die "IPV6_CONFIG must not contain commas: $IPV6_CONFIG"
+
+    [[ -z "$SSH_AUTHORIZED_KEY_FILE" || -r "$SSH_AUTHORIZED_KEY_FILE" ]] ||
+        die "SSH_AUTHORIZED_KEY_FILE is not readable: $SSH_AUTHORIZED_KEY_FILE"
+
+    [[ -d "/sys/class/net/$BRIDGE" ]] || die "bridge does not exist: $BRIDGE"
+    (( TUN == 0 )) || [[ -e /dev/net/tun ]] || die "TUN=1 but /dev/net/tun is unavailable on the Proxmox host"
+}
+
+build_net_config() {
+    NET_CONFIG="name=eth0,bridge=$BRIDGE,ip=$IP_CONFIG"
+    [[ -z "$GATEWAY" ]] || NET_CONFIG+=",gw=$GATEWAY"
+
+    case "$IPV6_CONFIG" in
+    none) ;;
+    auto | dhcp) NET_CONFIG+=",ip6=$IPV6_CONFIG" ;;
+    *) NET_CONFIG+=",ip6=$IPV6_CONFIG" ;;
+    esac
+}
+
+need_command pct
+need_command pvesh
+need_command pvesm
+need_command pveam
+need_command awk
+need_command sort
+need_command tail
+need_command sed
+
+(( EUID == 0 )) || die "run this on the Proxmox host as root"
+
+validate_config
+require_storage "$TEMPLATE_STORAGE" "template"
+require_storage "$ROOTFS_STORAGE" "rootfs"
+resolve_ct_id
+
+if (( UPDATE_TEMPLATE_CATALOG == 1 )); then
+    pveam update
+fi
+
+TEMPLATE_FILE="$(find_template)"
+TEMPLATE_VOLUME="${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE_FILE}"
+if [[ -z "$(pvesm path "$TEMPLATE_VOLUME" 2>/dev/null || true)" ]]; then
+    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE_FILE"
+fi
+
+FEATURES=()
+(( NESTING == 1 )) && FEATURES+=("nesting=1")
+(( UNPRIVILEGED == 1 && KEYCTL == 1 )) && FEATURES+=("keyctl=1")
+FEATURES_VALUE=""
+if ((${#FEATURES[@]} > 0)); then
+    FEATURES_VALUE="$(IFS=,; echo "${FEATURES[*]}")"
+fi
+
+build_net_config
+
+PCT_ARGS=(
+    "$CT_ID"
+    "$TEMPLATE_VOLUME"
+    --ostype ubuntu
+    --hostname "$CT_HOSTNAME"
+    --cores "$CPU_COUNT"
+    --memory "$RAM_MIB"
+    --swap "$SWAP_MIB"
+    --rootfs "${ROOTFS_STORAGE}:${DISK_GIB}"
+    --net0 "$NET_CONFIG"
+    --unprivileged "$UNPRIVILEGED"
+    --onboot "$ONBOOT"
+    --start 0
+)
+
+[[ -z "$FEATURES_VALUE" ]] || PCT_ARGS+=(--features "$FEATURES_VALUE")
+[[ -z "$SSH_AUTHORIZED_KEY_FILE" ]] || PCT_ARGS+=(--ssh-public-keys "$SSH_AUTHORIZED_KEY_FILE")
+
+echo "creating Ubuntu ${UBUNTU_VERSION} LXC"
+echo "  CT ID:    $CT_ID"
+echo "  hostname: $CT_HOSTNAME"
+echo "  CPU:      $CPU_COUNT"
+echo "  RAM:      ${RAM_MIB} MiB"
+echo "  swap:     ${SWAP_MIB} MiB"
+echo "  disk:     ${DISK_GIB} GiB on ${ROOTFS_STORAGE}"
+echo "  network:  $NET_CONFIG"
+echo "  features: ${FEATURES_VALUE:-none}"
+
+pct create "${PCT_ARGS[@]}"
+
+if (( TUN == 1 )); then
+    pct set "$CT_ID" --dev0 /dev/net/tun
+fi
+
+if (( START_AFTER_CREATE == 1 )); then
+    pct start "$CT_ID"
+fi
+
+echo
+echo "created container $CT_ID"
+echo "status: $(pct status "$CT_ID" | sed 's/^status: //')"
+echo "start:  pct start $CT_ID"
+echo "enter:  pct enter $CT_ID"
