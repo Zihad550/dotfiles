@@ -78,8 +78,10 @@ if [ "$routed" = true ]; then
     # end (bootstrapping it there over ssh if one isn't already running) --
     # there's no equivalent of tmux's "-c path" here, so this opens wherever
     # the remote server's own session already sits, not necessarily $path.
+    # Use the remote keymap so custom commands execute on the remote host.
     # See docs/adr/0003-tmux-to-herdr.md.
-    exec "$HERDR_BIN" --remote "$(resolved_host)" --session "$name"
+    exec "$HERDR_BIN" --remote "$(resolved_host)" --session "$name" \
+        --remote-keybindings server
 fi
 
 cd "$path"

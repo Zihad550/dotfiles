@@ -66,7 +66,10 @@ test("routing on for a mirrored directory opens a remote session on the default 
 
     assert.strictEqual(result.status, 0, result.stderr);
     const [, ...argv] = result.invocation;
-    assert.deepStrictEqual(argv, ["--remote", "devcontainer.devpod", "--session", "herdr"]);
+    assert.deepStrictEqual(argv, [
+        "--remote", "devcontainer.devpod", "--session", "herdr",
+        "--remote-keybindings", "server"
+    ]);
 });
 
 test("routing on for an unmirrored directory stays local", t => {
@@ -91,10 +94,12 @@ test("a configured host replaces the default, and a blank one falls back to it",
 
     assert.strictEqual(customResult.status, 0, customResult.stderr);
     assert.deepStrictEqual(customResult.invocation.slice(1),
-        ["--remote", "devbox.local", "--session", "herdr"]);
+        ["--remote", "devbox.local", "--session", "herdr",
+            "--remote-keybindings", "server"]);
     assert.strictEqual(blankResult.status, 0, blankResult.stderr);
     assert.deepStrictEqual(blankResult.invocation.slice(1),
-        ["--remote", "devcontainer.devpod", "--session", "herdr"]);
+        ["--remote", "devcontainer.devpod", "--session", "herdr",
+            "--remote-keybindings", "server"]);
 });
 
 test("SUPER+U routes like every other call site, passing no local override", () => {
