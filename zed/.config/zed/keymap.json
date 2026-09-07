@@ -105,7 +105,6 @@
     "context": "!Terminal",
     "bindings": {
       "ctrl-g ctrl-c": "git::ExpandCommitEditor",
-      "ctrl-g r": "client::Reconnect",
     },
   },
   {
