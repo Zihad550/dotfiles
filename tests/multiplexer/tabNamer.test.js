@@ -27,14 +27,24 @@ function fixture(t, options = {}) {
     const pane = path.join(home, "pane.json");
     const tab = path.join(home, "tab.json");
     const index = path.join(home, "session_index.jsonl");
+    const claudeProjects = path.join(home, ".claude", "projects");
 
     fs.writeFileSync(label, options.label ?? "3");
     fs.writeFileSync(pane, JSON.stringify({ result: { pane: options.pane ?? {} } }));
     fs.writeFileSync(tab, JSON.stringify({
-        result: { tab: { pane_count: options.panes ?? 1, number: 3 } }
+        result: { tab: {
+            pane_count: options.panes ?? 1,
+            number: options.number ?? 3
+        } }
     }));
     fs.writeFileSync(index,
         (options.threads ?? []).map((entry) => JSON.stringify(entry)).join("\n"));
+    if (options.claudeTranscript) {
+        fs.mkdirSync(claudeProjects, { recursive: true });
+        fs.writeFileSync(path.join(claudeProjects,
+            `${options.claudeThread ?? "claude-thread"}.jsonl`),
+        options.claudeTranscript.map((entry) => JSON.stringify(entry)).join("\n"));
+    }
 
     // The tab's label is the one piece of state a rename has to move, so it
     // lives in a file the fake reads back rather than in the fixture JSON.
@@ -55,6 +65,7 @@ esac
                 HERDR_BIN_PATH: path.join(bin, "herdr"),
                 HERDR_PLUGIN_STATE_DIR: path.join(home, "state"),
                 CODEX_SESSION_INDEX: index,
+                CLAUDE_PROJECTS_DIR: claudeProjects,
                 HERDR_PLUGIN_EVENT_JSON: JSON.stringify(event ?? { data: { pane: { pane_id: PANE } } })
             },
             encoding: "utf8"
@@ -99,6 +110,17 @@ test("a codex tab takes the thread name, and the last entry for it wins", (t) =>
     assert.strictEqual(herdr.label(), "Add default app picker");
 });
 
+test("a fresh tab uses Herdr's positional label, not its public tab number", (t) => {
+    const herdr = fixture(t, {
+        label: "4",
+        number: 110,
+        pane: codexPane(),
+        threads: [{ id: "thread-1", thread_name: "Fix session tab titles" }]
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "Fix session tab titles");
+});
+
 test("the pane id is found wherever the event nests it", (t) => {
     const herdr = fixture(t, {
         pane: codexPane(),
@@ -119,6 +141,25 @@ test("another agent's terminal title is used, cut at a word", (t) => {
     });
     herdr.fire();
     assert.strictEqual(herdr.label(), "Rename tabs after the agent");
+});
+
+test("Claude's generic terminal title falls back to its latest prompt", (t) => {
+    const herdr = fixture(t, {
+        label: "4",
+        number: 110,
+        pane: {
+            agent: "claude",
+            agent_session: { value: "claude-thread" },
+            tab_id: TAB,
+            cwd: "/home/dev/project",
+            terminal_title_stripped: "Claude Code"
+        },
+        claudeTranscript: [
+            { type: "user", message: { content: "Fix the upload flow" } }
+        ]
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "Fix the upload flow");
 });
 
 test("a title that says nothing the tab does not already show is ignored", (t) => {
@@ -151,6 +192,8 @@ test("a hand-typed label is never taken over", (t) => {
 
 test("its own label is reclaimed, and handed back when the agent goes", (t) => {
     const herdr = fixture(t, {
+        label: "4",
+        number: 110,
         pane: codexPane(),
         threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
     });
@@ -160,5 +203,5 @@ test("its own label is reclaimed, and handed back when the agent goes", (t) => {
     // pane.exited: the pane is still there, the agent is not.
     herdr.setPane({ tab_id: TAB, cwd: "/home/dev/project" });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "3");
+    assert.strictEqual(herdr.label(), "4");
 });

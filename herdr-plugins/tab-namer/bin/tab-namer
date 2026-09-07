@@ -4,13 +4,15 @@
 #
 # Herdr invokes this per event with HERDR_PLUGIN_EVENT_JSON, HERDR_BIN_PATH and
 # HERDR_PLUGIN_STATE_DIR set. Caller-controlled: CODEX_SESSION_INDEX (default
-# ~/.codex/session_index.jsonl) and LABEL_MAX (default 30).
+# ~/.codex/session_index.jsonl), CLAUDE_PROJECTS_DIR (default
+# ~/.claude/projects) and LABEL_MAX (default 30).
 
 set -uo pipefail
 
 herdr=${HERDR_BIN_PATH:-herdr}
 state_dir=${HERDR_PLUGIN_STATE_DIR:?}
 codex_index=${CODEX_SESSION_INDEX:-$HOME/.codex/session_index.jsonl}
+claude_projects=${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}
 label_max=${LABEL_MAX:-30}
 
 # Event shapes nest the pane differently per event, so take the first pane_id
@@ -20,11 +22,40 @@ pane_id=$(jq -r 'first(.. | objects | select(has("pane_id")) | .pane_id)' \
 [[ -n $pane_id && $pane_id != null ]] || exit 0
 
 pane=$("$herdr" pane get "$pane_id" 2>/dev/null) || exit 0
-IFS=$'\t' read -r tab_id agent thread title dir < <(jq -r '.result.pane |
-    [(.tab_id // "-"), (.agent // "-"), (.agent_session.value // "-"),
+IFS=$'\t' read -r tab_id workspace_id agent thread title dir < <(jq -r '.result.pane |
+    [(.tab_id // "-"), (.workspace_id // "-"), (.agent // "-"),
+     (.agent_session.value // "-"),
      ((.terminal_title_stripped // "-") | if . == "" then "-" else . end),
      ((.foreground_cwd // .cwd // "-") | split("/") | last)] | @tsv' <<<"$pane")
 [[ $tab_id != - ]] || exit 0
+
+claude_transcript_label() {
+    local transcript
+
+    [[ -n $thread && $thread != - && -d $claude_projects ]] || return 0
+    transcript=$(find "$claude_projects" -type f -name "$thread.jsonl" \
+        -print -quit 2>/dev/null)
+    [[ -r $transcript ]] || return 0
+
+    jq -s -r '
+        def first_line:
+            gsub("^<bash-(input|stdout|stderr)>"; "")
+            | gsub("\\r"; "")
+            | split("\\n")
+            | map(select(length > 0) | select(test("^\\(eval\\):") | not))
+            | .[0] // "";
+        map(select(.type == "user" and (.isMeta != true))
+            | .message.content
+            | select(type == "string")
+            | {wrapped: test("^<(bash-input|bash-stdout|bash-stderr|local-command|command-)"),
+               text: first_line})
+        | map(select(.text | length > 0)) as $all
+        | [$all[] | select(.wrapped | not) | .text] as $direct
+        | if ($direct | length) > 0 then $direct[-1]
+          else ($all[-1].text // empty)
+          end
+    ' "$transcript" 2>/dev/null
+}
 
 tab=$("$herdr" tab get "$tab_id" 2>/dev/null) || exit 0
 IFS=$'\t' read -r panes number current < <(jq -r '.result.tab |
@@ -40,14 +71,18 @@ if [[ $agent == codex && $thread != - && -r $codex_index ]]; then
     label=$(grep -F "\"$thread\"" "$codex_index" | tail -1 |
         jq -r '.thread_name // empty' 2>/dev/null)
 fi
-# Every other agent puts its own summary in the terminal title.
+# Most agents put their own summary in the terminal title. Claude Code can
+# leave its title at "Claude Code" until the first prompt finishes, so use the
+# transcript as a fallback for that initial generic title.
 [[ -n $label || $title == - ]] || label=$title
 
 # A bare agent name, a raw session id, or the directory the tab already implies
 # says nothing the tab does not already show.
 shopt -s nocasematch
-if [[ $label == "$agent" || $label == "$dir" || $label =~ ^[0-9a-f-]{36}$ ]]; then
+if [[ $label == "$agent" || $label == "$dir" || $label == "claude code" ||
+    $label =~ ^[0-9a-f-]{36}$ ]]; then
     label=
+    [[ $agent == claude ]] && label=$(claude_transcript_label)
 fi
 shopt -u nocasematch
 
@@ -58,21 +93,41 @@ if (( ${#label} > label_max )); then
     label=$cut
 fi
 
-# Herdr labels a tab with its own number until someone renames it, so that and
-# a label this plugin wrote are the two it may take over. Anything else was
-# typed by hand and is left alone.
+# Herdr labels a fresh tab with its position until someone renames it, so that
+# and a label this plugin wrote are the two it may take over. Anything else
+# was typed by hand and is left alone.
 mkdir -p "$state_dir"
 state=$state_dir/${tab_id//[^A-Za-z0-9]/-}
 exec 9>"$state.lock"
 flock 9
 
 mine=$(cat "$state" 2>/dev/null)
-[[ $current == "$number" || $current == "$mine" ]] || exit 0
+base=$(cat "$state.base" 2>/dev/null)
+
+# Herdr's default label is the tab's position (for example, 4), while
+# `number` is a never-reused public identifier (for example, 110). Recover the
+# position for state files created before it was stored separately.
+if [[ -z $base && $current =~ ^[0-9]+$ ]]; then
+    base=$current
+fi
+if [[ -z $base && $workspace_id != - ]]; then
+    tabs=$("$herdr" tab list --workspace "$workspace_id" 2>/dev/null) || tabs=
+    base=$(jq -r --arg tab_id "$tab_id" '
+        .result.tabs
+        | to_entries[]
+        | select(.value.tab_id == $tab_id)
+        | (.key + 1)
+    ' <<<"$tabs" 2>/dev/null)
+fi
+[[ $current == "$number" || $current == "$mine" || $current =~ ^[0-9]+$ ]] || exit 0
+
+[[ -n $base && ! -e "$state.base" ]] && printf '%s' "$base" >"$state.base"
 
 # No agent left in the pane -- hand the label back to herdr.
 [[ -n $agent && $agent != - ]] || label=
-desired=${label:-$number}
+desired=${label:-${base:-$number}}
 
 [[ $desired == "$current" ]] && exit 0
 "$herdr" tab rename "$tab_id" "$desired" >/dev/null 2>&1 || exit 0
 printf '%s' "$desired" >"$state"
+[[ -n $base ]] && printf '%s' "$base" >"$state.base"

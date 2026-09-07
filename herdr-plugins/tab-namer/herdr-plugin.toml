@@ -1,6 +1,6 @@
 id = "dotfiles.tab-namer"
 name = "Tab Namer"
-version = "0.1.0"
+version = "0.2.0"
 min_herdr_version = "0.7.0"
 description = "Name a single-pane tab after the agent session running in it."
 platforms = ["linux"]

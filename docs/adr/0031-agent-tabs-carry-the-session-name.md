@@ -39,22 +39,27 @@ project directory and reports only a thread id to Herdr. The marketplace plugin
 resolves that id by spawning `codex app-server` and speaking `thread/read`; the
 same name is already in `~/.codex/session_index.jsonl`, appended to on every
 rename, so the last entry for the id is current and no process is spawned.
-Every other agent puts a usable summary in the terminal title, which Herdr
-already reports.
+Other agents usually put a usable summary in the terminal title, which Herdr
+already reports. Claude Code can leave that title at `Claude Code`, so the
+plugin falls back to the latest human prompt in the session transcript under
+`~/.claude/projects`.
 
 ## Consequences
 
 - Only a tab with exactly one pane is renamed. A shared tab has no single pane
   to be named after, and no rule would pick the right one.
-- The plugin takes over a label only when it is Herdr's own tab number or one
-  the plugin previously wrote, recorded per tab under `HERDR_PLUGIN_STATE_DIR`.
-  Anything else was typed by hand and is left alone.
+- The plugin takes over a label only when it is Herdr's numeric tab-position
+  label or one the plugin previously wrote, recorded per tab under
+  `HERDR_PLUGIN_STATE_DIR`. Herdr's never-reused public tab number is a
+  different field. Anything else was typed by hand and is left alone.
 - A title that is only the agent's name, a raw session id, or the tab's own
-  directory is rejected — the tab keeps Herdr's number rather than gaining a
-  label that says nothing.
+  directory is rejected — the tab keeps Herdr's numeric default label rather
+  than gaining a label that says nothing.
+- A generic Claude Code title is replaced by the latest usable prompt from its
+  transcript; the terminal title remains preferred when it contains a summary.
 - Tabs still carrying labels from the removed shell hook (`1:dotfiles (codex)`)
   read as hand-typed and are never claimed. Renaming such a tab back to its
-  number, which `herdr tab get` reports, hands it to the plugin.
+  numeric tab-position label hands it to the plugin.
 - `setup/common/setup-herdr` links the plugin from the working tree. Re-linking
   an already-linked plugin is a no-op, so the setup script stays idempotent.
 - Directory-and-command tab labels for non-agent tabs are not restored. That
