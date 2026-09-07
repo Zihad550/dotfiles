@@ -34,6 +34,9 @@ case "$1 $2" in
         jq --arg tab_id "$3" '.result.tabs |= map(select(.tab_id != $tab_id))' "${state}" > "${state}.tmp"
         mv "${state}.tmp" "${state}"
         ;;
+    "pane close")
+        printf '%s\\n' "$*" >> "${calls}"
+        ;;
 esac
 `);
     fs.chmodSync(path.join(bin, "herdr"), 0o755);
@@ -46,6 +49,7 @@ esac
                 HERDR_BIN_PATH: path.join(bin, "herdr"),
                 HERDR_ACTIVE_WORKSPACE_ID: "w1",
                 HERDR_ACTIVE_TAB_ID: "w1:t1",
+                HERDR_ACTIVE_PANE_ID: "w1:p1",
                 HERDR_ACTIVE_PANE_CWD: "/work/project"
             },
             encoding: "utf8"
@@ -63,7 +67,22 @@ esac
     return { run, currentTabs, commandCalls };
 }
 
-test("replaces the last tab before closing it", (t) => {
+test("closes the current pane when the tab has multiple panes", (t) => {
+    const herdr = fixture(t, [{
+        tab_id: "w1:t1",
+        workspace_id: "w1",
+        label: "work",
+        pane_count: 2,
+        number: 1
+    }]);
+
+    const result = herdr.run();
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(herdr.commandCalls(), ["pane close w1:p1"]);
+});
+
+test("replaces the last tab before closing its final pane", (t) => {
     const herdr = fixture(t, [{
         tab_id: "w1:t1",
         workspace_id: "w1",

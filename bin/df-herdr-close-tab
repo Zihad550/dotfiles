@@ -5,16 +5,25 @@ set -euo pipefail
 herdr=${HERDR_BIN_PATH:-herdr}
 workspace=${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}
 tab=${HERDR_ACTIVE_TAB_ID:-${HERDR_TAB_ID:-}}
+pane=${HERDR_ACTIVE_PANE_ID:-${HERDR_PANE_ID:-}}
 cwd=${HERDR_ACTIVE_PANE_CWD:-${PWD:-$HOME}}
 
-if [[ -z $workspace || -z $tab ]]; then
-    printf 'df-herdr-close-tab: active Herdr workspace and tab are required\n' >&2
+if [[ -z $workspace || -z $tab || -z $pane ]]; then
+    printf 'df-herdr-close-tab: active Herdr workspace, tab, and pane are required\n' >&2
     exit 1
 fi
 
 tabs=$("$herdr" tab list --workspace "$workspace")
+current_tab=$(jq -er --arg tab_id "$tab" \
+    '.result.tabs[] | select(.tab_id == $tab_id)' <<<"$tabs")
+pane_count=$(jq -er '.pane_count' <<<"$current_tab")
+
+if (( pane_count > 1 )); then
+    "$herdr" pane close "$pane" >/dev/null
+    exit 0
+fi
+
 tab_count=$(jq -er '.result.tabs | length' <<<"$tabs")
-jq -er --arg tab_id "$tab" '.result.tabs[] | select(.tab_id == $tab_id)' <<<"$tabs" >/dev/null
 
 if (( tab_count == 1 )); then
     "$herdr" tab create \

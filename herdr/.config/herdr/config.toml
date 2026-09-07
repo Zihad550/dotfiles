@@ -119,14 +119,13 @@ edit_scrollback = "prefix+e"
 open_notification_target = "prefix+o"
 
 # --- popups (replacing tmux plugins) ------------------------------------
-# Herdr closes a workspace with its last tab. This replacement creates an
-# empty tab first, but only handles this configured keyboard shortcut; direct
-# mouse and CLI closes still use Herdr's native behavior.
+# Ctrl+W closes the current pane; when it is the tab's final pane, the helper
+# closes the tab and creates an empty replacement if it is the last tab.
 [[keys.command]]
 key = "prefix+ctrl+w"
 type = "shell"
 command = "\"$HOME/dotfiles/bin/df-herdr-close-tab\""
-description = "close tab and keep workspace"
+description = "close pane, or last tab while keeping workspace"
 
 # close_workspace only tears down the current workspace's tabs/panes; the
 # client stays attached with zero workspaces, so the window never closes
