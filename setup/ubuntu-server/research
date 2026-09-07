@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 ~/dotfiles/setup/ubuntu-server/setup-mise
-~/dotfiles/setup/ubuntu-server/setup-syncthing
 ~/dotfiles/setup/ubuntu-server/setup-ufw
 
 # additional tools
