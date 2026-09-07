@@ -16,6 +16,17 @@
       "key": "file-manager",
       "name": "Preferred File Manager",
       "description": "Browse a directory with SUPER+F"
+    },
+    {
+      "key": "ai",
+      "name": "Default AI App",
+      "description": "Open an AI assistant with SUPER+A",
+      "fallbacks": [
+        "claude-desktop",
+        "claude-web",
+        "chatgpt-desktop",
+        "chatgpt-web"
+      ]
     }
   ],
   "candidates": [
@@ -66,6 +77,64 @@
       "roles": ["file-manager"],
       "command": ["yazi"],
       "check": {"command": "yazi"}
+    },
+    {
+      "key": "claude-desktop",
+      "name": "Claude Desktop",
+      "icon": "claude-desktop",
+      "roles": ["ai"],
+      "check": {
+        "desktop": "com.anthropic.Claude.desktop",
+        "command": "claude-desktop"
+      },
+      "launch": {
+        "type": "special-workspace",
+        "initialClass": "com.anthropic.Claude",
+        "workspace": "ai",
+        "command": ["claude-desktop"]
+      }
+    },
+    {
+      "key": "claude-web",
+      "name": "Claude Web App",
+      "icon": "claude",
+      "roles": ["ai"],
+      "check": {"desktop": "Claude.desktop"},
+      "launch": {
+        "type": "special-webapp",
+        "initialClass": "chrome-claude.ai__chat-Profile_2",
+        "url": "https://claude.ai/chat",
+        "workspace": "ai"
+      }
+    },
+    {
+      "key": "chatgpt-desktop",
+      "name": "ChatGPT Desktop",
+      "icon": "chatgpt",
+      "roles": ["ai"],
+      "check": {
+        "desktop": "chatgpt.desktop",
+        "command": "chatgpt"
+      },
+      "launch": {
+        "type": "special-workspace",
+        "initialClass": "chatgpt",
+        "workspace": "ai",
+        "command": ["chatgpt"]
+      }
+    },
+    {
+      "key": "chatgpt-web",
+      "name": "ChatGPT Web App",
+      "icon": "chatgpt",
+      "roles": ["ai"],
+      "check": {"desktop": "ChatGPT.desktop"},
+      "launch": {
+        "type": "special-webapp",
+        "initialClass": "chrome-chatgpt.com__-Profile_2",
+        "url": "https://chatgpt.com/",
+        "workspace": "ai"
+      }
     }
   ]
 }

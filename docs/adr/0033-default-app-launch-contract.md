@@ -1,4 +1,4 @@
-# Default app launches activate a desktop entry and add nothing else
+# Standard default app launches activate a desktop entry and add nothing else
 
 The Role Launcher behind `SUPER+B` and `SUPER+F` activates the selected
 application's Desktop Entry ID through `uwsm-app -- <id>.desktop` and adds no
@@ -6,6 +6,10 @@ flags, no `systemd-run` wrapper, no `--new-window`, and no post-launch focus
 step. It passes only action-specific arguments, such as a URL. Omarchy's browser
 launcher, the obvious model, is deliberately not copied.
 
+`SUPER+A` uses the same Role Selection resolver, but its AI candidates use the
+shared special-workspace and special-webapp launchers. Those candidates need a
+known window identity so the existing `ai` workspace can reuse or move the
+right window.
 ## Why
 
 **Omarchy's Exec parsing breaks the browser we actually use.**

@@ -59,10 +59,7 @@ o.bind("SUPER + U", "Herdr",
 -- o.bind("SUPER + SHIFT + R", "Timer", terminal .. " -e timer")
 
 -- Web apps (PWA-like)
--- o.bind("SUPER + A", "ChatGPT",
---     dotfiles_bin .. [[/df-launch-special-webapp "chatgpt" "https://chatgpt.com" "ai"]])
-o.bind("SUPER + A", "Claude",
-    dotfiles_bin .. "/df-launch-claude")
+o.bind("SUPER + A", "Default AI App", role_launcher .. " ai")
 -- o.bind("SUPER + M", "Gmail",
 --     dotfiles_bin .. [[/df-launch-special-webapp "gmail" "https://mail.google.com/mail/u/0" "gmail"]])
 o.bind("SUPER + SHIFT + C", "Calendar",

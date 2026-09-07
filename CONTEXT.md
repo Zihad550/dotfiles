@@ -270,6 +270,8 @@ _Avoid_: option, choice, app entry
 **Role Launcher**:
 The single entry point a keybinding or caller invokes to launch whatever
 currently fills a Default App Role, carrying no application-specific flags.
+Candidates may choose the standard desktop-entry path or a shared special
+workspace/web-app launch adapter.
 _Avoid_: launch script, wrapper, dispatcher
 
 **Role Selection**:

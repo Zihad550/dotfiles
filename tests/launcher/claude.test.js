@@ -52,9 +52,9 @@ test("the Claude web app opens on the ai Special Workspace when the desktop app 
     });
 });
 
-test("SUPER+A uses the Claude launcher", () => {
+test("SUPER+A uses the selectable AI role", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
-    const binding = apps.match(/o\.bind\("SUPER \+ A", "Claude",[\s\S]*?\n\s*dotfiles_bin[^\n]+\)/)[0];
+    const binding = apps.match(/o\.bind\("SUPER \+ A", "Default AI App", [^\n]+\)/)[0];
 
-    assert.match(binding, /df-launch-claude/);
+    assert.match(binding, /role_launcher .* ai/);
 });

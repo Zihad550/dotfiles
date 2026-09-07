@@ -27,6 +27,7 @@ test("the keybindings call Role Launchers and keep the named Helium preset", () 
     assert.match(apps, /local role_launcher\s*=.*df-launch-role/);
     assert.match(apps, /SUPER \+ B", "System Browser", role_launcher \..*browser/);
     assert.match(apps, /SUPER \+ F", "Preferred File Manager", role_launcher \..*file-manager/);
+    assert.match(apps, /SUPER \+ A", "Default AI App", role_launcher \..*ai/);
     assert.match(apps, /SUPER \+ SHIFT \+ B", "Helium default"/);
     assert.doesNotMatch(apps, /SUPER \+ B", "Zen Browser dev"/);
 });

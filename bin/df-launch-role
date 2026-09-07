@@ -15,6 +15,33 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 resolved=$("$script_dir/df-default-app" get --json "$role") || exit $?
 desktop=$(jq -r '.candidate.desktop // empty' <<<"$resolved")
 
+launch_type=$(jq -r '.candidate.launch.type // empty' <<<"$resolved")
+case "$launch_type" in
+    special-workspace)
+        initial_class=$(jq -r '.candidate.launch.initialClass // empty' <<<"$resolved")
+        workspace=$(jq -r '.candidate.launch.workspace // empty' <<<"$resolved")
+        mapfile -t launch_argv < <(jq -r '.candidate.launch.command[]?' <<<"$resolved")
+        [[ -n "$initial_class" && -n "$workspace" && ${#launch_argv[@]} -gt 0 ]] ||
+            die "candidate has an invalid special-workspace launch"
+        exec "$script_dir/df-launch-special-workspace" \
+            "$initial_class" "$workspace" "${launch_argv[@]}" "$@"
+        ;;
+    special-webapp)
+        initial_class=$(jq -r '.candidate.launch.initialClass // empty' <<<"$resolved")
+        url=$(jq -r '.candidate.launch.url // empty' <<<"$resolved")
+        workspace=$(jq -r '.candidate.launch.workspace // empty' <<<"$resolved")
+        [[ -n "$initial_class" && -n "$url" && -n "$workspace" ]] ||
+            die "candidate has an invalid special-webapp launch"
+        exec "$script_dir/df-launch-special-webapp" \
+            "$initial_class" "$url" "$workspace" "$@"
+        ;;
+    "")
+        ;;
+    *)
+        die "candidate has an unsupported launch type: $launch_type"
+        ;;
+esac
+
 if [[ "$role" == file-manager && $# == 0 ]]; then
     set -- "$HOME"
 fi

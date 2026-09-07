@@ -91,13 +91,18 @@ candidate_available_json() {
     local candidate="$1"
     local desktop command_name
     desktop=$(jq -r '.check.desktop // .desktop // empty' <<<"$candidate")
-    if [[ -n "$desktop" ]]; then
-        desktop_available "$desktop"
+    command_name=$(jq -r '.check.command // .command[0] // empty' <<<"$candidate")
+
+    if [[ -n "$desktop" ]] && ! desktop_available "$desktop"; then
+        return 1
+    fi
+
+    if [[ -n "$command_name" ]]; then
+        command -v "$command_name" >/dev/null 2>&1
         return
     fi
 
-    command_name=$(jq -r '.check.command // .command[0] // empty' <<<"$candidate")
-    [[ -n "$command_name" ]] && command -v "$command_name" >/dev/null 2>&1
+    [[ -n "$desktop" ]]
 }
 
 candidate_available() {
@@ -149,7 +154,7 @@ stale_selection_warning() {
 # Prints the App Candidate key the Role Launcher should use. This is the only
 # place that follows the fallback chain.
 resolved_key() {
-    local role="$1" selection xdg key handler
+    local role="$1" selection xdg key handler fallback
     selection=$(selection_for "$role")
 
     if [[ -n "$selection" ]] && candidate_available "$role" "$selection"; then
@@ -176,6 +181,15 @@ resolved_key() {
                 printf '%s\n' "$handler"
                 return 0
             fi
+            ;;
+        ai)
+            while IFS= read -r fallback; do
+                [[ -n "$fallback" ]] || continue
+                if candidate_available ai "$fallback"; then
+                    printf '%s\n' "$fallback"
+                    return 0
+                fi
+            done < <(jq -r --arg role "$role" '.roles[] | select(.key == $role) | .fallbacks[]? // empty' "$REGISTRY")
             ;;
     esac
 

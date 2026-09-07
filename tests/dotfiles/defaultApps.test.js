@@ -47,7 +47,9 @@ else
 fi
 `);
     fs.writeFileSync(path.join(bin, "yazi"), "#!/usr/bin/env bash\nexit 0\n");
-    for (const name of ["xdg-settings", "xdg-mime", "yazi"])
+    for (const name of ["claude-desktop", "chatgpt"])
+        fs.writeFileSync(path.join(bin, name), "#!/usr/bin/env bash\nexit 0\n");
+    for (const name of ["xdg-settings", "xdg-mime", "yazi", "claude-desktop", "chatgpt"])
         fs.chmodSync(path.join(bin, name), 0o755);
 
     if (options.browser)
@@ -81,6 +83,44 @@ test("list offers only installed candidates for each role", t => {
     assert.deepStrictEqual(listing.roles[0].candidates.map(candidate => candidate.key), ["zen"]);
     assert.deepStrictEqual(listing.roles[1].candidates.map(candidate => candidate.key), ["nautilus"]);
     assert.deepStrictEqual(listing.roles[2].candidates.map(candidate => candidate.key), ["nautilus", "yazi"]);
+});
+
+test("the AI role lists installed desktop and web candidates", t => {
+    const harness = fixture(t, {
+        desktop: [
+            "Claude.desktop",
+            "ChatGPT.desktop",
+            "com.anthropic.Claude.desktop",
+            "chatgpt.desktop"
+        ]
+    });
+    const result = harness.run("list");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    const ai = JSON.parse(result.stdout).roles.find(role => role.key === "ai");
+    assert.deepStrictEqual(ai.candidates.map(candidate => candidate.key), [
+        "claude-desktop", "claude-web", "chatgpt-desktop", "chatgpt-web"
+    ]);
+});
+
+test("the AI role prefers Claude Desktop and persists an explicit choice", t => {
+    const harness = fixture(t, {
+        desktop: [
+            "Claude.desktop",
+            "ChatGPT.desktop",
+            "com.anthropic.Claude.desktop",
+            "chatgpt.desktop"
+        ]
+    });
+
+    const defaultResult = harness.run("get", "ai");
+    assert.strictEqual(defaultResult.status, 0, defaultResult.stderr);
+    assert.strictEqual(defaultResult.stdout.trim(), "claude-desktop");
+
+    const setResult = harness.run("set", "ai", "chatgpt-web");
+    assert.strictEqual(setResult.status, 0, setResult.stderr);
+    assert.strictEqual(fs.readFileSync(path.join(harness.state, "ai"), "utf8"), "chatgpt-web\n");
+    assert.strictEqual(harness.run("get", "ai").stdout.trim(), "chatgpt-web");
 });
 
 test("browser candidates use the icon names declared by their desktop entries", t => {

@@ -24,6 +24,17 @@ function fixture(t, role, key, desktopNames) {
     fs.mkdirSync(config, { recursive: true });
     fs.mkdirSync(state, { recursive: true });
     fs.copyFileSync(REGISTRY, path.join(config, "default-apps.json"));
+    const roleLauncher = path.join(bin, "df-launch-role");
+    fs.symlinkSync(COMMAND, roleLauncher);
+    for (const helper of ["df-default-app", "df-launch-tui", "df-launch-special-webapp"])
+        fs.symlinkSync(path.join(ROOT, "bin", helper), path.join(bin, helper));
+    const specialWorkspace = path.join(bin, "df-launch-special-workspace");
+    const invocationPath = JSON.stringify(path.join(home, "invocation"));
+    fs.writeFileSync(specialWorkspace,
+        "#!/usr/bin/node\n" +
+        "require('node:fs').writeFileSync(" + invocationPath +
+        ", process.argv.slice(2).join('\\n'));\n");
+    fs.chmodSync(specialWorkspace, 0o755);
     for (const name of desktopNames)
         fs.writeFileSync(path.join(desktop, name), "[Desktop Entry]\n");
     fs.writeFileSync(path.join(state, role), key + "\n");
@@ -31,16 +42,19 @@ function fixture(t, role, key, desktopNames) {
     fs.writeFileSync(path.join(bin, "xdg-settings"), "#!/usr/bin/env bash\nexit 0\n");
     fs.writeFileSync(path.join(bin, "xdg-mime"), "#!/usr/bin/env bash\nexit 0\n");
     fs.writeFileSync(path.join(bin, "yazi"), "#!/usr/bin/env bash\nexit 0\n");
+    for (const name of ["claude-desktop", "chatgpt"])
+        fs.writeFileSync(path.join(bin, name), "#!/usr/bin/env bash\nexit 0\n");
     fs.writeFileSync(path.join(bin, "uwsm-app"), `#!/usr/bin/env bash
 printf '%s\\n' "$@" > "${path.join(home, "invocation")}"
 `);
     fs.writeFileSync(path.join(bin, "setsid"), "#!/usr/bin/env bash\nexec \"$@\"\n");
     fs.writeFileSync(path.join(bin, "ghostty"), "#!/usr/bin/env bash\nexit 0\n");
-    for (const name of ["xdg-settings", "xdg-mime", "yazi", "uwsm-app", "setsid", "ghostty"])
+    for (const name of ["xdg-settings", "xdg-mime", "yazi", "claude-desktop", "chatgpt",
+        "uwsm-app", "setsid", "ghostty"])
         fs.chmodSync(path.join(bin, name), 0o755);
 
     function run(...args) {
-        const result = childProcess.spawnSync(COMMAND, args, {
+        const result = childProcess.spawnSync(roleLauncher, args, {
             env: {
                 ...process.env,
                 HOME: home,
@@ -74,4 +88,51 @@ test("the file-manager role passes home to a terminal candidate", t => {
 
     assert.strictEqual(result.status, 0, result.stderr);
     assert.deepStrictEqual(result.invocation, ["--", "ghostty", "-e", "yazi", harness.home]);
+});
+
+test("an AI desktop candidate uses the special workspace launcher", t => {
+    const harness = fixture(t, "ai", "claude-desktop", ["com.anthropic.Claude.desktop"]);
+    const result = harness.run("ai");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(result.invocation, [
+        "com.anthropic.Claude", "ai", "claude-desktop"
+    ]);
+});
+
+test("an AI web candidate uses the special web-app launcher", t => {
+    const harness = fixture(t, "ai", "chatgpt-web", ["ChatGPT.desktop"]);
+    const result = harness.run("ai");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(result.invocation, [
+        "chrome-chatgpt.com__-Profile_2",
+        "ai",
+        "helium-browser",
+        "--profile-directory=Profile 2",
+        "--new-window",
+        "--ozone-platform=wayland",
+        "--ozone-platform-hint=wayland",
+        "--app=https://chatgpt.com/"
+    ]);
+});
+
+test("Claude Web App uses the special web-app launcher", t => {
+    const harness = fixture(t, "ai", "claude-web", ["Claude.desktop"]);
+    const result = harness.run("ai");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(result.invocation.slice(0, 3), [
+        "chrome-claude.ai__chat-Profile_2",
+        "ai",
+        "helium-browser"
+    ]);
+});
+
+test("ChatGPT Desktop uses the special workspace launcher", t => {
+    const harness = fixture(t, "ai", "chatgpt-desktop", ["chatgpt.desktop"]);
+    const result = harness.run("ai");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(result.invocation, ["chatgpt", "ai", "chatgpt"]);
 });
