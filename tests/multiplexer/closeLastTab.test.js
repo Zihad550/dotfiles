@@ -26,7 +26,7 @@ case "$1 $2" in
         ;;
     "tab create")
         printf '%s\\n' "$*" >> "${calls}"
-        jq '.result.tabs += [{tab_id: "w1:t-new", workspace_id: "w1", label: "empty", pane_count: 1, number: 999}]' "${state}" > "${state}.tmp"
+        jq '.result.tabs += [{tab_id: "w1:t-new", workspace_id: "w1", pane_count: 1, number: 999}]' "${state}" > "${state}.tmp"
         mv "${state}.tmp" "${state}"
         ;;
     "tab close")
@@ -76,7 +76,7 @@ test("replaces the last tab before closing it", (t) => {
 
     assert.strictEqual(result.status, 0, result.stderr);
     assert.deepStrictEqual(herdr.commandCalls(), [
-        "tab create --workspace w1 --cwd /work/project --label empty --no-focus",
+        "tab create --workspace w1 --cwd /work/project --no-focus",
         "tab close w1:t1"
     ]);
     assert.deepStrictEqual(herdr.currentTabs().map((tab) => tab.tab_id), ["w1:t-new"]);

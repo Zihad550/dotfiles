@@ -20,7 +20,6 @@ if (( tab_count == 1 )); then
     "$herdr" tab create \
         --workspace "$workspace" \
         --cwd "$cwd" \
-        --label empty \
         --no-focus \
         >/dev/null
 fi
