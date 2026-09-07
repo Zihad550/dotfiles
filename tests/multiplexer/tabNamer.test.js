@@ -23,20 +23,20 @@ function fixture(t, options = {}) {
     const bin = path.join(home, "bin");
     fs.mkdirSync(bin, { recursive: true });
 
-    const label = path.join(home, "label");
     const pane = path.join(home, "pane.json");
-    const tab = path.join(home, "tab.json");
+    const tabs = path.join(home, "tabs.json");
     const index = path.join(home, "session_index.jsonl");
+    const generatorCalls = path.join(home, "generator-calls");
     const claudeProjects = path.join(home, ".claude", "projects");
 
-    fs.writeFileSync(label, options.label ?? "3");
     fs.writeFileSync(pane, JSON.stringify({ result: { pane: options.pane ?? {} } }));
-    fs.writeFileSync(tab, JSON.stringify({
-        result: { tab: {
-            pane_count: options.panes ?? 1,
-            number: options.number ?? 3
-        } }
-    }));
+    fs.writeFileSync(tabs, JSON.stringify({ result: { tabs: options.tabs ?? [{
+        tab_id: TAB,
+        workspace_id: "w1",
+        label: options.label ?? "3",
+        pane_count: options.panes ?? 1,
+        number: options.number ?? 3
+    }] } }));
     fs.writeFileSync(index,
         (options.threads ?? []).map((entry) => JSON.stringify(entry)).join("\n"));
     if (options.claudeTranscript) {
@@ -46,16 +46,23 @@ function fixture(t, options = {}) {
         options.claudeTranscript.map((entry) => JSON.stringify(entry)).join("\n"));
     }
 
-    // The tab's label is the one piece of state a rename has to move, so it
-    // lives in a file the fake reads back rather than in the fixture JSON.
     fs.writeFileSync(path.join(bin, "herdr"), `#!/usr/bin/env bash
 case "$1 $2" in
     "pane get") cat "${pane}" ;;
-    "tab get") jq --arg label "$(cat "${label}")" '.result.tab.label = $label' "${tab}" ;;
-    "tab rename") printf '%s' "$4" > "${label}" ;;
+    "tab get") jq --arg id "$3" '{result: {tab: (.result.tabs[] | select(.tab_id == $id))}}' "${tabs}" ;;
+    "tab list") cat "${tabs}" ;;
+    "tab rename")
+        jq --arg id "$3" --arg label "$4" '(.result.tabs[] | select(.tab_id == $id).label) = $label' "${tabs}" > "${tabs}.tmp"
+        mv "${tabs}.tmp" "${tabs}"
+        ;;
 esac
 `);
     fs.chmodSync(path.join(bin, "herdr"), 0o755);
+    fs.writeFileSync(path.join(bin, "claude"), `#!/usr/bin/env bash
+printf x >> "${generatorCalls}"
+printf '%s\\n' '${options.generated ?? "add default app picker"}'
+`);
+    fs.chmodSync(path.join(bin, "claude"), 0o755);
 
     function fire(event) {
         const result = childProcess.spawnSync(path.join(PLUGIN, "bin/tab-namer"), [], {
@@ -78,7 +85,20 @@ esac
         fs.writeFileSync(pane, JSON.stringify({ result: { pane: next } }));
     }
 
-    return { fire, setPane, label: () => fs.readFileSync(label, "utf8") };
+    function setTabs(next) {
+        fs.writeFileSync(tabs, JSON.stringify({ result: { tabs: next } }));
+    }
+
+    function label(tabId = TAB) {
+        return JSON.parse(fs.readFileSync(tabs)).result.tabs
+            .find((entry) => entry.tab_id === tabId)?.label;
+    }
+
+    function calls() {
+        return fs.existsSync(generatorCalls) ? fs.readFileSync(generatorCalls, "utf8").length : 0;
+    }
+
+    return { fire, setPane, setTabs, label, calls };
 }
 
 const codexPane = (overrides = {}) => ({
@@ -97,7 +117,7 @@ test("setup links the plugin, so a fresh machine gets it", () => {
         "nothing links the plugin, so herdr never runs it");
 });
 
-test("a codex tab takes the thread name, and the last entry for it wins", (t) => {
+test("Haiku summarizes the latest Codex thread name", (t) => {
     const herdr = fixture(t, {
         pane: codexPane(),
         threads: [
@@ -107,7 +127,8 @@ test("a codex tab takes the thread name, and the last entry for it wins", (t) =>
         ]
     });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "Add default app picker");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
+    assert.strictEqual(herdr.calls(), 1);
 });
 
 test("a fresh tab uses Herdr's positional label, not its public tab number", (t) => {
@@ -118,7 +139,7 @@ test("a fresh tab uses Herdr's positional label, not its public tab number", (t)
         threads: [{ id: "thread-1", thread_name: "Fix session tab titles" }]
     });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "Fix session tab titles");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
 });
 
 test("the pane id is found wherever the event nests it", (t) => {
@@ -127,10 +148,10 @@ test("the pane id is found wherever the event nests it", (t) => {
         threads: [{ id: "thread-1", thread_name: "Nested payload" }]
     });
     herdr.fire({ result: { event: { type: "pane.agent_status_changed", pane: { pane_id: PANE } } } });
-    assert.strictEqual(herdr.label(), "Nested payload");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
 });
 
-test("another agent's terminal title is used, cut at a word", (t) => {
+test("another agent's terminal title is summarized", (t) => {
     const herdr = fixture(t, {
         pane: {
             agent: "claude",
@@ -140,7 +161,7 @@ test("another agent's terminal title is used, cut at a word", (t) => {
         }
     });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "Rename tabs after the agent");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
 });
 
 test("Claude's generic terminal title falls back to its latest prompt", (t) => {
@@ -159,7 +180,37 @@ test("Claude's generic terminal title falls back to its latest prompt", (t) => {
         ]
     });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "Fix the upload flow");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
+});
+
+test("an explicit issue number is appended without asking Haiku to infer it", (t) => {
+    const herdr = fixture(t, {
+        pane: codexPane(),
+        generated: "fix default app handling",
+        threads: [{ id: "thread-1", thread_name: "Fix default apps for issue #151" }]
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1:fix default app handling #151");
+});
+
+test("the generated summary is cached while the source stays unchanged", (t) => {
+    const herdr = fixture(t, {
+        pane: codexPane(),
+        threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
+    });
+    herdr.fire();
+    herdr.fire();
+    assert.strictEqual(herdr.calls(), 1);
+});
+
+test("a malformed model answer falls back to a three-word summary", (t) => {
+    const herdr = fixture(t, {
+        pane: codexPane(),
+        generated: "Auth",
+        threads: [{ id: "thread-1", thread_name: "Fix auth" }]
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1:Fix auth task");
 });
 
 test("a title that says nothing the tab does not already show is ignored", (t) => {
@@ -198,10 +249,41 @@ test("its own label is reclaimed, and handed back when the agent goes", (t) => {
         threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
     });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "Add default app picker");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
 
     // pane.exited: the pane is still there, the agent is not.
     herdr.setPane({ tab_id: TAB, cwd: "/home/dev/project" });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "4");
+    assert.strictEqual(herdr.label(), "1");
+});
+
+test("closing a tab renumbers every remaining plugin-owned label", (t) => {
+    const secondTab = "w1:t2W";
+    const firstPane = codexPane({ agent_session: { value: "thread-1" } });
+    const secondPane = codexPane({
+        agent_session: { value: "thread-2" },
+        tab_id: secondTab
+    });
+    const herdr = fixture(t, {
+        pane: firstPane,
+        tabs: [
+            { tab_id: TAB, workspace_id: "w1", label: "1", pane_count: 1, number: 80 },
+            { tab_id: secondTab, workspace_id: "w1", label: "2", pane_count: 1, number: 97 }
+        ],
+        threads: [
+            { id: "thread-1", thread_name: "First task source" },
+            { id: "thread-2", thread_name: "Second task source" }
+        ]
+    });
+
+    herdr.fire();
+    herdr.setPane(secondPane);
+    herdr.fire();
+    assert.strictEqual(herdr.label(secondTab), "2:add default app picker");
+
+    herdr.setTabs([
+        { tab_id: secondTab, workspace_id: "w1", label: herdr.label(secondTab), pane_count: 1, number: 97 }
+    ]);
+    herdr.fire({ data: { type: "tab_closed", tab_id: TAB, workspace_id: "w1" } });
+    assert.strictEqual(herdr.label(secondTab), "1:add default app picker");
 });

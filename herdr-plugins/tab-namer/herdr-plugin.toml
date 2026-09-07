@@ -1,8 +1,8 @@
 id = "dotfiles.tab-namer"
 name = "Tab Namer"
-version = "0.2.0"
+version = "0.3.0"
 min_herdr_version = "0.7.0"
-description = "Name a single-pane tab after the agent session running in it."
+description = "Name agent tabs after their position and a short task summary."
 platforms = ["linux"]
 
 # Herdr runs the command per event with the payload in HERDR_PLUGIN_EVENT_JSON,
@@ -20,4 +20,18 @@ command = ["bin/tab-namer"]
 
 [[events]]
 on = "pane.exited"
+command = ["bin/tab-namer"]
+
+# A tab's visible number is its current position, not Herdr's stable public
+# number. Recompute every owned label whenever that position can change.
+[[events]]
+on = "tab.created"
+command = ["bin/tab-namer"]
+
+[[events]]
+on = "tab.closed"
+command = ["bin/tab-namer"]
+
+[[events]]
+on = "tab.moved"
 command = ["bin/tab-namer"]

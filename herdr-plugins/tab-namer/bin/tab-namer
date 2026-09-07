@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Rename the tab holding an agent pane to that agent's session name.
+# Rename the tab holding an agent pane to a short description of its work.
 # See docs/adr/0031-agent-tabs-carry-the-session-name.md.
 #
 # Herdr invokes this per event with HERDR_PLUGIN_EVENT_JSON, HERDR_BIN_PATH and
 # HERDR_PLUGIN_STATE_DIR set. Caller-controlled: CODEX_SESSION_INDEX (default
 # ~/.codex/session_index.jsonl), CLAUDE_PROJECTS_DIR (default
-# ~/.claude/projects) and LABEL_MAX (default 30).
+# ~/.claude/projects), TAB_NAME_MODEL (default haiku), and
+# TAB_NAME_TIMEOUT (default 20s).
 
 set -uo pipefail
 
@@ -13,7 +14,55 @@ herdr=${HERDR_BIN_PATH:-herdr}
 state_dir=${HERDR_PLUGIN_STATE_DIR:?}
 codex_index=${CODEX_SESSION_INDEX:-$HOME/.codex/session_index.jsonl}
 claude_projects=${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}
-label_max=${LABEL_MAX:-30}
+tab_name_model=${TAB_NAME_MODEL:-haiku}
+tab_name_timeout=${TAB_NAME_TIMEOUT:-20s}
+
+mkdir -p "$state_dir"
+exec 9>"$state_dir/plugin.lock"
+flock 9
+
+state_path() {
+    printf '%s/%s' "$state_dir" "${1//[^A-Za-z0-9]/-}"
+}
+
+rename_owned() {
+    local tab_id=$1 current=$2 number=$3 desired=$4
+    local state mine
+
+    state=$(state_path "$tab_id")
+    mine=$(cat "$state" 2>/dev/null)
+    [[ $current == "$number" || $current == "$mine" || $current =~ ^[0-9]+$ ]] || return 0
+    [[ $desired == "$current" ]] && return 0
+    "$herdr" tab rename "$tab_id" "$desired" >/dev/null 2>&1 || return 0
+    printf '%s' "$desired" >"$state"
+}
+
+renumber_workspace() {
+    local workspace_id=$1 tabs tab_id current number position summary state desired
+
+    [[ -n $workspace_id && $workspace_id != null ]] || return 0
+    tabs=$("$herdr" tab list --workspace "$workspace_id" 2>/dev/null) || return 0
+    while IFS=$'\t' read -r tab_id current number position; do
+        state=$(state_path "$tab_id")
+        summary=$(cat "$state.summary" 2>/dev/null)
+        [[ -n $summary ]] || continue
+        desired="$position:$summary"
+        rename_owned "$tab_id" "$current" "$number" "$desired"
+    done < <(jq -r '.result.tabs | to_entries[] |
+        [.value.tab_id, (.value.label // ""), (.value.number // 0), (.key + 1)] | @tsv' <<<"$tabs")
+}
+
+# Tab topology events have no pane to inspect. Their job is to keep the
+# positional prefix current for labels whose summaries are already cached.
+event_type=$(jq -r 'first(.. | objects | .type? | select(. != null)) // ""' \
+    <<<"${HERDR_PLUGIN_EVENT_JSON:-}" 2>/dev/null)
+if [[ $event_type == tab_created || $event_type == tab_closed || $event_type == tab_moved ]]; then
+    workspace_id=$(jq -r 'first(.. | objects | .workspace_id? | select(. != null)) //
+        first(.. | objects | .tab?.workspace_id? | select(. != null)) // ""' \
+        <<<"${HERDR_PLUGIN_EVENT_JSON:-}" 2>/dev/null)
+    renumber_workspace "$workspace_id"
+    exit 0
+fi
 
 # Event shapes nest the pane differently per event, so take the first pane_id
 # anywhere in the payload rather than guessing the wrapper.
@@ -22,11 +71,12 @@ pane_id=$(jq -r 'first(.. | objects | select(has("pane_id")) | .pane_id)' \
 [[ -n $pane_id && $pane_id != null ]] || exit 0
 
 pane=$("$herdr" pane get "$pane_id" 2>/dev/null) || exit 0
-IFS=$'\t' read -r tab_id workspace_id agent thread title dir < <(jq -r '.result.pane |
+IFS=$'\t' read -r tab_id workspace_id agent thread title dir cwd < <(jq -r '.result.pane |
     [(.tab_id // "-"), (.workspace_id // "-"), (.agent // "-"),
      (.agent_session.value // "-"),
      ((.terminal_title_stripped // "-") | if . == "" then "-" else . end),
-     ((.foreground_cwd // .cwd // "-") | split("/") | last)] | @tsv' <<<"$pane")
+     ((.foreground_cwd // .cwd // "-") | split("/") | last),
+     (.foreground_cwd // .cwd // "-")] | @tsv' <<<"$pane")
 [[ $tab_id != - ]] || exit 0
 
 claude_transcript_label() {
@@ -66,68 +116,85 @@ IFS=$'\t' read -r panes number current < <(jq -r '.result.tab |
 
 # Codex reports only a thread id to herdr; the name it shows for that thread
 # lives in its own index, appended to on every rename.
-label=
+source_text=
 if [[ $agent == codex && $thread != - && -r $codex_index ]]; then
-    label=$(grep -F "\"$thread\"" "$codex_index" | tail -1 |
+    source_text=$(grep -F "\"$thread\"" "$codex_index" | tail -1 |
         jq -r '.thread_name // empty' 2>/dev/null)
 fi
 # Most agents put their own summary in the terminal title. Claude Code can
 # leave its title at "Claude Code" until the first prompt finishes, so use the
 # transcript as a fallback for that initial generic title.
-[[ -n $label || $title == - ]] || label=$title
+[[ -n $source_text || $title == - ]] || source_text=$title
 
 # A bare agent name, a raw session id, or the directory the tab already implies
 # says nothing the tab does not already show.
 shopt -s nocasematch
-if [[ $label == "$agent" || $label == "$dir" || $label == "claude code" ||
-    $label =~ ^[0-9a-f-]{36}$ ]]; then
-    label=
-    [[ $agent == claude ]] && label=$(claude_transcript_label)
+if [[ $source_text == "$agent" || $source_text == "$dir" || $source_text == "claude code" ||
+    $source_text =~ ^[0-9a-f-]{36}$ ]]; then
+    source_text=
+    [[ $agent == claude ]] && source_text=$(claude_transcript_label)
 fi
 shopt -u nocasematch
-
-# Agent names are prose, so drop the word the cap lands inside.
-if (( ${#label} > label_max )); then
-    cut=${label:0:label_max}
-    [[ ${label:label_max:1} == " " ]] || cut=${cut% *}
-    label=$cut
-fi
 
 # Herdr labels a fresh tab with its position until someone renames it, so that
 # and a label this plugin wrote are the two it may take over. Anything else
 # was typed by hand and is left alone.
-mkdir -p "$state_dir"
-state=$state_dir/${tab_id//[^A-Za-z0-9]/-}
-exec 9>"$state.lock"
-flock 9
-
+state=$(state_path "$tab_id")
 mine=$(cat "$state" 2>/dev/null)
-base=$(cat "$state.base" 2>/dev/null)
-
-# Herdr's default label is the tab's position (for example, 4), while
-# `number` is a never-reused public identifier (for example, 110). Recover the
-# position for state files created before it was stored separately.
-if [[ -z $base && $current =~ ^[0-9]+$ ]]; then
-    base=$current
-fi
-if [[ -z $base && $workspace_id != - ]]; then
-    tabs=$("$herdr" tab list --workspace "$workspace_id" 2>/dev/null) || tabs=
-    base=$(jq -r --arg tab_id "$tab_id" '
-        .result.tabs
-        | to_entries[]
-        | select(.value.tab_id == $tab_id)
-        | (.key + 1)
-    ' <<<"$tabs" 2>/dev/null)
-fi
 [[ $current == "$number" || $current == "$mine" || $current =~ ^[0-9]+$ ]] || exit 0
 
-[[ -n $base && ! -e "$state.base" ]] && printf '%s' "$base" >"$state.base"
-
 # No agent left in the pane -- hand the label back to herdr.
-[[ -n $agent && $agent != - ]] || label=
-desired=${label:-${base:-$number}}
+if [[ -z $agent || $agent == - ]]; then
+    tabs=$("$herdr" tab list --workspace "$workspace_id" 2>/dev/null) || tabs=
+    position=$(jq -r --arg tab_id "$tab_id" '.result.tabs | to_entries[] |
+        select(.value.tab_id == $tab_id) | (.key + 1)' <<<"$tabs" 2>/dev/null)
+    desired=${position:-$number}
+    rename_owned "$tab_id" "$current" "$number" "$desired"
+    rm -f "$state.summary" "$state.source"
+    exit 0
+fi
 
-[[ $desired == "$current" ]] && exit 0
-"$herdr" tab rename "$tab_id" "$desired" >/dev/null 2>&1 || exit 0
-printf '%s' "$desired" >"$state"
-[[ -n $base ]] && printf '%s' "$base" >"$state.base"
+[[ -n $source_text ]] || exit 0
+
+branch=
+[[ $cwd != - ]] && branch=$(git -C "$cwd" branch --show-current 2>/dev/null)
+source_key=$(printf '%s\0%s' "$source_text" "$branch" | sha256sum | cut -d' ' -f1)
+cached_key=$(cat "$state.source" 2>/dev/null)
+summary=$(cat "$state.summary" 2>/dev/null)
+
+if [[ $source_key != "$cached_key" || -z $summary ]]; then
+    prompt=$(printf '%s\n' \
+        'Write a concise terminal tab summary for the work below.' \
+        'Return exactly 3 or 4 words, plain text only.' \
+        'Do not include an issue number, punctuation, quotes, or a numeric prefix.' \
+        'Prefer concrete nouns and verbs. Do not explain your answer.' \
+        "Branch: ${branch:-unknown}" \
+        "Work: $source_text")
+    summary=$(printf '%s' "$prompt" | timeout "$tab_name_timeout" env MAX_THINKING_TOKENS=0 \
+        claude -p --no-session-persistence --model="$tab_name_model" --tools='' \
+        --safe-mode --setting-sources='user' --system-prompt='' 2>/dev/null | head -n1)
+    # The backtick is data in the sed expression.
+    # shellcheck disable=SC2016
+    summary=$(sed -E 's/^[[:space:]"`]+|[[:space:]"`]+$//g; s/[[:punct:]]+$//' <<<"$summary")
+
+    # A failed or malformed model answer should still leave a useful tab.
+    words=$(awk '{ print NF }' <<<"$summary")
+    if (( words < 3 || words > 4 )); then
+        summary=$(sed -E 's/#[0-9]+//g; s/[^[:alnum:]_-]+/ /g' <<<"$source_text" |
+            awk '{
+                limit = NF < 4 ? NF : 4
+                for (i = 1; i <= limit; i++) printf "%s%s", (i > 1 ? " " : ""), $i
+                if (limit == 1) printf " task summary"
+                else if (limit == 2) printf " task"
+            }')
+    fi
+
+    issue=$(printf '%s\n%s\n' "$source_text" "$branch" |
+        grep -Eio '#[0-9]+|issue[[:space:]_/-]*[0-9]+' | tail -n1 |
+        grep -Eo '[0-9]+' || true)
+    [[ -z $issue ]] || summary="$summary #$issue"
+    printf '%s' "$source_key" >"$state.source"
+    printf '%s' "$summary" >"$state.summary"
+fi
+
+renumber_workspace "$workspace_id"

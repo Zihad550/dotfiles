@@ -1,4 +1,4 @@
-# Agent tabs carry the session name, via a plugin
+# Agent tabs carry a short task summary, via a plugin
 
 Every agent tab in a Herdr session reads the same thing — the directory, or
 Herdr's tab number — so the tab holding the session you left a task running in
@@ -44,8 +44,18 @@ already reports. Claude Code can leave that title at `Claude Code`, so the
 plugin falls back to the latest human prompt in the session transcript under
 `~/.claude/projects`.
 
+**Haiku compresses the source text.** The raw session name or prompt can be a
+sentence, so the event command passes it to the same non-interactive,
+tool-disabled Claude Haiku setup used by Worktrunk's commit generator. The
+result is cached until that source text or branch changes. Issue numbers are
+extracted from the source text or branch and appended without asking the model
+to infer one.
+
 ## Consequences
 
+- Labels use `<position>:<three or four word summary> [#issue]`. The position
+  is recalculated on tab creation, closure, and movement, so it follows the
+  visible order rather than Herdr's never-reused public tab number.
 - Only a tab with exactly one pane is renamed. A shared tab has no single pane
   to be named after, and no rule would pick the right one.
 - The plugin takes over a label only when it is Herdr's numeric tab-position
