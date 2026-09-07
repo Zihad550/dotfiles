@@ -44,7 +44,8 @@ prefix = "ctrl+space"
 
 # --- tabs (tmux windows) ------------------------------------------------
 new_tab       = "prefix+ctrl+t"
-close_tab     = "prefix+ctrl+w"
+# Use the custom command below so closing the final tab leaves an empty tab.
+close_tab     = ""
 rename_tab    = "prefix+r"                   # tmux: bind r rename-window
 next_tab      = ["prefix+shift+l", "prefix+n"]   # tmux: bind L next-window
 previous_tab  = "prefix+shift+h"             # tmux: bind H previous-window
@@ -118,6 +119,15 @@ edit_scrollback = "prefix+e"
 open_notification_target = "prefix+o"
 
 # --- popups (replacing tmux plugins) ------------------------------------
+# Herdr closes a workspace with its last tab. This replacement creates an
+# empty tab first, but only handles this configured keyboard shortcut; direct
+# mouse and CLI closes still use Herdr's native behavior.
+[[keys.command]]
+key = "prefix+ctrl+w"
+type = "shell"
+command = "\"$HOME/dotfiles/bin/df-herdr-close-tab\""
+description = "close tab and keep workspace"
+
 # close_workspace only tears down the current workspace's tabs/panes; the
 # client stays attached with zero workspaces, so the window never closes
 # (df-herdr-session execs `herdr --session <name>` directly, so there's no
