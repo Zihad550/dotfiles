@@ -34,6 +34,8 @@ o.bind("SUPER + O", "Obsidian",
     dotfiles_bin .. [[/df-launch-special-workspace "md.obsidian.Obsidian" "note" obsidian -disable-gpu --enable-wayland-ime]])
 o.bind("SUPER + SHIFT + W", "Helium (work)",
     dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" --workspace-owned helium-browser --profile-directory='Profile 2']])
+o.bind("SUPER + D", "Helium (development)",
+    dotfiles_bin .. [[/df-launch-special-workspace "helium" "development" --workspace-owned helium-browser --profile-directory=Default]])
 o.bind("SUPER + M", "Thunderbird",
     dotfiles_bin .. [[/df-launch-special-workspace "org.mozilla.Thunderbird" "thunderbird" thunderbird]])
 

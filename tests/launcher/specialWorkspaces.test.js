@@ -22,6 +22,12 @@ const NATIVE_APPLICATIONS = [
         launch: "helium-browser --profile-directory='Profile 2'"
     },
     {
+        keys: "SUPER + D",
+        initialClass: "helium",
+        workspace: "development",
+        launch: "helium-browser --profile-directory=Default"
+    },
+    {
         keys: "SUPER + M",
         initialClass: "org.mozilla.Thunderbird",
         workspace: "thunderbird",
