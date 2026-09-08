@@ -43,7 +43,7 @@
     "gopls-lsp@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
-    "coderabbit@claude-plugins-official": true
+    "coderabbit@claude-plugins-official": false
   },
   "sandbox": {
     "enabled": false,
@@ -53,7 +53,7 @@
   "effortLevel": "medium",
   "modelSettings": {
     "claude-opus-5": {
-      "effortLevel": "medium"
+      "effortLevel": "high"
     },
     "claude-sonnet-5": {
       "effortLevel": "high"
@@ -67,6 +67,8 @@
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "autoMode": {
     "environment": [
       "### Org-wide",
