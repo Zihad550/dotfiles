@@ -241,7 +241,7 @@ hash -d dl=~/Downloads
 # keybindings
 ############
 bindkey -e
-bindkey '^p' history-search-backward
+bindkey '^P' autosuggest-accept
 bindkey '^n' history-search-forward
 bindkey '^[w' kill-region
 # open buffer line in editor
