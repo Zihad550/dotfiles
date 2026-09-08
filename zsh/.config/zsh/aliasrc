@@ -1,53 +1,6 @@
 #!/usr/env/bin bash
 
-# cmd remaps
-# alias ls=eza
-alias backup-dev='rsync -rPavh --exclude-from=dev/.rsyncignore --delete-after dev backup:'
-alias rm='trash-put'
-alias v='nvim'
-alias vi='nvim'
-alias cat='bat --color=always'
-alias top='btm'
-# alias top='procs --sortd cpu -W 1'
-#alias find='fd'
-alias wifi='nmtui'
-# alias timer='termdown'
-alias api='atac'
-alias ai='opencode'
-alias sysinfo='fastfetch'
-alias spec='openspec'
-alias timer='go-timer'
-alias oc='opencode'
-alias d='docker'
-alias zed='zeditor'
-alias z='zeditor'
-alias cl='claude'
-alias cx='codex'
-alias hr='herdr'
-alias ts='tailscale'
-
-# short aliases
-# cat="bat" \
-alias \
-    s="ssh" \
-    c="clear" \
-    v="nvim" \
-    n="nvim" \
-    e="nvim" \
-    ls="eza -lh --group-directories-first --icons=auto --color=auto" \
-    la="ls -a" \
-    lt='eza --tree --level=2 --long --icons --git' \
-    lta='lt -a' \
-    shell="exec $SHELL -l" \
-    mv="mv -i" \
-    df="df -h" \
-    du="du -h -d 1" \
-    p="procs" \
-    f="yazi" \
-    m='mise'
-    # grep="rg"
-# rm="rm -Iv" \
-# k="killall" \
+alias shell="exec $SHELL -l"
 
 # Directories
 alias ..='cd ..'
@@ -167,17 +120,9 @@ fzf_open_dir() {
     fi
 }
 
-# fzf mappings
-alias ff='fzf --preview="bat --color=always {}"'
-alias fzn='nvim $(fzf --preview="bat --color=always {}")'
-alias fzz='zed_open_dir $(fzf --preview="bat --color=always {}")'
-alias fcode='fzf_open_dir_func code'
-alias fcursor='fzf_open_dir_func cursor'
 zed_open_dir() {
     fzf_open_dir_func zed
 }
-alias fnvim='fzf_open_dir_func nvim'
-alias fwind='fzf_open_dir_func windsurf'
 fod() {
     fzf_open_dir_func nautilus
 }
@@ -226,28 +171,9 @@ run() {
     esac
 }
 
-# pnpm aliases
-alias pn=pnpm
-alias pna='pn approve-builds'
-
-# npm aliases
-alias nird='ni && nrd'
-alias nrb='nr build'
-alias nbp='nr build:preview'
-
-# git + gh aliases live in gitrc
-
 # gpu stats
 #alias gpuInfo='sudo xpu-smi stats -d 0'
 #alias gpuHwInfo='sudo xpu-smi discovery -d 0'
-
-# mise aliases
-alias mrd='mise run dev'
-alias mt='mise trust'
-alias mr='mise run'
-alias mi='mise install'
-
-# worktrunk aliases live in wtrc
 
 # custom
 # nerd-dictation begin --simulate-input-tool WTYPE
@@ -288,14 +214,6 @@ dp-proj-ports() {
     devpod ssh "${1:-devcontainer}" -L 8000:localhost:8000 -L 3000:localhost:3000
 }
 
-alias psb='ps au | bat -l conf'
-alias lsmodb='lsmod | bat -l conf'
-# alias sensorsb='watch -n 1 "sensors | bat -l cpuinfo"'
-alias sensorsb='watch -c -n 1 "sensors | COLORTERM= bat -l cpuinfo --color=always"'
-alias lscpub='lscpu | bat -l cpuinfo'
-
-batify() { "$@" | bat -l "${BAT_LANG:-conf}"; }
-
 # python
 alias sv='source .venv/bin/activate'
 rmpyc() {
@@ -325,3 +243,107 @@ ts-serve() {
         sudo tailscale serve --https="$port" "$scheme://localhost:$port"
     fi
 }
+
+# Command replacements
+if commands_available eza; then
+    alias ls='eza -lh --group-directories-first --icons=auto --color=auto'
+    alias la='ls -a'
+    alias lt='eza --tree --level=2 --long --icons --git'
+    alias lta='lt -a'
+elif commands_available ls; then
+    alias ls='command ls -lh'
+    alias la='command ls -lha'
+    alias lt='command ls -lh'
+    alias lta='command ls -lha'
+fi
+
+alias_if_command bat cat 'bat --color=always'
+alias_if_command rg grep rg
+alias_if_command trash-put rm trash-put
+alias_if_command btm top btm
+
+# Tool shortcuts
+alias_if_command rsync backup-dev 'rsync -rPavh --exclude-from=dev/.rsyncignore --delete-after dev backup:'
+alias_if_command nvim v nvim
+alias_if_command nvim vi nvim
+alias_if_command nvim n nvim
+alias_if_command nvim e nvim
+alias_if_command nmtui wifi nmtui
+alias_if_command atac api atac
+alias_if_command opencode ai opencode
+alias_if_command fastfetch sysinfo fastfetch
+alias_if_command openspec spec openspec
+alias_if_command go-timer timer go-timer
+alias_if_command opencode oc opencode
+alias_if_command docker d docker
+alias_if_command zeditor zed zeditor
+alias_if_command zeditor z zeditor
+alias_if_command claude cl claude
+alias_if_command codex cx codex
+alias_if_command herdr hr herdr
+alias_if_command tailscale ts tailscale
+alias_if_command ssh s ssh
+alias_if_command clear c clear
+alias_if_command mv mv 'mv -i'
+alias_if_command df df 'df -h'
+alias_if_command du du 'du -h -d 1'
+alias_if_command procs p procs
+alias_if_command yazi f yazi
+alias_if_command mise m mise
+
+# Fuzzy finder shortcuts
+if commands_available fzf bat; then
+    alias ff='fzf --preview="bat --color=always {}"'
+fi
+if commands_available fzf bat nvim; then
+    alias fzn='nvim $(fzf --preview="bat --color=always {}")'
+fi
+if commands_available fzf bat zeditor; then
+    alias fzz='zed_open_dir $(fzf --preview="bat --color=always {}")'
+fi
+if commands_available fzf code uwsm-app; then
+    alias fcode='fzf_open_dir_func code'
+fi
+if commands_available fzf cursor uwsm-app; then
+    alias fcursor='fzf_open_dir_func cursor'
+fi
+if commands_available fzf nvim; then
+    alias fnvim='fzf_open_dir_func nvim'
+fi
+if commands_available fzf windsurf uwsm-app; then
+    alias fwind='fzf_open_dir_func windsurf'
+fi
+
+# JavaScript package tools
+if commands_available pnpm; then
+    alias pn='pnpm'
+    alias pna='pn approve-builds'
+fi
+if commands_available npm || commands_available bun || commands_available pnpm; then
+    alias nird='ni && nrd'
+    alias nrb='nr build'
+    alias nbp='nr build:preview'
+fi
+
+# mise
+alias_if_command mise mrd 'mise run dev'
+alias_if_command mise mt 'mise trust'
+alias_if_command mise mr 'mise run'
+alias_if_command mise mi 'mise install'
+
+# System inspection
+if commands_available ps bat; then
+    alias psb='ps au | bat -l conf'
+fi
+if commands_available lsmod bat; then
+    alias lsmodb='lsmod | bat -l conf'
+fi
+if commands_available watch sensors bat; then
+    alias sensorsb='watch -c -n 1 "sensors | COLORTERM= bat -l cpuinfo --color=always"'
+fi
+if commands_available lscpu bat; then
+    alias lscpub='lscpu | bat -l cpuinfo'
+fi
+if commands_available bat; then
+    batify() { "$@" | bat -l "${BAT_LANG:-conf}"; }
+fi

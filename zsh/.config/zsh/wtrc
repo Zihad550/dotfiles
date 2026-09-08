@@ -1,10 +1,5 @@
 #!/usr/env/bin bash
-# Worktrunk (`wt`) aliases. Split out of aliasrc.
-
-alias wtc="wt step commit"
-alias wtp="wtc && gp"
-alias wtl="wt list"
-alias wts="wt switch"
+# Worktrunk (`wt`) helpers.
 
 # alias wts="wt list --format json | jq '.[].branch' | fzf | xargs -I {} wt switch {}"
 wt-switch-active() {
@@ -25,3 +20,11 @@ wtake() {
   wt switch "$branch" || return
   [ "$before" != "$after" ] && git stash pop
 }
+
+alias_if_command wt wtc 'wt step commit'
+alias_if_command wt wtl 'wt list'
+alias_if_command wt wts 'wt switch'
+
+if commands_available wt git; then
+    alias wtp='wtc && gp'
+fi

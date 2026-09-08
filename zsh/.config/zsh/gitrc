@@ -1,17 +1,5 @@
 #!/usr/env/bin bash
-# Personal git + gh aliases. Split out of aliasrc.
-
-alias g='git'
-alias gaa='git add --all'
-alias gcm='git commit -m'
-alias gco='git checkout'
-alias gl='git pull'
-alias gp='git push'
-alias grhh='git reset --hard'
-alias gcl='git clone'
-# ghq keeps clones in a $GOPATH-style tree, so it shadows the real `git clone`.
-alias git-clone='ghq get'
-alias lg='lazygit'
+# Personal git + gh helpers.
 # alias tpr='tea pr rc -o simple --comments'
 tpr() {
   tea pr $1 --comments
@@ -96,15 +84,10 @@ tprr() {
       else $r[] | "\(.user.login) [\(.state)] \(.submitted_at[0:10]):\n\(.body)\n"
       end'
 }
-alias gpr='gh pr view --comments'
-alias ti='tea issue --comments -o simple'
-alias gi='gh issue view --comments'
-
 # alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
 # alias gs='git status'
 # alias gss='git status --short'
 
-alias fpush='gitpush "s"'
 # Stage everything, commit, and push the current branch, setting upstream.
 gitpush() {
     if [ -z "$1" ]; then
@@ -122,6 +105,24 @@ gitpush() {
     git add -A && git commit -m "$1" && git push -u origin "$branch"
 }
 
-# github cli
-alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'
-alias gh-create-pvt='git init && gh repo create --private --source=. --remote=origin && git push -u --all && gh browse'
+alias_if_command git g git
+alias_if_command git gaa 'git add --all'
+alias_if_command git gcm 'git commit -m'
+alias_if_command git gco 'git checkout'
+alias_if_command git gl 'git pull'
+alias_if_command git gp 'git push'
+alias_if_command git grhh 'git reset --hard'
+alias_if_command git gcl 'git clone'
+alias_if_command git fpush 'gitpush "s"'
+
+# ghq keeps clones in a GOPATH-style tree, so this intentionally shadows git clone.
+alias_if_command ghq git-clone 'ghq get'
+alias_if_command lazygit lg lazygit
+alias_if_command gh gpr 'gh pr view --comments'
+alias_if_command tea ti 'tea issue --comments -o simple'
+alias_if_command gh gi 'gh issue view --comments'
+
+if commands_available git gh; then
+    alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'
+    alias gh-create-pvt='git init && gh repo create --private --source=. --remote=origin && git push -u --all && gh browse'
+fi

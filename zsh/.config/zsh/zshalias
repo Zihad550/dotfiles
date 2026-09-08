@@ -1,23 +1,9 @@
 #!/usr/env/bin bash
 
-# suffix aliases
-alias -s md="bat"
-alias -s mov="open"
-alias -s png="open"
-alias -s mp4="open"
-alias -s go="$EDITOR"
-alias -s js="$EDITOR"
-alias -s ts="$EDITOR"
-alias -s yaml="bat -l yaml"
-alias -s json="bat -l json"
-
 # global aliases
 alias -g NE='2>/dev/null'      # null error
 alias -g DN='> /dev/null'      # pipe standard output to /dev/null
 alias -g NUL='>/dev/null 2>&1' # pipe standard output and error to /dev/null
-alias -g C='| wl-copy'
-alias -g P='wl-paste'
-alias -g L='| less'
 
 # promodoro
 declare -A pomo_options
@@ -34,6 +20,28 @@ pomodoro() {
       notify-send "'$val' session done"
    fi
 }
-alias work="pomodoro 'work'"
-alias typing="pomodoro 'typing'"
-alias break="pomodoro 'break'"
+
+# Suffix aliases
+suffix_alias_if_command bat md bat
+suffix_alias_if_command open mov open
+suffix_alias_if_command open png open
+suffix_alias_if_command open mp4 open
+suffix_alias_if_command bat yaml 'bat -l yaml'
+suffix_alias_if_command bat json 'bat -l json'
+
+if [[ -n ${EDITOR:-} ]] && commands_available "${EDITOR%% *}"; then
+    alias -s "go=$EDITOR"
+    alias -s "js=$EDITOR"
+    alias -s "ts=$EDITOR"
+fi
+
+# Command-backed global aliases
+global_alias_if_command wl-copy 'C' '| wl-copy'
+global_alias_if_command wl-paste 'P' 'wl-paste'
+global_alias_if_command less 'L' '| less'
+
+if commands_available go-timer notify-send; then
+    alias work="pomodoro 'work'"
+    alias typing="pomodoro 'typing'"
+    alias break="pomodoro 'break'"
+fi

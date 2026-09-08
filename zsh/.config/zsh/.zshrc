@@ -91,11 +91,43 @@ zinit cdreplay -q
 # Esc-Esc: toggle a sudo prefix on the current line.
 source "$XDG_CONFIG_HOME/zsh/sudo.zsh"
 
-# aliases
-source "$XDG_CONFIG_HOME/zsh/aliasrc"
-source "$XDG_CONFIG_HOME/zsh/gitrc"
-source "$XDG_CONFIG_HOME/zsh/wtrc"
-source "$XDG_CONFIG_HOME/zsh/zshalias"
+commands_available() {
+    local command_name
+
+    for command_name in "$@"; do
+        command -v "$command_name" >/dev/null 2>&1 || return 1
+    done
+}
+
+alias_if_command() {
+    local command_name=$1 alias_name=$2 expansion=$3
+
+    if commands_available "$command_name"; then
+        alias "$alias_name=$expansion"
+    else
+        unalias "$alias_name" 2>/dev/null || true
+    fi
+}
+
+suffix_alias_if_command() {
+    local command_name=$1 alias_name=$2 expansion=$3
+
+    if commands_available "$command_name"; then
+        alias -s "$alias_name=$expansion"
+    else
+        unalias -s "$alias_name" 2>/dev/null || true
+    fi
+}
+
+global_alias_if_command() {
+    local command_name=$1 alias_name=$2 expansion=$3
+
+    if commands_available "$command_name"; then
+        alias -g "$alias_name=$expansion"
+    else
+        unalias -g "$alias_name" 2>/dev/null || true
+    fi
+}
 
 ##############
 # History
@@ -136,20 +168,26 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 #################
 # Shell integrations
 #################
-if command -v fzf >/dev/null 2>&1; then source <(fzf --zsh); fi
-if command -v zoxide >/dev/null 2>&1; then eval "$(zoxide init --cmd cd zsh)"; fi
-if command -v starship >/dev/null 2>&1; then eval "$(starship init zsh)"; fi
-if command -v mise >/dev/null 2>&1; then eval "$(mise activate zsh)"; fi
+if commands_available fzf; then source <(fzf --zsh); fi
+if commands_available zoxide; then eval "$(zoxide init --cmd cd zsh)"; fi
+if commands_available starship; then eval "$(starship init zsh)"; fi
+if commands_available mise; then eval "$(mise activate zsh)"; fi
 # older procs (e.g. Ubuntu's apt build) has no --gen-completion-out; skip it there
-if command -v procs >/dev/null 2>&1; then
+if commands_available procs; then
     _procs_comp=$(procs --gen-completion-out zsh 2>/dev/null) && [[ -n $_procs_comp ]] && eval "$_procs_comp"
     unset _procs_comp
 fi
-if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
-if command -v tv >/dev/null 2>&1; then eval "$(tv init zsh)"; fi
-if command -v atuin >/dev/null 2>&1; then eval "$(atuin init zsh)"; fi
-# if command -v tea >/dev/null 2>&1; then source <(tea completion zsh); fi
+if commands_available wt; then eval "$(command wt config shell init zsh)"; fi
+if commands_available tv; then eval "$(tv init zsh)"; fi
+if commands_available atuin; then eval "$(atuin init zsh)"; fi
+# if commands_available tea; then source <(tea completion zsh); fi
 source "$XDG_CONFIG_HOME/zsh/ni"
+
+# Load guarded aliases after mise adds managed tools to PATH.
+source "$XDG_CONFIG_HOME/zsh/aliasrc"
+source "$XDG_CONFIG_HOME/zsh/gitrc"
+source "$XDG_CONFIG_HOME/zsh/wtrc"
+source "$XDG_CONFIG_HOME/zsh/zshalias"
 
 # Emit OSC 7 (current working directory) so the outer terminal / tmux can
 # track the remote cwd across an ssh session. Tmux exposes this as
@@ -162,7 +200,11 @@ precmd_functions+=(_emit_osc7_cwd)
 
 # everytime i do cd it lists all content of that directory
 chpwd() {
-    eza -lh --group-directories-first --icons=auto --color=auto
+    if commands_available eza; then
+        eza -lh --group-directories-first --icons=auto --color=auto
+    else
+        command ls -lh
+    fi
 
     # activating python virtual environment when i do cd
     # if [[ -d .venv ]]; then
@@ -228,29 +270,39 @@ zle -N clear-keep-buffer
 bindkey '^Xl' clear-keep-buffer
 
 # copy current command
-copy-command() {
-    echo -n $BUFFER | wl-copy
-    zle -M "Copied to clipboard"
-}
-zle -N copy-command
-bindkey '^Xc' copy-command
+if commands_available wl-copy; then
+    copy-command() {
+        echo -n $BUFFER | wl-copy
+        zle -M "Copied to clipboard"
+    }
+    zle -N copy-command
+    bindkey '^Xc' copy-command
+fi
 
 # custom keybindings for searching and opening directories in code editors
-zle -N zed_open_dir
-bindkey "^e" zed_open_dir
-zle -N fzf_open_dir
-bindkey "\ec" fzf_open_dir
+if commands_available zeditor && (( $+functions[zed_open_dir] )); then
+    zle -N zed_open_dir
+    bindkey "^e" zed_open_dir
+fi
+if commands_available fzf && (( $+functions[fzf_open_dir] )); then
+    zle -N fzf_open_dir
+    bindkey "\ec" fzf_open_dir
+fi
 # search an open on nautilus
-zle -N fod
-bindkey "^f" fod
+if commands_available nautilus && (( $+functions[fod] )); then
+    zle -N fod
+    bindkey "^f" fod
+fi
 
 # open lazygit
-openLazygit() {
-    lazygit <$TTY
-    zle redisplay
-}
-zle -N openLazygit
-bindkey "^g" openLazygit
+if commands_available lazygit; then
+    openLazygit() {
+        lazygit <$TTY
+        zle redisplay
+    }
+    zle -N openLazygit
+    bindkey "^g" openLazygit
+fi
 
 # useful custom keybindings for custom autocompletions
 bindkey -s '^Xgc' 'git commit -m ""\C-b'
