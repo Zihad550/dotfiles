@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+# Herdr has no runtime notification switch, so the toggle rewrites config.toml
+# and reloads the running server.
+#   HERDR_CONFIG_PATH     ~/.config/herdr/config.toml   file rewritten
+#   HERDR_BIN_PATH        herdr                         binary that reloads it
+#   HERDR_TOAST_DELIVERY  system                        delivery restored when on
+
+set -euo pipefail
+
+herdr=${HERDR_BIN_PATH:-herdr}
+config=${HERDR_CONFIG_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml}
+delivery_on=${HERDR_TOAST_DELIVERY:-system}
+
+fail() {
+    printf 'df-herdr-toggle-notifications: %s\n' "$1" >&2
+    notify-send "Herdr notifications unchanged" "$1" >/dev/null 2>&1 || true
+    exit 1
+}
+
+[[ -f $config ]] || fail "no Herdr config at $config"
+
+read_toast_delivery() {
+    awk -F= '
+        /^[[:space:]]*\[/ { section = $1 }
+        section == "[ui.toast]" && $1 ~ /^[[:space:]]*delivery[[:space:]]*$/ {
+            sub(/#.*/, "", $2)
+            gsub(/[[:space:]"'\'']/, "", $2)
+            print $2
+            exit
+        }
+    ' "$config"
+}
+
+current=$(read_toast_delivery)
+[[ -n $current ]] || fail "$config has no [ui.toast] delivery setting to toggle"
+
+if [[ $current == off ]]; then
+    state=on delivery=$delivery_on sound=true
+else
+    state=off delivery=off sound=false
+fi
+
+tmp=$(mktemp)
+backup=$(mktemp)
+trap 'rm -f "$tmp" "$backup"' EXIT
+cat "$config" >"$backup"
+
+awk -v delivery="$delivery" -v sound="$sound" '
+    /^[[:space:]]*\[/ { section = $1 }
+    section == "[ui.toast]" && /^[[:space:]]*delivery[[:space:]]*=/ {
+        print "delivery = \"" delivery "\""
+        next
+    }
+    section == "[ui.sound]" && /^[[:space:]]*enabled[[:space:]]*=/ {
+        print "enabled = " sound
+        next
+    }
+    { print }
+' "$config" >"$tmp"
+
+# Written through the symlink stow created, so the target file keeps its place.
+cat "$tmp" >"$config" || fail "could not write $config"
+
+if ! "$herdr" server reload-config >/dev/null 2>&1; then
+    cat "$backup" >"$config"
+    fail "Herdr rejected the reload; notifications are still $current"
+fi
+
+notify-send "Herdr notifications $state" >/dev/null 2>&1 || true
