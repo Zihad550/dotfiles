@@ -203,6 +203,27 @@ test("a workspace-owned binding ignores exact clients outside its configured Spe
     assert.match(launches[0].join(" "), /Profile\\ 2/);
 });
 
+test("a workspace-owned binding focuses one of several clients in its configured Special Workspace", t => {
+    const harness = fixture(t, { clients: [[
+        client("0xfirst", "helium", "special:development"),
+        client("0xsecond", "helium", "special:development"),
+        client("0xwork", "helium", "special:work")
+    ]] });
+
+    const result = harness.run("development", [
+        "--workspace-owned",
+        "helium-browser",
+        "--profile-directory=Default"
+    ], "helium");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    const focuses = dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus");
+    assert.strictEqual(focuses.length, 1);
+    assert.match(focuses[0].join(" "), /address:0xfirst/);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length, 0);
+    assert.strictEqual(harness.notifications().length, 0);
+});
+
 test("duplicate exact clients prefer the sole client in the configured Special Workspace", t => {
     const harness = fixture(t, { clients: [[
         client("0xother", INITIAL_CLASS, "7"),
