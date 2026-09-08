@@ -43,3 +43,4 @@ o.bind("PRINT",        "Screenshot",
 o.bind("SHIFT + PRINT", "Screenshot (edit)",
     [[bash -c 'grim -g "$(slurp -d)" - | tee ~/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png | swappy -f -']])
 o.bind("SUPER + PRINT", "Color picker", "hyprpicker -a")
+o.bind("SUPER + CTRL + PRINT", "Extract text from screen", dotfiles_bin .. "/df-capture-text")

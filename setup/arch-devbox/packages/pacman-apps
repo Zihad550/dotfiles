@@ -20,6 +20,7 @@
 # desktop needs
 # chromium - the only browser; df-theme-set-browser already themes it
 # swappy slurp grim - screenshot (used by the hypr keybindings)
+# tesseract and tesseract-data-eng - OCR screen capture
 #
 # libqalculate, cliphist and wl-clipboard are NOT dropped -- they moved to
 # ../../common/packages/quickshell-packages, shared by both targets.
@@ -29,7 +30,8 @@ sudo pacman -S --noconfirm \
     neovim \
     yazi resvg \
     ghostty \
-    swappy slurp grim
+    swappy slurp grim \
+    tesseract tesseract-data-eng
 
 # dropped — not dev
 # discord \             # chat

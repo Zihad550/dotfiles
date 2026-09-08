@@ -18,6 +18,7 @@ sudo pacman -S --noconfirm \
 # install apps
 # converseen - convert and optimize img
 # swappy slurp grim - screenshot
+# tesseract and tesseract-data-eng - OCR screen capture
 # blueberry - bluetooth
 # libqalculate, cliphist and wl-clipboard are in
 #   ../../common/packages/quickshell-packages --
@@ -34,7 +35,8 @@ sudo pacman -S --noconfirm \
     obsidian \
     mpv \
     converseen \
-    swappy slurp grim
+    swappy slurp grim \
+    tesseract tesseract-data-eng
 # gemini
 
 # install gnome apps
