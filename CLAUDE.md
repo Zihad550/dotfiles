@@ -16,6 +16,7 @@
   not. Fix the file in the working tree when asked, leave it dirty, and say so.
 - Do not **stage** or **commit** `claude/.claude/settings.json` unless the user
   names that file. An instruction about something else nearby is not permission.
+- After a task is done, ask the user if they would like to commit and push the relevant changes.
 
 ### Issue tracker
 
