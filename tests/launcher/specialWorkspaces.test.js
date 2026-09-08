@@ -393,6 +393,26 @@ test("native application bindings declare their exact initial classes", () => {
     }
 });
 
+test("the development Special Workspace uses the scrolling layout", () => {
+    const windowsConfig = path.join(ROOT, "hypr/.config/hypr/lua/windows.lua");
+    const harness = `
+hl = {
+    window_rule = function() end,
+    workspace_rule = function(rule)
+        print(rule.workspace .. "|" .. (rule.layout or ""))
+    end,
+}
+dofile(os.getenv("TEST_WINDOWS_CONFIG"))
+`;
+    const result = childProcess.spawnSync("lua", ["-e", harness], {
+        encoding: "utf8",
+        env: { ...process.env, TEST_WINDOWS_CONFIG: windowsConfig }
+    });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^special:development\|scrolling$/m);
+});
+
 test("each native identity ignores titles and focuses its sole exact client wherever it lives", t => {
     for (const { initialClass, workspace } of NATIVE_APPLICATIONS) {
         const titleOnly = client(`0xtitle-${initialClass}`, "wrong-class", `special:${workspace}`, {

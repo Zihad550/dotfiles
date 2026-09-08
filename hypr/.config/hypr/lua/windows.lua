@@ -23,6 +23,6 @@ hl.window_rule({
 })
 
 -- Per-workspace scrolling layout.
-for _, ws in ipairs({ "1", "3", "4", "5", "6", "7", "8", "9" }) do
+for _, ws in ipairs({ "1", "3", "4", "5", "6", "7", "8", "9", "special:development" }) do
     hl.workspace_rule({ workspace = ws, layout = "scrolling" })
 end
