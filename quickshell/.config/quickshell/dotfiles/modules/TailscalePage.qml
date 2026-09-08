@@ -41,9 +41,14 @@ QuickSettingsPage {
             label: modelData.label
             // The current marker itself stays modelData.current, driven only
             // by the refreshed list -- never flipped optimistically here.
-            detail: modelData.id === TailscaleService.switchingProfileId ? "Switching…"
-                : (modelData.id === TailscaleService.failedOperationProfileId && TailscaleService.failedOperationState === "authentication-required") ? "This Profile needs authentication"
-                : modelData.detail
+            detail: {
+                if (modelData.id === TailscaleService.switchingProfileId)
+                    return "Switching…";
+                if (modelData.id === TailscaleService.failedOperationProfileId
+                        && TailscaleService.failedOperationState === "authentication-required")
+                    return "This Profile needs authentication";
+                return "";
+            }
             current: modelData.current
 
             onClicked: TailscaleService.switchProfile(modelData.id)
@@ -52,10 +57,12 @@ QuickSettingsPage {
 
     PageRow {
         width: root.width
-        visible: TailscaleService.profilesState === "" && TailscaleService.profilesLoading
-        enabled: false
-        icon: ""
-        label: "Loading Tailscale profiles…"
+        visible: true
+        enabled: !TailscaleService.operationRunning
+        icon: "↻"
+        label: TailscaleService.profilesLoading ? "Refreshing…" : "Refresh"
+
+        onClicked: TailscaleService.loadProfiles()
     }
 
     PageRow {
@@ -109,19 +116,6 @@ QuickSettingsPage {
         enabled: false
         icon: ""
         label: TailscaleService.failedOperationMessage
-    }
-
-    // Only after a quiet refresh was refused: the list stands but may be
-    // older than the daemon's, and this is the one way to ask for a fresh
-    // one -- opening the Page no longer prompts by itself.
-    PageRow {
-        width: root.width
-        visible: TailscaleService.profilesStale && TailscaleService.profiles.length > 0
-        enabled: !TailscaleService.busy
-        icon: "↻"
-        label: "Refresh"
-
-        onClicked: TailscaleService.loadProfiles()
     }
 
     // Reruns only the operation that failed, and only when clicked -- see

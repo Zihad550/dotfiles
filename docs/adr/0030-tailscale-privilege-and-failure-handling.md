@@ -81,11 +81,12 @@ apart that way, so the marker then stays where the last listing put it: a stale
 marker beats a guessed one.
 
 Opening the Page follows the same rule: it re-lists quietly whenever a list is
-already on screen, so only the first open of a session -- when there is nothing
-to show -- can prompt. A refused quiet refresh marks the list stale and the
-Page offers a Refresh Row, which is the one place an open Page asks for an
-elevated listing. Prompting on every open was the alternative, and it charged a
-password for a list that changes only when an account is added or removed.
+already on screen, so only the first open of a session, when there is nothing
+to show, can prompt. The Page always offers a Refresh Row. It reads
+"Refreshing…" and disables itself while a listing runs, and it is the one place
+an open Page asks for an elevated listing. Prompting on every open was the
+alternative, and it charged a password for a list that changes only when an
+account is added or removed.
 
 ## Inline while visible, one notification once not
 

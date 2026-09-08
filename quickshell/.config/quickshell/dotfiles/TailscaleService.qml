@@ -49,11 +49,6 @@ Singleton {
     readonly property bool profilesLoading: profilesProc.running
     // Set while the running load is the non-elevating post-operation refresh.
     property bool quietRefresh: false
-    // Set when a quiet refresh was refused, so the list on screen may be
-    // older than the daemon's. The Page offers an explicit Refresh for this
-    // rather than prompting on its own every time it opens.
-    property bool profilesStale: false
-
     // True while any Tailscale operation runs, and so while a pkexec prompt
     // may own the screen. Quick Settings drops its focus grab for this: the
     // prompt is a window of its own, and letting the grab clear on it takes
@@ -284,11 +279,9 @@ Singleton {
             // visible failure: the list stands and the status stream moves
             // the marker.
             if (quiet && !Model.isSettledState(result.state)) {
-                root.profilesStale = true;
                 root.markCurrentFromStatus();
                 return;
             }
-            root.profilesStale = false;
 
             const merged = Model.mergeProfilesResult(
                 { state: root.profilesState, profiles: root.profiles, message: root.profilesMessage },

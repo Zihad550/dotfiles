@@ -58,37 +58,27 @@ function classifyExit(exitCode, stdout, stderr) {
     return null;
 }
 
-// nickname -> tailnet -> account -> id, matching the issue's fallback order.
+// Quick Settings names a Profile by its Tailnet. The remaining fields only
+// keep older or incomplete CLI output from producing a blank Row.
 function profileLabel(profile) {
-    var nickname = textOr(profile.nickname, "").trim();
-    if (nickname) return nickname;
     var tailnet = textOr(profile.tailnet, "").trim();
     if (tailnet) return tailnet;
+    var nickname = textOr(profile.nickname, "").trim();
+    if (nickname) return nickname;
     var account = textOr(profile.account, "").trim();
     if (account) return account;
     return textOr(profile.id, "").trim();
 }
 
-// Only shown when it adds information the label does not already carry.
-function profileDetail(profile, label) {
-    var tailnet = textOr(profile.tailnet, "").trim();
-    if (tailnet && tailnet !== label) return tailnet;
-    var account = textOr(profile.account, "").trim();
-    if (account && account !== label) return account;
-    return "";
-}
-
 function normalizeProfile(raw) {
     var profile = raw || {};
-    var label = profileLabel(profile);
     return {
         id: textOr(profile.id, ""),
         tailnet: textOr(profile.tailnet, ""),
         account: textOr(profile.account, ""),
         nickname: textOr(profile.nickname, ""),
         current: profile.selected === true,
-        label: label,
-        detail: profileDetail(profile, label)
+        label: profileLabel(profile)
     };
 }
 
@@ -222,7 +212,6 @@ if (typeof module !== "undefined" && module.exports) {
         OPERATION_FAILURE_MESSAGE: OPERATION_FAILURE_MESSAGE,
         stripPrivilegeAdvice: stripPrivilegeAdvice,
         profileLabel: profileLabel,
-        profileDetail: profileDetail,
         normalizeProfile: normalizeProfile,
         normalizeProfiles: normalizeProfiles,
         classifyProfiles: classifyProfiles,

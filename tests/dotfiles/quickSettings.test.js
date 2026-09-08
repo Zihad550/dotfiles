@@ -400,13 +400,13 @@ test("Tailscale Page Rows are activatable, disabled during a transition, and sho
     assert.match(page, /onClicked:\s*TailscaleService\.switchProfile\(modelData\.id\)/);
     assert.match(
         page,
-        /detail:\s*modelData\.id === TailscaleService\.switchingProfileId \? "Switching…"/,
+        /detail:\s*\{[\s\S]{0,120}if \(modelData\.id === TailscaleService\.switchingProfileId\)[\s\S]{0,60}return "Switching…";/,
     );
-    // a Profile stuck on browser authentication shows exactly this, and
-    // only on its own Row -- every other Row keeps reading modelData.detail
+    // A Profile stuck on browser authentication shows exactly this and only
+    // on its own Row. Other Rows have no account or nickname detail.
     assert.match(
         page,
-        /modelData\.id === TailscaleService\.failedOperationProfileId && TailscaleService\.failedOperationState === "authentication-required"\) \? "This Profile needs authentication"\s*\n\s*: modelData\.detail/,
+        /modelData\.id === TailscaleService\.failedOperationProfileId[\s\S]{0,100}TailscaleService\.failedOperationState === "authentication-required"\)[\s\S]{0,80}return "This Profile needs authentication";[\s\S]{0,40}return "";/,
     );
     // the current marker itself is untouched by activation -- it only ever
     // reads modelData.current, which comes from the refreshed Profile list
@@ -594,20 +594,20 @@ test("opening the Page re-lists without prompting once a list is already on scre
         "opening the Page must not run the elevating listing directly",
     );
 
-    // a refused quiet refresh marks the list stale rather than failing
-    assert.match(service, /root\.profilesStale = true;[\s\S]{0,120}root\.markCurrentFromStatus\(\);/);
-    assert.match(service, /root\.profilesStale = false;/);
+    // A refused quiet refresh retains the list and reconciles its marker.
+    assert.match(
+        service,
+        /if \(quiet && !Model\.isSettledState\(result\.state\)\) \{[\s\S]{0,120}root\.markCurrentFromStatus\(\);[\s\S]{0,40}return;/,
+    );
 });
 
-test("a Refresh Row is the only way an open Page asks for a fresh listing", () => {
+test("the Tailscale Page always offers Refresh and shows when it is running", () => {
     const page = source("modules/TailscalePage.qml");
 
     assert.match(
         page,
-        /visible:\s*TailscaleService\.profilesStale && TailscaleService\.profiles\.length > 0\s*\n\s*enabled:\s*!TailscaleService\.busy[\s\S]{0,120}label:\s*"Refresh"[\s\S]{0,80}onClicked:\s*TailscaleService\.loadProfiles\(\)/,
+        /visible:\s*true\s*\n\s*enabled:\s*!TailscaleService\.operationRunning[\s\S]{0,120}label:\s*TailscaleService\.profilesLoading \? "Refreshing…" : "Refresh"[\s\S]{0,80}onClicked:\s*TailscaleService\.loadProfiles\(\)/,
     );
-    // it appears only when the quiet refresh was refused, never as decoration
-    assert.doesNotMatch(page, /visible:\s*true[\s\S]{0,80}label:\s*"Refresh"/);
 });
 
 test("a Retry Row appears only once an operation has failed and reruns it on click, never automatically", () => {

@@ -304,7 +304,7 @@ test("df-tailscale reports a cleaned exit 4 for an access-denied profiles listin
     }
 });
 
-test("the model normalizes Profiles: order, label fallback, and detail only when it adds information", () => {
+test("the model normalizes Profiles in order and displays only the Tailnet", () => {
     const raw = JSON.stringify([
         { id: "1", tailnet: "example.ts.net", account: "user@example.com", nickname: "", selected: false },
         { id: "2", tailnet: "personal.ts.net", account: "user@personal.com", nickname: "Home", selected: true },
@@ -319,20 +319,14 @@ test("the model normalizes Profiles: order, label fallback, and detail only when
     // order preserved
     assert.deepStrictEqual(result.profiles.map(p => p.id), ["1", "2", "3", "4"]);
 
-    // label fallback: tailnet (no nickname), nickname (present), id (nothing else), tailnet
+    // The Tailnet is the useful distinction in Quick Settings. Other fields
+    // only keep malformed or older CLI output from producing a blank Row.
     assert.equal(result.profiles[0].label, "example.ts.net");
-    assert.equal(result.profiles[1].label, "Home");
+    assert.equal(result.profiles[1].label, "personal.ts.net");
     assert.equal(result.profiles[2].label, "3");
     assert.equal(result.profiles[3].label, "solo.ts.net");
 
-    // detail: account shown when it adds information beyond the label
-    assert.equal(result.profiles[0].detail, "user@example.com");
-    // detail: tailnet shown when it differs from the nickname label
-    assert.equal(result.profiles[1].detail, "personal.ts.net");
-    // no tailnet/account at all -> no detail
-    assert.equal(result.profiles[2].detail, "");
-    // account equals the tailnet label already shown -> adds nothing, so no detail
-    assert.equal(result.profiles[3].detail, "");
+    assert.equal("detail" in result.profiles[0], false);
 
     // current selection
     assert.equal(Model.currentProfile(result.profiles).id, "2");
@@ -340,9 +334,10 @@ test("the model normalizes Profiles: order, label fallback, and detail only when
     assert.equal(result.profiles[1].current, true);
 });
 
-test("the model falls back through nickname, Tailnet, account, then Profile ID in that order", () => {
-    assert.equal(Model.profileLabel({ id: "x", nickname: "Nick", tailnet: "t", account: "a" }), "Nick");
+test("the model prefers the Tailnet and only falls back when it is absent", () => {
+    assert.equal(Model.profileLabel({ id: "x", nickname: "Nick", tailnet: "t", account: "a" }), "t");
     assert.equal(Model.profileLabel({ id: "x", nickname: "", tailnet: "t", account: "a" }), "t");
+    assert.equal(Model.profileLabel({ id: "x", nickname: "Nick", tailnet: "", account: "a" }), "Nick");
     assert.equal(Model.profileLabel({ id: "x", nickname: "", tailnet: "", account: "a" }), "a");
     assert.equal(Model.profileLabel({ id: "x", nickname: "", tailnet: "", account: "" }), "x");
 });
