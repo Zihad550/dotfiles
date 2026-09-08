@@ -4,15 +4,16 @@
 #
 # Herdr invokes this per event with HERDR_PLUGIN_EVENT_JSON, HERDR_BIN_PATH and
 # HERDR_PLUGIN_STATE_DIR set. Caller-controlled: CODEX_SESSION_INDEX (default
-# ~/.codex/session_index.jsonl), CLAUDE_PROJECTS_DIR (default
-# ~/.claude/projects), TAB_NAME_MODEL (default haiku), and
-# TAB_NAME_TIMEOUT (default 20s).
+# ~/.codex/session_index.jsonl), CODEX_SESSIONS_DIR (default
+# ~/.codex/sessions), CLAUDE_PROJECTS_DIR (default ~/.claude/projects),
+# TAB_NAME_MODEL (default haiku), and TAB_NAME_TIMEOUT (default 20s).
 
 set -uo pipefail
 
 herdr=${HERDR_BIN_PATH:-herdr}
 state_dir=${HERDR_PLUGIN_STATE_DIR:?}
 codex_index=${CODEX_SESSION_INDEX:-$HOME/.codex/session_index.jsonl}
+codex_sessions=${CODEX_SESSIONS_DIR:-$HOME/.codex/sessions}
 claude_projects=${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}
 tab_name_model=${TAB_NAME_MODEL:-haiku}
 tab_name_timeout=${TAB_NAME_TIMEOUT:-20s}
@@ -107,6 +108,27 @@ claude_transcript_label() {
     ' "$transcript" 2>/dev/null
 }
 
+codex_transcript_label() {
+    local transcript
+
+    [[ -n $thread && $thread != - && -d $codex_sessions ]] || return 0
+    transcript=$(find "$codex_sessions" -type f -name "*$thread*.jsonl" \
+        -print -quit 2>/dev/null)
+    [[ -r $transcript ]] || return 0
+
+    jq -s -r '
+        [.[]
+            | select(.type == "response_item")
+            | .payload
+            | select(.type == "message" and .role == "user")
+            | .content[]?
+            | select(.type == "input_text")
+            | .text
+            | select(type == "string" and length > 0)]
+        | last // empty
+    ' "$transcript" 2>/dev/null
+}
+
 tab=$("$herdr" tab get "$tab_id" 2>/dev/null) || exit 0
 IFS=$'\t' read -r panes number current < <(jq -r '.result.tab |
     [(.pane_count // 0), (.number // 0), (.label // "")] | @tsv' <<<"$tab")
@@ -121,6 +143,7 @@ if [[ $agent == codex && $thread != - && -r $codex_index ]]; then
     source_text=$(grep -F "\"$thread\"" "$codex_index" | tail -1 |
         jq -r '.thread_name // empty' 2>/dev/null)
 fi
+[[ -n $source_text || $agent != codex ]] || source_text=$(codex_transcript_label)
 # Most agents put their own summary in the terminal title. Claude Code can
 # leave its title at "Claude Code" until the first prompt finishes, so use the
 # transcript as a fallback for that initial generic title.

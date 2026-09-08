@@ -26,6 +26,7 @@ function fixture(t, options = {}) {
     const pane = path.join(home, "pane.json");
     const tabs = path.join(home, "tabs.json");
     const index = path.join(home, "session_index.jsonl");
+    const codexSessions = path.join(home, ".codex", "sessions");
     const generatorCalls = path.join(home, "generator-calls");
     const claudeProjects = path.join(home, ".claude", "projects");
 
@@ -39,6 +40,12 @@ function fixture(t, options = {}) {
     }] } }));
     fs.writeFileSync(index,
         (options.threads ?? []).map((entry) => JSON.stringify(entry)).join("\n"));
+    if (options.codexTranscript) {
+        fs.mkdirSync(codexSessions, { recursive: true });
+        fs.writeFileSync(path.join(codexSessions,
+            `rollout-${options.codexThread ?? "thread-1"}.jsonl`),
+        options.codexTranscript.map((entry) => JSON.stringify(entry)).join("\n"));
+    }
     if (options.claudeTranscript) {
         fs.mkdirSync(claudeProjects, { recursive: true });
         fs.writeFileSync(path.join(claudeProjects,
@@ -72,6 +79,7 @@ printf '%s\\n' '${options.generated ?? "add default app picker"}'
                 HERDR_BIN_PATH: path.join(bin, "herdr"),
                 HERDR_PLUGIN_STATE_DIR: path.join(home, "state"),
                 CODEX_SESSION_INDEX: index,
+                CODEX_SESSIONS_DIR: codexSessions,
                 CLAUDE_PROJECTS_DIR: claudeProjects,
                 HERDR_PLUGIN_EVENT_JSON: JSON.stringify(event ?? { data: { pane: { pane_id: PANE } } })
             },
@@ -126,6 +134,24 @@ test("Haiku summarizes the latest Codex thread name", (t) => {
             { id: "thread-1", thread_name: "Add default app picker" }
         ]
     });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1:add default app picker");
+    assert.strictEqual(herdr.calls(), 1);
+});
+
+test("the Codex transcript fills the session-index race", (t) => {
+    const herdr = fixture(t, {
+        pane: codexPane(),
+        codexTranscript: [{
+            type: "response_item",
+            payload: {
+                type: "message",
+                role: "user",
+                content: [{ type: "input_text", text: "Fix intermittent tab renaming" }]
+            }
+        }]
+    });
+
     herdr.fire();
     assert.strictEqual(herdr.label(), "1:add default app picker");
     assert.strictEqual(herdr.calls(), 1);

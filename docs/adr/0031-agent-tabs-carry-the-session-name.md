@@ -39,6 +39,9 @@ project directory and reports only a thread id to Herdr. The marketplace plugin
 resolves that id by spawning `codex app-server` and speaking `thread/read`; the
 same name is already in `~/.codex/session_index.jsonl`, appended to on every
 rename, so the last entry for the id is current and no process is spawned.
+Agent detection can precede that index entry, so the latest user message in the
+thread's rollout transcript supplies the initial name until the index catches
+up.
 Other agents usually put a usable summary in the terminal title, which Herdr
 already reports. Claude Code can leave that title at `Claude Code`, so the
 plugin falls back to the latest human prompt in the session transcript under
