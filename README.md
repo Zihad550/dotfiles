@@ -72,6 +72,7 @@ df-hypr-monitor-watch              # recover clamshell state after monitor event
 df-launch-tui <cmd>                # launch TUI in ghostty (guards missing bin)
 df-launch-app <cmd>                # launch GUI (guards missing bin)
 df-cmd-present <cmd>...            # exit 0 if all on PATH
+df-work-branch-name-gen <issues>   # draft and copy a branch name with Claude
 df-system-update                   # full system update (pacman/yay/flatpak/mise)
 ```
 
