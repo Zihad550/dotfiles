@@ -545,7 +545,7 @@ test("the lock's budget stays inside the logind window the drop-in asks for", ()
         "a drop-in no box installs is a window that stays at the default");
 });
 
-test("the optional power-button helper makes a short press suspend", () => {
+test("the power-button helper makes a short press suspend", () => {
     const setup = source("setup/common/setup-power-button-suspend");
 
     assert.match(setup, /\/etc\/systemd\/logind\.conf\.d\/99-power-button-suspend\.conf/,

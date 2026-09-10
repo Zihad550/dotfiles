@@ -113,6 +113,7 @@ run_step "lock pam" "$ARCH_WORKSTATION_DIR/setup-packages/setup-lock-pam"
 # The lock holds a delay inhibitor while it secures; logind's default window is
 # too short to close the lid under.
 run_step "sleep inhibit delay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-sleep-inhibit"
+run_step "power button" "$DOTFILES_DIR/setup/common/setup-power-button-suspend"
 run_step "ssh flakiness" "$ARCH_WORKSTATION_DIR/setup-packages/setup-ssh-flakiness"
 run_step "fast shutdown" "$ARCH_WORKSTATION_DIR/setup-packages/setup-fast-shutdown"
 

@@ -168,6 +168,7 @@ run_step "file watchers" "$ARCH_DEVBOX_DIR/setup-file-watchers"
 # The Session Lock authenticates against its own PAM service; without this it
 # rejects every password.
 run_step "lock pam" "$ARCH_WORKSTATION_DIR/setup-packages/setup-lock-pam"
+run_step "power button" "$DOTFILES_DIR/setup/common/setup-power-button-suspend"
 run_step "ssh flakiness" "$ARCH_WORKSTATION_DIR/setup-packages/setup-ssh-flakiness"
 # Passwordless `ts-serve` (zsh aliasrc) via a validating root wrapper.
 run_step "ts-serve sudo rule" "$DOTFILES_DIR/setup/common/setup-ts-serve"

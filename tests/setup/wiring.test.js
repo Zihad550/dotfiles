@@ -182,6 +182,14 @@ test("Arch installers persist their machine profile after post-install", () => {
         /run_step "post-install"[\s\S]*run_step "machine profile"[^\n]*arch-devbox[\s\S]*touch "\$ARCH_SETUP_STATE_DIR\/\.initialized"/);
 });
 
+test("both Arch profiles install the shared power-button policy", () => {
+    for (const relativePath of ["setup/arch-workstation/init", "setup/arch-devbox/init"]) {
+        assert.match(source(relativePath),
+            /run_step "power button" "\$DOTFILES_DIR\/setup\/common\/setup-power-button-suspend"/,
+            `${relativePath} does not install the shared power-button policy`);
+    }
+});
+
 test("the machine profile is shared by UWSM and shell startup", t => {
     const configHome = fs.mkdtempSync(path.join(os.tmpdir(), "dotfiles-profile-"));
     t.after(() => fs.rmSync(configHome, { recursive: true, force: true }));

@@ -25,6 +25,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Workstation, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu server, Alpine |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
+| [`setup-power-button-suspend`](setup-power-button-suspend) | Makes a short power-button press suspend and a long press power off. | Arch Workstation, Arch devbox |
 | [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch devbox |
 | [`setup-skills`](setup-skills) | Installs the shared agent skill set. | Arch, Ubuntu, and devcontainer setup |
 | [`setup-snapper`](setup-snapper) | Applies the root filesystem snapshot-retention policy. | Arch devbox |
