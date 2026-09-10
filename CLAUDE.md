@@ -18,6 +18,20 @@
   names that file. An instruction about something else nearby is not permission.
 - After a task is done, ask the user if they would like to commit and push the relevant changes.
 
+### Machine profiles
+
+Gate runtime behavior that differs between setup targets on `DOTFILES_PROFILE`.
+The supported values are `arch-workstation` and `arch-devbox`. Use an exact
+comparison or a `case` statement. Setup entrypoints that already live inside a
+target-specific directory do not need to check the variable.
+
+Add new profile values and their installer wiring through
+`setup/common/set-dotfiles-profile`. Treat its written value as the source of
+truth. Do not infer the profile from a hostname, hardware check, or setup state
+marker, and do not replace it with separate boolean variables. See
+`setup/common/README.md` under "Machine profile" for the runtime and migration
+contract.
+
 ### Issue tracker
 
 Issues live in this repo's GitHub Issues; skills use the `gh` CLI. See `docs/agents/issue-tracker.md`.

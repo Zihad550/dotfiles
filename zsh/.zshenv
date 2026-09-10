@@ -15,6 +15,12 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 
+DOTFILES_PROFILE_ENV="$XDG_CONFIG_HOME/uwsm/env.d/10-dotfiles-profile"
+if [[ -r "$DOTFILES_PROFILE_ENV" ]]; then
+    source "$DOTFILES_PROFILE_ENV"
+fi
+unset DOTFILES_PROFILE_ENV
+
 ########## api keys
 # export OPENROUTER_API_KEY=
 if command -v pass &>/dev/null; then

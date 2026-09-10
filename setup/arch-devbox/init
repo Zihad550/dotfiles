@@ -198,6 +198,7 @@ run_step "system authentication lockout" "$ARCH_WORKSTATION_DIR/setup-packages/s
 
 run_step "post-install" "$ARCH_DEVBOX_DIR/post-install"
 
+run_step "machine profile" "$DOTFILES_DIR/setup/common/set-dotfiles-profile" arch-devbox
 touch "$ARCH_SETUP_STATE_DIR/.initialized"
 ui_done "arch-devbox setup completed"
 

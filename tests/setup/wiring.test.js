@@ -9,7 +9,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert");
+const childProcess = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "../..");
@@ -168,6 +170,45 @@ test("mise installation belongs to Arch devbox, not Arch workstation", () => {
         "setup/arch-workstation/setup-packages/setup-mise")));
     assert.ok(!fs.existsSync(path.join(repoRoot,
         "setup/arch-workstation/packages/mise-packages")));
+});
+
+test("Arch installers persist their machine profile after post-install", () => {
+    const workstation = source("setup/arch-workstation/init");
+    const devbox = source("setup/arch-devbox/init");
+
+    assert.match(workstation,
+        /run_step "post-install"[\s\S]*run_step "machine profile"[^\n]*arch-workstation[\s\S]*touch "\$ARCH_SETUP_STATE_DIR\/\.initialized"/);
+    assert.match(devbox,
+        /run_step "post-install"[\s\S]*run_step "machine profile"[^\n]*arch-devbox[\s\S]*touch "\$ARCH_SETUP_STATE_DIR\/\.initialized"/);
+});
+
+test("the machine profile is shared by UWSM and shell startup", t => {
+    const configHome = fs.mkdtempSync(path.join(os.tmpdir(), "dotfiles-profile-"));
+    t.after(() => fs.rmSync(configHome, { recursive: true, force: true }));
+
+    const writer = path.join(repoRoot, "setup/common/set-dotfiles-profile");
+    const result = childProcess.spawnSync(writer, ["arch-devbox"], {
+        encoding: "utf8",
+        env: { ...process.env, XDG_CONFIG_HOME: configHome },
+    });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(
+        fs.readFileSync(path.join(configHome, "uwsm/env.d/10-dotfiles-profile"), "utf8"),
+        "export DOTFILES_PROFILE=arch-devbox\n",
+    );
+    assert.match(source("zsh/.zshenv"),
+        /source "\$DOTFILES_PROFILE_ENV"/);
+});
+
+test("the machine profile writer rejects unknown targets", () => {
+    const writer = path.join(repoRoot, "setup/common/set-dotfiles-profile");
+    const result = childProcess.spawnSync(writer, ["arch-other"], {
+        encoding: "utf8",
+    });
+
+    assert.strictEqual(result.status, 2);
+    assert.match(result.stderr, /arch-devbox\|arch-workstation/);
 });
 
 test("generated completions replace shell-startup generators", () => {

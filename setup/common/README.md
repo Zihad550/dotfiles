@@ -17,6 +17,7 @@ here when the explanation does not belong beside the command it protects.
 | --- | --- | --- |
 | [`harden-ssh`](harden-ssh) | Hardens sshd and performs its two-phase port change. | Arch and Ubuntu wrappers |
 | [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Workstation, Arch devbox, Ubuntu devbox |
+| [`set-dotfiles-profile`](set-dotfiles-profile) | Persists the setup target for desktop and shell consumers. | Arch Workstation, Arch devbox |
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override without breaking MagicDNS. | Arch wrapper |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Workstation, Arch devbox |
@@ -49,6 +50,48 @@ here when the explanation does not belong beside the command it protects.
   | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch devbox |
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Workstation, Arch devbox |
   | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
+
+## Machine profile
+
+The Arch installers write their target name to
+`~/.config/uwsm/env.d/10-dotfiles-profile` after every required setup step has
+succeeded. UWSM loads `DOTFILES_PROFILE` before Hyprland and its user services.
+`.zshenv` sources the same file for shells that start outside the graphical
+session, including SSH sessions.
+
+`DOTFILES_PROFILE` has one value, either `arch-workstation` or `arch-devbox`.
+Consumers should compare that value instead of maintaining separate boolean
+flags that could both be set.
+
+Runtime code that differs by setup target should use an exact comparison:
+
+```sh
+case "${DOTFILES_PROFILE:-}" in
+    arch-devbox) ... ;;
+    arch-workstation) ... ;;
+esac
+```
+
+Code inside `setup/arch-devbox/` or `setup/arch-workstation/` already belongs to
+one target and does not need this check. The variable is for shared runtime
+configuration and commands.
+
+### Existing installs
+
+Register the profile once after pulling this change:
+
+```sh
+# Run one of these.
+~/dotfiles/setup/common/set-dotfiles-profile arch-devbox
+~/dotfiles/setup/common/set-dotfiles-profile arch-workstation
+```
+
+New shells read the value immediately. Log out and back in once so UWSM starts
+Hyprland, Quickshell, and user services with it. Confirm the result with:
+
+```sh
+printf '%s\n' "$DOTFILES_PROFILE"
+```
 
 ## Boot Branding
 
