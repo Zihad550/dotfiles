@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+drop_in=/etc/systemd/logind.conf.d/99-power-button-suspend.conf
+
+sudo install -d -m 0755 "${drop_in%/*}"
+sudo tee "$drop_in" >/dev/null <<'CONF'
+[Login]
+HandlePowerKey=suspend
+HandlePowerKeyLongPress=poweroff
+CONF
+sudo chmod 0644 "$drop_in"
+
+# Restarting logind can terminate or disrupt the active graphical session.
+echo "Power button set to suspend, with long press set to power off; reboot to apply $drop_in"

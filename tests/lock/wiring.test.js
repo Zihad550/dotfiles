@@ -545,6 +545,17 @@ test("the lock's budget stays inside the logind window the drop-in asks for", ()
         "a drop-in no box installs is a window that stays at the default");
 });
 
+test("the optional power-button helper makes a short press suspend", () => {
+    const setup = source("setup/common/setup-power-button-suspend");
+
+    assert.match(setup, /\/etc\/systemd\/logind\.conf\.d\/99-power-button-suspend\.conf/,
+        "the late drop-in must override Omarchy's earlier ignore-power-button policy");
+    assert.match(setup, /^HandlePowerKey=suspend$/m);
+    assert.match(setup, /^HandlePowerKeyLongPress=poweroff$/m);
+    assert.doesNotMatch(setup, /systemctl\s+(restart|reload)\s+systemd-logind/,
+        "restarting logind under the graphical session can disrupt it");
+});
+
 // --- The Break-glass runbook -------------------------------------------------
 //
 // The runbook is read at a TTY by someone who has just lost their session, so
