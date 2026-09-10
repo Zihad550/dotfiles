@@ -24,6 +24,7 @@ The default configuration creates a stopped, unprivileged container with:
 | Ubuntu | `26.04` |
 | CT ID | next available ID |
 | hostname | `ubuntu-devbox` |
+| user | `root` |
 | CPU | `1` core |
 | RAM | `1024` MiB |
 | swap | `2048` MiB |
@@ -65,6 +66,32 @@ CT_ID=260 CT_HOSTNAME=ubuntu-devbox ./setup/proxmox/create-ubuntu-lxc
 
 The hostname is controlled by `CT_HOSTNAME`.
 
+## Container user
+
+Set `CT_USERNAME` to create a non-root login user:
+
+```bash
+CT_USERNAME=jehad ./setup/proxmox/create-ubuntu-lxc
+```
+
+The script asks whether to set a password when run from a terminal. It does not
+echo the password and asks for confirmation before creating the container. The
+user receives normal sudo access, which requires that password.
+
+If you decline or run the script without a terminal, the user has no password.
+SSH key login still works, but sudo will not work until root sets a password:
+
+```bash
+pct exec <CT_ID> -- passwd <username>
+```
+
+If `SSH_AUTHORIZED_KEY_FILE` is set, the script installs that key for the new
+user and removes it from root. The root account remains available through the
+Proxmox console and `pct enter`.
+
+Leave `CT_USERNAME` empty to create no additional user. In that case, root is
+the only login user and receives the SSH authorized key.
+
 ## SSH authorized key
 
 Set `SSH_AUTHORIZED_KEY_FILE` to a public-key file on the Proxmox host:
@@ -74,8 +101,9 @@ SSH_AUTHORIZED_KEY_FILE=/root/.ssh/id_ed25519.pub \
 ./setup/proxmox/create-ubuntu-lxc
 ```
 
-The key is passed to `pct create` and installed for root. The script does not
-store a plaintext root password. Without a key, use the Proxmox console or:
+The key is passed to `pct create`. It is installed for `CT_USERNAME` when that
+variable is set, or for root otherwise. The script does not store a plaintext
+password. Without a key, use the Proxmox console or:
 
 ```bash
 pct enter <CT_ID>

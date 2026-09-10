@@ -14,6 +14,7 @@ ARCH="${ARCH:-amd64}"
 
 CT_ID="${CT_ID:-}"
 CT_HOSTNAME="${CT_HOSTNAME:-ubuntu-devbox}"
+CT_USERNAME="${CT_USERNAME:-}"
 
 CPU_COUNT="${CPU_COUNT:-1}"
 RAM_MIB="${RAM_MIB:-2048}"
@@ -60,6 +61,37 @@ validate_bool() {
 validate_no_whitespace() {
     local name="$1" value="$2"
     [[ "$value" != *[[:space:]]* ]] || die "$name must not contain whitespace: $value"
+}
+
+validate_username() {
+    local username="$1"
+    [[ -z "$username" ]] && return
+    [[ "$username" != root ]] || die "CT_USERNAME must not be root; leave it empty for root-only access"
+    [[ "$username" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] ||
+        die "CT_USERNAME must be 1-32 lowercase letters, digits, underscores, or hyphens: $username"
+}
+
+prompt_user_password() {
+    local reply confirmation
+    CT_USER_PASSWORD=""
+
+    [[ -n "$CT_USERNAME" ]] || return
+    if [[ ! -t 0 ]]; then
+        echo "note: no terminal is available; $CT_USERNAME will have no password"
+        return
+    fi
+
+    read -r -p "Set a password for $CT_USERNAME? [y/N] " reply
+    [[ "$reply" == y || "$reply" == Y ]] || return
+
+    read -r -s -p "Password: " CT_USER_PASSWORD
+    echo
+    [[ -n "$CT_USER_PASSWORD" ]] || die "password must not be empty"
+    [[ "$CT_USER_PASSWORD" != *:* ]] || die "password must not contain a colon"
+
+    read -r -s -p "Confirm password: " confirmation
+    echo
+    [[ "$CT_USER_PASSWORD" == "$confirmation" ]] || die "passwords do not match"
 }
 
 container_exists() {
@@ -114,6 +146,7 @@ validate_config() {
     [[ "$ARCH" == amd64 || "$ARCH" == arm64 ]] || die "unsupported ARCH: $ARCH"
     [[ "$CT_HOSTNAME" =~ ^[A-Za-z0-9]$ || "$CT_HOSTNAME" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$ ]] ||
         die "invalid CT_HOSTNAME: $CT_HOSTNAME"
+    validate_username "$CT_USERNAME"
 
     validate_int CPU_COUNT "$CPU_COUNT" 1
     validate_int RAM_MIB "$RAM_MIB" 1
@@ -157,6 +190,38 @@ build_net_config() {
     esac
 }
 
+provision_user() {
+    echo "creating container user $CT_USERNAME"
+    pct start "$CT_ID"
+
+    if ! pct exec "$CT_ID" -- sh -c \
+        'command -v sudo >/dev/null || { apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo; }' ||
+        ! pct exec "$CT_ID" -- useradd --create-home --shell /bin/bash --groups sudo "$CT_USERNAME"; then
+        pct stop "$CT_ID" || true
+        die "failed to create container user $CT_USERNAME"
+    fi
+
+    if [[ -n "$CT_USER_PASSWORD" ]]; then
+        if ! printf '%s:%s\n' "$CT_USERNAME" "$CT_USER_PASSWORD" | pct exec "$CT_ID" -- chpasswd; then
+            pct stop "$CT_ID" || true
+            die "failed to set the password for $CT_USERNAME"
+        fi
+        unset CT_USER_PASSWORD
+    fi
+
+    if [[ -n "$SSH_AUTHORIZED_KEY_FILE" ]]; then
+        if ! pct exec "$CT_ID" -- install -d -m 0700 -o "$CT_USERNAME" -g "$CT_USERNAME" "/home/$CT_USERNAME/.ssh" ||
+            ! pct exec "$CT_ID" -- install -m 0600 -o "$CT_USERNAME" -g "$CT_USERNAME" \
+                /root/.ssh/authorized_keys "/home/$CT_USERNAME/.ssh/authorized_keys" ||
+            ! pct exec "$CT_ID" -- rm -f /root/.ssh/authorized_keys; then
+            pct stop "$CT_ID" || true
+            die "failed to install the SSH authorized key for $CT_USERNAME"
+        fi
+    fi
+
+    (( START_AFTER_CREATE == 1 )) || pct stop "$CT_ID"
+}
+
 need_command pct
 need_command pvesh
 need_command pvesm
@@ -169,6 +234,7 @@ need_command sed
 (( EUID == 0 )) || die "run this on the Proxmox host as root"
 
 validate_config
+prompt_user_password
 require_storage "$TEMPLATE_STORAGE" "template"
 require_storage "$ROOTFS_STORAGE" "rootfs"
 resolve_ct_id
@@ -214,6 +280,7 @@ PCT_ARGS=(
 echo "creating Ubuntu ${UBUNTU_VERSION} LXC"
 echo "  CT ID:    $CT_ID"
 echo "  hostname: $CT_HOSTNAME"
+echo "  user:     ${CT_USERNAME:-root}"
 echo "  CPU:      $CPU_COUNT"
 echo "  RAM:      ${RAM_MIB} MiB"
 echo "  swap:     ${SWAP_MIB} MiB"
@@ -227,7 +294,9 @@ if (( TUN == 1 )); then
     pct set "$CT_ID" --dev0 /dev/net/tun
 fi
 
-if (( START_AFTER_CREATE == 1 )); then
+if [[ -n "$CT_USERNAME" ]]; then
+    provision_user
+elif (( START_AFTER_CREATE == 1 )); then
     pct start "$CT_ID"
 fi
 
