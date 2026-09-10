@@ -1,0 +1,28 @@
+prefix_rule(
+    pattern = ["git", "push", "origin", "main"],
+    decision = "allow",
+    justification = "Allow this repository's main branch to be pushed to origin",
+    match = [
+        "git push origin main",
+    ],
+    not_match = [
+        "git push",
+        "git push origin develop",
+        "git push upstream main",
+        "git push --force origin main",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "commit", "-m"],
+    decision = "allow",
+    justification = "Allow commits with an explicit message",
+    match = [
+        "git commit -m 'Describe the change'",
+    ],
+    not_match = [
+        "git commit",
+        "git commit --amend",
+        "git commit -a -m 'Describe the change'",
+    ],
+)
