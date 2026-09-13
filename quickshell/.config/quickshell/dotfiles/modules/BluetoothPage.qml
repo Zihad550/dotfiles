@@ -16,9 +16,7 @@ QuickSettingsPage {
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var groups: Model.deviceGroups(Bluetooth.devices.values)
     readonly property var hardwareSinks: Pipewire.nodes.values.filter(node => node.isSink && !node.isStream)
-    property var pendingActions: ({})
-    property var actionErrors: ({})
-    property var failedActions: ({})
+    property var deviceActions: ({})
     property string openActionsAddress: ""
     property string pairingAddress: ""
     property string pairingFailure: ""
@@ -30,17 +28,37 @@ QuickSettingsPage {
         return Bluetooth.devices.values.find(device => device.address === address) ?? null;
     }
 
+    function actionState(address: string): var {
+        return root.deviceActions[address] || { pending: "", failed: "", error: "", deadline: 0 };
+    }
+
     function setPending(address: string, action: string): void {
-        root.pendingActions = Model.withAddressValue(root.pendingActions, address, action);
         if (action) {
-            root.actionErrors = Model.withAddressValue(root.actionErrors, address, "");
-            root.failedActions = Model.withAddressValue(root.failedActions, address, "");
-            pendingTimeout.restart();
+            root.deviceActions = Model.withActionState(root.deviceActions, address, {
+                pending: action,
+                failed: "",
+                error: "",
+                deadline: Date.now() + (action === "pairing" ? 55000 : 20000),
+            });
+        } else {
+            const state = root.actionState(address);
+            root.deviceActions = state.failed || state.error
+                ? Model.withActionState(root.deviceActions, address, { pending: "" })
+                : Model.withActionState(root.deviceActions, address, null);
         }
     }
 
+    function failAction(address: string, action: string, message: string): void {
+        root.deviceActions = Model.withActionState(root.deviceActions, address, {
+            pending: "",
+            failed: action,
+            error: message,
+            deadline: 0,
+        });
+    }
+
     function detailFor(row): string {
-        const pending = root.pendingActions[row.address] || "";
+        const pending = root.actionState(row.address).pending;
         if (pending === "pairing") return "Pairing…";
         if (pending === "connecting") return "Connecting…";
         if (pending === "disconnecting") return "Disconnecting…";
@@ -51,10 +69,10 @@ QuickSettingsPage {
     }
 
     function activateDevice(row): void {
-        if (!row || root.pendingActions[row.address]) return;
+        if (!row || root.actionState(row.address).pending) return;
         const device = root.deviceForAddress(row.address);
         if (!device) {
-            root.actionErrors = Model.withAddressValue(root.actionErrors, row.address, "Device is no longer available.");
+            root.failAction(row.address, "", "Device is no longer available.");
             return;
         }
         root.openActionsAddress = "";
@@ -66,7 +84,7 @@ QuickSettingsPage {
             device.connect();
         } else {
             if (pairProcess.running) {
-                root.actionErrors = Model.withAddressValue(root.actionErrors, row.address, "Finish the current pairing attempt first.");
+                root.failAction(row.address, "", "Finish the current pairing attempt first.");
                 return;
             }
             root.pairingAddress = row.address;
@@ -78,12 +96,17 @@ QuickSettingsPage {
     }
 
     function forgetDevice(address: string): void {
-        if (root.pendingActions[address]) return;
+        if (root.actionState(address).pending) return;
         const device = root.deviceForAddress(address);
         root.openActionsAddress = "";
         if (!device) return;
         root.setPending(address, "forgetting");
         device.forget();
+    }
+
+    function toggleActions(row): void {
+        if (!Model.hasSecondaryActions(row)) return;
+        root.openActionsAddress = root.openActionsAddress === row.address ? "" : row.address;
     }
 
     function scheduleAudioOutput(device): void {
@@ -97,30 +120,18 @@ QuickSettingsPage {
     }
 
     function settlePending(): void {
-        for (const address in root.pendingActions) {
-            const action = root.pendingActions[address];
-            const device = root.deviceForAddress(address);
-            if ((action === "pairing" || action === "connecting") && device?.connected) {
-                root.scheduleAudioOutput(device);
-                root.setPending(address, "");
-            } else if (action === "disconnecting" && device && !device.connected) {
-                root.setPending(address, "");
-            } else if (action === "forgetting" && (!device || !device.paired && !device.bonded && !device.trusted)) {
-                root.setPending(address, "");
-            }
-        }
-        for (const address in root.failedActions) {
-            const action = root.failedActions[address];
+        for (const address in root.deviceActions) {
+            const state = root.deviceActions[address];
+            const action = state.pending || state.failed;
             const device = root.deviceForAddress(address);
             const connected = (action === "pairing" || action === "connecting") && device?.connected;
-            if (connected
-                    || action === "disconnecting" && device && !device.connected
-                    || action === "forgetting" && (!device || !device.paired && !device.bonded && !device.trusted)) {
-                if (connected)
-                    root.scheduleAudioOutput(device);
-                root.failedActions = Model.withAddressValue(root.failedActions, address, "");
-                root.actionErrors = Model.withAddressValue(root.actionErrors, address, "");
-            }
+            const disconnected = action === "disconnecting" && device && !device.connected;
+            const forgotten = action === "forgetting"
+                && (!device || !device.paired && !device.bonded && !device.trusted);
+            if (!connected && !disconnected && !forgotten) continue;
+            if (connected)
+                root.scheduleAudioOutput(device);
+            root.deviceActions = Model.withActionState(root.deviceActions, address, null);
         }
     }
 
@@ -148,13 +159,10 @@ QuickSettingsPage {
         if (!root.discoveryAcquired) return;
         BluetoothDiscovery.release();
         root.discoveryAcquired = false;
-        root.pendingActions = ({});
-        root.actionErrors = ({});
-        root.failedActions = ({});
+        root.deviceActions = ({});
         root.openActionsAddress = "";
         root.pendingAudioDevice = null;
         audioSwitch.stop();
-        pendingTimeout.stop();
     }
 
     onActiveChanged: {
@@ -175,31 +183,20 @@ QuickSettingsPage {
             const address = root.pairingAddress;
             root.pairingAddress = "";
             if (exitCode !== 0) {
-                root.failedActions = Model.withAddressValue(root.failedActions, address, "pairing");
-                root.actionErrors = Model.withAddressValue(
-                    root.actionErrors,
+                root.failAction(
                     address,
+                    "pairing",
                     root.pairingFailure || "Pairing failed. Use bluetui for PIN or confirmation requests."
                 );
-                root.setPending(address, "");
             }
         }
     }
 
     Timer {
-        id: pendingTimeout
-        interval: 20000
-        onTriggered: {
-            let errors = root.actionErrors;
-            let failures = root.failedActions;
-            for (const address in root.pendingActions) {
-                errors = Model.withAddressValue(errors, address, "Bluetooth did not confirm the requested change.");
-                failures = Model.withAddressValue(failures, address, root.pendingActions[address]);
-            }
-            root.actionErrors = errors;
-            root.failedActions = failures;
-            root.pendingActions = ({});
-        }
+        interval: 1000
+        repeat: true
+        running: root.active && Model.hasPendingActions(root.deviceActions)
+        onTriggered: root.deviceActions = Model.expirePendingActions(root.deviceActions, Date.now())
     }
 
     Timer {
@@ -307,21 +304,21 @@ QuickSettingsPage {
 
             PageRow {
                 width: parent.width
-                enabled: !root.pendingActions[deviceEntry.modelData.address]
+                enabled: !root.actionState(deviceEntry.modelData.address).pending
                 icon: deviceEntry.modelData.icon || ""
                 label: deviceEntry.modelData.label
-                overflowVisible: deviceEntry.modelData.connected || deviceEntry.modelData.paired
+                overflowVisible: Model.hasSecondaryActions(deviceEntry.modelData)
                 onClicked: root.activateDevice(deviceEntry.modelData)
-                onRightClicked: root.openActionsAddress = root.openActionsAddress === deviceEntry.modelData.address ? "" : deviceEntry.modelData.address
-                onOverflowClicked: root.openActionsAddress = root.openActionsAddress === deviceEntry.modelData.address ? "" : deviceEntry.modelData.address
+                onRightClicked: root.toggleActions(deviceEntry.modelData)
+                onOverflowClicked: root.toggleActions(deviceEntry.modelData)
             }
 
             Text {
                 width: parent.width - 24
                 x: 12
-                text: root.actionErrors[deviceEntry.modelData.address] || root.detailFor(deviceEntry.modelData)
-                color: root.actionErrors[deviceEntry.modelData.address] ? Theme.error : Theme.foreground
-                opacity: root.actionErrors[deviceEntry.modelData.address] ? 1 : 0.62
+                text: root.actionState(deviceEntry.modelData.address).error || root.detailFor(deviceEntry.modelData)
+                color: root.actionState(deviceEntry.modelData.address).error ? Theme.error : Theme.foreground
+                opacity: root.actionState(deviceEntry.modelData.address).error ? 1 : 0.62
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize - 2
                 textFormat: Text.PlainText

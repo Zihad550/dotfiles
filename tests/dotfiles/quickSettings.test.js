@@ -259,9 +259,10 @@ test("Bluetooth Page groups nearby devices and keeps volatile BlueZ objects out 
     assert.match(bluetoothPage, /device\.connect\(\)/);
     assert.match(bluetoothPage, /device\.disconnect\(\)/);
     assert.match(bluetoothPage, /device\.forget\(\)/);
-    assert.match(bluetoothPage, /overflowVisible:[\s\S]*modelData\.paired/);
+    assert.match(bluetoothPage, /overflowVisible:\s*Model\.hasSecondaryActions\(/);
     assert.match(bluetoothPage, /onRightClicked:/);
     assert.match(bluetoothPage, /onOverflowClicked:/);
+    assert.match(bluetoothPage, /if \(!Model\.hasSecondaryActions\(row\)\) return;/);
     assert.match(bluetoothPage, /label:\s*"Forget"/);
     assert.match(bluetoothPage, /pairProcess\.command\s*=\s*\["df-bluetooth-pair"/);
     assert.match(bluetoothPage, /Quickshell\.execDetached\(\["ghostty", "-e", "bluetui"\]\)/);
@@ -273,8 +274,7 @@ test("Bluetooth Page owns power, discovery, pending failures, and audio handoff"
     const discovery = source("modules/BluetoothDiscovery.qml");
 
     assert.match(page, /root\.adapter\.enabled\s*=\s*!root\.adapter\.enabled/);
-    assert.match(page, /pendingActions/);
-    assert.match(page, /actionErrors/);
+    assert.match(page, /Model\.expirePendingActions\(/);
     assert.match(page, /batteryPercent/);
     assert.match(page, /Pipewire\.preferredDefaultAudioSink\s*=\s*sink/);
     assert.match(page, /df-audio-output-set-default/);

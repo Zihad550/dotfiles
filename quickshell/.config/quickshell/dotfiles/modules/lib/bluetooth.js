@@ -40,6 +40,10 @@ function deviceRow(device) {
     };
 }
 
+function hasSecondaryActions(row) {
+    return !!row && (row.connected || row.paired);
+}
+
 function deviceGroups(devices) {
     var groups = { connected: [], paired: [], available: [] };
     for (var device of toArray(devices)) {
@@ -55,12 +59,42 @@ function deviceGroups(devices) {
     return groups;
 }
 
-function withAddressValue(values, address, value) {
+function withActionState(values, address, patch) {
     var next = {};
     for (var key in values || {}) next[key] = values[key];
     if (!address) return next;
-    if (value) next[address] = value;
-    else delete next[address];
+    if (!patch) {
+        delete next[address];
+        return next;
+    }
+    var current = next[address] || { pending: "", failed: "", error: "", deadline: 0 };
+    next[address] = {
+        pending: patch.pending !== undefined ? patch.pending : current.pending,
+        failed: patch.failed !== undefined ? patch.failed : current.failed,
+        error: patch.error !== undefined ? patch.error : current.error,
+        deadline: patch.deadline !== undefined ? patch.deadline : current.deadline,
+    };
+    return next;
+}
+
+function hasPendingActions(values) {
+    for (var address in values || {})
+        if (values[address].pending) return true;
+    return false;
+}
+
+function expirePendingActions(values, now) {
+    var next = values;
+    for (var address in values || {}) {
+        var state = values[address];
+        if (!state.pending || state.deadline > now) continue;
+        next = withActionState(next, address, {
+            pending: "",
+            failed: state.pending,
+            error: "Bluetooth did not confirm the requested change.",
+            deadline: 0,
+        });
+    }
     return next;
 }
 
@@ -106,8 +140,11 @@ if (typeof module !== "undefined") {
         isAddressLike,
         normalizedAddress,
         deviceRow,
+        hasSecondaryActions,
         deviceGroups,
-        withAddressValue,
+        withActionState,
+        hasPendingActions,
+        expirePendingActions,
         bluetoothSinkForDevice,
     };
 }

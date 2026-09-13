@@ -32,14 +32,43 @@ test("Bluetooth rows use stable values and deterministic groups", () => {
     });
 });
 
-test("Bluetooth pending and failure maps change immutably", () => {
-    const pending = { "AA:BB": "connecting" };
-    const next = Model.withAddressValue(pending, "CC:DD", "pairing");
-    const cleared = Model.withAddressValue(next, "AA:BB", "");
+test("Bluetooth secondary actions exist only for connected or paired rows", () => {
+    const groups = Model.deviceGroups([
+        { name: "Headphones", connected: true, address: "1" },
+        { name: "Mouse", bonded: true, address: "2" },
+        { name: "Keyboard", address: "3" },
+    ]);
 
-    assert.deepStrictEqual(pending, { "AA:BB": "connecting" });
-    assert.deepStrictEqual(next, { "AA:BB": "connecting", "CC:DD": "pairing" });
-    assert.deepStrictEqual(cleared, { "CC:DD": "pairing" });
+    assert.strictEqual(Model.hasSecondaryActions(groups.connected[0]), true);
+    assert.strictEqual(Model.hasSecondaryActions(groups.paired[0]), true);
+    assert.strictEqual(Model.hasSecondaryActions(groups.available[0]), false);
+    assert.strictEqual(Model.hasSecondaryActions(null), false);
+});
+
+test("Bluetooth pending and failure maps change immutably", () => {
+    const pending = { "AA:BB": { pending: "connecting", failed: "", error: "", deadline: 2000 } };
+    const next = Model.withActionState(pending, "CC:DD", { pending: "pairing" });
+    const failed = Model.withActionState(next, "CC:DD", { pending: "", failed: "pairing", error: "Pairing failed" });
+    const cleared = Model.withActionState(failed, "AA:BB", null);
+
+    assert.deepStrictEqual(pending, { "AA:BB": { pending: "connecting", failed: "", error: "", deadline: 2000 } });
+    assert.deepStrictEqual(next["CC:DD"], { pending: "pairing", failed: "", error: "", deadline: 0 });
+    assert.deepStrictEqual(failed["CC:DD"], { pending: "", failed: "pairing", error: "Pairing failed", deadline: 0 });
+    assert.deepStrictEqual(cleared, { "CC:DD": { pending: "", failed: "pairing", error: "Pairing failed", deadline: 0 } });
+});
+
+test("Bluetooth device deadlines expire independently", () => {
+    const actions = {
+        old: { pending: "connecting", failed: "", error: "", deadline: 1000 },
+        recent: { pending: "disconnecting", failed: "", error: "", deadline: 3000 },
+    };
+    const expired = Model.expirePendingActions(actions, 2000);
+
+    assert.strictEqual(expired.old.pending, "");
+    assert.strictEqual(expired.old.failed, "connecting");
+    assert.match(expired.old.error, /did not confirm/i);
+    assert.deepStrictEqual(expired.recent, actions.recent);
+    assert.deepStrictEqual(actions.old, { pending: "connecting", failed: "", error: "", deadline: 1000 });
 });
 
 test("Bluetooth audio output matching prefers an address over a duplicate display name", () => {
