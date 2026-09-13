@@ -245,13 +245,17 @@ test("Bluetooth is an optional Tile with authoritative adapter state", () => {
     assert.match(tile, /Tooltip\s*{[\s\S]*text:\s*root\.label/);
 });
 
-test("Bluetooth Page operates on paired devices and keeps authenticated pairing external", () => {
+test("Bluetooth Page groups nearby devices and keeps volatile BlueZ objects out of rows", () => {
     const quickSettings = source("modules/QuickSettings.qml");
     const bluetoothPage = source("modules/BluetoothPage.qml");
 
     assert.match(quickSettings, /id:\s*bluetoothPageLoader[\s\S]*source:\s*"BluetoothPage\.qml"/);
     assert.match(bluetoothPage, /title:\s*"Bluetooth"/);
-    assert.match(bluetoothPage, /Bluetooth\.devices\.values[\s\S]*\.filter\([\s\S]*paired/);
+    assert.match(bluetoothPage, /Model\.deviceGroups\(Bluetooth\.devices\.values\)/);
+    assert.match(bluetoothPage, /groups\.connected/);
+    assert.match(bluetoothPage, /groups\.paired/);
+    assert.match(bluetoothPage, /groups\.available/);
+    assert.match(bluetoothPage, /function deviceForAddress\(address/);
     assert.match(bluetoothPage, /device\.connect\(\)/);
     assert.match(bluetoothPage, /device\.disconnect\(\)/);
     assert.match(bluetoothPage, /device\.forget\(\)/);
@@ -259,9 +263,35 @@ test("Bluetooth Page operates on paired devices and keeps authenticated pairing 
     assert.match(bluetoothPage, /onRightClicked:/);
     assert.match(bluetoothPage, /onOverflowClicked:/);
     assert.match(bluetoothPage, /label:\s*"Forget"/);
+    assert.match(bluetoothPage, /pairProcess\.command\s*=\s*\["df-bluetooth-pair"/);
     assert.match(bluetoothPage, /Quickshell\.execDetached\(\["ghostty", "-e", "bluetui"\]\)/);
-    assert.match(bluetoothPage, /root\.closeRequested\(\)/);
     assert.doesNotMatch(bluetoothPage, /device\.pair\(\)/);
+});
+
+test("Bluetooth Page owns power, discovery, pending failures, and audio handoff", () => {
+    const page = source("modules/BluetoothPage.qml");
+    const discovery = source("modules/BluetoothDiscovery.qml");
+
+    assert.match(page, /root\.adapter\.enabled\s*=\s*!root\.adapter\.enabled/);
+    assert.match(page, /pendingActions/);
+    assert.match(page, /actionErrors/);
+    assert.match(page, /batteryPercent/);
+    assert.match(page, /Pipewire\.preferredDefaultAudioSink\s*=\s*sink/);
+    assert.match(page, /df-audio-output-set-default/);
+    assert.match(discovery, /property int activePages/);
+    assert.match(discovery, /adapter\.discovering\s*=\s*true/);
+    assert.match(discovery, /adapter\.discovering\s*=\s*false/);
+    assert.match(discovery, /attempts\s*>\s*3/);
+    assert.match(page, /Component\.onDestruction:[\s\S]*releaseDiscovery/);
+});
+
+test("Bluetooth setup owns the Page's commands without a permanent pairing agent", () => {
+    const setup = fs.readFileSync(path.resolve(__dirname, "../../setup/arch-workstation/setup-packages/setup-bluetooth"), "utf8");
+    const allSetup = fs.readFileSync(path.resolve(__dirname, "../../setup/arch-workstation/init"), "utf8") + setup;
+
+    assert.match(setup, /bluez-utils/);
+    assert.match(setup, /bluetui/);
+    assert.doesNotMatch(allSetup, /bt-agent\.service/);
 });
 
 test("Tailscale is an availability-aware Tile in the shared grid", () => {

@@ -158,6 +158,11 @@ reached from a Tile or Row and left by a back arrow. Not a second window and
 not a submenu — the panel is showing something else for a while.
 _Avoid_: popup, submenu, screen, view, flyout
 
+**Bluetooth Page**:
+The Page reached from the Bluetooth Tile's chevron. It shows Bluetooth power
+state and groups connected, paired, and available devices for direct action.
+_Avoid_: Bluetooth menu, Bluetooth panel, device picker
+
 **Flyout**:
 A popup anchored under the bar entry that opened it, listing rows to act on,
 dismissed by picking one or by clicking outside. One shared component,

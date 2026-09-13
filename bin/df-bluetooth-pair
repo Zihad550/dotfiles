@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -u
+
+address=${1:-}
+pair_timeout=${DF_BLUETOOTH_PAIR_TIMEOUT:-25}
+
+if [[ ! $address =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
+    echo "Provide a valid Bluetooth address such as AA:BB:CC:DD:EE:FF." >&2
+    exit 2
+fi
+
+if ! bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then
+    if ! timeout 5 bluetoothctl power on >/dev/null 2>&1; then
+        echo "Bluetooth could not be powered on." >&2
+        exit 3
+    fi
+fi
+
+timeout "$pair_timeout" bluetoothctl --agent NoInputNoOutput pair "$address" >/dev/null 2>&1
+pair_status=$?
+if (( pair_status == 124 )); then
+    echo "Pairing timed out. Use bluetui for a PIN or confirmation request." >&2
+    exit 4
+fi
+if (( pair_status != 0 )); then
+    echo "Native pairing failed. Use bluetui for a PIN or confirmation request." >&2
+    exit 5
+fi
+
+if ! timeout 5 bluetoothctl trust "$address" >/dev/null 2>&1; then
+    echo "The device paired, but Bluetooth could not trust it." >&2
+    exit 6
+fi
+if ! timeout 15 bluetoothctl connect "$address" >/dev/null 2>&1; then
+    echo "The device paired, but Bluetooth could not connect to it." >&2
+    exit 7
+fi

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -u
+
+node_id=${1:-}
+sink_name=${2:-}
+
+if [[ ! $node_id =~ ^[0-9]+$ || -z $sink_name ]]; then
+    echo "Usage: df-audio-output-set-default <node-id> <sink-name>" >&2
+    exit 2
+fi
+
+timeout 2 wpctl set-default "$node_id" >/dev/null 2>&1 || true
+timeout 2 pactl set-default-sink "$sink_name" >/dev/null 2>&1 || true
+
+timeout 2 pactl list sink-inputs 2>/dev/null | awk '
+    /^Sink Input #/ { id = substr($3, 2) }
+    /application\.name = / {
+        application = $0
+        sub(/.*application\.name = "/, "", application)
+        sub(/"$/, "", application)
+        if (application != "EasyEffects") print id
+    }
+' | while read -r input; do
+    [[ -n $input ]] && timeout 2 pactl move-sink-input "$input" "$sink_name" >/dev/null 2>&1 || true
+done
