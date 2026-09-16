@@ -114,6 +114,7 @@ alias_if_command git gp 'git push'
 alias_if_command git grhh 'git reset --hard'
 alias_if_command git gcl 'git clone'
 alias_if_command git fpush 'gitpush "s"'
+alias_if_command git grv 'git remote --verbose'
 
 # ghq keeps clones in a GOPATH-style tree, so this intentionally shadows git clone.
 alias_if_command ghq git-clone 'ghq get'
