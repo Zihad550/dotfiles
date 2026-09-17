@@ -14,7 +14,7 @@ Run it on the Proxmox host as root, from a checkout of this repository:
 
 ```bash
 cd /path/to/dotfiles
-./setup/proxmox/create-ubuntu-lxc
+./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 The default configuration creates a stopped, unprivileged container with:
@@ -46,7 +46,7 @@ CT_HOSTNAME=devbox \
 CPU_COUNT=8 \
 RAM_MIB=16384 \
 SWAP_MIB=8192 \
-./setup/proxmox/create-ubuntu-lxc
+./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 ## Container ID and hostname
@@ -61,7 +61,7 @@ Set it to pin an ID. The script fails if that ID is already in use; it never
 chooses a replacement automatically:
 
 ```bash
-CT_ID=260 CT_HOSTNAME=ubuntu-devbox ./setup/proxmox/create-ubuntu-lxc
+CT_ID=260 CT_HOSTNAME=ubuntu-devbox ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 The hostname is controlled by `CT_HOSTNAME`.
@@ -71,7 +71,7 @@ The hostname is controlled by `CT_HOSTNAME`.
 Set `CT_USERNAME` to create a non-root login user:
 
 ```bash
-CT_USERNAME=jehad ./setup/proxmox/create-ubuntu-lxc
+CT_USERNAME=jehad ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 The script asks whether to set a password when run from a terminal. It does not
@@ -98,7 +98,7 @@ Set `SSH_AUTHORIZED_KEY_FILE` to a public-key file on the Proxmox host:
 
 ```bash
 SSH_AUTHORIZED_KEY_FILE=/root/.ssh/id_ed25519.pub \
-./setup/proxmox/create-ubuntu-lxc
+./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 The key is passed to `pct create`. It is installed for `CT_USERNAME` when that
@@ -114,7 +114,7 @@ pct enter <CT_ID>
 The release is controlled by `UBUNTU_VERSION` and defaults to `26.04`:
 
 ```bash
-UBUNTU_VERSION=26.04 ./setup/proxmox/create-ubuntu-lxc
+UBUNTU_VERSION=26.04 ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 The script runs `pveam update` by default, searches for an exact Ubuntu
@@ -142,7 +142,7 @@ TUN=1
 does not need Tailscale:
 
 ```bash
-TUN=0 ./setup/proxmox/create-ubuntu-lxc
+TUN=0 ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 Docker inside an LXC has a larger security and compatibility surface than
@@ -155,7 +155,7 @@ The container is created stopped. The script never starts it unless explicitly
 configured:
 
 ```bash
-START_AFTER_CREATE=1 ./setup/proxmox/create-ubuntu-lxc
+START_AFTER_CREATE=1 ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
 Normally start and enter it manually:
@@ -168,6 +168,44 @@ pct enter <CT_ID>
 This script creates the base LXC only. It does not run the dotfiles’ Ubuntu
 development setup inside the guest. Once the guest is running, use the
 appropriate guest setup path and then reuse the selected devbox tools.
+
+## Proxmox firewall
+
+Run the firewall setup on the Proxmox host after creating the container:
+
+```bash
+./setup/proxmox/ubuntu/setup-firewall <CT_ID>
+```
+
+The script enables the container firewall with an incoming `DROP` policy and
+an outgoing `ACCEPT` policy. It preserves the existing `net0` settings while
+adding the required `firewall=1` flag. DHCP remains enabled when `net0` uses
+DHCP, and IPv6 neighbor discovery remains enabled. It does not open SSH on the
+container's LAN address.
+
+The Datacenter firewall must already be enabled. The script refuses to enable
+that cluster-wide switch because it can block access to the Proxmox web UI and
+host SSH. Configure host management rules first, then enable it with the web UI
+or:
+
+```bash
+pvesh set /cluster/firewall/options --enable 1
+```
+
+Tailscale normally works through an incoming `DROP` policy without an explicit
+inbound rule. If `tailscale status` shows relayed connections and direct
+connections matter, allow the UDP port used by `tailscaled`:
+
+```bash
+TAILSCALE_DIRECT_PORT=41641 \
+./setup/proxmox/ubuntu/setup-firewall <CT_ID>
+```
+
+The script identifies its Tailscale rule by comment. Rerunning it updates the
+port instead of adding another rule. Running it without
+`TAILSCALE_DIRECT_PORT` removes a rule previously managed by the script.
+Tailnet service access remains controlled by Tailscale grants because the
+Proxmox firewall sees only the encrypted transport on `net0`.
 
 ## Sources
 

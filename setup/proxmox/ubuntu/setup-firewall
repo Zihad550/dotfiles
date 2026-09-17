@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+
+# Restrict an LXC's LAN-facing network interface with the Proxmox firewall.
+# The Datacenter firewall must already be enabled with safe host management
+# rules. Set TAILSCALE_DIRECT_PORT to the tailscaled UDP listening port only
+# when direct connections need an explicit inbound exception.
+
+set -Eeuo pipefail
+
+TAILSCALE_DIRECT_PORT="${TAILSCALE_DIRECT_PORT:-}"
+RULE_COMMENT="dotfiles-tailscale-direct"
+
+die() {
+    echo "error: $*" >&2
+    exit 1
+}
+
+need_command() {
+    command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+validate_port() {
+    local port="$1"
+    [[ -z "$port" ]] && return
+    [[ "$port" =~ ^[0-9]+$ ]] || die "TAILSCALE_DIRECT_PORT must be a port: $port"
+    ((port >= 1 && port <= 65535)) || die "TAILSCALE_DIRECT_PORT must be between 1 and 65535: $port"
+}
+
+enable_firewall_in_net_config() {
+    local net_config="$1"
+
+    if [[ ",$net_config," == *,firewall=*,* ]]; then
+        printf '%s\n' "$net_config" | sed -E 's/(^|,)firewall=[^,]*/\1firewall=1/'
+    else
+        printf '%s,firewall=1\n' "$net_config"
+    fi
+}
+
+cluster_firewall_enabled() {
+    pvesh get /cluster/firewall/options --output-format json |
+        grep -Eq '"enable"[[:space:]]*:[[:space:]]*(1|true|"1")'
+}
+
+tailscale_rule_position() {
+    local api_path="$1"
+    pvesh get "$api_path/rules" --output-format json |
+        perl -MJSON::PP -e '
+            my $comment = shift;
+            local $/;
+            my $rules = decode_json(<STDIN>);
+            for my $rule (@$rules) {
+                if (($rule->{comment} // "") eq $comment) {
+                    print $rule->{pos};
+                    last;
+                }
+            }
+        ' "$RULE_COMMENT"
+}
+
+configure_tailscale_rule() {
+    local api_path="$1" position rule_args
+    position="$(tailscale_rule_position "$api_path")"
+
+    if [[ -z "$TAILSCALE_DIRECT_PORT" ]]; then
+        [[ -z "$position" ]] || pvesh delete "$api_path/rules/$position"
+        return
+    fi
+
+    rule_args=(
+        --type in
+        --action ACCEPT
+        --proto udp
+        --dport "$TAILSCALE_DIRECT_PORT"
+        --enable 1
+        --comment "$RULE_COMMENT"
+    )
+    if [[ -n "$position" ]]; then
+        pvesh set "$api_path/rules/$position" "${rule_args[@]}"
+    else
+        pvesh create "$api_path/rules" "${rule_args[@]}"
+    fi
+}
+
+main() {
+    local ct_id="${1:-}" node net0 firewall_net0 dhcp_enabled firewall_api
+
+    [[ "$ct_id" =~ ^[0-9]+$ ]] || die "usage: $(basename "$0") <CT_ID>"
+    ((ct_id >= 100)) || die "CT_ID must be at least 100: $ct_id"
+    validate_port "$TAILSCALE_DIRECT_PORT"
+
+    ((EUID == 0)) || die "run this on the Proxmox host as root"
+    need_command pct
+    need_command pvesh
+    need_command grep
+    need_command perl
+    need_command sed
+
+    pct status "$ct_id" >/dev/null 2>&1 || die "container $ct_id does not exist on this node"
+    if ! cluster_firewall_enabled; then
+        die "the Datacenter firewall is disabled; configure safe Proxmox host management rules before enabling it"
+    fi
+
+    node="${PVE_NODE:-$(hostname -s)}"
+    net0="$(pct config "$ct_id" | sed -n 's/^net0:[[:space:]]*//p')"
+    [[ -n "$net0" ]] || die "container $ct_id has no net0 configuration"
+
+    firewall_net0="$(enable_firewall_in_net_config "$net0")"
+    dhcp_enabled=0
+    if [[ ",$net0," == *,ip=dhcp,* || ",$net0," == *,ip6=dhcp,* ]]; then
+        dhcp_enabled=1
+    fi
+
+    firewall_api="/nodes/$node/lxc/$ct_id/firewall"
+    pvesh set "$firewall_api/options" \
+        --enable 1 \
+        --policy_in DROP \
+        --policy_out ACCEPT \
+        --dhcp "$dhcp_enabled" \
+        --ndp 1
+
+    configure_tailscale_rule "$firewall_api"
+
+    pct set "$ct_id" --net0 "$firewall_net0"
+
+    echo "configured Proxmox firewall for container $ct_id"
+    echo "  net0:          $firewall_net0"
+    echo "  input policy:  DROP"
+    echo "  output policy: ACCEPT"
+    echo "  DHCP:          $dhcp_enabled"
+    echo "  IPv6 NDP:      1"
+    echo "  Tailscale UDP: ${TAILSCALE_DIRECT_PORT:-no explicit inbound rule}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi
