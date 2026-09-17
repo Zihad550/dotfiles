@@ -202,7 +202,18 @@ failed, and reruns exactly that failed operation when activated. Never starts
 on its own and never repeats a password prompt without another activation.
 _Avoid_: retry button, error row, try again
 
+## Media language
+
+**Media Widget**:
+The Bar control that displays the active player's track and opens playback controls and a player list.
+_Avoid_: mini player, media panel
+
+**Active Player**:
+The player currently represented by the Media Widget, selected using Omarchy's playback and explicit-selection rules. Global play/pause can target a different playing player.
+_Avoid_: default player, selected source
+
 # Desktop
+
 
 The Hyprland desktop's application and workspace conventions.
 

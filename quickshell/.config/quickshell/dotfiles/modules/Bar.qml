@@ -6,6 +6,7 @@ PanelWindow {
     id: bar
 
     required property var modelData
+    property var mediaService: null
     screen: modelData
 
     // Snapshotted imperatively, not left as a live binding on modelData.name:
@@ -42,6 +43,10 @@ PanelWindow {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0
 
+        Loader {
+            active: bar.mediaService !== null
+            sourceComponent: Media { service: bar.mediaService }
+        }
         Voxtype {}
         StatusCluster {
             id: statusCluster

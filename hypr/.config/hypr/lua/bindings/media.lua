@@ -22,6 +22,14 @@ o.bind("XF86AudioPause", "Pause",          osd .. " player play-pause", { locked
 o.bind("XF86AudioPlay",  "Play",           osd .. " player play-pause", { locked = true })
 o.bind("XF86AudioPrev",  "Previous track", osd .. " player previous",   { locked = true })
 
+if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
+    local media = "qs -c dotfiles ipc call media"
+    o.bind("ALT + XF86AudioPlay", "Next track", media .. " next", { locked = true })
+    o.bind("ALT + SHIFT + XF86AudioPlay", "Previous track", media .. " previous", { locked = true })
+    o.bind("SHIFT + XF86AudioPause", "Switch media source", media .. " sourceSwitch", { locked = true })
+    o.bind("SHIFT + XF86AudioPlay", "Switch media source", media .. " sourceSwitch", { locked = true })
+end
+
 o.bind("SUPER + XF86AudioMute", "Switch audio output",
     dotfiles_bin .. "/df-hypr-audio-switch",
     { locked = true })

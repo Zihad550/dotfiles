@@ -1,16 +1,35 @@
+import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs
 import qs.modules
+import qs.media as Media
 
 ShellRoot {
+    id: root
+    readonly property bool workstation: Quickshell.env("DOTFILES_PROFILE") === "arch-workstation"
+
+    Loader {
+        id: mediaLoader
+        active: root.workstation
+        sourceComponent: Media.Service {
+            shell: QtObject {
+                function summon(id, payload) {
+                    const data = JSON.parse(payload);
+                    const icons = { "media": "󰝚", "media-play": "󰐊", "media-pause": "󰏤",
+                        "media-next": "󰒭", "media-previous": "󰒮", "media-source": "󰝚" };
+                    OsdService.show(icons[data.icon] || "󰝚", -1, data.message);
+                }
+            }
+        }
+    }
     // One bar per connected monitor. Variants destroys the instance when a
     // monitor is unplugged, which is what waybar's per-output handling did.
     Variants {
         model: Quickshell.screens
 
-        Bar {}
+        Bar { mediaService: mediaLoader.item }
     }
 
     BatteryService {}
@@ -77,7 +96,10 @@ ShellRoot {
         }
 
         function player(action: string): void {
-            OsdService.player(action);
+            if (mediaLoader.item)
+                mediaLoader.item.runAction(action === "play-pause" ? "playPause" : action, true);
+            else
+                OsdService.player(action);
         }
 
         function message(text: string): void {

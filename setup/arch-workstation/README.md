@@ -35,6 +35,20 @@ Zed can then open the same host through its remote-development UI.
 
 ## Installation notes
 
+The workstation installs mpv and mpv-mpris and registers mpv for video files.
+The Bar's Media Widget appears when a player supplies a title or artist.
+Left-click toggles playback, middle-click skips forward, scrolling changes
+tracks, and right-click opens artwork, playback controls, and player selection.
+Media keys use Omarchy's original targeting rules; Shift+Play or Shift+Pause
+cycles players and transfers playback. The widget and its service are enabled
+only for `DOTFILES_PROFILE=arch-workstation`.
+
+Existing installations can install `mpv-mpris`, run
+`bash setup/arch-workstation/setup-packages/setup-media`, and restart the
+dotfiles Quickshell instance. Restart any already-open mpv process to load its
+MPRIS plugin. Browser downloads and screen-recording integration are excluded.
+See the [port provenance](../../quickshell/.config/quickshell/dotfiles/media/PROVENANCE.md).
+
 During the Arch installation, select disk encryption, Btrfs, GRUB, and
 PipeWire. After configuring Snapper, edit `/etc/snapper/configs/root` and set:
 
