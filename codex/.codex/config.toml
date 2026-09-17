@@ -15,6 +15,18 @@ trust_level = "trusted"
 [projects."/home/jehad/dev/work/mamacrm/backend"]
 trust_level = "trusted"
 
+[projects."/home/jehad/dev/src/github.com/Zihad550/grocer-bee"]
+trust_level = "trusted"
+
+[projects."/home/jehad/dev/src/github.com/Zihad550/routebook"]
+trust_level = "trusted"
+
+[projects."/home/jehad/dev/lab/open-design-main"]
+trust_level = "trusted"
+
+[projects."/home/jehad/dev/src/github.com/Zihad550/skills"]
+trust_level = "trusted"
+
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "context-used", "used-tokens", "five-hour-limit", "weekly-limit", "task-progress", "approval-mode", "context-window-size"]
 status_line_use_colors = true
@@ -42,6 +54,9 @@ trusted_hash = "sha256:02bfcccca4a4cb756bc2a10b220caa651b6b235c816118f036eb41bf8
 
 [features]
 hooks = true
+
+[notice]
+hide_rate_limit_model_nudge = true
 
 [notice.model_migrations]
 "gpt-5.4-mini" = "gpt-5.6-luna"
