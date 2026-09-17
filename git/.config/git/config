@@ -4,12 +4,16 @@
 	name = Zihad550
 [commit]
 	gpgsign = true
+	verbose = true
 [pull]
     rebase = false
     default = current
 [rebase]
     autoStash = true
     missingCommitsCheck = warn
+[rerere]
+	enabled = true
+	autoupdate = true
 [init]
 	defaultBranch = main
 [core]
@@ -18,6 +22,10 @@
 	pager = delta --side-by-side
 	; diffnav doesn't work sometimes with yay
 	; pager = diffnav
+[diff]
+	algorithm = histogram
+	colorMoved = plain
+	mnemonicPrefix = true
 [submodule]
 	recurse = true
 [push]
