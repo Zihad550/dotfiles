@@ -3,8 +3,6 @@ model_reasoning_effort = "medium"
 approvals_reviewer = "auto_review"
 service_tier = "default"
 
-[projects."/home/jehad"]
-trust_level = "trusted"
 
 [projects."/home/jehad/dotfiles"]
 trust_level = "trusted"
@@ -37,6 +35,7 @@ close_transcript = ["ctrl-t"]
 
 [tui.model_availability_nux]
 "gpt-5.6-sol" = 1
+gpt-6-astra = 1
 
 [shell_environment_policy]
 inherit = "core"
