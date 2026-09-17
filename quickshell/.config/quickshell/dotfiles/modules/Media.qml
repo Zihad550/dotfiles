@@ -11,7 +11,8 @@ Item {
     property var service: null
     implicitWidth: widget.implicitWidth
     implicitHeight: widget.implicitHeight
-    visible: widget.visible
+    // Child visibility includes this parent's visibility, so bind to media state.
+    visible: widget.hasMedia
 
     QtObject {
         id: host
