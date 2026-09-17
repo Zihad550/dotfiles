@@ -2,11 +2,8 @@
   ////////////////////////
   // ai
   ///////////////////////
-  "search": {
-    "include_ignored": true
-  },
   "file_finder": {
-    "include_ignored": "all"
+    "include_ignored": "indexed"
   },
   "ssh_connections": [
     {
