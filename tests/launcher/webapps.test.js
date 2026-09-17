@@ -62,7 +62,7 @@ test("an Entry carries the Desktop Entry name, URL, icon, and no Frecency key", 
     });
 });
 
-test("catalogOf excludes ordinary applications and keeps one keyless row per Webapp", () => {
+test("catalogOf starts with install and keeps one keyless row per Webapp", () => {
     const apps = [
         application("Firefox", "firefox", ["/usr/bin/firefox"]),
         application("Spec Check", "Spec Check", [
@@ -74,13 +74,25 @@ test("catalogOf excludes ordinary applications and keeps one keyless row per Web
     ];
     const built = W.catalogOf(apps, null);
 
-    assert.deepStrictEqual(built.entries.map(entry => entry.name), ["Spec Check", "ChatGPT"]);
-    assert.deepStrictEqual(built.texts, ["Spec Check", "ChatGPT"]);
+    assert.deepStrictEqual(built.entries.map(entry => entry.name),
+        ["Install a webapp", "Spec Check", "ChatGPT"]);
+    assert.deepStrictEqual(built.texts, ["Install a webapp", "Spec Check", "ChatGPT"]);
     assert.ok(built.entries.every(entry => entry.key === undefined));
 
     const corpus = M.prepare(built.texts, null);
     CatalogCheck.nameFirst(built);
-    assert.deepStrictEqual(M.collapse(corpus, M.rank(corpus, "ChatGPT")).indices, [1]);
+    assert.deepStrictEqual(M.collapse(corpus, M.rank(corpus, "ChatGPT")).indices, [2]);
+});
+
+test("the install row has its own provider and the CLI receives name and URL", () => {
+    const installProvider = { label: "install webapp" };
+    const entry = W.installEntry(installProvider);
+
+    assert.strictEqual(entry.provider, installProvider);
+    assert.strictEqual(entry.target, null);
+    assert.deepStrictEqual(W.installArgv(HOME, "Spec Check", "example.com"), [
+        `${HOME}/dotfiles/bin/df-webapp-install`, "Spec Check", "example.com"
+    ]);
 });
 
 test("removal addresses the Desktop Entry basename and never forgets the manifest", () => {

@@ -59,6 +59,20 @@ function textsFor(application, entry) {
     return [entry.name];
 }
 
+function installEntry(provider) {
+    return {
+        name: "Install a webapp",
+        subtext: "Create a desktop entry for this machine profile",
+        icon: "list-add",
+        provider: provider,
+        target: null
+    };
+}
+
+function installArgv(home, name, url) {
+    return [home + "/dotfiles/bin/df-webapp-install", String(name), String(url)];
+}
+
 // Desktop Entry IDs are the application filename without `.desktop`, which
 // is exactly the name df-webapp-remove appends when it resolves the entry.
 function removeArgv(home, id) {
@@ -77,9 +91,10 @@ function notifyArgv(name, exitCode, stderr) {
     return ["notify-send", "--urgency=critical", "Remove failed: " + name, detail];
 }
 
-function catalogOf(applications, provider) {
-    var entries = [];
-    var texts = [];
+function catalogOf(applications, provider, installerProvider) {
+    var installer = installEntry(installerProvider || provider);
+    var entries = [installer];
+    var texts = [installer.name];
     var items = applications || [];
 
     for (var i = 0; i < items.length; i++) {
@@ -102,6 +117,8 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         urlFor: urlFor,
         entryFor: entryFor,
         textsFor: textsFor,
+        installEntry: installEntry,
+        installArgv: installArgv,
         catalogOf: catalogOf,
         removeArgv: removeArgv,
         notifyArgv: notifyArgv

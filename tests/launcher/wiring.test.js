@@ -72,3 +72,12 @@ test("webapps keeps one removal in flight and stays open after Return", () => {
     assert.match(webapps, /if \(remover\.running\)/);
     assert.match(webapps, /Web\.notifyArgv\(root\.removingName, exitCode/);
 });
+
+test("webapps installs through a two-step Launcher prompt", () => {
+    const webapps = source("quickshell/.config/quickshell/launcher/modules/Webapps.qml");
+
+    assert.match(webapps, /Web\.catalogOf\(root\.applications, root, installActions\)/);
+    assert.match(webapps, /promptStage === "name"/);
+    assert.match(webapps, /Web\.installArgv\(root\.home, root\.installName, value\)/);
+    assert.match(webapps, /readonly property Process installer: Process/);
+});

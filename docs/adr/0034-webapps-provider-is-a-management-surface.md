@@ -1,7 +1,7 @@
 # The Webapps Provider is a management surface, not a second application pool
 
 The Launcher has a `webapps` Provider reached from the `?` provider list. It
-lists installed Webapps and removes the highlighted one; it is deliberately
+installs Webapps and lists installed Webapps for removal; it is deliberately
 absent from the default pool and does not launch anything.
 
 ## Why
@@ -35,6 +35,13 @@ the rules for deleting the desktop file and only the fetched icon, while the
 tracked Webapp package manifest remains untouched and reinstalls the Webapp
 on the next setup run.
 
+**Installation delegates to the existing CLI.** A permanent first row opens
+two prompts in the Launcher's Query field, one for the name and one for the
+URL. The provider runs `df-webapp-install <name> <url>` and stays open. The CLI
+owns URL normalization, icon discovery, Desktop Entry creation, and recording
+the app in the active machine profile's package manifest. The live Desktop
+Entries model adds the installed app to the list.
+
 **Entries are keyless.** The Applications Provider's Desktop Entry ID is a
 valid launch identity, but using it here would make a removal action teach
 Frecency about an application Entry that no longer exists. The management
@@ -43,6 +50,7 @@ rows therefore carry no Entry Key.
 ## Consequences
 
 - `webapps` is routable and listable from `?`, but absent from `pool`.
+- The install row remains available when no Webapps are installed.
 - Ordinary packaged applications and keybound special Webapps are excluded by
   the launcher-command predicate.
 - Success is silent: the disappearing row is the report. A failed CLI process
