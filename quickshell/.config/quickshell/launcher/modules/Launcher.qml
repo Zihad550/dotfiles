@@ -70,7 +70,8 @@ PanelWindow {
     // Ex-dmenu Providers (processes, systemd, workspaces, dev servers),
     // themes and backgrounds are deliberately not here -- see
     // `rankedRoutable`.
-    readonly property var pool: [windows, apps, systemMenu, mediaMenu, displayMenu, otherMenu]
+    readonly property bool shareEnabled: Quickshell.env("DOTFILES_PROFILE") === "arch-workstation"
+    readonly property var pool: [windows, apps, systemMenu, mediaMenu, displayMenu, otherMenu].concat(root.shareEnabled ? [shareMenu] : [])
 
     // Ranked Providers reachable only through their own prefix or by nesting,
     // never in the default pool. Directories, files and clipboard are kept
@@ -504,6 +505,15 @@ PanelWindow {
         root.highlightFirst();
     }
 
+    function openShare(): void {
+        if (!root.shareEnabled)
+            return;
+        root.dismiss();
+        root.open();
+        shareMenu.enter();
+        root.highlightFirst();
+    }
+
     // SUPER+SHIFT+R's entry point -- opens the Launcher already as a rename
     // prompt for the focused workspace, rather than to be searched. Bound in
     // hypr/.config/hypr/lua/bindings/utilities.lua. Nothing new to render:
@@ -700,8 +710,12 @@ PanelWindow {
         id: keybindings
     }
 
-    // The four static menus: each is a data file, Menu.qml is the whole
-    // behaviour, so adding an entry means editing one of these four.
+    // Static menus declare their entries; Menu.qml owns the behaviour.
+    ShareMenu {
+        id: shareMenu
+        active: root.visible && root.shareEnabled
+    }
+
     SystemMenu {
         id: systemMenu
 

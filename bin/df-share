@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Workstation Share actions. Ported from Omarchy; see docs/localsend-spec.md."""
+
+import argparse
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+def select_paths(directory):
+    import gi
+
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    loop = GLib.MainLoop()
+    result = {"code": None, "uris": []}
+
+    def on_response(connection, sender, path, interface, signal, params):
+        code, values = params.unpack()
+        result.update(code=code, uris=values.get("uris", []))
+        loop.quit()
+
+    def subscribe(path):
+        bus.signal_subscribe(
+            "org.freedesktop.portal.Desktop",
+            "org.freedesktop.portal.Request", "Response", path, None,
+            Gio.DBusSignalFlags.NONE, on_response,
+        )
+
+    # Subscribe before OpenFile so an immediate response cannot be lost.
+    token = "dotfiles_share_%d" % os.getpid()
+    sender = bus.get_unique_name()[1:].replace(".", "_")
+    predicted = "/org/freedesktop/portal/desktop/request/%s/%s" % (sender, token)
+    subscribe(predicted)
+    options = {
+        "handle_token": GLib.Variant("s", token),
+        "multiple": GLib.Variant("b", not directory),
+        "directory": GLib.Variant("b", directory),
+    }
+    handle = bus.call_sync(
+        "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
+        "org.freedesktop.portal.FileChooser", "OpenFile",
+        GLib.Variant("(ssa{sv})", ("", "Share folder" if directory else "Share files", options)),
+        None, Gio.DBusCallFlags.NONE, -1, None,
+    ).unpack()[0]
+    if handle != predicted:
+        subscribe(handle)
+    GLib.timeout_add_seconds(600, loop.quit)
+    loop.run()
+    if result["code"] == 1:
+        return []
+    if result["code"] != 0:
+        raise RuntimeError("The file chooser failed or timed out")
+    return [GLib.filename_from_uri(uri)[0] for uri in result["uris"]]
+
+
+def share(mode, paths):
+    temporary = None
+    try:
+        if mode == "receive":
+            subprocess.run(["uwsm-app", "--", "localsend"], check=True)
+            return
+        if mode == "clipboard":
+            # Omarchy writes a .txt file. Explicitly request text to avoid
+            # sending image bytes with a misleading extension.
+            capture = subprocess.run(
+                ["wl-paste", "--type", "text", "--no-newline"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            if capture.returncode or not capture.stdout:
+                raise RuntimeError("Copy some text first. Clipboard images are not supported by Share.")
+            with tempfile.NamedTemporaryFile(prefix="localsend-", suffix=".txt", delete=False) as output:
+                temporary = Path(output.name)
+                output.write(capture.stdout)
+            paths = [str(temporary)]
+        elif not paths:
+            paths = select_paths(mode == "folder")
+        if not paths:
+            return
+        paths = [str(Path(path).absolute()) for path in paths]
+        for path in paths:
+            if not Path(path).exists():
+                raise RuntimeError("Path does not exist: " + path)
+        subprocess.run(
+            ["systemd-run", "--user", "--quiet", "--collect", "--property=Type=exec",
+             "localsend", "--headless", "send", *paths], check=True,
+        )
+        # LocalSend can hand the transfer to an existing instance. Keep the
+        # clipboard file for system temporary-file cleanup, as Omarchy does.
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("mode", choices=["clipboard", "file", "folder", "receive"])
+    parser.add_argument("paths", nargs="*")
+    args = parser.parse_args()
+    if args.paths and args.mode in ("clipboard", "receive"):
+        parser.error("this action does not accept paths")
+    if os.environ.get("DOTFILES_PROFILE") != "arch-workstation":
+        print("Share is only enabled for arch-workstation", file=sys.stderr)
+        return 1
+    try:
+        if not shutil.which("localsend"):
+            raise RuntimeError("LocalSend is not installed. Run the workstation LocalSend setup.")
+        share(args.mode, args.paths)
+        return 0
+    except Exception as error:
+        print("Share: " + str(error), file=sys.stderr)
+        if shutil.which("notify-send"):
+            subprocess.run(["notify-send", "--urgency=critical", "Could not share", str(error)])
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

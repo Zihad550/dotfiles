@@ -8,7 +8,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ufw_bootstrap
 
-# Allow nothing in, everything out
 sudo ufw deny SSH
+sudo ufw allow 53317/tcp comment 'LocalSend'
+sudo ufw allow 53317/udp comment 'LocalSend'
 
 ufw_commit

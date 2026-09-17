@@ -219,6 +219,11 @@ The Hyprland desktop's application and workspace conventions.
 
 ## Language
 
+**Share**:
+The workstation workflow for sending clipboard text, files, or folders through
+LocalSend, and opening LocalSend to receive transfers on demand.
+_Avoid_: sync, background receiver
+
 **Special Workspace**:
 A named workspace normally kept out of view and summoned by a dedicated key,
 giving a recurring application a single place that can be shown or hidden.

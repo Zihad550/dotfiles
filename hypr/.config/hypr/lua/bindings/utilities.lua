@@ -25,6 +25,10 @@ o.bind("SUPER + CTRL + A", "Quick Settings", hl.dsp.global("quicksettings:toggle
 -- no fork and no exec, because the Launcher is already running.
 o.bind("SUPER + SHIFT + R", "Rename workspace", hl.dsp.global("launcher:rename-workspace"))
 
+if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
+    o.bind("SUPER + ALT + S", "Share", hl.dsp.global("launcher:share"))
+end
+
 -- Dictation
 -- "Dictation start" used to claim SUPER + CTRL + V, which collided with the
 -- clipboard manager keybind (bindings/clipboard.lua) on the same combo --

@@ -22,6 +22,16 @@ hl.window_rule({
     no_focus = true,
 })
 
+if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
+    hl.window_rule({
+        name = "localsend",
+        match = { class = "localsend" },
+        float = true,
+        center = true,
+        size = { 1100, 700 },
+    })
+end
+
 -- Per-workspace scrolling layout.
 for _, ws in ipairs({ "1", "3", "4", "5", "6", "7", "8", "9", "special:development" }) do
     hl.workspace_rule({ workspace = ws, layout = "scrolling" })

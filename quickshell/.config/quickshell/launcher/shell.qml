@@ -104,6 +104,13 @@ ShellRoot {
         onPressed: launcher.confirmPower("lock")
     }
 
+    GlobalShortcut {
+        appid: "launcher"
+        name: "share"
+
+        onPressed: launcher.openShare()
+    }
+
     IpcHandler {
         target: "launcher"
 

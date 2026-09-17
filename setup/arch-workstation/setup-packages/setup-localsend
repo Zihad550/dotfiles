@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+
+sudo pacman -S --noconfirm --needed localsend nautilus-python python-gobject xdg-desktop-portal-gtk
+
+extensions="$HOME/.local/share/nautilus-python/extensions"
+mkdir -p "$extensions"
+ln -sfn "$DOTFILES_DIR/setup/arch-workstation/localsend/localsend.py" "$extensions/localsend.py"

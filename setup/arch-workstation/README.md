@@ -35,6 +35,55 @@ Zed can then open the same host through its remote-development UI.
 
 ## Installation notes
 
+### LocalSend on an existing workstation
+
+Run these steps on the **workstation**, after updating its `~/dotfiles` checkout
+to include this change. Do not run workstation setup on an arch-devbox.
+
+1. Ensure the workstation's Omarchy package repository is configured. Existing
+   installations made with this setup already have it. If it is missing, run
+   `bash ~/dotfiles/setup/arch-workstation/setup-omarchy-repos` first.
+2. Install LocalSend, its Nautilus integration, and the file chooser backend:
+
+   ```sh
+   cd ~/dotfiles
+   sudo pacman -Syu
+   bash setup/arch-workstation/setup-packages/setup-localsend
+   ```
+
+3. Allow LocalSend through the existing firewall:
+
+   ```sh
+   sudo ufw allow 53317/tcp comment 'LocalSend'
+   sudo ufw allow 53317/udp comment 'LocalSend'
+   sudo ufw reload
+   sudo ufw status
+   ```
+
+   These allow incoming transfers from any network while LocalSend is listening.
+   Full workstation setup also creates these rules through `setup-ufw`.
+
+4. Refresh desktop links and assert the workstation profile:
+
+   ```sh
+   bash scripts/stow/stow-hyprland
+   bash setup/common/set-dotfiles-profile arch-workstation
+   ```
+
+5. Log out and back in. This gives Hyprland, the Launcher, Nautilus, and the
+   portal services the correct session environment and loads the new extension.
+6. Press `Super+Alt+S`, or open the Launcher and type `?` to select Share.
+   Use Receive to open LocalSend, or send clipboard text, files, or a folder.
+   Nautilus selections also offer **Send via LocalSend**. Open LocalSend on a
+   second device on the same network and test a transfer in both directions.
+
+Receiving is on demand, with no login autostart. Clipboard images are not
+supported by the Share action; save an image and use Send files instead.
+LocalSend's existing preferences are preserved. See the
+[port specification](../../docs/localsend-spec.md) for upstream provenance.
+
+### Media
+
 The workstation installs mpv and mpv-mpris and registers mpv for video files.
 The Bar's Media Widget appears when a player supplies a title or artist.
 Left-click toggles playback, middle-click skips forward, scrolling changes
@@ -48,6 +97,8 @@ Existing installations can install `mpv-mpris`, run
 dotfiles Quickshell instance. Restart any already-open mpv process to load its
 MPRIS plugin. Browser downloads and screen-recording integration are excluded.
 See the [port provenance](../../quickshell/.config/quickshell/dotfiles/media/PROVENANCE.md).
+
+### Disk setup
 
 During the Arch installation, select disk encryption, Btrfs, GRUB, and
 PipeWire. After configuring Snapper, edit `/etc/snapper/configs/root` and set:

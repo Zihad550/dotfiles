@@ -72,6 +72,7 @@ run_step "media defaults" bash "$ARCH_WORKSTATION_DIR/setup-packages/setup-media
 
 run_step "syncthing" "$ARCH_WORKSTATION_DIR/setup-packages/setup-syncthing"
 run_step "ufw" "$ARCH_WORKSTATION_DIR/setup-packages/setup-ufw"
+run_step "localsend" "$ARCH_WORKSTATION_DIR/setup-packages/setup-localsend"
 
 # Guard zsh: usermod -s is non-idempotent (records a change every run).
 CURRENT_STEP="zsh"
