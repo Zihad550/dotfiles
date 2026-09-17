@@ -10,8 +10,75 @@
 
 set -e
 
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 ICON_ROOT="$HOME/.local/share/icons/hicolor"
 ICON_DIR="$ICON_ROOT/256x256/apps"
+
+webapp_packages_file() {
+   case "${DOTFILES_PROFILE:-}" in
+      arch-workstation | arch-devbox)
+         printf '%s/setup/%s/packages/webapp-packages\n' "$DOTFILES_DIR" "$DOTFILES_PROFILE"
+         ;;
+      *) return 1 ;;
+   esac
+}
+
+double_quote() {
+   local value="$1"
+   value=${value//\\/\\\\}
+   value=${value//\"/\\\"}
+   value=${value//\$/\\$}
+   value=${value//\`/\\\`}
+   printf '"%s"' "$value"
+}
+
+remember_webapp() {
+   local packages_file command arg tmp line trimmed last i
+   local -a args
+
+   [[ ${DF_WEBAPP_PACKAGE_REPLAY:-0} == 1 ]] && return
+
+   if ! packages_file=$(webapp_packages_file); then
+      echo "Warning: DOTFILES_PROFILE is not set to a supported Arch profile; web app was not added to webapp-packages." >&2
+      return
+   fi
+
+   args=("$APP_NAME" "$APP_URL" "$ICON_REF" "$CUSTOM_EXEC" "$MIME_TYPES")
+   last=4
+   while (( last >= 2 )) && [[ -z ${args[$last]} ]]; do
+      ((last--))
+   done
+
+   # shellcheck disable=SC2088 # The package script expands the stored tilde.
+   command='~/dotfiles/bin/df-webapp-install'
+   for ((i = 0; i <= last; i++)); do
+      arg=${args[$i]}
+      command+=" $(double_quote "$arg")"
+   done
+
+   mkdir -p "$(dirname "$packages_file")"
+   if [[ ! -e $packages_file ]]; then
+      printf '#!/bin/bash\n\nexport DF_WEBAPP_PACKAGE_REPLAY=1\n\n' >"$packages_file"
+      chmod +x "$packages_file"
+   fi
+
+   tmp=$(mktemp)
+   while IFS= read -r line || [[ -n $line ]]; do
+      trimmed="${line#"${line%%[![:space:]]*}"}"
+      if [[ $trimmed != \#* && $line == *"df-webapp-install \"$APP_NAME\""* ]]; then
+         printf '%s\n' "$command"
+         command=""
+      else
+         printf '%s\n' "$line"
+      fi
+   done <"$packages_file" >"$tmp"
+
+   if [[ -n $command ]]; then
+      printf '%s\n' "$command" >>"$tmp"
+   fi
+   cat "$tmp" >"$packages_file"
+   rm -f "$tmp"
+}
 
 safe_icon_name() {
    printf '%s\n' "$1" |
@@ -156,6 +223,8 @@ if [[ -n $MIME_TYPES ]]; then
 fi
 
 chmod +x "$DESKTOP_FILE"
+
+remember_webapp
 
 if [[ $INTERACTIVE_MODE == true ]]; then
    echo -e "You can now find $APP_NAME using the app launcher (SUPER + SPACE)\n"

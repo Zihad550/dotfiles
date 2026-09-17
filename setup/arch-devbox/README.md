@@ -177,10 +177,9 @@ them on and off together.
 
 ### webapps
 
-`arch-workstation/packages/webapp-packages` (ChatGPT, Figma, LinkedIn, Facebook,
-Memrise, …) is not referenced here. Note it isn't referenced by arch-workstation's
-`init` either — it has always been a run-it-yourself script. Chromium installs
-PWAs on demand, so there's nothing to replace.
+Each Arch profile keeps its own `packages/webapp-packages` file. Neither file is
+referenced by `init`; they remain run-it-yourself scripts. `df-webapp-install`
+records an installed app in the file selected by `DOTFILES_PROFILE`.
 
 
 

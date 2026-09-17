@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export DF_WEBAPP_PACKAGE_REPLAY=1
+
 # Icons are discovered from each site, so no icon argument is needed. Pass one
 # only for hosts whose icon cannot be fetched — internal hostnames would fail
 # and leak to the Google favicon fallback.
