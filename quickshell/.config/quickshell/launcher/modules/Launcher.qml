@@ -985,6 +985,8 @@ PanelWindow {
                                 provider.applyPrompt(query.text);
                             else if (provider !== null && chord === "Escape")
                                 provider.cancelPrompt();
+                            else if (event.matches(StandardKey.Paste))
+                                return;
                             event.accepted = true;
                             return;
                         }

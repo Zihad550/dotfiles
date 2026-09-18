@@ -81,3 +81,11 @@ test("webapps installs through a two-step Launcher prompt", () => {
     assert.match(webapps, /Web\.installArgv\(root\.home, root\.installName, value\)/);
     assert.match(webapps, /readonly property Process installer: Process/);
 });
+
+test("text prompts leave the standard paste shortcut to the Query input", () => {
+    const launcher = source("quickshell/.config/quickshell/launcher/modules/Launcher.qml");
+
+    assert.match(launcher,
+        /if \(event\.matches\(StandardKey\.Paste\)\)\s+return;/,
+        "prompt handling swallows Ctrl+V before TextInput can paste");
+});
