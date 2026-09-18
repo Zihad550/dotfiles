@@ -34,3 +34,4 @@ export DF_WEBAPP_PACKAGE_REPLAY=1
 # df-webapp-install "YouTube" https://youtube.com/
 # df-webapp-install "Discord" https://discord.com/channels/@me
 # df-webapp-install "Zoom" https://app.zoom.us/wc/home "" "omarchy-webapp-handler-zoom %u" "x-scheme-handler/zoommtg;x-scheme-handler/zoomus"
+~/dotfiles/bin/df-webapp-install "Linear" "https://linear.app/"
