@@ -10,6 +10,87 @@ const script = fs.readFileSync(scriptPath, "utf8");
 const firewallPath = path.join(repoRoot, "setup/proxmox/ubuntu/setup-firewall");
 const firewall = fs.readFileSync(firewallPath, "utf8");
 
+function createFakeProxmoxEnvironment() {
+    const directory = fs.mkdtempSync("/tmp/proxmox-test-");
+    const binDirectory = path.join(directory, "bin");
+    const containerState = path.join(directory, "container-created");
+    const authorizedKeys = path.join(directory, "authorized_keys");
+    fs.mkdirSync(binDirectory);
+    fs.writeFileSync(authorizedKeys, "ssh-ed25519 test-key\n");
+
+    const commands = {
+        pct: `#!/usr/bin/env bash
+case "$1" in
+status)
+    [[ -e "$FAKE_PCT_STATE" ]] || exit 1
+    printf 'status: stopped\\n'
+    ;;
+create)
+    : > "$FAKE_PCT_STATE"
+    ;;
+esac
+`,
+        pveam: `#!/usr/bin/env bash
+if [[ "$1" == available ]]; then
+    printf 'system/ubuntu-26.04-standard_26.04-1_amd64.tar.zst\\n'
+fi
+`,
+        pvesh: "#!/usr/bin/env bash\nprintf '101\\n'\n",
+        pvesm: `#!/usr/bin/env bash
+if [[ "$1" == path ]]; then
+    printf '/tmp/fake-template\\n'
+fi
+`,
+    };
+
+    for (const [name, contents] of Object.entries(commands)) {
+        const commandPath = path.join(binDirectory, name);
+        fs.writeFileSync(commandPath, contents, { mode: 0o755 });
+    }
+
+    return {
+        directory,
+        env: {
+            ...process.env,
+            PATH: `${binDirectory}:${process.env.PATH}`,
+            FAKE_PCT_STATE: containerState,
+            BRIDGE: "lo",
+            TUN: "0",
+            UPDATE_TEMPLATE_CATALOG: "0",
+            SSH_AUTHORIZED_KEY_FILE: authorizedKeys,
+        },
+    };
+}
+
+function runLxcCreator(overrides = {}) {
+    const fake = createFakeProxmoxEnvironment();
+    try {
+        return childProcess.spawnSync("fakeroot", ["bash", scriptPath], {
+            encoding: "utf8",
+            env: { ...fake.env, ...overrides },
+        });
+    } finally {
+        fs.rmSync(fake.directory, { recursive: true });
+    }
+}
+
+function runLxcCreatorInTerminal(input, overrides = {}) {
+    const fake = createFakeProxmoxEnvironment();
+    try {
+        return childProcess.spawnSync(
+            "script",
+            ["-qec", `fakeroot bash ${scriptPath}`, "/dev/null"],
+            {
+                encoding: "utf8",
+                env: { ...fake.env, ...overrides },
+                input,
+            },
+        );
+    } finally {
+        fs.rmSync(fake.directory, { recursive: true });
+    }
+}
+
 test("the Proxmox LXC creator has valid Bash syntax", () => {
     const result = childProcess.spawnSync("bash", ["-n", scriptPath], {
         encoding: "utf8",
@@ -22,6 +103,28 @@ test("the optional container user defaults to root-only access", () => {
     assert.match(script, /CT_USERNAME="\$\{CT_USERNAME:-\}"/);
     assert.match(script, /if \[\[ -n "\$CT_USERNAME" \]\]; then\n\s+provision_user/);
     assert.match(script, /user:\s+\$\{CT_USERNAME:-root\}/);
+});
+
+test("root-only container creation continues past the optional password prompt", () => {
+    const result = runLxcCreator();
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /creating Ubuntu 26\.04 LXC/);
+    assert.match(result.stdout, /created container 101/);
+});
+
+test("container creation continues when an unused container ID is specified", () => {
+    const result = runLxcCreator({ CT_ID: "123" });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /created container 123/);
+});
+
+test("container creation continues when its optional user password is declined", () => {
+    const result = runLxcCreatorInTerminal("n\n", { CT_USERNAME: "dev" });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /created container 101/);
 });
 
 test("a container user receives password-protected sudo and the configured SSH key", () => {

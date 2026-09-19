@@ -75,14 +75,14 @@ prompt_user_password() {
     local reply confirmation
     CT_USER_PASSWORD=""
 
-    [[ -n "$CT_USERNAME" ]] || return
+    [[ -n "$CT_USERNAME" ]] || return 0
     if [[ ! -t 0 ]]; then
         echo "note: no terminal is available; $CT_USERNAME will have no password"
         return
     fi
 
     read -r -p "Set a password for $CT_USERNAME? [y/N] " reply
-    [[ "$reply" == y || "$reply" == Y ]] || return
+    [[ "$reply" == y || "$reply" == Y ]] || return 0
 
     read -r -s -p "Password: " CT_USER_PASSWORD
     echo
@@ -102,7 +102,7 @@ resolve_ct_id() {
     if [[ -n "$CT_ID" ]]; then
         validate_int CT_ID "$CT_ID" 100
         container_exists "$CT_ID" && die "container $CT_ID already exists"
-        return
+        return 0
     fi
 
     CT_ID="$(pvesh get /cluster/nextid 2>/dev/null | tr -d '[:space:]')"
