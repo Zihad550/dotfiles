@@ -14,12 +14,19 @@ function createFakeProxmoxEnvironment() {
     const directory = fs.mkdtempSync("/tmp/proxmox-test-");
     const binDirectory = path.join(directory, "bin");
     const containerState = path.join(directory, "container-created");
+    const pctLog = path.join(directory, "pct.log");
     const authorizedKeys = path.join(directory, "authorized_keys");
     fs.mkdirSync(binDirectory);
+    fs.writeFileSync(pctLog, "");
     fs.writeFileSync(authorizedKeys, "ssh-ed25519 test-key\n");
 
     const commands = {
         pct: `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "$FAKE_PCT_LOG"
+if [[ "$*" == *" -- chpasswd" ]]; then
+    IFS= read -r password_entry
+    printf 'stdin:%s\\n' "$password_entry" >> "$FAKE_PCT_LOG"
+fi
 case "$1" in
 status)
     [[ -e "$FAKE_PCT_STATE" ]] || exit 1
@@ -50,9 +57,11 @@ fi
 
     return {
         directory,
+        pctLog,
         env: {
             ...process.env,
             PATH: `${binDirectory}:${process.env.PATH}`,
+            FAKE_PCT_LOG: pctLog,
             FAKE_PCT_STATE: containerState,
             BRIDGE: "lo",
             TUN: "0",
@@ -77,7 +86,7 @@ function runLxcCreator(overrides = {}) {
 function runLxcCreatorInTerminal(input, overrides = {}) {
     const fake = createFakeProxmoxEnvironment();
     try {
-        return childProcess.spawnSync(
+        const result = childProcess.spawnSync(
             "script",
             ["-qec", `fakeroot bash ${scriptPath}`, "/dev/null"],
             {
@@ -86,6 +95,10 @@ function runLxcCreatorInTerminal(input, overrides = {}) {
                 input,
             },
         );
+        return {
+            ...result,
+            pctLog: fs.readFileSync(fake.pctLog, "utf8"),
+        };
     } finally {
         fs.rmSync(fake.directory, { recursive: true });
     }
@@ -125,6 +138,21 @@ test("container creation continues when its optional user password is declined",
 
     assert.strictEqual(result.status, 0, result.stderr);
     assert.match(result.stdout, /created container 101/);
+});
+
+test("container creation prompts for a user and confirmed password", () => {
+    const result = runLxcCreatorInTerminal("y\ndev\nsecret\nsecret\n");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.pctLog, /useradd --create-home --shell \/bin\/bash --groups sudo dev/);
+    assert.match(result.pctLog, /stdin:dev:secret/);
+});
+
+test("interactive user creation rejects an empty username", () => {
+    const result = runLxcCreatorInTerminal("y\n\nx\nx\n");
+
+    assert.strictEqual(result.status, 1);
+    assert.match(result.stdout, /error: username must not be empty/);
 });
 
 test("a container user receives password-protected sudo and the configured SSH key", () => {

@@ -71,20 +71,33 @@ validate_username() {
         die "CT_USERNAME must be 1-32 lowercase letters, digits, underscores, or hyphens: $username"
 }
 
-prompt_user_password() {
-    local reply confirmation
+prompt_container_user() {
+    local reply confirmation password_required=0
     CT_USER_PASSWORD=""
 
-    [[ -n "$CT_USERNAME" ]] || return 0
-    if [[ ! -t 0 ]]; then
-        echo "note: no terminal is available; $CT_USERNAME will have no password"
-        return
+    if [[ -z "$CT_USERNAME" ]]; then
+        [[ -t 0 ]] || return 0
+
+        read -r -p "Create a non-root user? [y/N] " reply
+        [[ "$reply" == y || "$reply" == Y ]] || return 0
+
+        read -r -p "Username: " CT_USERNAME
+        [[ -n "$CT_USERNAME" ]] || die "username must not be empty"
+        validate_username "$CT_USERNAME"
+        password_required=1
     fi
 
-    read -r -p "Set a password for $CT_USERNAME? [y/N] " reply
-    [[ "$reply" == y || "$reply" == Y ]] || return 0
+    if [[ ! -t 0 ]]; then
+        echo "note: no terminal is available; $CT_USERNAME will have no password"
+        return 0
+    fi
 
-    read -r -s -p "Password: " CT_USER_PASSWORD
+    if (( password_required == 0 )); then
+        read -r -p "Set a password for $CT_USERNAME? [y/N] " reply
+        [[ "$reply" == y || "$reply" == Y ]] || return 0
+    fi
+
+    read -r -s -p "Password for $CT_USERNAME: " CT_USER_PASSWORD
     echo
     [[ -n "$CT_USER_PASSWORD" ]] || die "password must not be empty"
     [[ "$CT_USER_PASSWORD" != *:* ]] || die "password must not contain a colon"
@@ -234,7 +247,7 @@ need_command sed
 (( EUID == 0 )) || die "run this on the Proxmox host as root"
 
 validate_config
-prompt_user_password
+prompt_container_user
 require_storage "$TEMPLATE_STORAGE" "template"
 require_storage "$ROOTFS_STORAGE" "rootfs"
 resolve_ct_id
