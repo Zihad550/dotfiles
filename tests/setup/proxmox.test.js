@@ -44,6 +44,18 @@ fi
 `,
         pvesh: "#!/usr/bin/env bash\nprintf '101\\n'\n",
         pvesm: `#!/usr/bin/env bash
+if [[ "$1" == status && "$2" == --storage ]]; then
+    [[ "$3" == "$FAKE_UNAVAILABLE_STORAGE" ]] && exit 1
+    exit 0
+fi
+if [[ "$1" == status && "$2" == --content && "$3" == rootdir ]]; then
+    printf '%s\\n' \\
+        'Name       Type     Status Total Used Available %' \\
+        'local      dir      active 100   10   90        10%' \\
+        'fast-lvm   lvmthin  active 200   20   180       10%' \\
+        'offline    dir      inactive 50  0    50         0%'
+    exit
+fi
 if [[ "$1" == path ]]; then
     printf '/tmp/fake-template\\n'
 fi
@@ -153,6 +165,19 @@ test("interactive user creation rejects an empty username", () => {
 
     assert.strictEqual(result.status, 1);
     assert.match(result.stdout, /error: username must not be empty/);
+});
+
+test("an unavailable rootfs storage can be replaced interactively", () => {
+    const result = runLxcCreatorInTerminal("n\n2\n", {
+        ROOTFS_STORAGE: "missing",
+        FAKE_UNAVAILABLE_STORAGE: "missing",
+    });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /1\) local/);
+    assert.match(result.stdout, /2\) fast-lvm/);
+    assert.match(result.stdout, /disk:\s+6 GiB on fast-lvm/);
+    assert.match(result.pctLog, /--rootfs fast-lvm:6/);
 });
 
 test("a container user receives password-protected sudo and the configured SSH key", () => {

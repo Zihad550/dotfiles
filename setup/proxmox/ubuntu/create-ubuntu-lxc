@@ -134,6 +134,35 @@ require_storage() {
         die "$role storage does not exist or is unavailable: $storage"
 }
 
+resolve_rootfs_storage() {
+    local selection index
+    local -a storages=()
+
+    if pvesm status --storage "$ROOTFS_STORAGE" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    [[ -t 0 ]] || die "rootfs storage does not exist or is unavailable: $ROOTFS_STORAGE"
+
+    mapfile -t storages < <(
+        pvesm status --content rootdir 2>/dev/null |
+            awk 'NR > 1 && $3 == "active" { print $1 }'
+    )
+    ((${#storages[@]} > 0)) || die "no active storage supports container root filesystems"
+
+    echo "rootfs storage is unavailable: $ROOTFS_STORAGE"
+    echo "Available rootfs storages:"
+    for ((index = 0; index < ${#storages[@]}; index++)); do
+        printf '  %d) %s\n' "$((index + 1))" "${storages[index]}"
+    done
+
+    read -r -p "Select rootfs storage [1-${#storages[@]}]: " selection
+    [[ "$selection" =~ ^[0-9]+$ ]] || die "storage selection must be a number"
+    ((selection >= 1 && selection <= ${#storages[@]})) || die "storage selection is out of range"
+
+    ROOTFS_STORAGE="${storages[selection - 1]}"
+}
+
 find_template() {
     local available candidate
     local -a candidates=()
@@ -249,7 +278,7 @@ need_command sed
 validate_config
 prompt_container_user
 require_storage "$TEMPLATE_STORAGE" "template"
-require_storage "$ROOTFS_STORAGE" "rootfs"
+resolve_rootfs_storage
 resolve_ct_id
 
 if (( UPDATE_TEMPLATE_CATALOG == 1 )); then
