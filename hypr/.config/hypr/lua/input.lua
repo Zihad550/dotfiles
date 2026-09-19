@@ -23,6 +23,22 @@ hl.gesture({
     action = "workspace",
 })
 
+if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
+    local video_seek = os.getenv("HOME") .. "/dotfiles/bin/df-video-seek"
+
+    -- Four fingers avoid the three-finger workspace gesture above.
+    hl.gesture({
+        fingers = 4,
+        direction = "left",
+        action = function() hl.exec_cmd(video_seek .. " back-5") end,
+    })
+    hl.gesture({
+        fingers = 4,
+        direction = "right",
+        action = function() hl.exec_cmd(video_seek .. " forward-5") end,
+    })
+end
+
 -- hl.gesture({
 --     fingers = 3,
 --     direction = "vertical",

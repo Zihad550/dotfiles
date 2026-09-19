@@ -35,6 +35,7 @@ sudo pacman -S --noconfirm \
     obsidian \
     mpv \
     mpv-mpris \
+    wtype \
     converseen \
     swappy slurp grim \
     tesseract tesseract-data-eng

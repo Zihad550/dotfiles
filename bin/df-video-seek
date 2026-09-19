@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+case "${1:-}" in
+forward-5)
+	key=Right
+	presses=1
+	;;
+forward-15)
+	key=Right
+	presses=3
+	;;
+forward-30)
+	key=Right
+	presses=6
+	;;
+back-5)
+	key=Left
+	presses=1
+	;;
+back-15)
+	key=Left
+	presses=3
+	;;
+back-30)
+	key=Left
+	presses=6
+	;;
+*)
+	echo "Usage: $0 {forward-5|forward-15|forward-30|back-5|back-15|back-30}" >&2
+	exit 2
+	;;
+esac
+
+args=()
+for ((i = 0; i < presses; i++)); do
+	args+=(-k "$key")
+done
+
+wtype "${args[@]}"
