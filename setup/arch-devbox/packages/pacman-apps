@@ -25,7 +25,6 @@
 # libqalculate, cliphist and wl-clipboard are NOT dropped -- they moved to
 # ../../common/packages/quickshell-packages, shared by both targets.
 sudo pacman -S --noconfirm \
-    chromium \
     zed \
     neovim \
     yazi resvg \
@@ -33,6 +32,7 @@ sudo pacman -S --noconfirm \
     swappy slurp grim \
     tesseract tesseract-data-eng
 
+# chromium \
 # dropped — not dev
 # discord \             # chat
 # obs-studio \          # screen recording
