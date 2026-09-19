@@ -196,6 +196,7 @@ run_step "greeter" "$DOTFILES_DIR/setup/common/setup-greeter"
 
 # Apply the system lockout policy after SDDM has installed its PAM service.
 run_step "system authentication lockout" "$ARCH_WORKSTATION_DIR/setup-packages/setup-sudo-tries"
+run_step "sudo password feedback" "$DOTFILES_DIR/setup/common/setup-sudo-password-feedback"
 
 run_step "post-install" "$ARCH_DEVBOX_DIR/post-install"
 

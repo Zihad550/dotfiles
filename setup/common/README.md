@@ -29,6 +29,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch devbox |
 | [`setup-skills`](setup-skills) | Installs the shared agent skill set. | Arch, Ubuntu, and devcontainer setup |
 | [`setup-snapper`](setup-snapper) | Applies the root filesystem snapshot-retention policy. | Arch devbox |
+| [`setup-sudo-password-feedback`](setup-sudo-password-feedback) | Shows asterisks while a user types a sudo password. | Arch Workstation, Arch devbox |
 | [`setup-tailscale`](setup-tailscale) | Joins a box to the tailnet after its wrapper installs Tailscale. | Arch and Ubuntu wrappers |
 | [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch devbox |
 | [`setup-tuned`](setup-tuned) | Installs the always-on bare-metal power profile. | Arch and Ubuntu wrappers |
