@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+BACKGROUND="${1:-$HOME/.config/theme/background}"
+
+[[ -f "$BACKGROUND" ]] || exit 0
+command -v swaybg >/dev/null 2>&1 || exit 0
+command -v uwsm-app >/dev/null 2>&1 || exit 0
+
+pkill -x swaybg 2>/dev/null || true
+setsid uwsm-app -- swaybg -i "$BACKGROUND" -m fill >/dev/null 2>&1 &

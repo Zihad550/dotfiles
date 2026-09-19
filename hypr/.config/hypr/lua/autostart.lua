@@ -26,7 +26,7 @@ o.exec_on_start("uwsm-app -- " .. os.getenv("HOME") .. "/dotfiles/bin/df-hypr-mo
 -- captures both independently.
 o.exec_on_start("uwsm-app -- wl-paste --type text --watch cliphist store")
 o.exec_on_start("uwsm-app -- wl-paste --type image --watch cliphist store")
-o.exec_on_start("uwsm-app -- swaybg -i " .. os.getenv("HOME") .. "/.config/theme/background -m fill")
+o.exec_on_start(os.getenv("HOME") .. "/dotfiles/bin/df-theme-bg-start")
 -- o.exec_on_start("uwsm-app -- hyprlauncher -d")
 
 -- Restore the saved monitor layout for whatever displays are connected. Falls back

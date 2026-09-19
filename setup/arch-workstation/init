@@ -42,7 +42,6 @@ ui_header "ARCH WORKSTATION SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 run_step "system upgrade + stow" sudo pacman -Syu --noconfirm stow
 
 run_step "stow client" "$ARCH_WORKSTATION_DIR/stow"
-run_step "stow backgrounds" "$DOTFILES_DIR/scripts/stow/stow-backgrounds"
 run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
 run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
     "$DOTFILES_DIR/quickshell/.config/quickshell/lock/idle.json"
@@ -154,6 +153,24 @@ echo "      $ARCH_WORKSTATION_DIR/setup-packages/setup-github-cli"
 echo
 
 if [[ -e /dev/tty ]]; then
+    install_backgrounds=false
+    if command -v gum &>/dev/null; then
+        gum confirm "Clone the optional theme backgrounds now?" </dev/tty && install_backgrounds=true
+    else
+        read -r -p "Clone the optional theme backgrounds now? [y/N] " response </dev/tty
+        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && install_backgrounds=true
+    fi
+
+    if [[ "$install_backgrounds" == true ]]; then
+        if "$DOTFILES_DIR/scripts/stow/stow-backgrounds"; then
+            echo "Theme backgrounds installed."
+        else
+            echo "Theme background installation failed. Retry with:"
+            echo "  $DOTFILES_DIR/scripts/stow/stow-backgrounds"
+        fi
+        echo
+    fi
+
     restart=false
     if command -v gum &>/dev/null; then
         gum confirm "Restart now?" </dev/tty && restart=true
@@ -169,4 +186,7 @@ if [[ -e /dev/tty ]]; then
         on_exit_extra
         sudo shutdown -r now
     fi
+else
+    echo "Optional theme backgrounds were skipped in this non-interactive setup."
+    echo "Install them later with: $DOTFILES_DIR/scripts/stow/stow-backgrounds"
 fi

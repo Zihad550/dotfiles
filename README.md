@@ -88,7 +88,15 @@ df-system-update                   # full system update (pacman/yay/flatpak/mise
 Built-in themes live in this repo at `themes/.config/themes/<name>/` and are
 stowed into `~/.config/themes/` as symlinks. `df-theme-remove` refuses to
 delete those — edit the repo instead. Backgrounds/previews directories are
-themselves stow-managed symlinks; writes through them land in the repo.
+themselves stow-managed symlinks; writes through them land in the repo. The
+Arch setup skips their separate repository so a slow clone cannot block the
+main install. Before asking whether to restart, it offers to clone the optional
+image collection. The desktop uses the theme's background color if you decline
+or the clone fails. You can retry later with:
+
+```bash
+~/dotfiles/scripts/stow/stow-backgrounds
+```
 
 ---
 

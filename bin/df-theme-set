@@ -83,7 +83,8 @@ switch_theme() {
     mkdir -p ~/.config/lazygit
     ln -snf ~/.config/theme/lazygit.yml ~/.config/lazygit/config.yml
 
-    # Background: pick ~/.config/backgrounds/<theme>.<ext>
+    # Backgrounds are optional. Use the palette alone when no matching image
+    # has been installed.
     BACKGROUND_PATH=""
     shopt -s nullglob
     for bg in "$HOME"/.config/backgrounds/"$theme".*; do
@@ -96,12 +97,12 @@ switch_theme() {
     if [[ -n "$BACKGROUND_PATH" ]]; then
         rm -f ~/.config/theme/background
         ln -snf "$BACKGROUND_PATH" ~/.config/theme/background
-
-        # Restart swaybg with new background
-        pkill -x swaybg || true
-        setsid uwsm-app -- swaybg -i "$BACKGROUND_PATH" -m fill >/dev/null 2>&1 &
+        "$DOTFILES_DIR/bin/df-theme-bg-start" "$BACKGROUND_PATH"
     else
-        echo "warn: no background found at ~/.config/backgrounds/$theme.* — run scripts/utils/migrate-theme-backgrounds" >&2
+        rm -f ~/.config/theme/background
+        pkill -x swaybg 2>/dev/null || true
+        echo "info: no background installed for '$theme'; using its background color" >&2
+        echo "      install the optional collection with: $DOTFILES_DIR/scripts/stow/stow-backgrounds" >&2
     fi
 
     # Obsidian style settings

@@ -151,8 +151,11 @@ keys on this desktop. The session's default keyring is passwordless and
 preserved on reruns; SDDM's PAM hooks are removed so the Greeter does not own
 it.
 
-`stow-backgrounds` also stays. It looks cosmetic but `df-theme-set` reads
-`~/.config/backgrounds/<theme>.*` and warns when a theme has no wallpaper.
+Backgrounds are optional. The main setup asks whether to clone them after it
+finishes and before the restart prompt. The desktop uses the active theme's
+background color if the user declines or the clone fails. Run
+`~/dotfiles/scripts/stow/stow-backgrounds` later to retry cloning and linking
+the background and theme-preview collection.
 
 ### the omarchy repo is required
 

@@ -61,9 +61,6 @@ ui_header "ARCH DEVBOX SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 run_step "system upgrade + stow" sudo pacman -Syu --noconfirm stow
 
 run_step "stow base" "$DOTFILES_DIR/scripts/stow/stow-base"
-# backgrounds are not decoration here: df-theme-set reads
-# ~/.config/backgrounds/<theme>.* and warns if the theme has no wallpaper.
-run_step "stow backgrounds" "$DOTFILES_DIR/scripts/stow/stow-backgrounds"
 run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
 run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
     "$DOTFILES_DIR/setup/arch-devbox/idle.json"
@@ -231,6 +228,24 @@ echo "    first run (claude, opencode, gemini, kilo)."
 echo
 
 if [[ -e /dev/tty ]]; then
+    install_backgrounds=false
+    if command -v gum &>/dev/null; then
+        gum confirm "Clone the optional theme backgrounds now?" </dev/tty && install_backgrounds=true
+    else
+        read -r -p "Clone the optional theme backgrounds now? [y/N] " response </dev/tty
+        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && install_backgrounds=true
+    fi
+
+    if [[ "$install_backgrounds" == true ]]; then
+        if "$DOTFILES_DIR/scripts/stow/stow-backgrounds"; then
+            echo "Theme backgrounds installed."
+        else
+            echo "Theme background installation failed. Retry with:"
+            echo "  $DOTFILES_DIR/scripts/stow/stow-backgrounds"
+        fi
+        echo
+    fi
+
     restart=false
     if command -v gum &>/dev/null; then
         gum confirm "Restart now?" </dev/tty && restart=true
@@ -246,4 +261,7 @@ if [[ -e /dev/tty ]]; then
         on_exit_extra
         sudo shutdown -r now
     fi
+else
+    echo "Optional theme backgrounds were skipped in this non-interactive setup."
+    echo "Install them later with: $DOTFILES_DIR/scripts/stow/stow-backgrounds"
 fi
