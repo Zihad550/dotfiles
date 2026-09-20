@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -u
+
+SUDOERS="${DF_FIRST_RUN_SUDOERS:-/etc/sudoers.d/arch-setup-first-run}"
+SUDO="${DF_FIRST_RUN_SUDO:-sudo}"
+
+[[ -e "$SUDOERS" ]] || exit 0
+
+echo
+echo "The temporary setup sudoers file still exists."
+echo "Remove it before restarting with:"
+echo "  sudo /usr/bin/rm -f $SUDOERS"
+printf "Remove it now? [Y/n] "
+IFS= read -r response || response="n"
+
+if [[ ! "$response" =~ ^[nN]([oO])?$ ]]; then
+    "$SUDO" /usr/bin/rm -f "$SUDOERS" || true
+fi
+
+if [[ -e "$SUDOERS" ]]; then
+    echo "The file still exists, so the restart prompt was skipped." >&2
+    exit 1
+fi
+
+echo "Temporary sudoers file removed."

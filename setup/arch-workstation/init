@@ -171,12 +171,20 @@ if [[ -e /dev/tty ]]; then
         echo
     fi
 
+    # Remove the broad temporary sudo grants before offering a reboot. If the
+    # silent trap cleanup failed, show the user the exact recovery command.
+    on_exit_extra || true
+    cleanup_ready=true
+    "$DOTFILES_DIR/setup/common/confirm-first-run-sudo-cleanup" </dev/tty || cleanup_ready=false
+
     restart=false
-    if command -v gum &>/dev/null; then
-        gum confirm "Restart now?" </dev/tty && restart=true
-    else
-        read -r -p "Do you want to restart? [y/N] " response </dev/tty
-        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && restart=true
+    if [[ "$cleanup_ready" == true ]]; then
+        if command -v gum &>/dev/null; then
+            gum confirm "Restart now?" </dev/tty && restart=true
+        else
+            read -r -p "Do you want to restart? [y/N] " response </dev/tty
+            [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && restart=true
+        fi
     fi
 
     # Reboot races the EXIT trap: `shutdown -r now` returns at once and the
