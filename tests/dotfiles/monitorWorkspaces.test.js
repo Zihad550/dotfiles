@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const monitorsConfig = path.resolve("hypr/.config/hypr/lua/monitors.lua");
 
-function workspaceRulesFor(chassisType) {
+function workspaceRulesFor(chassisType, externalMonitor = "") {
     const harness = String.raw`
 local config = os.getenv("TEST_MONITORS_CONFIG")
 local chassis = os.getenv("TEST_CHASSIS_TYPE")
@@ -22,6 +22,13 @@ io.open = function(path, mode)
         return nil
     end
     return real_open(path, mode)
+end
+
+io.popen = function()
+    return {
+        read = function() return os.getenv("TEST_EXTERNAL_MONITOR") end,
+        close = function() end,
+    }
 end
 
 hl = {
@@ -43,6 +50,7 @@ dofile(config)
             ...process.env,
             TEST_MONITORS_CONFIG: monitorsConfig,
             TEST_CHASSIS_TYPE: String(chassisType),
+            TEST_EXTERNAL_MONITOR: externalMonitor,
         },
     });
 
@@ -66,21 +74,33 @@ test("a desktop with only DP-1 starts on workspace 1", () => {
     }]);
 });
 
-test("a laptop keeps its split workspace assignment", () => {
+test("a laptop uses its internal panel when no external display is connected", () => {
     const rules = workspaceRulesFor(9);
 
     assert.deepStrictEqual(rules.filter(rule => rule.monitor === "eDP-1"), [
         { workspace: "1", monitor: "eDP-1", default: true },
         { workspace: "2", monitor: "eDP-1", default: false },
+        { workspace: "3", monitor: "eDP-1", default: false },
+        { workspace: "4", monitor: "eDP-1", default: false },
+        { workspace: "5", monitor: "eDP-1", default: false },
+        { workspace: "6", monitor: "eDP-1", default: false },
+        { workspace: "7", monitor: "eDP-1", default: false },
+        { workspace: "8", monitor: "eDP-1", default: false },
+        { workspace: "9", monitor: "eDP-1", default: false },
+        { workspace: "10", monitor: "eDP-1", default: false },
     ]);
-    assert.deepStrictEqual(rules.filter(rule => rule.monitor === "HDMI-A-1"), [
-        { workspace: "3", monitor: "HDMI-A-1", default: true },
-        { workspace: "4", monitor: "HDMI-A-1", default: false },
-        { workspace: "5", monitor: "HDMI-A-1", default: false },
-        { workspace: "6", monitor: "HDMI-A-1", default: false },
-        { workspace: "7", monitor: "HDMI-A-1", default: false },
-        { workspace: "8", monitor: "HDMI-A-1", default: false },
-        { workspace: "9", monitor: "HDMI-A-1", default: false },
-        { workspace: "10", monitor: "HDMI-A-1", default: false },
-    ]);
+});
+
+test("a laptop gives every numbered workspace to any connected external display", () => {
+    const rules = workspaceRulesFor(9, "VGA-1");
+    const externalRules = rules.filter(rule => rule.monitor === "VGA-1");
+
+    assert.deepStrictEqual(externalRules.map(rule => rule.workspace),
+        ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
+    assert.deepStrictEqual(externalRules.filter(rule => rule.default), [{
+        workspace: "1",
+        monitor: "VGA-1",
+        default: true,
+    }]);
+    assert.deepStrictEqual(rules.filter(rule => rule.monitor === "eDP-1"), []);
 });

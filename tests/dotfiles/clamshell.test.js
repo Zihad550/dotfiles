@@ -44,6 +44,8 @@ test("the monitor watcher retries clamshell reconciliation after output events",
     assert.match(watcher, /monitoradded/);
     assert.match(watcher, /monitorremoved/);
     assert.match(watcher, /configreloaded/);
+    assert.match(watcher, /sync_display_layout/);
+    assert.match(watcher, /df-hypr-display-layout apply --quiet/);
     assert.match(watcher, /poll_clamshell_state &/);
     assert.match(watcher, /socat -U - "UNIX-CONNECT:\$SOCKET"/);
 });

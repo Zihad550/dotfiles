@@ -9,6 +9,7 @@ export PATH="$PATH:$SCRIPT_DIR"
 
 SOCKET="${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 LOCK="${XDG_RUNTIME_DIR:-/tmp}/df-hypr-monitor-clamshell.lock"
+LAYOUT_LOCK="${XDG_RUNTIME_DIR:-/tmp}/df-hypr-monitor-layout.lock"
 
 sync_clamshell() {
     (
@@ -26,6 +27,14 @@ sync_clamshell_after_monitor_change() {
             sync_clamshell
         done
     ) &
+}
+
+sync_display_layout() {
+    (
+        flock -n 9 || exit 0
+        hyprctl reload >/dev/null 2>&1 || exit 0
+        timeout --kill-after=0.2s 2s df-hypr-display-layout apply --quiet >/dev/null 2>&1 || true
+    ) 9>"$LAYOUT_LOCK"
 }
 
 poll_clamshell_state() {
@@ -54,6 +63,7 @@ sync_poll_state
 while read -r event; do
     case "$event" in
         monitoradded\>\>*|monitoraddedv2\>\>*|monitorremoved\>\>*|monitorremovedv2\>\>*)
+            sync_display_layout
             sync_clamshell_after_monitor_change
             sync_poll_state
             ;;
