@@ -7,6 +7,12 @@
       "xdg": "default-web-browser"
     },
     {
+      "key": "terminal",
+      "name": "Default Terminal",
+      "description": "Open a terminal with SUPER+Return",
+      "xdg": "xdg-terminal-exec"
+    },
+    {
       "key": "directory-handler",
       "name": "System Directory Handler",
       "description": "Open directories for other applications",
@@ -61,6 +67,38 @@
       "roles": ["browser"],
       "desktop": "brave-browser.desktop",
       "check": {"desktop": "brave-browser.desktop"}
+    },
+    {
+      "key": "alacritty",
+      "name": "Alacritty",
+      "icon": "Alacritty",
+      "roles": ["terminal"],
+      "desktop": "Alacritty.desktop",
+      "check": {"desktop": "Alacritty.desktop"}
+    },
+    {
+      "key": "foot",
+      "name": "Foot",
+      "icon": "foot",
+      "roles": ["terminal"],
+      "desktop": "foot.desktop",
+      "check": {"desktop": "foot.desktop"}
+    },
+    {
+      "key": "ghostty",
+      "name": "Ghostty",
+      "icon": "com.mitchellh.ghostty",
+      "roles": ["terminal"],
+      "desktop": "com.mitchellh.ghostty.desktop",
+      "check": {"desktop": "com.mitchellh.ghostty.desktop"}
+    },
+    {
+      "key": "kitty",
+      "name": "Kitty",
+      "icon": "kitty",
+      "roles": ["terminal"],
+      "desktop": "kitty.desktop",
+      "check": {"desktop": "kitty.desktop"}
     },
     {
       "key": "nautilus",

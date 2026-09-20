@@ -12,6 +12,10 @@ role="$1"
 shift
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if [[ "$role" == terminal ]]; then
+    exec setsid uwsm-app -- xdg-terminal-exec "$@"
+fi
+
 resolved=$("$script_dir/df-default-app" get --json "$role") || exit $?
 desktop=$(jq -r '.candidate.desktop // empty' <<<"$resolved")
 

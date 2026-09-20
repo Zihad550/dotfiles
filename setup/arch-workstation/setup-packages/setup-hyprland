@@ -11,10 +11,12 @@
 # screensharing and file picking - xdg-desktop-portal-hyprland
 # polkit for app authentication
 # pavucontrol - volume control
+# xdg-terminal-exec - resolves the terminal selected in xdg-terminals.list
 sudo pacman -S --noconfirm \
     hyprland \
     ttf-font-awesome \
     uwsm \
+    xdg-terminal-exec \
     brightnessctl \
     hyprpicker \
     swaybg \

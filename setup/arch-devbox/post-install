@@ -10,6 +10,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
 tldr --update
 
 "$DOTFILES_DIR/bin/df-default-app" set browser chromium
+"$DOTFILES_DIR/bin/df-default-app" set terminal ghostty
 "$DOTFILES_DIR/bin/df-default-app" set directory-handler nautilus
 "$DOTFILES_DIR/bin/df-default-app" set file-manager yazi
 

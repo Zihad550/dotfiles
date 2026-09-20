@@ -181,7 +181,7 @@ test("edit action resolves a binding definition in each active source file", t =
     t.after(() => fs.rmSync(temp, { recursive: true }));
 
     const expected = [
-        ["Terminal", "apps.lua:21"],
+        ["Default Terminal", "apps.lua:21"],
         ["Universal copy", "clipboard.lua:3"],
         ["Volume up", "media.lua:8"],
         ["Shutdown", "system.lua:11"],

@@ -1,8 +1,8 @@
 local home            = os.getenv("HOME")
 local dotfiles_bin    = home .. "/dotfiles/bin"
 
-local terminal        = "uwsm-app -- ghostty"
 local role_launcher   = dotfiles_bin .. "/df-launch-role"
+local terminal        = "setsid uwsm-app -- xdg-terminal-exec"
 
 local work_browser    =
 "uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland"
@@ -18,7 +18,7 @@ local dev_browser     =
 -- o.bind("SUPER + ALT + 3", "Gemini",     browser .. " --app=https://gemini.google.com/app")
 
 -- GUI apps
-o.bind("SUPER + Return", "Terminal", terminal)
+o.bind("SUPER + Return", "Default Terminal", role_launcher .. " terminal")
 o.bind("SUPER + B", "System Browser", role_launcher .. " browser")
 o.bind("SUPER + SHIFT + B", "Helium default",
     dev_browser)

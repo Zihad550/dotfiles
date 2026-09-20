@@ -35,7 +35,7 @@ function fixture(t, role, key, desktopNames) {
         "require('node:fs').writeFileSync(" + invocationPath +
         ", process.argv.slice(2).join('\\n'));\n");
     fs.chmodSync(specialWorkspace, 0o755);
-    for (const name of desktopNames)
+    for (const name of new Set(desktopNames.concat(["com.mitchellh.ghostty.desktop"])))
         fs.writeFileSync(path.join(desktop, name), "[Desktop Entry]\n");
     fs.writeFileSync(path.join(state, role), key + "\n");
 
@@ -82,12 +82,20 @@ test("a graphical role activates only its selected desktop entry", t => {
     assert.deepStrictEqual(result.invocation, ["--", "app.zen_browser.zen.desktop"]);
 });
 
+test("the terminal role launches through xdg-terminal-exec", t => {
+    const harness = fixture(t, "terminal", "ghostty", ["com.mitchellh.ghostty.desktop"]);
+    const result = harness.run("terminal");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(result.invocation, ["--", "xdg-terminal-exec"]);
+});
+
 test("the file-manager role passes home to a terminal candidate", t => {
     const harness = fixture(t, "file-manager", "yazi", []);
     const result = harness.run("file-manager");
 
     assert.strictEqual(result.status, 0, result.stderr);
-    assert.deepStrictEqual(result.invocation, ["--", "ghostty", "-e", "yazi", harness.home]);
+    assert.deepStrictEqual(result.invocation, ["--", "xdg-terminal-exec", "-e", "yazi", harness.home]);
 });
 
 test("an AI desktop candidate uses the special workspace launcher", t => {

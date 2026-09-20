@@ -25,6 +25,8 @@ test("the keybindings call Role Launchers and keep the named Helium preset", () 
     const apps = source("hypr/.config/hypr/lua/bindings/apps.lua");
 
     assert.match(apps, /local role_launcher\s*=.*df-launch-role/);
+    assert.match(apps, /local terminal\s*=.*xdg-terminal-exec/);
+    assert.match(apps, /SUPER \+ Return", "Default Terminal", role_launcher \.\. " terminal"/);
     assert.match(apps, /SUPER \+ B", "System Browser", role_launcher \..*browser/);
     assert.match(apps, /SUPER \+ F", "Preferred File Manager", role_launcher \..*file-manager/);
     assert.match(apps, /SUPER \+ A", "Default AI App", role_launcher \..*ai/);
@@ -42,6 +44,7 @@ test("both setup profiles stow the registry and assert declared roles", () => {
     assert.match(baseStow, /^stow dotfiles$/m);
     for (const script of [workstation, devbox]) {
         assert.match(script, /df-default-app.*set browser/);
+        assert.match(script, /df-default-app.*set terminal ghostty/);
         assert.match(script, /df-default-app.*set directory-handler nautilus/);
         assert.match(script, /df-default-app.*set file-manager yazi/);
     }
@@ -51,4 +54,10 @@ test("both setup profiles stow the registry and assert declared roles", () => {
 
 test("the workstation installs Yazi for its declared Preferred File Manager", () => {
     assert.match(source("setup/arch-workstation/packages/pacman-apps"), /^\s*yazi resvg \\/m);
+});
+
+test("the shared Hyprland setup installs xdg-terminal-exec for both profiles", () => {
+    const packages = source("setup/arch-workstation/setup-packages/setup-hyprland");
+    assert.match(packages, /^\s*xdg-terminal-exec \\/m);
+    assert.match(source("zsh/.zshenv"), /export TERMINAL='xdg-terminal-exec'/);
 });

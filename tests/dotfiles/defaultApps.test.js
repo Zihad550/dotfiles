@@ -26,7 +26,11 @@ function fixture(t, options = {}) {
     fs.mkdirSync(state, { recursive: true });
     fs.copyFileSync(REGISTRY, path.join(config, "default-apps.json"));
 
-    for (const name of options.desktop || ["app.zen_browser.zen.desktop", "org.gnome.Nautilus.desktop"])
+    for (const name of options.desktop || [
+        "app.zen_browser.zen.desktop",
+        "com.mitchellh.ghostty.desktop",
+        "org.gnome.Nautilus.desktop"
+    ])
         fs.writeFileSync(path.join(desktop, name), "[Desktop Entry]\n");
 
     const xdgLog = path.join(home, "xdg.log");
@@ -46,16 +50,26 @@ else
     printf '%s\\n' "$2" > "${path.join(home, "xdg-directory")}"
 fi
 `);
+    fs.writeFileSync(path.join(bin, "xdg-terminal-exec"), `#!/usr/bin/env bash
+if [[ "$1" == --print-id ]]; then
+    head -n 1 "${path.join(home, ".config/xdg-terminals.list")}" 2>/dev/null || true
+fi
+`);
     fs.writeFileSync(path.join(bin, "yazi"), "#!/usr/bin/env bash\nexit 0\n");
-    for (const name of ["claude-desktop", "chatgpt"])
+    for (const name of ["alacritty", "foot", "ghostty", "kitty", "claude-desktop", "chatgpt"])
         fs.writeFileSync(path.join(bin, name), "#!/usr/bin/env bash\nexit 0\n");
-    for (const name of ["xdg-settings", "xdg-mime", "yazi", "claude-desktop", "chatgpt"])
+    for (const name of [
+        "xdg-settings", "xdg-mime", "xdg-terminal-exec", "yazi",
+        "alacritty", "foot", "ghostty", "kitty", "claude-desktop", "chatgpt"
+    ])
         fs.chmodSync(path.join(bin, name), 0o755);
 
     if (options.browser)
         fs.writeFileSync(path.join(home, "xdg-browser"), options.browser + "\n");
     if (options.directory)
         fs.writeFileSync(path.join(home, "xdg-directory"), options.directory + "\n");
+    if (options.terminal)
+        fs.writeFileSync(path.join(home, ".config/xdg-terminals.list"), options.terminal + "\n");
 
     function run(...args) {
         return childProcess.spawnSync(COMMAND, args, {
@@ -80,9 +94,12 @@ test("list offers only installed candidates for each role", t => {
 
     assert.strictEqual(result.status, 0, result.stderr);
     const listing = JSON.parse(result.stdout);
-    assert.deepStrictEqual(listing.roles[0].candidates.map(candidate => candidate.key), ["zen"]);
-    assert.deepStrictEqual(listing.roles[1].candidates.map(candidate => candidate.key), ["nautilus"]);
-    assert.deepStrictEqual(listing.roles[2].candidates.map(candidate => candidate.key), ["nautilus", "yazi"]);
+    const candidatesFor = role => listing.roles.find(entry => entry.key === role).candidates
+        .map(candidate => candidate.key);
+    assert.deepStrictEqual(candidatesFor("browser"), ["zen"]);
+    assert.deepStrictEqual(candidatesFor("terminal"), ["ghostty"]);
+    assert.deepStrictEqual(candidatesFor("directory-handler"), ["nautilus"]);
+    assert.deepStrictEqual(candidatesFor("file-manager"), ["nautilus", "yazi"]);
 });
 
 test("the AI role lists installed desktop and web candidates", t => {
@@ -134,7 +151,7 @@ test("browser candidates use the icon names declared by their desktop entries", 
     const result = harness.run("list");
 
     assert.strictEqual(result.status, 0, result.stderr);
-    const browsers = JSON.parse(result.stdout).roles[0].candidates;
+    const browsers = JSON.parse(result.stdout).roles.find(role => role.key === "browser").candidates;
     assert.deepStrictEqual(
         browsers.map(candidate => [candidate.key, candidate.icon]),
         [["helium", "helium-browser"], ["brave", "brave-desktop"]]
@@ -151,6 +168,31 @@ test("set writes the selection and the matching XDG default", t => {
     assert.strictEqual(result.stdout.trim(), "zen");
 });
 
+test("setting the terminal updates only the xdg-terminal-exec preference", t => {
+    const harness = fixture(t);
+    const result = harness.run("set", "terminal", "ghostty");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(
+        fs.readFileSync(path.join(harness.home, ".config/xdg-terminals.list"), "utf8"),
+        "com.mitchellh.ghostty.desktop\n"
+    );
+    assert.strictEqual(fs.existsSync(path.join(harness.state, "terminal")), false);
+    assert.strictEqual(harness.run("get", "terminal").stdout.trim(), "ghostty");
+});
+
+test("the terminal role ignores legacy Role Selection state and follows xdg-terminal-exec", t => {
+    const harness = fixture(t, {
+        desktop: ["kitty.desktop"],
+        terminal: "kitty.desktop"
+    });
+    fs.writeFileSync(path.join(harness.state, "terminal"), "ghostty\n");
+    const result = harness.run("get", "terminal");
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.strictEqual(result.stdout.trim(), "kitty");
+});
+
 test("an installed Brave browser is listed and can become the XDG default", t => {
     const harness = fixture(t, {
         desktop: ["brave-browser.desktop", "org.gnome.Nautilus.desktop"]
@@ -159,7 +201,8 @@ test("an installed Brave browser is listed and can become the XDG default", t =>
     const listingResult = harness.run("list");
     assert.strictEqual(listingResult.status, 0, listingResult.stderr);
     const listing = JSON.parse(listingResult.stdout);
-    assert.deepStrictEqual(listing.roles[0].candidates.map(candidate => candidate.key), ["brave"]);
+    const browser = listing.roles.find(role => role.key === "browser");
+    assert.deepStrictEqual(browser.candidates.map(candidate => candidate.key), ["brave"]);
 
     const setResult = harness.run("set", "browser", "brave");
     assert.strictEqual(setResult.status, 0, setResult.stderr);

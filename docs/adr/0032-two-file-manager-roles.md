@@ -33,8 +33,9 @@ later addition, deliberately not built now.
 
 ## Consequences
 
-- The picker shows three roles, not two. Selecting a graphical application for
-  one file-manager role leaves the other untouched.
+- The picker shows separate roles for the System Directory Handler and Preferred
+  File Manager. Selecting a graphical application for one leaves the other
+  untouched.
 - The Preferred File Manager falls back to the System Directory Handler when its
   selection is stale; the System Directory Handler falls back to the live XDG
   `inode/directory` handler.

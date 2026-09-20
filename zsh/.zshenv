@@ -4,7 +4,7 @@
 
 # default programs
 export EDITOR='nvim'
-export TERMINAL='ghostty'
+export TERMINAL='xdg-terminal-exec'
 # export EDITOR='zeditor --wait'
 export Current=catppuccin-mocha
 export MANPAGER='nvim +Man!'

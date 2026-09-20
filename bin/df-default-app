@@ -113,6 +113,7 @@ candidate_available() {
 
 selection_for() {
     local role="$1" file value=""
+    [[ "$role" == terminal ]] && return
     file="$STATE_DIR/$role"
     if [[ -r "$file" ]]; then
         IFS= read -r value <"$file" || true
@@ -131,6 +132,12 @@ xdg_default_for() {
         directory-handler)
             if command -v xdg-mime >/dev/null 2>&1; then
                 value=$(xdg-mime query default inode/directory 2>/dev/null || true)
+            fi
+            ;;
+        terminal)
+            if command -v xdg-terminal-exec >/dev/null 2>&1; then
+                value=$(xdg-terminal-exec --print-id 2>/dev/null || true)
+                value=${value%%:*}
             fi
             ;;
     esac
@@ -167,7 +174,7 @@ resolved_key() {
     fi
 
     case "$role" in
-        browser|directory-handler)
+        browser|directory-handler|terminal)
             xdg=$(xdg_default_for "$role")
             key=$(candidate_key_for_desktop "$role" "$xdg" || true)
             if [[ -n "$key" ]] && candidate_available "$role" "$key"; then
@@ -256,7 +263,7 @@ list_json() {
 }
 
 set_selection() {
-    local role="$1" key="$2" candidate desktop tmp
+    local role="$1" key="$2" candidate desktop tmp terminal_config terminal_tmp
     valid_role "$role" || die "unknown role: $role"
     valid_candidate "$role" "$key" || die "candidate $key cannot fill role $role"
     candidate=$(candidate_json "$role" "$key")
@@ -273,6 +280,19 @@ set_selection() {
             [[ -n "$desktop" ]] || die "candidate $key has no desktop entry for directory-handler"
             command -v xdg-mime >/dev/null 2>&1 || die "xdg-mime is required"
             xdg-mime default "$desktop" inode/directory
+            ;;
+        terminal)
+            [[ -n "$desktop" ]] || die "candidate $key has no desktop entry for terminal"
+            terminal_config="$CONFIG_HOME/xdg-terminals.list"
+            mkdir -p "$CONFIG_HOME"
+            terminal_tmp=$(mktemp "$CONFIG_HOME/.xdg-terminals.XXXXXX")
+            trap 'rm -f "$terminal_tmp"' RETURN
+            printf '%s\n' "$desktop" >"$terminal_tmp"
+            chmod 644 "$terminal_tmp"
+            mv -f "$terminal_tmp" "$terminal_config"
+            trap - RETURN
+            printf '%s\n' "$key"
+            return
             ;;
     esac
 

@@ -6,6 +6,10 @@ flags, no `systemd-run` wrapper, no `--new-window`, and no post-launch focus
 step. It passes only action-specific arguments, such as a URL. Omarchy's browser
 launcher, the obvious model, is deliberately not copied.
 
+`SUPER+Return` and terminal-hosted tools launch through `xdg-terminal-exec`.
+The Default Apps picker writes its standard `~/.config/xdg-terminals.list`
+preference instead of maintaining a separate Role Selection.
+
 `SUPER+A` uses the same Role Selection resolver, but its AI candidates use the
 shared special-workspace and special-webapp launchers. Those candidates need a
 known window identity so the existing `ai` workspace can reuse or move the
@@ -51,6 +55,9 @@ application question, not a role-level one.
 - Terminal-based candidates cannot be activated this way and keep explicit
   command arrays in the Default App Registry, launched through
   `bin/df-launch-tui`.
+- Selecting the Default Terminal writes only `~/.config/xdg-terminals.list`.
+  `SUPER+Return`, `df-launch-tui`, and other `xdg-terminal-exec` callers follow
+  that single selection.
 - An App Candidate is only offered when its desktop entry or command actually
   resolves, since a missing entry now fails at activation rather than degrading
   to a partial command line.

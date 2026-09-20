@@ -266,6 +266,12 @@ The desktop application registered to open web links for the whole graphical
 session. Browser profiles are separate launch presets, not part of this choice.
 _Avoid_: browser preset, browser profile, default browser command
 
+**Default Terminal**:
+The terminal emulator registered with `xdg-terminal-exec`. `SUPER+Return` and
+general terminal-hosted tools use it, while workflows that require a stable
+window identity may name a terminal directly.
+_Avoid_: terminal command, terminal preset, shell
+
 **System Directory Handler**:
 The desktop application registered to open directories when another application
 asks the system to do so. It must be represented by a desktop application.

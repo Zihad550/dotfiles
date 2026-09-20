@@ -132,7 +132,7 @@ Yazi, its `resvg` preview dependency, Dragon Drop, and `7zip` stay on the
 devbox.
 
 **Kept even though it isn't "web dev":** the whole Hyprland layer (uwsm,
-quickshell, hyprpolkitagent, the portal,
+xdg-terminal-exec, quickshell, hyprpolkitagent, the portal,
 hyprsunset, swaybg, brightnessctl, pavucontrol, nwg-look), ghostty, fonts,
 screenshots (swappy/slurp/grim), nautilus, gnome-disk-utility, and the
 Greeter. The desktop is unusable without them.
