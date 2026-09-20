@@ -111,6 +111,13 @@ ShellRoot {
         onPressed: launcher.openShare()
     }
 
+    GlobalShortcut {
+        appid: "launcher"
+        name: "displays"
+
+        onPressed: launcher.openDisplays()
+    }
+
     IpcHandler {
         target: "launcher"
 

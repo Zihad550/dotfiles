@@ -88,7 +88,7 @@ PanelWindow {
     // ordinary Query; being enter-only makes that impossible rather than
     // merely unlikely. They keep `refresh()` on every open regardless -- this
     // list is what `open()` walks.
-    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, webapps, defaultApps, systemd, devServers, providerList])
+    readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, webapps, defaultApps, systemd, devServers, displays, providerList])
 
     // `root.activePool`, not `root.pool`: a Query routed to one Provider that
     // hasn't populated yet should report pending for *that* Provider only.
@@ -514,6 +514,14 @@ PanelWindow {
         root.highlightFirst();
     }
 
+    function openDisplays(): void {
+        if (root.nestedProvider !== null)
+            root.dismiss();
+        root.open();
+        displays.enter();
+        root.highlightFirst();
+    }
+
     // SUPER+SHIFT+R's entry point -- opens the Launcher already as a rename
     // prompt for the focused workspace, rather than to be searched. Bound in
     // hypr/.config/hypr/lua/bindings/utilities.lua. Nothing new to render:
@@ -793,6 +801,12 @@ PanelWindow {
 
     DevServers {
         id: devServers
+
+        active: root.visible
+    }
+
+    Displays {
+        id: displays
 
         active: root.visible
     }

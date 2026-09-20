@@ -1,16 +1,71 @@
 #!/usr/bin/env bash
 
-# Toggle a monitor off/on. Re-enabling restores the last-used layout for the
-# connected display set, including orientation and relative positions.
+# List or toggle connected Hyprland outputs for the Launcher display Provider.
 
-monitor=$1
+set -euo pipefail
+
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 DISPLAY_LAYOUT=${DF_HYPR_DISPLAY_LAYOUT:-"$SCRIPT_DIR/df-hypr-display-layout"}
 
-# setsid uwsm-app -- swaybg -i "$HOME/.config/theme/background" -m solid_color
-if hyprctl monitors | grep -q "^Monitor $monitor"; then
-    # monitor exists → close/disable it
-    hyprctl eval "hl.monitor({ output = '$monitor', disabled = true })"
-else
-    "$DISPLAY_LAYOUT" apply --quiet
-fi
+die() {
+    echo "error: $*" >&2
+    exit 1
+}
+
+monitors_json() {
+    local output
+    output=$(hyprctl monitors all -j 2>/dev/null) || die "Hyprland did not return its displays"
+    jq -e 'type == "array"' >/dev/null 2>&1 <<<"$output" ||
+        die "Hyprland returned an invalid display list"
+    printf '%s' "$output"
+}
+
+list_displays() {
+    monitors_json | jq '[
+        .[]
+        | select((.name // "") != "")
+        | {
+            name,
+            description: (.description // ""),
+            enabled: (.disabled != true),
+            focused: (.focused == true)
+        }
+    ]'
+}
+
+toggle_display() {
+    local monitor="${1:-}" monitors enabled active_count
+
+    [[ $monitor =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid display name: $monitor"
+    monitors=$(monitors_json)
+    enabled=$(jq -er --arg monitor "$monitor" '
+        first(.[] | select(.name == $monitor))
+        | if .disabled == true then "false" else "true" end
+    ' <<<"$monitors") || die "display not found: $monitor"
+
+    if [[ $enabled == true ]]; then
+        active_count=$(jq '[.[] | select(.disabled != true)] | length' <<<"$monitors")
+        ((active_count > 1)) || die "cannot turn off the last active display"
+        hyprctl eval "hl.monitor({ output = '$monitor', disabled = true })"
+    else
+        "$DISPLAY_LAYOUT" apply --quiet
+    fi
+}
+
+case "${1:-}" in
+    list)
+        [[ $# == 1 ]] || die "usage: df-hypr-close-display list"
+        list_displays
+        ;;
+    toggle)
+        [[ $# == 2 ]] || die "usage: df-hypr-close-display toggle DISPLAY"
+        toggle_display "$2"
+        ;;
+    "")
+        die "usage: df-hypr-close-display list | toggle DISPLAY"
+        ;;
+    *)
+        [[ $# == 1 ]] || die "usage: df-hypr-close-display list | toggle DISPLAY"
+        toggle_display "$1"
+        ;;
+esac

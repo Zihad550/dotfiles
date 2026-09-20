@@ -19,6 +19,12 @@ if [[ ${1:-} == monitors && ${2:-} == -j ]]; then
     else
         printf '%s\n' '[{"name":"eDP-1","transform":0}]'
     fi
+elif [[ ${1:-} == monitors && ${2:-} == all && ${3:-} == -j ]]; then
+    if [[ $(<"$TEST_MONITOR_STATE") == enabled ]]; then
+        printf '%s\n' '[{"name":"HDMI-A-1","description":"External","disabled":false,"focused":true},{"name":"eDP-1","description":"Internal","disabled":false,"focused":false}]'
+    else
+        printf '%s\n' '[{"name":"HDMI-A-1","description":"External","disabled":true,"focused":false},{"name":"eDP-1","description":"Internal","disabled":false,"focused":true}]'
+    fi
 elif [[ ${1:-} == monitors ]]; then
     if [[ $(<"$TEST_MONITOR_STATE") == enabled ]]; then
         printf '%s\n' 'Monitor HDMI-A-1' 'Monitor eDP-1'
@@ -38,19 +44,34 @@ SH
 chmod +x "$fake_bin"/*
 
 run_toggle() {
+    local monitor="${1:-HDMI-A-1}"
     PATH="$fake_bin:$PATH" \
     DF_HYPR_DISPLAY_LAYOUT="$fake_bin/df-hypr-display-layout" \
     TEST_CALL_LOG="$call_log" \
     TEST_MONITOR_STATE="$monitor_state" \
-        "$ROOT/bin/df-hypr-close-display" HDMI-A-1
+        "$ROOT/bin/df-hypr-close-display" toggle "$monitor"
+}
+
+run_list() {
+    PATH="$fake_bin:$PATH" \
+    TEST_CALL_LOG="$call_log" \
+    TEST_MONITOR_STATE="$monitor_state" \
+        "$ROOT/bin/df-hypr-close-display" list
 }
 
 printf 'enabled\n' >"$monitor_state"
+listing=$(run_list)
+jq -e 'map([.name, .enabled]) == [["HDMI-A-1", true], ["eDP-1", true]]' <<<"$listing" >/dev/null
 run_toggle
 grep -F "disabled = true" "$call_log" >/dev/null
 
 printf 'disabled\n' >"$monitor_state"
 : >"$call_log"
+if run_toggle eDP-1 2>"$test_tmp/last-display-error"; then
+    echo "FAIL: the last active display was turned off" >&2
+    exit 1
+fi
+grep -F 'cannot turn off the last active display' "$test_tmp/last-display-error" >/dev/null
 run_toggle
 if ! grep -Fx 'layout apply --quiet' "$call_log" >/dev/null; then
     echo "FAIL: re-enabling HDMI did not restore the remembered layout" >&2
