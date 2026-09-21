@@ -155,4 +155,25 @@ ShellRoot {
             panel.toggle(true);
         }
     }
+
+    GlobalShortcut {
+        appid: "display"
+        name: "toggle"
+
+        onPressed: {
+            const monitor = Hyprland.focusedMonitor;
+            if (!monitor) {
+                console.warn("dotfiles: Hyprland.focusedMonitor is unavailable -- cannot open Display panel");
+                return;
+            }
+
+            const panel = DisplayPanelRegistry.panelFor(monitor.name);
+            if (!panel) {
+                console.warn(`dotfiles: no Display panel registered for monitor ${monitor.name}`);
+                return;
+            }
+
+            panel.toggle();
+        }
+    }
 }

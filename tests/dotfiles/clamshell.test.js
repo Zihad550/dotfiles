@@ -44,8 +44,6 @@ test("the monitor watcher retries clamshell reconciliation after output events",
     assert.match(watcher, /monitoradded/);
     assert.match(watcher, /monitorremoved/);
     assert.match(watcher, /configreloaded/);
-    assert.match(watcher, /sync_display_layout/);
-    assert.match(watcher, /df-hypr-display-layout apply --quiet/);
     assert.match(watcher, /poll_clamshell_state &/);
     assert.match(watcher, /socat -U - "UNIX-CONNECT:\$SOCKET"/);
 });
@@ -56,13 +54,14 @@ test("clamshell recovery is started with Hyprland", () => {
     assert.match(autostart, /df-hypr-monitor-watch/);
 });
 
-test("manual display disables survive monitor events and config reloads", () => {
+test("monitor events do not reload display configuration", () => {
     const watcher = source("bin/df-hypr-monitor-watch");
     const monitors = source("hypr/.config/hypr/lua/monitors.lua");
     const layouts = source("bin/df-hypr-display-layout");
 
-    assert.match(watcher, /df-hypr-close-display is-disabled/);
-    assert.match(monitors, /manual-disabled-monitors/);
-    assert.match(layouts, /MANUAL_DISABLED_FILE/);
-    assert.match(layouts, /disabled = true/);
+    assert.doesNotMatch(watcher, /hyprctl reload/);
+    assert.match(watcher, /monitoradded[\s\S]*sync_display_layout/);
+    assert.doesNotMatch(watcher, /monitorremoved[\s\S]*sync_display_layout/);
+    assert.doesNotMatch(monitors, /manual-disabled-monitors/);
+    assert.doesNotMatch(layouts, /MANUAL_DISABLED_FILE/);
 });

@@ -12,9 +12,9 @@
 #   .layouts["<signature>"].default                         variant used when none given
 #
 # The signature is the sorted names of every *connected* output — `hyprctl
-# monitors all`, not `hyprctl monitors`. That matters: df-hypr-close-display
-# disables eDP-1 without disconnecting it, and keying on enabled monitors would
-# make that look like a different display set and apply the wrong layout.
+# monitors all`, not `hyprctl monitors`. Disabled outputs stay connected, so
+# keying on enabled monitors would make them look like a different display set
+# and apply the wrong layout.
 #
 # If nothing is saved for the connected set, we fall back to `hyprctl reload`,
 # i.e. whatever hypr/.config/hypr/lua/monitors.lua says. That is a real revert,
@@ -33,8 +33,7 @@
 # hl.monitor schedules its refresh via doLater (config/supplementary/propRefresher),
 # so every rule in a single eval chunk lands in one refresh. The layout is applied
 # atomically and never passes through an intermediate state where two monitors
-# overlap — the failure mode df-hypr-display-rotate and df-hypr-close-display both
-# hand-order around. Do not split the chunk into per-monitor hyprctl calls.
+# overlap. Do not split the chunk into per-monitor hyprctl calls.
 #
 # HAND-EDIT FIELDS
 # `save` deliberately does NOT read two things back from the runtime:
@@ -52,7 +51,6 @@ set -uo pipefail
 
 LAYOUTS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/display-layouts.json"
 STATE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/hypr/display-layout.json"
-MANUAL_DISABLED_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/hypr/manual-disabled-monitors"
 
 QUIET=false
 
@@ -269,15 +267,7 @@ variant_exists() {
 }
 
 build_chunk() {
-    local chunk monitor
-    chunk=$(jq -r --arg sig "$2" --arg variant "$3" "$JQ_CHUNK" <<<"$1")
-    if [[ -f $MANUAL_DISABLED_FILE ]]; then
-        while IFS= read -r monitor; do
-            [[ $monitor =~ ^[A-Za-z0-9._-]+$ ]] || continue
-            chunk+=$'\n'"hl.monitor({ output = '$monitor', disabled = true })"
-        done <"$MANUAL_DISABLED_FILE"
-    fi
-    printf '%s' "$chunk"
+    jq -r --arg sig "$2" --arg variant "$3" "$JQ_CHUNK" <<<"$1"
 }
 
 fallback_to_config() {

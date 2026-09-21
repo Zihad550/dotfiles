@@ -32,17 +32,31 @@ sync_clamshell_after_monitor_change() {
 sync_display_layout() {
     (
         flock -n 9 || exit 0
-        hyprctl reload >/dev/null 2>&1 || exit 0
         timeout --kill-after=0.2s 2s df-hypr-display-layout apply --quiet >/dev/null 2>&1 || true
     ) 9>"$LAYOUT_LOCK"
 }
 
-sync_display_layout_after_removal() {
-    local event_data="$1" monitor
-    monitor=${event_data##*,}
-    if ! df-hypr-close-display is-disabled "$monitor" >/dev/null 2>&1; then
-        sync_display_layout
+prefer_external_workspace() {
+    local event_data="$1" monitor internal workspace
+
+    if [[ $event_data == *,* ]]; then
+        monitor=${event_data#*,}
+        monitor=${monitor%%,*}
+    else
+        monitor=$event_data
     fi
+    [[ $monitor =~ ^[A-Za-z0-9._-]+$ ]] || return 0
+
+    internal=$(df-hypr-monitor-laptop 2>/dev/null)
+    [[ -n $internal && $monitor != "$internal" ]] || return 0
+
+    workspace=$(hyprctl monitors -j 2>/dev/null | jq -er --arg internal "$internal" '
+        first(.[] | select(.name == $internal)).activeWorkspace.id
+        | select(. >= 1 and . <= 10)
+    ') || return 0
+
+    hyprctl dispatch moveworkspacetomonitor "$workspace" "$monitor" >/dev/null 2>&1 || return 0
+    hyprctl dispatch focusmonitor "$monitor" >/dev/null 2>&1 || true
 }
 
 poll_clamshell_state() {
@@ -72,11 +86,11 @@ while read -r event; do
     case "$event" in
         monitoradded\>\>*|monitoraddedv2\>\>*)
             sync_display_layout
+            prefer_external_workspace "${event#*>>}"
             sync_clamshell_after_monitor_change
             sync_poll_state
             ;;
         monitorremoved\>\>*|monitorremovedv2\>\>*)
-            sync_display_layout_after_removal "${event#*>>}"
             sync_clamshell_after_monitor_change
             sync_poll_state
             ;;

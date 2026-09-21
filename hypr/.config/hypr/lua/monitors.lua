@@ -61,16 +61,6 @@ else
 end
 
 local state_home = os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")
-local manual_disabled_file = io.open(state_home .. "/hypr/manual-disabled-monitors", "r")
-if manual_disabled_file then
-    for output in manual_disabled_file:lines() do
-        if output:match("^[%w._-]+$") then
-            hl.monitor({ output = output, disabled = true })
-        end
-    end
-    manual_disabled_file:close()
-end
-
 -- The clamshell helper writes a temporary rule that must win over the base layout.
 local clamshell_flag = state_home .. "/hypr/internal-monitor-clamshell.lua"
 local clamshell_file = io.open(clamshell_flag, "r")

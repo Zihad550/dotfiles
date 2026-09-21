@@ -67,4 +67,13 @@ PanelWindow {
         Component.onCompleted: QuickSettingsRegistry.register(bar.monitorName, quickSettings)
         Component.onDestruction: QuickSettingsRegistry.unregister(bar.monitorName, quickSettings)
     }
+
+    DisplayPanel {
+        id: displayPanel
+
+        target: statusCluster
+
+        Component.onCompleted: DisplayPanelRegistry.register(bar.monitorName, displayPanel)
+        Component.onDestruction: DisplayPanelRegistry.unregister(bar.monitorName, displayPanel)
+    }
 }

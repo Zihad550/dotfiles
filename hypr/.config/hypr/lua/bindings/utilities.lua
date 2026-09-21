@@ -16,7 +16,7 @@ o.bind("SUPER + CTRL + COMMA", "Toggle silencing notifications",
 -- rename-workspace below -- see the "quicksettings:toggle" GlobalShortcut in
 -- quickshell/.config/quickshell/dotfiles/shell.qml.
 o.bind("SUPER + CTRL + A", "Quick Settings", hl.dsp.global("quicksettings:toggle"))
-o.bind("SUPER + CTRL + D", "Toggle displays", hl.dsp.global("launcher:displays"))
+o.bind("SUPER + CTRL + D", "Display", hl.dsp.global("display:toggle"))
 
 -- Workspaces
 -- Dispatches straight into the running Launcher process, which opens as a
