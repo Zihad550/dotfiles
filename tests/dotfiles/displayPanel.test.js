@@ -27,7 +27,7 @@ test("the Display panel uses Omarchy's direct monitor toggle", () => {
     assert.match(panel, /\["hyprctl", "monitors", "all", "-j"\]/);
     assert.match(panel, /hl\.monitor\(\{ output = '\$\{name\}', disabled = true \}\)/);
     assert.match(panel,
-        /hl\.monitor\(\{ output = '\$\{name\}', mode = 'preferred', position = 'auto', scale = 'auto' \}\)/);
+        /hl\.monitor\(\{ output = '\$\{name\}', disabled = false \}\)/);
     assert.match(panel, /\["hyprctl", "eval", chunk\]/);
     assert.match(panel, /enabledDisplayCount <= 1/);
     assert.match(panel, /Keys\.onReturnPressed: root\.activateSelected\(\)/);

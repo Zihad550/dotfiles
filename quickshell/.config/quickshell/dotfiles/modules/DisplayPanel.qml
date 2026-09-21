@@ -66,9 +66,10 @@ PopupWindow {
             return;
 
         // hyprctl keyword is rejected under the Lua config parser; eval an hl.monitor() call instead.
+        // hl.monitor merges into the existing rule, so enabling must set disabled = false explicitly.
         const chunk = enabled
             ? `hl.monitor({ output = '${name}', disabled = true })`
-            : `hl.monitor({ output = '${name}', mode = 'preferred', position = 'auto', scale = 'auto' })`;
+            : `hl.monitor({ output = '${name}', disabled = false })`;
         action.command = ["hyprctl", "eval", chunk];
         action.running = true;
     }
