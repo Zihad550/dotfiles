@@ -15,10 +15,6 @@ o.bind("SUPER + CTRL + M",         "Exit Hyprland",    hl.dsp.global("launcher:c
 o.bind("SUPER + CTRL + S",         "Suspend",          "systemctl suspend",{ locked = true })
 o.bind("SUPER + CTRL + SHIFT + L", "Lock",             hl.dsp.global("launcher:confirm-lock"))
 
--- Internal display toggles
-o.bind("SUPER + CTRL + D",         "Close eDP-1",      dotfiles_bin .. "/df-hypr-close-display eDP-1",    { locked = true })
-o.bind("SUPER + CTRL + SHIFT + D", "Close HDMI-A-1",   dotfiles_bin .. "/df-hypr-close-display HDMI-A-1", { locked = true })
-
 -- Lid / clamshell
 -- A closed lid with an external display stays awake while the monitor helper
 -- disables eDP-1; Hyprland evacuates its workspaces. A lid close without an

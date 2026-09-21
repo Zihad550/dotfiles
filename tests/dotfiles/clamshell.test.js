@@ -55,3 +55,14 @@ test("clamshell recovery is started with Hyprland", () => {
 
     assert.match(autostart, /df-hypr-monitor-watch/);
 });
+
+test("manual display disables survive monitor events and config reloads", () => {
+    const watcher = source("bin/df-hypr-monitor-watch");
+    const monitors = source("hypr/.config/hypr/lua/monitors.lua");
+    const layouts = source("bin/df-hypr-display-layout");
+
+    assert.match(watcher, /df-hypr-close-display is-disabled/);
+    assert.match(monitors, /manual-disabled-monitors/);
+    assert.match(layouts, /MANUAL_DISABLED_FILE/);
+    assert.match(layouts, /disabled = true/);
+});

@@ -52,6 +52,7 @@ set -uo pipefail
 
 LAYOUTS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/display-layouts.json"
 STATE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/hypr/display-layout.json"
+MANUAL_DISABLED_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/hypr/manual-disabled-monitors"
 
 QUIET=false
 
@@ -268,7 +269,15 @@ variant_exists() {
 }
 
 build_chunk() {
-    jq -r --arg sig "$2" --arg variant "$3" "$JQ_CHUNK" <<<"$1"
+    local chunk monitor
+    chunk=$(jq -r --arg sig "$2" --arg variant "$3" "$JQ_CHUNK" <<<"$1")
+    if [[ -f $MANUAL_DISABLED_FILE ]]; then
+        while IFS= read -r monitor; do
+            [[ $monitor =~ ^[A-Za-z0-9._-]+$ ]] || continue
+            chunk+=$'\n'"hl.monitor({ output = '$monitor', disabled = true })"
+        done <"$MANUAL_DISABLED_FILE"
+    fi
+    printf '%s' "$chunk"
 }
 
 fallback_to_config() {

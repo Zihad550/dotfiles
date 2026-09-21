@@ -171,7 +171,19 @@ XDG_CONFIG_HOME="$test_tmp/config" \
 XDG_STATE_HOME="$test_tmp/layout-state" \
 TEST_MONITORS="$layout_monitors" \
     "$ROOT/bin/df-hypr-display-layout" show --raw >"$raw_layout"
-! grep -q '^signature:' "$raw_layout"
+if grep -q '^signature:' "$raw_layout"; then
+    exit 1
+fi
 grep -F "output = 'HDMI-A-1'" "$raw_layout" >/dev/null
 grep -F 'transform = 0' "$raw_layout" >/dev/null
+
+mkdir -p "$test_tmp/layout-state/hypr"
+printf 'HDMI-A-1\n' >"$test_tmp/layout-state/hypr/manual-disabled-monitors"
+PATH="$fake_bin:/usr/bin:/bin" \
+HOME="$test_tmp/home" \
+XDG_CONFIG_HOME="$test_tmp/config" \
+XDG_STATE_HOME="$test_tmp/layout-state" \
+TEST_MONITORS="$layout_monitors" \
+    "$ROOT/bin/df-hypr-display-layout" show --raw >"$raw_layout"
+grep -Fx "hl.monitor({ output = 'HDMI-A-1', disabled = true })" "$raw_layout" >/dev/null
 echo "PASS: display layout raw output preserves orientation rules"

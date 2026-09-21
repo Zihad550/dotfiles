@@ -37,6 +37,14 @@ sync_display_layout() {
     ) 9>"$LAYOUT_LOCK"
 }
 
+sync_display_layout_after_removal() {
+    local event_data="$1" monitor
+    monitor=${event_data##*,}
+    if ! df-hypr-close-display is-disabled "$monitor" >/dev/null 2>&1; then
+        sync_display_layout
+    fi
+}
+
 poll_clamshell_state() {
     while true; do
         sleep 2
@@ -62,8 +70,13 @@ sync_poll_state
 
 while read -r event; do
     case "$event" in
-        monitoradded\>\>*|monitoraddedv2\>\>*|monitorremoved\>\>*|monitorremovedv2\>\>*)
+        monitoradded\>\>*|monitoraddedv2\>\>*)
             sync_display_layout
+            sync_clamshell_after_monitor_change
+            sync_poll_state
+            ;;
+        monitorremoved\>\>*|monitorremovedv2\>\>*)
+            sync_display_layout_after_removal "${event#*>>}"
             sync_clamshell_after_monitor_change
             sync_poll_state
             ;;

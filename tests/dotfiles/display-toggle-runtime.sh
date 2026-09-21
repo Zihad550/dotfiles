@@ -9,7 +9,8 @@ trap 'rm -rf "$test_tmp"' EXIT
 fake_bin="$test_tmp/bin"
 call_log="$test_tmp/calls.log"
 monitor_state="$test_tmp/monitor-state"
-mkdir -p "$fake_bin"
+state_home="$test_tmp/state"
+mkdir -p "$fake_bin" "$state_home" "$test_tmp/runtime"
 
 cat >"$fake_bin/hyprctl" <<'SH'
 #!/usr/bin/env bash
@@ -33,12 +34,34 @@ elif [[ ${1:-} == monitors ]]; then
     fi
 elif [[ ${1:-} == eval ]]; then
     printf '%s\n' "$*" >>"$TEST_CALL_LOG"
+    if [[ $* == *"disabled = true"* ]]; then
+        printf 'disabled\n' >"$TEST_MONITOR_STATE"
+    fi
+elif [[ ${1:-} == reload ]]; then
+    printf 'reload\n' >>"$TEST_CALL_LOG"
+    printf 'enabled\n' >"$TEST_MONITOR_STATE"
 fi
 SH
 
 cat >"$fake_bin/df-hypr-display-layout" <<'SH'
 #!/usr/bin/env bash
 printf 'layout %s\n' "$*" >>"$TEST_CALL_LOG"
+[[ ${1:-} != apply ]] || printf 'enabled\n' >"$TEST_MONITOR_STATE"
+SH
+
+cat >"$fake_bin/df-hypr-clamshell" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+
+cat >"$fake_bin/df-hw-clamshell" <<'SH'
+#!/usr/bin/env bash
+exit 1
+SH
+
+cat >"$fake_bin/socat" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' 'monitorremoved>>HDMI-A-1'
 SH
 
 chmod +x "$fake_bin"/*
@@ -47,6 +70,7 @@ run_toggle() {
     local monitor="${1:-HDMI-A-1}"
     PATH="$fake_bin:$PATH" \
     DF_HYPR_DISPLAY_LAYOUT="$fake_bin/df-hypr-display-layout" \
+    XDG_STATE_HOME="$state_home" \
     TEST_CALL_LOG="$call_log" \
     TEST_MONITOR_STATE="$monitor_state" \
         "$ROOT/bin/df-hypr-close-display" toggle "$monitor"
@@ -64,6 +88,24 @@ listing=$(run_list)
 jq -e 'map([.name, .enabled]) == [["HDMI-A-1", true], ["eDP-1", true]]' <<<"$listing" >/dev/null
 run_toggle
 grep -F "disabled = true" "$call_log" >/dev/null
+[[ $(<"$monitor_state") == disabled ]]
+grep -Fx 'HDMI-A-1' "$state_home/hypr/manual-disabled-monitors" >/dev/null
+
+# Disabling a monitor emits monitorremoved. The watcher must preserve the
+# manual choice instead of treating it as a physical unplug and restoring the
+# saved layout that enables the output again.
+PATH="$fake_bin:/usr/bin:/bin" \
+XDG_RUNTIME_DIR="$test_tmp/runtime" \
+XDG_STATE_HOME="$state_home" \
+HYPRLAND_INSTANCE_SIGNATURE=test \
+TEST_CALL_LOG="$call_log" \
+TEST_MONITOR_STATE="$monitor_state" \
+    timeout --foreground 1s "$ROOT/bin/df-hypr-monitor-watch" || true
+if [[ $(<"$monitor_state") != disabled ]]; then
+    echo "FAIL: monitor watcher re-enabled a manually disabled display" >&2
+    sed 's/^/  /' "$call_log" >&2
+    exit 1
+fi
 
 printf 'disabled\n' >"$monitor_state"
 : >"$call_log"
@@ -78,6 +120,7 @@ if ! grep -Fx 'layout apply --quiet' "$call_log" >/dev/null; then
     sed 's/^/  /' "$call_log" >&2
     exit 1
 fi
+[[ ! -e "$state_home/hypr/manual-disabled-monitors" ]]
 if grep -F 'transform = 1' "$call_log" >/dev/null; then
     exit 1
 fi
