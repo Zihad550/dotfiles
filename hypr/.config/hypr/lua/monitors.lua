@@ -51,7 +51,12 @@ if has_laptop_chassis() then
     if external then
         hl.monitor({ output = external, mode = "preferred", position = "0x0", scale = "auto" })
         hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = "1" })
-        assign_workspaces(external)
+        -- Internal keeps only workspace 1; the external takes 2-10 and shows 2.
+        hl.workspace_rule({ workspace = "1", monitor = "eDP-1", default = true })
+        hl.workspace_rule({ workspace = "2", monitor = external, default = true })
+        for i = 3, 10 do
+            hl.workspace_rule({ workspace = tostring(i), monitor = external })
+        end
     else
         hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = "1" })
         assign_workspaces("eDP-1")

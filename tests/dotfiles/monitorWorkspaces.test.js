@@ -91,16 +91,18 @@ test("a laptop uses its internal panel when no external display is connected", (
     ]);
 });
 
-test("a laptop gives every numbered workspace to any connected external display", () => {
+test("a laptop keeps only workspace 1 on the internal panel and gives 2-10 to a connected external display", () => {
     const rules = workspaceRulesFor(9, "VGA-1");
     const externalRules = rules.filter(rule => rule.monitor === "VGA-1");
 
     assert.deepStrictEqual(externalRules.map(rule => rule.workspace),
-        ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
+        ["2", "3", "4", "5", "6", "7", "8", "9", "10"]);
     assert.deepStrictEqual(externalRules.filter(rule => rule.default), [{
-        workspace: "1",
+        workspace: "2",
         monitor: "VGA-1",
         default: true,
     }]);
-    assert.deepStrictEqual(rules.filter(rule => rule.monitor === "eDP-1"), []);
+    assert.deepStrictEqual(rules.filter(rule => rule.monitor === "eDP-1"), [
+        { workspace: "1", monitor: "eDP-1", default: true },
+    ]);
 });

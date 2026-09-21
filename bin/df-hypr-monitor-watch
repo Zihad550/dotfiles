@@ -36,27 +36,57 @@ sync_display_layout() {
     ) 9>"$LAYOUT_LOCK"
 }
 
-prefer_external_workspace() {
-    local event_data="$1" monitor internal workspace
+# Runs on ANY monitoradded (internal or external) so re-enabling eDP-1 while an
+# external is on also reclaims workspace 1, not just the initial hotplug.
+sync_external_workspaces() {
+    local internal monitors_json external internal_enabled=false
 
-    if [[ $event_data == *,* ]]; then
-        monitor=${event_data#*,}
-        monitor=${monitor%%,*}
-    else
-        monitor=$event_data
+    internal=$(df-hypr-monitor-laptop 2>/dev/null) || true
+    [[ -n $internal && $internal =~ ^[A-Za-z0-9._-]+$ ]] || return 0
+
+    monitors_json=$(hyprctl monitors -j 2>/dev/null) || return 0
+
+    external=$(jq -er --arg internal "$internal" '
+        first(.[] | select(.disabled == false and .name != $internal)).name
+    ' <<<"$monitors_json") || return 0
+    [[ $external =~ ^[A-Za-z0-9._-]+$ ]] || return 0
+
+    jq -e --arg internal "$internal" '
+        any(.[]; .name == $internal and .disabled == false)
+    ' <<<"$monitors_json" >/dev/null 2>&1 && internal_enabled=true
+
+    # monitors.lua contract: 1 -> internal (when enabled), 2 -> external
+    # (shown), 3-10 -> external. One eval chunk applies it atomically.
+    local rules="" i
+    if [[ $internal_enabled == true ]]; then
+        rules+="hl.workspace_rule({ workspace = \"1\", monitor = \"$internal\", default = true })"$'\n'
     fi
-    [[ $monitor =~ ^[A-Za-z0-9._-]+$ ]] || return 0
+    rules+="hl.workspace_rule({ workspace = \"2\", monitor = \"$external\", default = true })"
+    for i in 3 4 5 6 7 8 9 10; do
+        rules+=$'\n'"hl.workspace_rule({ workspace = \"$i\", monitor = \"$external\" })"
+    done
+    hyprctl eval "$rules" >/dev/null 2>&1 || return 0
 
-    internal=$(df-hypr-monitor-laptop 2>/dev/null)
-    [[ -n $internal && $monitor != "$internal" ]] || return 0
+    local moves ws target
+    moves=$(hyprctl workspaces -j 2>/dev/null | jq -r --arg external "$external" \
+        --arg internal "$internal" --argjson internal_enabled "$internal_enabled" '
+        .[] |
+        if .id == 1 then
+            (if $internal_enabled and .monitor != $internal then "1 \($internal)" else empty end)
+        elif .id >= 2 and .id <= 10 then
+            (if .monitor != $external then "\(.id) \($external)" else empty end)
+        else empty end
+    ') || true
+    if [[ -n $moves ]]; then
+        while read -r ws target; do
+            [[ -n $ws && -n $target ]] || continue
+            hyprctl dispatch "hl.dsp.workspace.move({ workspace = \"$ws\", monitor = \"$target\" })" \
+                >/dev/null 2>&1 || true
+        done <<<"$moves"
+    fi
 
-    workspace=$(hyprctl monitors -j 2>/dev/null | jq -er --arg internal "$internal" '
-        first(.[] | select(.name == $internal)).activeWorkspace.id
-        | select(. >= 1 and . <= 10)
-    ') || return 0
-
-    hyprctl dispatch moveworkspacetomonitor "$workspace" "$monitor" >/dev/null 2>&1 || return 0
-    hyprctl dispatch focusmonitor "$monitor" >/dev/null 2>&1 || true
+    hyprctl dispatch "hl.dsp.focus({ monitor = \"$external\" })" >/dev/null 2>&1 || true
+    hyprctl dispatch "hl.dsp.focus({ workspace = \"2\" })" >/dev/null 2>&1 || true
 }
 
 poll_clamshell_state() {
@@ -86,7 +116,7 @@ while read -r event; do
     case "$event" in
         monitoradded\>\>*|monitoraddedv2\>\>*)
             sync_display_layout
-            prefer_external_workspace "${event#*>>}"
+            sync_external_workspaces
             sync_clamshell_after_monitor_change
             sync_poll_state
             ;;

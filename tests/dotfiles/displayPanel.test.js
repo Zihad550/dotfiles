@@ -41,5 +41,5 @@ test("monitor hotplug does not reload the entire display configuration", () => {
 
     assert.doesNotMatch(watcher, /hyprctl reload/);
     assert.match(watcher, /df-hypr-display-layout apply --quiet/);
-    assert.match(watcher, /prefer_external_workspace/);
+    assert.match(watcher, /sync_external_workspaces/);
 });
