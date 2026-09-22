@@ -39,7 +39,7 @@
       "manifest": {
         "id": "catppuccin-icons",
         "name": "Catppuccin Icons",
-        "version": "1.23.1",
+        "version": "1.24.0",
         "schema_version": 1,
         "description": "🦊 Soothing pastel icons for Zed",
         "repository": "https://github.com/catppuccin/zed-icons",
@@ -334,7 +334,7 @@
       "manifest": {
         "id": "html",
         "name": "HTML",
-        "version": "0.3.1",
+        "version": "0.3.2",
         "schema_version": 1,
         "description": "HTML support.",
         "repository": "https://github.com/zed-industries/zed",
@@ -979,7 +979,15 @@
       "extension": "catppuccin-icons",
       "path": "icon_themes/catppuccin-icons.json"
     },
+    "Catppuccin Frappé Monochrome": {
+      "extension": "catppuccin-icons",
+      "path": "icon_themes/catppuccin-icons.json"
+    },
     "Catppuccin Latte": {
+      "extension": "catppuccin-icons",
+      "path": "icon_themes/catppuccin-icons.json"
+    },
+    "Catppuccin Latte Monochrome": {
       "extension": "catppuccin-icons",
       "path": "icon_themes/catppuccin-icons.json"
     },
@@ -987,7 +995,15 @@
       "extension": "catppuccin-icons",
       "path": "icon_themes/catppuccin-icons.json"
     },
+    "Catppuccin Macchiato Monochrome": {
+      "extension": "catppuccin-icons",
+      "path": "icon_themes/catppuccin-icons.json"
+    },
     "Catppuccin Mocha": {
+      "extension": "catppuccin-icons",
+      "path": "icon_themes/catppuccin-icons.json"
+    },
+    "Catppuccin Mocha Monochrome": {
       "extension": "catppuccin-icons",
       "path": "icon_themes/catppuccin-icons.json"
     }
@@ -1005,7 +1021,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "caddyfile"
+      "grammar": "caddyfile",
+      "query_files": 27
     },
     "Docker Compose": {
       "extension": "dockerfile",
@@ -1021,7 +1038,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "yaml"
+      "grammar": "yaml",
+      "query_files": 231
     },
     "Dockerfile": {
       "extension": "dockerfile",
@@ -1036,7 +1054,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "dockerfile"
+      "grammar": "dockerfile",
+      "query_files": 17
     },
     "EmmyLuadoc": {
       "extension": "lua",
@@ -1047,7 +1066,8 @@
         "modeline_aliases": []
       },
       "hidden": true,
-      "grammar": "emmyluadoc"
+      "grammar": "emmyluadoc",
+      "query_files": 1
     },
     "Git Attributes": {
       "extension": "git-firefly",
@@ -1063,7 +1083,8 @@
         ]
       },
       "hidden": false,
-      "grammar": "gitattributes"
+      "grammar": "gitattributes",
+      "query_files": 17
     },
     "Git Config": {
       "extension": "git-firefly",
@@ -1081,7 +1102,8 @@
         ]
       },
       "hidden": false,
-      "grammar": "git_config"
+      "grammar": "git_config",
+      "query_files": 17
     },
     "Git Ignore": {
       "extension": "git-firefly",
@@ -1108,7 +1130,8 @@
         ]
       },
       "hidden": false,
-      "grammar": "gitignore"
+      "grammar": "gitignore",
+      "query_files": 17
     },
     "Git Rebase": {
       "extension": "git-firefly",
@@ -1123,7 +1146,8 @@
         ]
       },
       "hidden": false,
-      "grammar": "git_rebase"
+      "grammar": "git_rebase",
+      "query_files": 17
     },
     "HTML": {
       "extension": "html",
@@ -1138,7 +1162,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "html"
+      "grammar": "html",
+      "query_files": 63
     },
     "Hyprland Config": {
       "extension": "hyprlang",
@@ -1154,7 +1179,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "hyprlang"
+      "grammar": "hyprlang",
+      "query_files": 31
     },
     "Hyprlang": {
       "extension": "hyprlang",
@@ -1168,7 +1194,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "hyprlang"
+      "grammar": "hyprlang",
+      "query_files": 31
     },
     "JSON Lines": {
       "extension": "jsonl",
@@ -1182,7 +1209,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "json"
+      "grammar": "json",
+      "query_files": 1
     },
     "Kdl": {
       "extension": "kdl",
@@ -1195,7 +1223,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "kdl"
+      "grammar": "kdl",
+      "query_files": 31
     },
     "Lua": {
       "extension": "lua",
@@ -1208,7 +1237,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "lua"
+      "grammar": "lua",
+      "query_files": 543
     },
     "Make": {
       "extension": "make",
@@ -1226,7 +1256,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "make"
+      "grammar": "make",
+      "query_files": 159
     },
     "QML": {
       "extension": "qml",
@@ -1239,7 +1270,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "qmljs"
+      "grammar": "qmljs",
+      "query_files": 15
     },
     "SQL": {
       "extension": "sql",
@@ -1252,7 +1284,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "sql"
+      "grammar": "sql",
+      "query_files": 539
     },
     "TOML": {
       "extension": "toml",
@@ -1268,7 +1301,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "toml"
+      "grammar": "toml",
+      "query_files": 639
     },
     "Vue.js": {
       "extension": "vue",
@@ -1281,7 +1315,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "vue"
+      "grammar": "vue",
+      "query_files": 63
     },
     "XML": {
       "extension": "xml",
@@ -1294,7 +1329,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "xml"
+      "grammar": "xml",
+      "query_files": 13
     },
     "tmux": {
       "extension": "tmux",
@@ -1308,7 +1344,8 @@
         "modeline_aliases": []
       },
       "hidden": false,
-      "grammar": "tmux"
+      "grammar": "tmux",
+      "query_files": 17
     }
   }
 }
