@@ -258,7 +258,7 @@ elif commands_available ls; then
 fi
 
 alias_if_command bat cat 'bat --color=always'
-alias_if_command rg grep rg
+# alias_if_command rg grep rg
 alias_if_command trash-put rm trash-put
 alias_if_command btm top btm
 
