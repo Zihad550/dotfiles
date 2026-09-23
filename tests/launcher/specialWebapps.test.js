@@ -13,7 +13,7 @@ const WEB_APPS = [
     ["Meet", "chrome-meet.google.com__-Profile_2", "https://meet.google.com", "meet"],
     ["Zulip", "chrome-mamacrm.zulipchat.com__-Profile_2", "https://mamacrm.zulipchat.com", "zulip"],
     ["YouTube", "chrome-www.youtube.com__-Profile_2", "https://www.youtube.com", "yt"],
-    ["Tasks", "chrome-tasks.google.com__u_1_tasks_-Profile_2", "https://tasks.google.com/u/1/tasks/", "tasks"],
+    ["Linear", "chrome-linear.app__-Profile_2", "https://linear.app/", "tasks"],
     ["Figma", "chrome-www.figma.com__-Profile_2", "https://www.figma.com", "figma"],
     ["Quran", "chrome-quran.com__-Profile_2", "https://quran.com", "holy-quran"]
 ];
@@ -81,12 +81,13 @@ require("node:fs").writeFileSync(process.env.RECORDED_ARGV, JSON.stringify(proce
         "chrome-claude.ai__chat-Profile_2");
 });
 
-test("all web-app bindings declare their URL-derived identity", () => {
+test("all web-app bindings declare their identity, URL, and workspace", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
-    for (const [name, identity] of WEB_APPS) {
+    for (const [name, identity, url, workspace] of WEB_APPS) {
         const binding = apps.match(new RegExp(`o\\.bind\\([^\\n]+, "${name}",[\\s\\S]*?\\n\\s*dotfiles_bin[^\\n]+\\)`))[0];
         assert.match(binding, /df-launch-special-webapp/);
         assert.match(binding, new RegExp(identity.replaceAll(".", "\\.")));
+        assert.ok(binding.includes(`"${url}" "${workspace}"`));
     }
 });
 

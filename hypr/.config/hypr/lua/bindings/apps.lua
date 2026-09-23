@@ -70,8 +70,8 @@ o.bind("SUPER + Z", "Zulip",
     dotfiles_bin .. [[/df-launch-special-webapp "chrome-mamacrm.zulipchat.com__-Profile_2" "https://mamacrm.zulipchat.com" "zulip"]])
 o.bind("SUPER + Y", "YouTube",
     dotfiles_bin .. [[/df-launch-special-webapp "chrome-www.youtube.com__-Profile_2" "https://www.youtube.com" "yt"]])
-o.bind("SUPER + T", "Tasks",
-    dotfiles_bin .. [[/df-launch-special-webapp "chrome-tasks.google.com__u_1_tasks_-Profile_2" "https://tasks.google.com/u/1/tasks/" "tasks"]])
+o.bind("SUPER + T", "Linear",
+    dotfiles_bin .. [[/df-launch-special-webapp "chrome-linear.app__-Profile_2" "https://linear.app/" "tasks"]])
 o.bind("SUPER + SHIFT + F", "Figma",
     dotfiles_bin .. [[/df-launch-special-webapp "chrome-www.figma.com__-Profile_2" "https://www.figma.com" "figma"]])
 o.bind("SUPER + Q", "Quran",
