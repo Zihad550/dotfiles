@@ -51,7 +51,7 @@ test("both popups bound their size to the monitor and keep overflow scrollable",
     assert.match(calendar, /availableHeight[\s\S]*screen\.height[\s\S]*Theme\.barHeight/);
     assert.match(calendar, /implicitWidth\s*:\s*Math\.min\([\s\S]*root\.availableWidth/);
     assert.match(calendar, /implicitHeight\s*:\s*Math\.min\([\s\S]*root\.availableHeight/);
-    assert.match(calendar, /Flickable\s*\{[\s\S]*contentWidth\s*:\s*calendarColumn\.width[\s\S]*contentHeight\s*:\s*calendarColumn\.implicitHeight[\s\S]*clip\s*:\s*true/);
+    assert.match(calendar, /Flickable\s*\{[\s\S]*contentWidth\s*:\s*panelRow\.width[\s\S]*contentHeight\s*:\s*panelRow\.height[\s\S]*clip\s*:\s*true/);
     assert.doesNotMatch(calendar, /ScrollBar\s*\{|ScrollBar\.\w+\s*:/,
         "a Controls ScrollBar is invisible at rest, so a clipped panel looks complete");
     assert.match(calendar, /visible:\s*calendarScroll\.contentHeight > calendarScroll\.height[\s\S]*calendarScroll\.visibleArea\.heightRatio/);
@@ -64,6 +64,27 @@ test("both popups bound their size to the monitor and keep overflow scrollable",
     assert.match(quickSettings, /implicitWidth\s*:\s*Math\.min\([\s\S]*root\.monitorWidth/);
     assert.match(quickSettings, /implicitHeight\s*:\s*Math\.min\([\s\S]*root\.monitorAvailableHeight/);
     assert.match(quickSettings, /Flickable\s*\{[\s\S]*contentHeight\s*:\s*primaryContent\.implicitHeight[\s\S]*clip\s*:\s*true/);
+});
+
+test("Media Controls share the Calendar Panel and keep transport and source actions available", () => {
+    const bar = source("modules/Bar.qml");
+    const clock = source("modules/Clock.qml");
+    const calendar = source("modules/CalendarPanel.qml");
+    const media = source("modules/Media.qml");
+
+    assert.match(bar, /Clock\s*\{[\s\S]*mediaService:\s*bar\.mediaService/);
+    assert.doesNotMatch(bar, /sourceComponent:\s*Media/);
+    assert.match(clock, /CalendarPanel\s*\{[\s\S]*mediaService:\s*root\.mediaService/);
+    assert.match(calendar, /Row\s*\{\s*id:\s*panelRow[\s\S]*Column\s*\{\s*id:\s*calendarColumn[\s\S]*sourceComponent:\s*Media/);
+    assert.equal((media.match(/Button\s*\{/g) || []).length, 3);
+    assert.match(media, /implicitWidth:\s*Style\.space\(300\)/);
+    assert.match(calendar, /combinedContentWidth:\s*root\.gridWidth[\s\S]*mediaLoader\.implicitWidth/);
+    assert.match(media, /runAction\(\s*"previous"/);
+    assert.match(media, /runAction\(\s*"playPause"/);
+    assert.match(media, /runAction\(\s*"next"/);
+    assert.match(media, /selectPlayer\(root\.service\.playerKey\(sourceRow\.player\)\)/);
+    assert.match(media, /Flickable\s*\{[\s\S]*contentHeight:\s*sourceRows\.implicitHeight[\s\S]*interactive:\s*contentHeight > height/);
+    assert.doesNotMatch(media, /PopupCard\s*\{/);
 });
 
 test("Bar panels claim one focus owner in either opening direction", () => {

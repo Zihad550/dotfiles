@@ -6,6 +6,8 @@ import qs
 Item {
     id: root
 
+    property var mediaService: null
+
     // style.css nudged #clock 8.75px right of centre.
     anchors.horizontalCenterOffset: 8.75
 
@@ -41,5 +43,6 @@ Item {
         id: calendarPanel
 
         target: root
+        mediaService: root.mediaService
     }
 }

@@ -7,8 +7,8 @@ import qs.media as Upstream
 ShellRoot {
     Upstream.Service { id: service }
     PanelWindow {
-        implicitWidth: 400
-        implicitHeight: 30
+        implicitWidth: 360
+        implicitHeight: 400
         color: "#1e1e2e"
         Media {
             id: widget
@@ -19,13 +19,20 @@ ShellRoot {
                 readonly property var fixture: ({
                     trackTitle: "Media port preview", trackArtist: "Omarchy",
                     trackAlbum: "Playback controls", isPlaying: true,
-                    canGoNext: true, canGoPrevious: true, canTogglePlaying: true
+                    canGoNext: true, canGoPrevious: true, canTogglePlaying: true,
+                    identity: "Preview player"
                 })
-                readonly property var sourcePlayers: [activePlayer, {
+                readonly property var browser: ({
                     identity: "Browser", trackTitle: "Another media source", isPlaying: false
-                }]
-                function playerKey(player) { return player.trackTitle }
-                function runAction() {}
+                })
+                readonly property var sourcePlayers: [fixture, browser]
+                function playerKey(player) { return player.identity }
+                function runAction(action) {
+                    if (action === "playPause") activePlayer.isPlaying = !activePlayer.isPlaying
+                }
+                function selectPlayer(key) {
+                    activePlayer = key === "Browser" ? browser : fixture
+                }
             }
         }
     }
@@ -52,45 +59,38 @@ ShellRoot {
         interval: 500
         running: true
         onTriggered: {
-            if (!widget.visible || !widget.children[0].visible || widget.width <= 0) {
-                console.error("MEDIA_VISIBILITY_FAIL: player appeared but widget is hidden");
+            if (!widget.visible || widget.width <= 0 || !previewService.activePlayer) {
+                console.error("MEDIA_CONTROLS_FAIL: mock player controls did not load");
                 Qt.exit(1);
                 return;
             }
-            console.log("MEDIA_VISIBILITY_PASS");
-            widget.children[0].popupOpen = true;
+            console.log("MEDIA_CONTROLS_PASS");
         }
     }
     Timer {
         interval: 2200
         running: true
         onTriggered: {
-            widget.children[0].close();
-            previewService.activePlayer = null;
-        }
-    }
-    Timer {
-        interval: 2400
-        running: true
-        onTriggered: {
-            if (widget.visible) {
-                console.error("MEDIA_VISIBILITY_FAIL: widget remains visible without media");
+            previewService.selectPlayer("Browser");
+            if (previewService.activePlayer !== previewService.browser) {
+                console.error("MEDIA_SOURCE_SWITCH_FAIL: browser was not selected");
                 Qt.exit(1);
                 return;
             }
-            previewService.activePlayer = previewService.fixture;
+            console.log("MEDIA_SOURCE_SWITCH_PASS");
         }
     }
     Timer {
         interval: 2800
         running: true
         onTriggered: {
-            if (!widget.visible || !widget.children[0].visible || widget.width <= 0) {
-                console.error("MEDIA_VISIBILITY_FAIL: returning player is hidden");
+            previewService.selectPlayer("Preview player");
+            if (previewService.activePlayer !== previewService.fixture) {
+                console.error("MEDIA_SOURCE_SWITCH_FAIL: preview player was not selected");
                 Qt.exit(1);
                 return;
             }
-            console.log("MEDIA_REAPPEAR_PASS");
+            console.log("MEDIA_SOURCE_RESTORE_PASS");
         }
     }
     Timer {
@@ -99,14 +99,7 @@ ShellRoot {
         onTriggered: {
             const output = Quickshell.env("MEDIA_PROBE_IMAGE");
             if (!output) return;
-            const items = widget.children[0].data;
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                if (item.anchorItem !== undefined && item.open) {
-                    item.contentItem[0].parent.parent.grabToImage(result => result.saveToFile(output));
-                    break;
-                }
-            }
+            widget.grabToImage(result => result.saveToFile(output));
         }
     }
 }

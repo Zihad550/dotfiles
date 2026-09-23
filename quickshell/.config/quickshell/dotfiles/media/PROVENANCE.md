@@ -18,15 +18,16 @@ the ignored resources checkout. Keep upstream logic intact when updating.
 
 - Imports point to qs.media.Ui and qs.media.Commons.
 - Color reads the existing dotfiles Theme palette instead of Omarchy's theme
-  files. Omarchy's style defaults, typography, spacing, controls, border
-  rendering, and popup layout are retained.
+  files. Omarchy's style defaults, typography, spacing, controls, and border
+  rendering are retained.
 - Style omits the watcher for Omarchy's window-gap toggle file. Initial
   compositor geometry and fontconfig discovery remain upstream behavior.
-- modules/Media.qml supplies the bar host contract, tooltip, and shared panel
-  coordination. shell.qml owns one service across monitors and translates its
-  OSD messages into the existing dotfiles OSD.
-- The service and widget are gated on the arch-workstation profile. The
-  widget is enabled automatically but retains upstream metadata visibility.
+- modules/Media.qml places the artwork, transport controls, and player list
+  beside the calendar in the Calendar Panel. The panel owns focus and outside
+  click dismissal. shell.qml owns one service across monitors and translates
+  its OSD messages into the existing dotfiles OSD.
+- The service is gated on the arch-workstation profile. The Calendar Panel
+  shows its controls whenever that service is available.
 - Existing media keys route through the service on the workstation. Other
   profiles retain their playerctl behavior.
 - setup-media applies the upstream video MIME associations without replacing
@@ -39,10 +40,10 @@ reversible port; this document records its scope and adaptation boundary.
 ## Verification
 
 Run `node --test tests/dotfiles/media.test.js` for player selection and action
-targeting scenarios using the actual service functions.
-The isolated `media-probe.qml` beside shell.qml renders mock track data and
-opens the popup, then exits after six seconds. Run it with its own D-Bus session
-to avoid discovering live players:
+targeting scenarios using the actual service functions. The isolated
+`media-probe.qml` beside shell.qml renders mock track data, transport controls,
+and player selection, then exits after six seconds. Run it with its own D-Bus
+session to avoid discovering live players:
 
 ```sh
 QT_QPA_PLATFORM=wayland dbus-run-session -- quickshell -p quickshell/.config/quickshell/dotfiles/media-probe.qml

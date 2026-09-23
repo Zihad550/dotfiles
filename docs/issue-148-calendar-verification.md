@@ -29,8 +29,10 @@ bin/df-qs-restart dotfiles
 ```
 
 Pass: the Calendar Panel appears below the clock, uses the active Bar colors,
-and each hovered control shows its hover state. A right or middle click does
-not open it. Clicking a day cell does not change the month or selection.
+and each hovered control shows its hover state. On the workstation, artwork,
+track details, previous, play/pause, next, and player selection appear beside
+the calendar in this same panel. A right or middle click does not open it.
+Clicking a day cell does not change the month or selection.
 
 ## 3. Keyboard and focus behavior
 

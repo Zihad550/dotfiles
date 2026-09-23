@@ -56,7 +56,7 @@ test("playing selection wins display, but global pause targets oldest playing pl
     assert.equal(browser.isPlaying, true);
 });
 
-test("popup targeted actions control the displayed player", () => {
+test("explicitly targeted actions control the displayed player", () => {
     const mpv = player("mpv", true);
     const browser = player("browser", true);
     const state = service([mpv, browser]);

@@ -135,7 +135,8 @@ whichever monitor is focused.
 _Avoid_: gear, tray, system tray, indicator group, status icons
 
 **Calendar Panel**:
-The read-only month overview anchored beneath the Bar's central clock.
+The read-only month overview and, on the workstation, active media controls
+opened beneath the Bar's central clock.
 _Avoid_: calendar popup, calendar flyout, date picker
 
 **Row**:
@@ -204,12 +205,13 @@ _Avoid_: retry button, error row, try again
 
 ## Media language
 
-**Media Widget**:
-The Bar control that displays the active player's track and opens playback controls and a player list.
+**Media Controls**:
+The active player's track information, playback controls, and player list
+shown beside the month overview in the Calendar Panel.
 _Avoid_: mini player, media panel
 
 **Active Player**:
-The player currently represented by the Media Widget, selected using Omarchy's playback and explicit-selection rules. Global play/pause can target a different playing player.
+The player represented by Media Controls, selected using Omarchy's playback and explicit-selection rules. Global play/pause can target a different playing player.
 _Avoid_: default player, selected source
 
 # Desktop

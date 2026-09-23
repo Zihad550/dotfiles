@@ -10,6 +10,7 @@ PopupWindow {
     id: root
 
     property Item target: null
+    property var mediaService: null
     property bool shown: false
     readonly property bool opened: root.shown
     property double lastCleared: 0
@@ -56,11 +57,14 @@ PopupWindow {
     readonly property int gutterWidth: 8
     readonly property int gridWidth: root.weekColumnWidth + root.gutterWidth
         + 7 * root.cellWidth + 8 * root.cellSpacing
-    readonly property int panelContentHeight: calendarColumn.implicitHeight
-        + 2 * root.panelPadding
+    readonly property int panelContentHeight: Math.max(
+        calendarColumn.implicitHeight, mediaLoader.implicitHeight
+    ) + 2 * root.panelPadding
+    readonly property int combinedContentWidth: root.gridWidth
+        + (mediaLoader.active ? mediaLoader.implicitWidth + 16 : 0)
     readonly property int availableWidth: root.screen
         ? Math.max(1, root.screen.width - 2 * Theme.edgeMargin)
-        : root.gridWidth + 2 * root.panelPadding
+        : root.combinedContentWidth + 2 * root.panelPadding
     readonly property int availableHeight: root.screen
         ? Math.max(1, root.screen.height - Theme.barHeight - Theme.edgeMargin)
         : 10000
@@ -138,7 +142,7 @@ PopupWindow {
     visible: root.shown
     grabFocus: root.shown
     color: "transparent"
-    implicitWidth: Math.min(root.gridWidth + 2 * root.panelPadding, root.availableWidth)
+    implicitWidth: Math.min(root.combinedContentWidth + 2 * root.panelPadding, root.availableWidth)
     implicitHeight: Math.min(root.panelContentHeight, root.availableHeight)
 
     onShownChanged: {
@@ -240,307 +244,326 @@ PopupWindow {
                 id: calendarScroll
 
                 anchors.fill: parent
-                contentWidth: calendarColumn.width
-                contentHeight: calendarColumn.implicitHeight
+                contentWidth: panelRow.width
+                contentHeight: panelRow.height
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: contentWidth > width || contentHeight > height
 
-                Column {
-                    id: calendarColumn
+                Row {
+                    id: panelRow
 
-                    width: Math.max(calendarScroll.width, root.gridWidth)
-                    spacing: 8
+                    spacing: mediaLoader.active ? 16 : 0
+                    width: root.combinedContentWidth
+                    height: Math.max(calendarColumn.implicitHeight, mediaLoader.implicitHeight)
 
-                    Item {
-                        width: parent.width
-                        height: titleRow.implicitHeight
+                    Column {
+                        id: calendarColumn
 
-                        Row {
-                            id: titleRow
+                        width: root.gridWidth
+                        spacing: 8
 
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: 10
+                        Item {
+                            width: parent.width
+                            height: titleRow.implicitHeight
 
-                            Rectangle {
-                                width: 30
-                                height: 30
-                                radius: 4
-                                color: previousMouse.containsMouse ? Theme.accent : "transparent"
-                                opacity: previousMouse.containsMouse ? 0.18 : 1
+                            Row {
+                                id: titleRow
 
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "‹"
-                                    color: Theme.foreground
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize + 6
-                                    textFormat: Text.PlainText
-                                }
-
-                                MouseArea {
-                                    id: previousMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.moveMonth(-1)
-                                }
-
-                                Text {
-                                    visible: previousMouse.containsMouse
-                                    anchors.top: parent.bottom
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: "Previous month"
-                                    color: Theme.foreground
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 4
-                                    textFormat: Text.PlainText
-                                }
-                            }
-
-                            Text {
-                                width: 150
-                                horizontalAlignment: Text.AlignHCenter
-                                text: root.monthLabel()
-                                color: Theme.foreground
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSize + 3
-                                font.bold: true
-                                textFormat: Text.PlainText
-                            }
-
-                            Rectangle {
-                                width: 30
-                                height: 30
-                                radius: 4
-                                color: nextMouse.containsMouse ? Theme.accent : "transparent"
-                                opacity: nextMouse.containsMouse ? 0.18 : 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "›"
-                                    color: Theme.foreground
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize + 6
-                                    textFormat: Text.PlainText
-                                }
-
-                                MouseArea {
-                                    id: nextMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.moveMonth(1)
-                                }
-
-                                Text {
-                                    visible: nextMouse.containsMouse
-                                    anchors.top: parent.bottom
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: "Next month"
-                                    color: Theme.foreground
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 4
-                                    textFormat: Text.PlainText
-                                }
-                            }
-                        }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: progressRow.implicitHeight
-
-                        Row {
-                            id: progressRow
-
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: 8
-
-                            Text {
-                                text: root.today.getFullYear()
-                                color: Theme.foreground
-                                opacity: 0.65
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSize - 3
-                                textFormat: Text.PlainText
-                            }
-
-                            Rectangle {
-                                width: 110
-                                height: 6
-                                anchors.verticalCenter: parent.verticalCenter
-                                radius: 3
-                                color: Theme.foreground
-                                opacity: 0.14
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 10
 
                                 Rectangle {
-                                    width: Math.round(parent.width * root.yearDone)
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: Theme.accent
-                                }
-                            }
-
-                            Text {
-                                text: root.yearDonePercent + "%"
-                                color: Theme.foreground
-                                opacity: 0.65
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSize - 3
-                                textFormat: Text.PlainText
-                            }
-                        }
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: weekdayHeader.implicitHeight
-
-                        Row {
-                            id: weekdayHeader
-
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: root.cellSpacing
-
-                            Rectangle {
-                                width: root.weekColumnWidth
-                                height: root.cellHeight
-                                radius: 4
-                                color: weekStartMouse.containsMouse ? Theme.accent : "transparent"
-                                opacity: weekStartMouse.containsMouse ? 0.18 : 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "W"
-                                    color: Theme.foreground
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 3
-                                    font.bold: true
-                                    textFormat: Text.PlainText
-                                }
-
-                                MouseArea {
-                                    id: weekStartMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleWeekStart()
-                                }
-
-                                Text {
-                                    visible: weekStartMouse.containsMouse
-                                    anchors.top: parent.bottom
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: root.weekStartToggleLabel
-                                    color: Theme.foreground
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 4
-                                    textFormat: Text.PlainText
-                                }
-                            }
-
-                            Item {
-                                width: root.gutterWidth
-                                height: root.cellHeight
-                            }
-
-                            Repeater {
-                                model: root.weekdays
-
-                                Text {
-                                    required property var modelData
-
-                                    width: root.cellWidth
-                                    height: root.cellHeight
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: root.weekdayLabel(modelData)
-                                    color: Theme.foreground
-                                    opacity: 0.65
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 3
-                                    font.bold: true
-                                    textFormat: Text.PlainText
-                                }
-                            }
-                        }
-                    }
-
-                    Repeater {
-                        model: root.weeks
-
-                        Row {
-                            required property var modelData
-
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: root.cellSpacing
-
-                            Text {
-                                width: root.weekColumnWidth
-                                height: root.cellHeight
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                text: modelData.week
-                                color: Theme.foreground
-                                opacity: 0.65
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSize - 3
-                                textFormat: Text.PlainText
-                            }
-
-                            Item {
-                                width: root.gutterWidth
-                                height: root.cellHeight
-                            }
-
-                            Repeater {
-                                model: modelData.days
-
-                                Rectangle {
-                                    required property var modelData
-
-                                    width: root.cellWidth
-                                    height: root.cellHeight
+                                    width: 30
+                                    height: 30
                                     radius: 4
-                                    color: "transparent"
-                                    border.width: modelData.today ? 1 : 0
-                                    border.color: Theme.accent
+                                    color: previousMouse.containsMouse ? Theme.accent : "transparent"
+                                    opacity: previousMouse.containsMouse ? 0.18 : 1
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: modelData.day
+                                        text: "‹"
                                         color: Theme.foreground
-                                        opacity: modelData.inMonth ? 1 : 0.38
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize
-                                        font.bold: modelData.today
+                                        font.pixelSize: Theme.fontSize + 6
+                                        textFormat: Text.PlainText
+                                    }
+
+                                    MouseArea {
+                                        id: previousMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.moveMonth(-1)
+                                    }
+
+                                    Text {
+                                        visible: previousMouse.containsMouse
+                                        anchors.top: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "Previous month"
+                                        color: Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 4
+                                        textFormat: Text.PlainText
+                                    }
+                                }
+
+                                Text {
+                                    width: 150
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: root.monthLabel()
+                                    color: Theme.foreground
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize + 3
+                                    font.bold: true
+                                    textFormat: Text.PlainText
+                                }
+
+                                Rectangle {
+                                    width: 30
+                                    height: 30
+                                    radius: 4
+                                    color: nextMouse.containsMouse ? Theme.accent : "transparent"
+                                    opacity: nextMouse.containsMouse ? 0.18 : 1
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "›"
+                                        color: Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize + 6
+                                        textFormat: Text.PlainText
+                                    }
+
+                                    MouseArea {
+                                        id: nextMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.moveMonth(1)
+                                    }
+
+                                    Text {
+                                        visible: nextMouse.containsMouse
+                                        anchors.top: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "Next month"
+                                        color: Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 4
                                         textFormat: Text.PlainText
                                     }
                                 }
                             }
                         }
+
+                        Item {
+                            width: parent.width
+                            height: progressRow.implicitHeight
+
+                            Row {
+                                id: progressRow
+
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 8
+
+                                Text {
+                                    text: root.today.getFullYear()
+                                    color: Theme.foreground
+                                    opacity: 0.65
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize - 3
+                                    textFormat: Text.PlainText
+                                }
+
+                                Rectangle {
+                                    width: 110
+                                    height: 6
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    radius: 3
+                                    color: Theme.foreground
+                                    opacity: 0.14
+
+                                    Rectangle {
+                                        width: Math.round(parent.width * root.yearDone)
+                                        height: parent.height
+                                        radius: parent.radius
+                                        color: Theme.accent
+                                    }
+                                }
+
+                                Text {
+                                    text: root.yearDonePercent + "%"
+                                    color: Theme.foreground
+                                    opacity: 0.65
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize - 3
+                                    textFormat: Text.PlainText
+                                }
+                            }
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: weekdayHeader.implicitHeight
+
+                            Row {
+                                id: weekdayHeader
+
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: root.cellSpacing
+
+                                Rectangle {
+                                    width: root.weekColumnWidth
+                                    height: root.cellHeight
+                                    radius: 4
+                                    color: weekStartMouse.containsMouse ? Theme.accent : "transparent"
+                                    opacity: weekStartMouse.containsMouse ? 0.18 : 1
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "W"
+                                        color: Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 3
+                                        font.bold: true
+                                        textFormat: Text.PlainText
+                                    }
+
+                                    MouseArea {
+                                        id: weekStartMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.toggleWeekStart()
+                                    }
+
+                                    Text {
+                                        visible: weekStartMouse.containsMouse
+                                        anchors.top: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: root.weekStartToggleLabel
+                                        color: Theme.foreground
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 4
+                                        textFormat: Text.PlainText
+                                    }
+                                }
+
+                                Item {
+                                    width: root.gutterWidth
+                                    height: root.cellHeight
+                                }
+
+                                Repeater {
+                                    model: root.weekdays
+
+                                    Text {
+                                        required property var modelData
+
+                                        width: root.cellWidth
+                                        height: root.cellHeight
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: root.weekdayLabel(modelData)
+                                        color: Theme.foreground
+                                        opacity: 0.65
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 3
+                                        font.bold: true
+                                        textFormat: Text.PlainText
+                                    }
+                                }
+                            }
+                        }
+
+                        Repeater {
+                            model: root.weeks
+
+                            Row {
+                                required property var modelData
+
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: root.cellSpacing
+
+                                Text {
+                                    width: root.weekColumnWidth
+                                    height: root.cellHeight
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: modelData.week
+                                    color: Theme.foreground
+                                    opacity: 0.65
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize - 3
+                                    textFormat: Text.PlainText
+                                }
+
+                                Item {
+                                    width: root.gutterWidth
+                                    height: root.cellHeight
+                                }
+
+                                Repeater {
+                                    model: modelData.days
+
+                                    Rectangle {
+                                        required property var modelData
+
+                                        width: root.cellWidth
+                                        height: root.cellHeight
+                                        radius: 4
+                                        color: "transparent"
+                                        border.width: modelData.today ? 1 : 0
+                                        border.color: Theme.accent
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.day
+                                            color: Theme.foreground
+                                            opacity: modelData.inMonth ? 1 : 0.38
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize
+                                            font.bold: modelData.today
+                                            textFormat: Text.PlainText
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: 24
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: root.viewingCurrentMonth ? "T  today" : "T  return to today"
+                                color: Theme.foreground
+                                opacity: root.viewingCurrentMonth ? 0.42 : 0.8
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSize - 3
+                                textFormat: Text.PlainText
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: !root.viewingCurrentMonth
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.goToToday()
+                                }
+                            }
+                        }
                     }
 
-                    Item {
-                        width: parent.width
-                        height: 24
+                    Loader {
+                        id: mediaLoader
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: root.viewingCurrentMonth ? "T  today" : "T  return to today"
-                            color: Theme.foreground
-                            opacity: root.viewingCurrentMonth ? 0.42 : 0.8
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 3
-                            textFormat: Text.PlainText
-
-                            MouseArea {
-                                anchors.fill: parent
-                                enabled: !root.viewingCurrentMonth
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.goToToday()
-                            }
+                        active: root.mediaService !== null
+                        width: active ? implicitWidth : 0
+                        height: active ? parent.height : 0
+                        sourceComponent: Media {
+                            service: root.mediaService
                         }
                     }
                 }

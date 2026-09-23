@@ -35,6 +35,7 @@ PanelWindow {
 
     Clock {
         anchors.centerIn: parent
+        mediaService: bar.mediaService
     }
 
     Row {
@@ -43,10 +44,6 @@ PanelWindow {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0
 
-        Loader {
-            active: bar.mediaService !== null
-            sourceComponent: Media { service: bar.mediaService }
-        }
         Voxtype {}
         StatusCluster {
             id: statusCluster

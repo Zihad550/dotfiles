@@ -85,12 +85,11 @@ LocalSend's existing preferences are preserved. See the
 ### Media
 
 The workstation installs mpv and mpv-mpris and registers mpv for video files.
-The Bar's Media Widget appears when a player supplies a title or artist.
-Left-click toggles playback, middle-click skips forward, scrolling changes
-tracks, and right-click opens artwork, playback controls, and player selection.
-Media keys use Omarchy's original targeting rules; Shift+Play or Shift+Pause
-cycles players and transfers playback. The widget and its service are enabled
-only for `DOTFILES_PROFILE=arch-workstation`.
+The Calendar Panel's Media Controls show the active track, artwork, previous,
+play/pause, and next actions, plus player selection when multiple players are
+available. Media keys use Omarchy's original targeting rules; Shift+Play or
+Shift+Pause cycles players and transfers playback. The controls and service
+are enabled only for `DOTFILES_PROFILE=arch-workstation`.
 
 Existing installations can install `mpv-mpris`, run
 `bash setup/arch-workstation/setup-packages/setup-media`, and restart the
