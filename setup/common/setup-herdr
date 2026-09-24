@@ -39,9 +39,10 @@ herdr integration install cursor
 # herdr integration install grok
 
 ######## link local plugins
-# `plugin link` points herdr at the working tree, so the plugin tracks the repo
+# `plugin link` points herdr at each working tree, so plugins track the repo
 # with no install or build step. Re-linking an already-linked plugin is a no-op.
 herdr plugin link "$DOTFILES_DIR/herdr-plugins/tab-namer"
+herdr plugin link "$DOTFILES_DIR/herdr-plugins/sidebar-index"
 
 ##### install skill
 skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor pi kilo -y

@@ -1,0 +1,85 @@
+id = "dotfiles.sidebar-index"
+name = "Sidebar Index"
+version = "0.1.0"
+min_herdr_version = "0.8.2"
+description = "Show positional indices in expanded Space and Agent sidebar rows."
+platforms = ["linux"]
+
+[[startup]]
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "workspace.created"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "workspace.closed"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "workspace.moved"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "workspace.reordered"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "workspace.focused"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "tab.created"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "tab.closed"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "tab.moved"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "tab.focused"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.created"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.closed"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.exited"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.moved"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.focused"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["bin/sidebar-index"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["bin/sidebar-index"]
+
+[[actions]]
+id = "refresh"
+title = "Refresh sidebar indices"
+contexts = ["global"]
+command = ["bin/sidebar-index"]
+
+[[actions]]
+id = "clear"
+title = "Clear sidebar index metadata"
+contexts = ["global"]
+command = ["bin/sidebar-index", "clear"]

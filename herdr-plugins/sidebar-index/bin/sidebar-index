@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+herdr=${HERDR_BIN_PATH:-herdr}
+state_dir=${HERDR_PLUGIN_STATE_DIR:?}
+source_id="plugin:dotfiles.sidebar-index"
+
+mkdir -p "$state_dir"
+exec 9>"$state_dir/reconcile.lock"
+flock 9
+
+workspaces=$("$herdr" workspace list)
+
+jq -e '(.result.workspaces // .workspaces) | type == "array"' \
+    <<<"$workspaces" >/dev/null
+
+if [[ ${1:-} == clear ]]; then
+    panes=$("$herdr" pane list)
+    jq -e '(.result.panes // .panes) | type == "array"' <<<"$panes" >/dev/null
+
+    workspace_ids=$(jq -r '
+        (.result.workspaces // .workspaces // [])[]
+        | (.workspace_id // .id // "")
+    ' <<<"$workspaces")
+    while IFS= read -r workspace_id; do
+        [[ -n $workspace_id ]] || continue
+        "$herdr" workspace report-metadata "$workspace_id" \
+            --source "$source_id" --clear-token space_index >/dev/null
+    done <<<"$workspace_ids"
+
+    pane_ids=$(jq -r '
+        (.result.panes // .panes // [])[]
+        | (.pane_id // .id // "")
+    ' <<<"$panes")
+    while IFS= read -r pane_id; do
+        [[ -n $pane_id ]] || continue
+        "$herdr" pane report-metadata "$pane_id" \
+            --source "$source_id" --clear-token agent_index >/dev/null
+    done <<<"$pane_ids"
+    exit 0
+fi
+
+agents=$("$herdr" agent list)
+jq -e '(.result.agents // .agents) | type == "array"' \
+    <<<"$agents" >/dev/null
+
+workspace_rows=$(jq -r '
+    (.result.workspaces // .workspaces // [])
+    | to_entries[]
+    | ((.key + 1) as $index
+       | [(.value.workspace_id // .value.id // ""),
+          (if $index <= 9 then ($index | tostring) else "0" end),
+       (.value.tokens.space_index // "")]
+      )
+    | @tsv
+' <<<"$workspaces")
+
+while IFS=$'\t' read -r workspace_id index current; do
+    [[ -n $workspace_id ]] || continue
+    if [[ $index == 0 ]]; then
+        [[ -n $current ]] || continue
+        "$herdr" workspace report-metadata "$workspace_id" \
+            --source "$source_id" --clear-token space_index >/dev/null
+    elif [[ $current != "$index" ]]; then
+        "$herdr" workspace report-metadata "$workspace_id" \
+            --source "$source_id" --token "space_index=$index" >/dev/null
+    fi
+done <<<"$workspace_rows"
+
+agent_rows=$(jq -r '
+    (.result.agents // .agents // [])
+    | to_entries[]
+    | ((.key + 1) as $index
+       | [(.value.pane_id // .value.pane.pane_id // ""),
+          (if $index <= 9 then ($index | tostring) else "0" end),
+          (.value.tokens.agent_index // .value.pane.tokens.agent_index // "")]
+      )
+    | @tsv
+' <<<"$agents")
+
+while IFS=$'\t' read -r pane_id index current; do
+    [[ -n $pane_id ]] || continue
+    if [[ $index == 0 ]]; then
+        [[ -n $current ]] || continue
+        "$herdr" pane report-metadata "$pane_id" \
+            --source "$source_id" --clear-token agent_index >/dev/null
+    elif [[ $current != "$index" ]]; then
+        "$herdr" pane report-metadata "$pane_id" \
+            --source "$source_id" --token "agent_index=$index" >/dev/null
+    fi
+done <<<"$agent_rows"
