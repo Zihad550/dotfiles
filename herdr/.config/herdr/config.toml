@@ -199,6 +199,13 @@ prompt_new_tab_name = false
 agent_panel_sort = "spaces"
 show_agent_labels_on_pane_borders = true
 status_indicators = "dots"
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "$space_index", "workspace"], ["branch", "git_status"]]
+
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "tab"], ["$agent_index", "agent"]]
+
 [advanced]
 # tmux: set -g history-limit 1000000 (lines). herdr caps by bytes; ~50 MB/pane.
 scrollback_limit_bytes = 50000000
