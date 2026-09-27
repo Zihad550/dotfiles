@@ -191,9 +191,10 @@ the background and theme-preview collection.
 
 ### the omarchy repo is required
 
-`worktrunk`, `opencode`, `claude-code`, `tea` and `quickshell` are installed
-with plain `pacman -S` but are not in the official Arch repos — they come
-from the omarchy repo. Dropping `setup-omarchy-repos` as "not minimal" breaks
+`worktrunk`, `tea` and `quickshell` are installed with plain `pacman -S` but
+are not in the official Arch repos — they come from the omarchy repo. (Claude
+Code and opencode are available there too, but this box installs them with
+mise.) Dropping `setup-omarchy-repos` as "not minimal" breaks
 half of `pacman-base` plus the Hyprland steps.
 
 ### flatpak is off by default

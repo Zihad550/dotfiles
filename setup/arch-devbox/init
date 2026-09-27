@@ -73,8 +73,8 @@ run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
 run_step "theme" "$ARCH_WORKSTATION_DIR/theme"
 run_step "gnome-theme" "$ARCH_WORKSTATION_DIR/gnome-theme"
 
-# The omarchy repo is required, not optional: worktrunk, opencode, claude-code,
-# tea and quickshell all come from it.
+# The omarchy repo is required, not optional: worktrunk, tea and quickshell all
+# come from it.
 run_step "omarchy repos" "$ARCH_WORKSTATION_DIR/setup-omarchy-repos"
 run_step "mise" "$ARCH_DEVBOX_DIR/setup-mise"
 run_step "yay" "$ARCH_DEVBOX_DIR/setup-yay"
