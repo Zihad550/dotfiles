@@ -85,6 +85,18 @@ run_step "yay" "$ARCH_DEVBOX_DIR/setup-yay"
 # The CLI toolkit, fonts, coreutils replacements, and gcc come from the devbox
 # package base. The client workstation no longer uses it.
 run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
+
+# The mise installs are the longest part of the run, so they overlap the
+# pacman/yay steps below. Starts after pacman base for git. Everything that
+# runs `mise use -g` or `skills add` stays in here until join_lane; see
+# README.md "background lane".
+tools_lane() {
+    run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
+    run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
+    run_step "go packages" "$DOTFILES_DIR/setup/common/packages/go-packages"
+}
+start_lane tools tools_lane
+
 run_step "pacman apps" "$ARCH_DEVBOX_DIR/packages/pacman-apps"
 # Before the devbox AUR list, not after: makepkg may fetch an AUR package's
 # validpgpkeys with `gpg --recv-keys`, and dirmngr's own resolver cannot follow
@@ -95,8 +107,6 @@ run_step "devbox yay packages" "$ARCH_DEVBOX_DIR/packages/yay-packages"
 # live install lines, so leaving this on with flatpak uninstalled failed the
 # step and dropped the run into the retry UI.
 # run_step "flatpak packages" "$DOTFILES_DIR/setup/common/packages/flatpak-packages"
-run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
-
 
 run_step "hyprland" "$ARCH_WORKSTATION_DIR/setup-packages/setup-hyprland"
 # Shared with arch-workstation, not overridden: the shell is identical on both
@@ -141,8 +151,9 @@ else
 fi
 
 run_step "kanata" "$ARCH_WORKSTATION_DIR/setup-packages/setup-kanata"
+
+join_lane tools
 run_step "herdr" "$DOTFILES_DIR/setup/common/setup-herdr"
-run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
 
 # setup-github-cli intentionally not run — needs `gh auth login` first.
 # Run manually after login: ~/dotfiles/bin/df-arch-devbox-post-install
@@ -150,7 +161,6 @@ run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
 # setup-voxtype intentionally not run — uncomment to enable.
 # run_step "voxtype" "$ARCH_WORKSTATION_DIR/setup-packages/setup-voxtype"
 
-run_step "go packages" "$DOTFILES_DIR/setup/common/packages/go-packages"
 run_step "shell completions" "$DOTFILES_DIR/bin/df-gen-completions"
 
 # Guard keyring: writes secret files, has built-in --check but re-running is wasteful.

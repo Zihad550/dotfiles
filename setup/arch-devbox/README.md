@@ -50,6 +50,37 @@ remote path — there is no Tailscale SSH behind it. See
 is never unprotected between steps — `setup-ufw-base` writes no allow rules at
 all, just the default-deny policy.
 
+## background lane
+
+The mise installs (`mise-dev-packages`), `setup-skills`, and `go-packages` run
+in a background lane (`start_lane tools` in `init`) while the main side carries
+on with the pacman and yay steps. The mise installs took about 18 of the run's
+minutes when they were a normal step, so running them in parallel with the
+package and system steps cuts that much from the total. The helpers live in
+[`../arch-workstation/utils/logging`](../arch-workstation/utils/logging).
+
+What a lane step may do is narrow, and adding one means checking all of it:
+
+- **No pacman or yay.** pacman holds a database lock, so a second one fails at
+  once with "unable to lock database". A tool the lane needs from pacman must be
+  installed before `start_lane` — that is why the lane starts after
+  `pacman base`, which brings git for `skills add` and `go install`.
+- **It owns `mise use -g` and `skills add` until `join_lane`.** Both rewrite
+  shared files (`~/.config/mise/config.toml`, the agents' skill directories),
+  and two concurrent writers can drop each other's changes. `setup-herdr` does
+  both, so it runs right after the join instead of in the lane.
+- **Nothing on the main side may depend on it before the join.** `join_lane`
+  sits before `herdr` and `shell completions`, the first steps that use what
+  the lane installs.
+
+Lane output goes to `install-tools.log` next to `install.log`; the live panel
+shows its last line under the main log. A failing lane step does not stop the
+main side. It surfaces at `join_lane`, which copies the end of the lane log
+into `install.log` and fails there, so the error screen names the lane step.
+Errors and Ctrl-C on the main side kill the lane's whole process tree — bash
+starts background jobs in scripts with SIGINT ignored, so they would otherwise
+outlive the installer.
+
 ## what this directory actually contains
 
 Only what differs. Everything else is used straight out of `../arch-workstation`,

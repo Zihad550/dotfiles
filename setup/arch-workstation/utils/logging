@@ -6,6 +6,8 @@
 # the logo. No per-step gum spinner — progress is the rolling log panel.
 # The UI is gum-only; init installs gum right after preflight. Only the error
 # and interrupt handlers keep a plain path, since they can fire before that.
+# start_lane/join_lane run a step list in the background instead; see
+# setup/arch-devbox/README.md "background lane".
 
 ARCH_SETUP_STATE_DIR="${ARCH_SETUP_STATE_DIR:-$HOME/.local/state/arch-setup}"
 LOG_FILE="${LOG_FILE:-$ARCH_SETUP_STATE_DIR/install.log}"
@@ -81,7 +83,7 @@ start_log_output() {
     printf "$ANSI_HIDE_CURSOR"
 
     (
-        local log_lines=20
+        local log_lines=19 # plus one lane status line
         local max_line_width=$((LOGO_WIDTH - 4))
         ((max_line_width < 20)) && max_line_width=$((TERM_WIDTH - 4))
 
@@ -100,6 +102,19 @@ start_log_output() {
                     output+="${ANSI_CLEAR_LINE}${PADDING_LEFT_SPACES}\n"
                 fi
             done
+
+            status=""
+            for marker in "$LANE_DIR"/*; do
+                [[ -e "$marker" ]] || continue
+                lane="${marker##*/}"
+                last=$(tail -n 1 "$(_lane_log "$lane")" 2>/dev/null)
+                status="⇄ $lane: ${last##*$'\r'}" # last frame of a progress bar
+                break
+            done
+            if ((${#status} > max_line_width)); then
+                status="${status:0:$max_line_width}..."
+            fi
+            output+="${ANSI_CLEAR_LINE}${ANSI_GRAY}${PADDING_LEFT_SPACES}  ${status}${ANSI_RESET}\n"
 
             printf "${ANSI_RESTORE_CURSOR}%b" "$output"
             sleep 0.1
@@ -175,6 +190,75 @@ run_step() {
     return $rc
 }
 
+# --- background lanes ---------------------------------------------------
+LANE_DIR="$ARCH_SETUP_STATE_DIR/lanes" # one marker per running lane, for the panel
+rm -rf "$LANE_DIR"
+mkdir -p "$LANE_DIR"
+declare -A LANE_PIDS=()
+
+_lane_log() { echo "$ARCH_SETUP_STATE_DIR/install-$1.log"; }
+
+# start_lane "name" fn [args...] — run fn's run_steps concurrently, logging to
+# install-<name>.log. A failure surfaces at join_lane.
+start_lane() {
+    local name="$1" log
+    shift
+    log=$(_lane_log "$name")
+    echo "[$(_ts)] Started lane: $name (log: $log)" >>"$LOG_FILE"
+    touch "$LANE_DIR/$name"
+    (
+        # errtrace carries the ERR trap in here; without this a failing lane
+        # step would open a second error screen over the main one.
+        trap - ERR
+        LOG_FILE="$log"
+        "$@"
+    ) </dev/null >>"$log" 2>&1 &
+    LANE_PIDS[$name]=$!
+}
+
+# join_lane "name" — wait for the lane; its failure fails the install here.
+join_lane() {
+    local name="$1" log rc=0
+    log=$(_lane_log "$name")
+    CURRENT_STEP="$name lane"
+    wait "${LANE_PIDS[$name]}" || rc=$?
+    unset 'LANE_PIDS[$name]'
+    rm -f "$LANE_DIR/$name"
+    if ((rc == 0)); then
+        echo "[$(_ts)] Joined lane: $name" >>"$LOG_FILE"
+        return 0
+    fi
+    # The error screen tails LOG_FILE, so copy the lane's failure into it.
+    CURRENT_STEP="$name lane: $(sed -n 's/^\[[^]]*\] Starting: //p' "$log" | tail -n 1)"
+    {
+        echo "[$(_ts)] Failed: $name lane (exit $rc). Last lines of $log:"
+        tail -n 20 "$log"
+    } >>"$LOG_FILE"
+    return "$rc"
+}
+
+# Stop first so the process can't spawn a child we then miss.
+_kill_tree() {
+    local child
+    kill -STOP "$1" 2>/dev/null || return 0
+    for child in $(pgrep -P "$1" || true); do
+        _kill_tree "$child"
+    done
+    kill -TERM "$1" 2>/dev/null || true
+    kill -CONT "$1" 2>/dev/null || true
+}
+
+# Lanes ignore SIGINT (bash does that to background jobs in scripts), and
+# killing only the subshell would orphan the mise/npm it is running.
+kill_lanes() {
+    local name
+    for name in "${!LANE_PIDS[@]}"; do
+        _kill_tree "${LANE_PIDS[$name]}"
+        rm -f "$LANE_DIR/$name"
+    done
+    LANE_PIDS=()
+}
+
 # --- error handling (omarchy errors.sh) ---------------------------------
 ERROR_HANDLING=false
 
@@ -208,6 +292,7 @@ catch_errors() {
     ERROR_HANDLING=true
 
     stop_log_output
+    kill_lanes
     restore_outputs
     show_cursor
 
@@ -245,6 +330,7 @@ catch_errors() {
 # Invoked on SIGINT/SIGTERM.
 ui_interrupted() {
     stop_log_output
+    kill_lanes
     show_cursor
     echo "[$(_ts)] Interrupted at step: ${CURRENT_STEP:-?}" >>"$LOG_FILE"
     if _is_tty && command -v gum &>/dev/null; then
@@ -266,6 +352,7 @@ exit_handler() {
         catch_errors
     else
         stop_log_output
+        kill_lanes
         show_cursor
     fi
     if declare -F on_exit_extra >/dev/null; then
