@@ -2,20 +2,15 @@
 
 # Sanity checks before running an Arch setup. Shared by arch-workstation and
 # arch-devbox — the caller names itself via ARCH_SETUP_NAME.
-# Each check that fails offers a gum-confirm bypass (or plain prompt fallback).
+# Each check that fails offers a y/N bypass. Plain bash on purpose: this runs
+# before init installs gum, and checks the pacman that install needs.
 
 SETUP_NAME="${ARCH_SETUP_NAME:-arch-workstation}"
 
 abort() {
-    local what="$1"
-    if command -v gum &>/dev/null && [[ -t 1 ]]; then
-        gum style --foreground 1 "✗ $SETUP_NAME setup requires: $what"
-        gum confirm "Proceed anyway?" || exit 1
-    else
-        echo "✗ $SETUP_NAME setup requires: $what" >&2
-        read -rp "Proceed anyway? [y/N] " ans
-        [[ "$ans" =~ ^[yY] ]] || exit 1
-    fi
+    echo "✗ $SETUP_NAME setup requires: $1" >&2
+    read -rp "Proceed anyway? [y/N] " ans
+    [[ "$ans" =~ ^[yY] ]] || exit 1
 }
 
 # Must be an Arch distro

@@ -25,9 +25,6 @@ on_exit_extra() {
     "$DOTFILES_DIR/setup/common/setup-first-run-sudo" --remove 2>/dev/null
 }
 
-# Bootstrap gum so the install UI works from step 1 (silent no-op if already present).
-ensure_gum || true
-
 export ARCH_SETUP_START_EPOCH=$(date +%s)
 
 "$ARCH_WORKSTATION_DIR/preflight"
@@ -36,6 +33,10 @@ export ARCH_SETUP_START_EPOCH=$(date +%s)
 # they never prompt mid-install. Self-removes via the cleanup trap. (Mirrors
 # omarchy's preflight/first-run-mode.sh.)
 "$DOTFILES_DIR/setup/common/setup-first-run-sudo"
+
+# Everything from here on draws with gum. Before the -Syu below, so a stale
+# package database can fail this step.
+run_step "gum" sudo pacman -S --noconfirm --needed gum
 
 ui_header "ARCH WORKSTATION SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 
@@ -153,15 +154,7 @@ echo "      $ARCH_WORKSTATION_DIR/setup-packages/setup-github-cli"
 echo
 
 if [[ -e /dev/tty ]]; then
-    install_backgrounds=false
-    if command -v gum &>/dev/null; then
-        gum confirm "Clone the optional theme backgrounds now?" </dev/tty && install_backgrounds=true
-    else
-        read -r -p "Clone the optional theme backgrounds now? [y/N] " response </dev/tty
-        [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && install_backgrounds=true
-    fi
-
-    if [[ "$install_backgrounds" == true ]]; then
+    if gum confirm "Clone the optional theme backgrounds now?" </dev/tty; then
         if "$DOTFILES_DIR/scripts/stow/stow-backgrounds"; then
             echo "Theme backgrounds installed."
         else
@@ -177,20 +170,10 @@ if [[ -e /dev/tty ]]; then
     cleanup_ready=true
     "$DOTFILES_DIR/setup/common/confirm-first-run-sudo-cleanup" </dev/tty || cleanup_ready=false
 
-    restart=false
-    if [[ "$cleanup_ready" == true ]]; then
-        if command -v gum &>/dev/null; then
-            gum confirm "Restart now?" </dev/tty && restart=true
-        else
-            read -r -p "Do you want to restart? [y/N] " response </dev/tty
-            [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]] && restart=true
-        fi
-    fi
-
     # Reboot races the EXIT trap: `shutdown -r now` returns at once and the
     # kernel kills us before on_exit_extra's `rm` lands, leaving the temporary
     # sudoers rule on disk. So tear it down explicitly before shutting down.
-    if [[ "$restart" == true ]]; then
+    if [[ "$cleanup_ready" == true ]] && gum confirm "Restart now?" </dev/tty; then
         on_exit_extra
         sudo shutdown -r now
     fi

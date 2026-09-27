@@ -4,6 +4,8 @@
 # errors.sh). Same model: commands run in the FOREGROUND writing to a log file,
 # while a backgrounded viewer continuously redraws the tail of that log under
 # the logo. No per-step gum spinner — progress is the rolling log panel.
+# The UI is gum-only; init installs gum right after preflight. Only the error
+# and interrupt handlers keep a plain path, since they can fire before that.
 
 ARCH_SETUP_STATE_DIR="${ARCH_SETUP_STATE_DIR:-$HOME/.local/state/arch-setup}"
 LOG_FILE="${LOG_FILE:-$ARCH_SETUP_STATE_DIR/install.log}"
@@ -16,22 +18,11 @@ ARCH_SETUP_NAME="${ARCH_SETUP_NAME:-arch-workstation}"
 ARCH_SETUP_INIT="${ARCH_SETUP_INIT:-${ARCH_WORKSTATION_DIR:-}/init}"
 
 _ts() { date '+%Y-%m-%d %H:%M:%S'; }
-_has_gum() { command -v gum &>/dev/null; }
 _is_tty() { [[ -t 1 ]]; }
 
 # Cursor is hidden while the viewer runs; restore it on the way out.
 show_cursor() { printf '\033[?25h'; }
 _show_cursor() { show_cursor; }
-
-# Self-bootstrap gum on first install so the UI lights up from step 1.
-# Silent fallback if pacman/sudo missing (e.g. running on non-Arch host).
-ensure_gum() {
-    _has_gum && return 0
-    command -v pacman &>/dev/null || return 1
-    echo "Installing gum for nicer install UI..."
-    sudo pacman -S --noconfirm --needed gum >>"$LOG_FILE" 2>&1 || return 1
-    _has_gum
-}
 
 # --- presentation (omarchy presentation.sh) -----------------------------
 # Terminal size from /dev/tty (works direct, sourced, or piped).
@@ -72,10 +63,8 @@ unset _PAD
 
 clear_logo() {
     printf "\033[H\033[2J" # clear screen, cursor to top-left
-    if _has_gum && [[ -f "$LOGO_PATH" ]]; then
+    if [[ -f "$LOGO_PATH" ]]; then
         gum style --foreground 2 --padding "1 0 0 $PADDING_LEFT" "$(<"$LOGO_PATH")"
-    elif [[ -f "$LOGO_PATH" ]]; then
-        printf '\033[32m'; cat "$LOGO_PATH"; printf '\033[0m\n'
     fi
 }
 
@@ -136,12 +125,8 @@ ui_header() {
 
     if _is_tty; then
         clear_logo
-        if _has_gum; then
-            gum style --foreground 3 --padding "1 0 0 $PADDING_LEFT" "$title"
-            echo
-        else
-            echo "=== $title — $sub ==="
-        fi
+        gum style --foreground 3 --padding "1 0 0 $PADDING_LEFT" "$title"
+        echo
         start_log_output
     fi
 }
@@ -161,17 +146,8 @@ ui_done() {
     fi
     echo "[$(_ts)] $msg" >>"$LOG_FILE"
 
-    if _has_gum && _is_tty; then
-        if [[ -n "$elapsed_line" ]]; then
-            gum style --border rounded --padding "1 2" \
-                --border-foreground 2 --foreground 2 "✓ $msg" "$elapsed_line"
-        else
-            gum style --border rounded --padding "1 2" \
-                --border-foreground 2 --foreground 2 "✓ $msg"
-        fi
-    else
-        echo "=== $msg ${elapsed_line:+— $elapsed_line} ==="
-    fi
+    gum style --border rounded --padding "1 2" \
+        --border-foreground 2 --foreground 2 "✓ $msg" ${elapsed_line:+"$elapsed_line"}
 }
 
 # ui_skip "message" — log only; the panel surfaces it (no direct terminal write
@@ -233,10 +209,10 @@ catch_errors() {
 
     stop_log_output
     restore_outputs
-    clear_logo
     show_cursor
 
-    if _has_gum && _is_tty; then
+    if _is_tty && command -v gum &>/dev/null; then
+        clear_logo
         gum style --foreground 1 --padding "1 0 1 $PADDING_LEFT" "$ARCH_SETUP_NAME setup stopped!"
         show_log_tail
         gum style "Step '${CURRENT_STEP:-?}' halted with exit code $exit_code."
@@ -271,7 +247,7 @@ ui_interrupted() {
     stop_log_output
     show_cursor
     echo "[$(_ts)] Interrupted at step: ${CURRENT_STEP:-?}" >>"$LOG_FILE"
-    if _has_gum && _is_tty; then
+    if _is_tty && command -v gum &>/dev/null; then
         echo
         gum style --foreground 3 --border thick --padding "1 2" --border-foreground 3 \
             "⚠ Interrupted at step: ${CURRENT_STEP:-?}"
