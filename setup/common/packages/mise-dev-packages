@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 
+set -e
 
-mise use -g node@24 node go pnpm uv
-mise use -g claude opencode npm:@kilocode/cli gemini oh-my-pi
-mise use -g npm:skills npm:@playwright/cli aichat
+runtimes=(node@24 node go pnpm uv)
+agents=(claude opencode npm:@kilocode/cli gemini oh-my-pi)
+agent_tools=(npm:skills npm:@playwright/cli aichat)
+diff_tools=(aqua:modem-dev/hunk)
+
+# One install call downloads everything in parallel (npm: tools wait for node).
+# Not fatal here: a failed tool fails again in its group's `mise use` below,
+# after the groups before it are recorded. node@24 and node share a call so
+# both versions stay configured.
+mise install "${runtimes[@]}" "${agents[@]}" "${agent_tools[@]}" "${diff_tools[@]}" || true
+
+mise use -g "${runtimes[@]}"
+mise use -g "${agents[@]}"
+mise use -g "${agent_tools[@]}"
+mise use -g "${diff_tools[@]}"
 
 
 # crush by bubble tea
