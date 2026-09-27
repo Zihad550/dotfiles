@@ -24,6 +24,13 @@ export ARCH_SETUP_STATE_DIR="$HOME/.local/state/arch-devbox-setup"
 mkdir -p "$ARCH_SETUP_STATE_DIR"
 export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 
+# Checked before this run can create the marker: the wrap-up's one-time steps
+# only print on a machine's first completed install.
+first_install=true
+if [[ -e "$ARCH_SETUP_STATE_DIR/.initialized" ]]; then
+    first_install=false
+fi
+
 # Before utils/logging: its error screen would clear this message.
 "$DOTFILES_DIR/setup/common/check-machine-profile" arch-devbox
 
@@ -219,28 +226,35 @@ ui_done "arch-devbox setup completed"
 # Interactive wrap-up. ui_done has stopped the live log panel, so the terminal
 # is free again. These must run here (not inside post-install, which run_step
 # executes with stdin /dev/null and stdout redirected to the log).
-echo
-echo "Next steps — the firewall is deny-all until you run these:"
-echo "  0. $ARCH_DEVBOX_DIR/setup-ufw-lan     # optional: ssh in from one LAN machine"
-echo "     (skip it if you are staying at this keyboard until the tailnet is up."
-echo "      It only covers the gap: right now nothing can reach this box at all,"
-echo "      and step 2 deletes the hole again)"
-echo "  1. $ARCH_DEVBOX_DIR/setup-tailscale   # join the tailnet, open tailscale0"
-echo "  2. $ARCH_DEVBOX_DIR/setup-ufw         # tailnet-only + VLAN isolation"
-echo "     (in that order — setup-ufw refuses to run before the tailnet is up,"
-echo "      since afterwards the tailnet is the only remote way in. If you got"
-echo "      here over the LAN, reconnect over the tailnet before running it)"
-echo "  3. $ARCH_DEVBOX_DIR/harden-ssh        # key-only sshd, off port 22"
-echo "     (after ssh-copy-id from the laptop — it refuses without a key."
-echo "      Tailscale SSH is off; sshd is the tailnet access path. The port"
-echo "      move is optional, so SSH_PORT=keep is valid.)"
-echo
-echo "Then:"
-echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-devbox-post-install"
-echo "    (configures GitHub CLI; completions + go tools already ran during setup)"
-echo "  • AI CLIs already installed by 'mise packages' — several need a login on"
-echo "    first run (claude, opencode, gemini, kilo)."
-echo
+if [[ "$first_install" == true ]]; then
+    echo
+    echo "Next steps — the firewall is deny-all until you run these:"
+    echo "  0. $ARCH_DEVBOX_DIR/setup-ufw-lan     # optional: ssh in from one LAN machine"
+    echo "     (skip it if you are staying at this keyboard until the tailnet is up."
+    echo "      It only covers the gap: right now nothing can reach this box at all,"
+    echo "      and step 2 deletes the hole again)"
+    echo "  1. $ARCH_DEVBOX_DIR/setup-tailscale   # join the tailnet, open tailscale0"
+    echo "  2. $ARCH_DEVBOX_DIR/setup-ufw         # tailnet-only + VLAN isolation"
+    echo "     (in that order — setup-ufw refuses to run before the tailnet is up,"
+    echo "      since afterwards the tailnet is the only remote way in. If you got"
+    echo "      here over the LAN, reconnect over the tailnet before running it)"
+    echo "  3. $ARCH_DEVBOX_DIR/harden-ssh        # key-only sshd, off port 22"
+    echo "     (after ssh-copy-id from the laptop — it refuses without a key."
+    echo "      Tailscale SSH is off; sshd is the tailnet access path. The port"
+    echo "      move is optional, so SSH_PORT=keep is valid.)"
+    echo
+    echo "Then:"
+    echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-devbox-post-install"
+    echo "    (configures GitHub CLI; completions + go tools already ran during setup)"
+    echo "  • AI CLIs already installed by 'mise packages' — several need a login on"
+    echo "    first run (claude, opencode, gemini, kilo)."
+    echo
+else
+    echo
+    echo "Not listing the first-install steps again (firewall, tailnet, ssh hardening,"
+    echo "logins); they are in setup/arch-devbox/README.md under \"order\"."
+    echo
+fi
 
 if [[ -e /dev/tty ]]; then
     if gum confirm "Clone the optional theme backgrounds now?" </dev/tty; then

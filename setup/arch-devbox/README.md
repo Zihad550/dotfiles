@@ -9,8 +9,9 @@ and none of the chat/media/notes/torrent packages.
 ## order
 
 This is the canonical copy. The script headers point here rather than restating
-it; the one other place it appears is what `init` prints when it finishes, which
-has to be the runnable commands. Reordering means editing those two, not five.
+it; the one other place it appears is what `init` prints when a machine's first
+install finishes, which has to be the runnable commands. Reruns print a pointer
+back here instead. Reordering means editing those two, not five.
 
 ```bash
 setup/boot.sh arch-devbox              # or: setup/arch-devbox/init

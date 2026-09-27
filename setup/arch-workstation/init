@@ -9,6 +9,13 @@ export ARCH_SETUP_STATE_DIR="$HOME/.local/state/arch-setup"
 mkdir -p "$ARCH_SETUP_STATE_DIR"
 export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 
+# Checked before this run can create the marker: the wrap-up's one-time steps
+# only print on a machine's first completed install.
+first_install=true
+if [[ -e "$ARCH_SETUP_STATE_DIR/.initialized" ]]; then
+    first_install=false
+fi
+
 # Before utils/logging: its error screen would clear this message.
 "$DOTFILES_DIR/setup/common/check-machine-profile" arch-workstation
 
@@ -158,13 +165,20 @@ run_step "machine profile" "$DOTFILES_DIR/setup/common/set-dotfiles-profile" arc
 touch "$ARCH_SETUP_STATE_DIR/.initialized"
 ui_done "arch-workstation setup completed"
 
-echo
-echo "Remote access:"
-echo "  • Join Tailscale: sudo tailscale up --operator=$USER"
-echo "  • Put the devbox hostname in ~/.ssh/config; Zed and Herdr use SSH."
-echo "  • After 'gh auth login', run:"
-echo "      $ARCH_WORKSTATION_DIR/setup-packages/setup-github-cli"
-echo
+if [[ "$first_install" == true ]]; then
+    echo
+    echo "Remote access:"
+    echo "  • Join Tailscale: sudo tailscale up --operator=$USER"
+    echo "  • Put the devbox hostname in ~/.ssh/config; Zed and Herdr use SSH."
+    echo "  • After 'gh auth login', run:"
+    echo "      $ARCH_WORKSTATION_DIR/setup-packages/setup-github-cli"
+    echo
+else
+    echo
+    echo "Not listing the first-install steps again (Tailscale, ssh config, GitHub CLI);"
+    echo "they are in setup/arch-workstation/README.md."
+    echo
+fi
 
 if [[ -e /dev/tty ]]; then
     if gum confirm "Clone the optional theme backgrounds now?" </dev/tty; then
