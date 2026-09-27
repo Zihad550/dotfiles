@@ -27,9 +27,12 @@ stow procs
 stow atuin
 stow dotfiles
 stow go-timer
-# stow mise
+# stow mise — copied, not linked, since `mise use -g` rewrites it. Only seed a
+# missing file: a rerun must keep the tools and options added since.
 mkdir -p ~/.config/mise
-cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
+if [[ ! -e ~/.config/mise/config.toml ]]; then
+    cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
+fi
 # stow worktrunk — only config.toml is managed; the rest is runtime state (approvals, locks)
 mkdir -p ~/.config/worktrunk
 ln -snf ~/dotfiles/worktrunk/.config/worktrunk/config.toml ~/.config/worktrunk/config.toml
