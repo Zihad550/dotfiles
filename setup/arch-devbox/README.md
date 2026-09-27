@@ -106,8 +106,9 @@ so a fix there lands on both targets.
 | `setup-ufw` | step 2: allow the tailnet, delete the LAN hole, cut the box off from the rest of the VLAN |
 
 Borrowed unchanged from `../arch-workstation`: `utils/*`, `preflight`, `theme`,
-`gnome-theme`, `keyring`, `logo.txt`, `setup-omarchy-repos`, and the desktop
-setup helpers. The workstation-specific Syncthing and firewall steps are not
+`gnome-theme`, `keyring`, `setup-omarchy-repos`, and the desktop setup helpers.
+`logo.txt` is this directory's own; `utils/logging` loads the one next to
+`$ARCH_SETUP_INIT`. The workstation-specific Syncthing and firewall steps are not
 shared. Mise is another exception: Arch workstation no longer installs it, so
 this profile owns `setup-mise`.
 The shared package lists this box runs live in
