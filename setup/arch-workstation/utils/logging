@@ -266,6 +266,28 @@ kill_lanes() {
     LANE_PIDS=()
 }
 
+# --- sudo keep-alive ----------------------------------------------------
+# A step that runs past sudo's credential cache (a long AUR build) would stop at
+# a password prompt behind the panel. Refresh the credential the user already
+# has rather than widen setup-first-run-sudo; see setup/common/README.md
+# "First-run sudo".
+start_sudo_keepalive() {
+    (
+        trap - ERR
+        while sleep 60; do
+            sudo -n -v || exit 0
+        done
+    ) </dev/null >/dev/null 2>&1 &
+    SUDO_KEEPALIVE_PID=$!
+}
+
+stop_sudo_keepalive() {
+    if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+        _kill_tree "$SUDO_KEEPALIVE_PID"
+        unset SUDO_KEEPALIVE_PID
+    fi
+}
+
 # --- error handling (omarchy errors.sh) ---------------------------------
 ERROR_HANDLING=false
 
@@ -300,6 +322,7 @@ catch_errors() {
 
     stop_log_output
     kill_lanes
+    stop_sudo_keepalive
     restore_outputs
     show_cursor
 
@@ -339,6 +362,7 @@ ui_interrupted() {
     ERROR_HANDLING=true # this is the report; exit_handler must not add a failure screen
     stop_log_output
     kill_lanes
+    stop_sudo_keepalive
     show_cursor
     echo "[$(_ts)] Interrupted at step: ${CURRENT_STEP:-?}" >>"$LOG_FILE"
     if _is_tty && command -v gum &>/dev/null; then
@@ -361,6 +385,7 @@ exit_handler() {
     else
         stop_log_output
         kill_lanes
+        stop_sudo_keepalive
         show_cursor
     fi
     if declare -F on_exit_extra >/dev/null; then

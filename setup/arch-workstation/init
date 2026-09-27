@@ -36,6 +36,7 @@ export ARCH_SETUP_START_EPOCH=$(date +%s)
 # they never prompt mid-install. Self-removes via the cleanup trap. (Mirrors
 # omarchy's preflight/first-run-mode.sh.)
 "$DOTFILES_DIR/setup/common/setup-first-run-sudo"
+start_sudo_keepalive
 
 # Everything from here on draws with gum. Before the -Syu below, so a stale
 # package database can fail this step.

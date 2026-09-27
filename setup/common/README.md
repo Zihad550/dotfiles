@@ -221,6 +221,13 @@ It is not the place to add a command merely to silence one prompt. A step that
 sudoes once or twice should let sudo's ordinary credential cache cover it; see
 "Serving dev ports" for what widening this list actually costs.
 
+The cache still expires when one step runs longer than its five minutes without
+calling sudo, such as a long AUR build before yay's final `sudo pacman`. So the
+Arch `init`s also start a keep-alive right after this drop-in is written: a
+background `sudo -n -v` every minute that refreshes the credential the user
+already typed and grants nothing new. It never prompts, and the installer stops
+it on exit, on an error and on Ctrl-C.
+
 ## Serving dev ports
 
 `ts-serve` (in `zsh/.config/zsh/aliasrc`) publishes a local dev port on the
