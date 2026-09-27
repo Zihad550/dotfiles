@@ -48,7 +48,7 @@ jq -e '(.result.agents // .agents) | type == "array"' \
 workspace_rows=$(jq -r '
     (.result.workspaces // .workspaces // [])
     | to_entries[]
-    | ((.key + 1) as $index
+    | ((.value.number // (.key + 1)) as $index
        | [(.value.workspace_id // .value.id // ""),
           (if $index <= 9 then ($index | tostring) else "0" end),
        (.value.tokens.space_index // "")]
