@@ -35,6 +35,16 @@ Zed can then open the same host through its remote-development UI.
 
 ## Installation notes
 
+### Background lane
+
+`init` installs the Flatpak apps (`setup/common/packages/flatpak-packages`) in
+a background lane. It starts once `setup-flatpak` has installed flatpak and
+added Flathub, and the main side waits for it before `post-install`, which sets
+the Zen Flatpak as the default browser. Lane output goes to
+`install-flatpak.log` next to `install.log`. A step added to the lane must not
+use pacman or yay; the full rules are in
+[the arch-devbox README](../arch-devbox/README.md#background-lane).
+
 ### LocalSend on an existing workstation
 
 Run these steps on the **workstation**, after updating its `~/dotfiles` checkout
