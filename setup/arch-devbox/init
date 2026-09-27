@@ -45,6 +45,8 @@ source "$ARCH_WORKSTATION_DIR/utils/logging"
 source "$ARCH_WORKSTATION_DIR/utils/state"
 # shellcheck source=../common/hw-detect
 source "$DOTFILES_DIR/setup/common/hw-detect"
+# shellcheck source=../common/pacman-lib
+source "$DOTFILES_DIR/setup/common/pacman-lib"
 
 CURRENT_STEP="init"
 
@@ -66,7 +68,7 @@ start_sudo_keepalive
 
 # Everything from here on draws with gum. Before the -Syu below, so a stale
 # package database can fail this step.
-run_step "gum" sudo pacman -S --noconfirm --needed gum
+run_step "gum" pacman_install gum
 
 ui_header "ARCH DEVBOX SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 

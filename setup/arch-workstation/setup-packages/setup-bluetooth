@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm bluez bluez-utils bluetui
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install bluez bluez-utils bluetui
 sudo systemctl enable --now bluetooth.service

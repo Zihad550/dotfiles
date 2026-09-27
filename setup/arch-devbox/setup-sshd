@@ -16,7 +16,10 @@
 
 set -e
 
-sudo pacman -S --noconfirm --needed openssh
+# shellcheck source=../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../common/pacman-lib"
+
+pacman_install openssh
 
 if systemctl is-enabled sshd.service &>/dev/null; then
     echo "sshd.service already enabled"

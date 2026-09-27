@@ -2,6 +2,9 @@
 # Setup omarchy pacman repository
 set -e
 
+# shellcheck source=../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../common/pacman-lib"
+
 REPO_CONFIG="$HOME/dotfiles/setup/arch-workstation/pacman/omarchy-repo.conf"
 
 if [[ ! -f "$REPO_CONFIG" ]]; then
@@ -24,6 +27,6 @@ sudo pacman -Sy
 
 # Install keyring (this registers the repo's keys properly)
 echo "Installing omarchy-keyring..."
-sudo pacman -S --noconfirm omarchy-keyring
+pacman_install omarchy-keyring
 
 echo "Omarchy repository setup complete!"

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 # zsh
-sudo pacman -S --noconfirm zsh
+
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install zsh
 
 # zsh plugins
 # sudo pacman -Syu zsh-syntax-highlighting --noconfirm

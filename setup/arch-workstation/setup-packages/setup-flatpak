@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm flatpak
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install flatpak
 
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo

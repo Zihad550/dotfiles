@@ -6,13 +6,16 @@
 
 set -euo pipefail
 
+# shellcheck source=pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/pacman-lib"
+
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 GREETER_DIR="$DOTFILES_DIR/setup/common/greeter"
 BOOT_BRANDING_DIR="$DOTFILES_DIR/setup/common/boot-branding"
 
 # These are explicit rather than relying on SDDM's transitive dependencies:
 # the Greeter launches a Wayland compositor, loads Qt6 QML, and decodes PNGs.
-sudo pacman -S --noconfirm --needed \
+pacman_install \
 	sddm plymouth imagemagick qt6-wayland qt6-declarative qt6-imageformats \
 	ttf-jetbrains-mono-nerd
 

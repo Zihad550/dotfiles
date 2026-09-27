@@ -3,10 +3,14 @@
 # Graphical applications for the client workstation. Editors stay local so
 # they can connect to a devbox; build tools and language runtimes do not.
 
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
 #  core, desktop-only
 # xournalpp - pdf editor
 # dosfstools - fat32 support
-sudo pacman -S --noconfirm \
+
+pacman_install \
     xournalpp \
     dosfstools \
     rclone \
@@ -24,7 +28,7 @@ sudo pacman -S --noconfirm \
 #   ../../common/packages/quickshell-packages --
 #   they are quickshell's runtime dependencies (calculator, clipboard provider,
 #   wl-copy) and arch-devbox needs the same set.
-sudo pacman -S --noconfirm \
+pacman_install \
     zed \
     neovim \
     yazi resvg \
@@ -44,7 +48,7 @@ sudo pacman -S --noconfirm \
 # install gnome apps
 # gnome-keyring, libsecret and seahorse are NOT optional: setup-hyprland
 # enables gcr-ssh-agent.service, which is how ssh keys get unlocked here.
-sudo pacman -S --noconfirm \
+pacman_install \
     nautilus \
     nautilus-image-converter \
     gnome-disk-utility \

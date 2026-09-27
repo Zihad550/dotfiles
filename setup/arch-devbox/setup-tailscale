@@ -17,7 +17,10 @@
 
 set -euo pipefail
 
-sudo pacman -S --noconfirm --needed tailscale
+# shellcheck source=../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../common/pacman-lib"
+
+pacman_install tailscale
 
 # setup-ufw-base (run by init) already denied everything inbound, and setup-ufw
 # does not run until after this. So the tailnet rule has to be written here, or

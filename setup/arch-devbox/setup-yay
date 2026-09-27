@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 
 # makepkg needs the complete base-devel group to build AUR packages.
-sudo pacman -S --noconfirm --needed base-devel
+
+# shellcheck source=../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../common/pacman-lib"
+
+pacman_install base-devel
 
 if command -v yay &>/dev/null; then
     echo "yay already installed ($(command -v yay)); skipping."
     exit 0
 fi
 
-sudo pacman -S --noconfirm --needed yay
+pacman_install yay

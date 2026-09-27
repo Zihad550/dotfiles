@@ -19,6 +19,9 @@
 # quickshell comes from the omarchy repo, not official Arch: setup-omarchy-repos
 # must have run before this.
 
+# shellcheck source=../pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../pacman-lib"
+
 # quickshell - the bar, notification daemon, OSD, launcher and Session Lock
 #     (dotfiles/shell.qml, launcher/shell.qml and lock/shell.qml)
 # ttf-fira-code - Theme.qml's fontFamily in both shells; every label renders in
@@ -28,6 +31,7 @@
 #     (launcher/lib/clipboard.js). Needs `wl-paste --watch cliphist store`
 #     running to have any history to read — started from
 #     hypr/.config/hypr/lua/autostart.lua.
+
 # wl-clipboard - wl-copy (launcher copy actions) and the wl-paste watcher above
 # libnotify - notify-send. The shell's NotificationDaemon.qml is what displays
 #     these; the bin/df-* scripts send them too.
@@ -37,7 +41,7 @@
 #     backgrounds are webp). Qt renders the theme background colour instead
 #     without it, which looks deliberate rather than broken -- so its absence
 #     shows up as a missing wallpaper, not as an error.
-sudo pacman -S --noconfirm \
+pacman_install \
     quickshell \
     ttf-fira-code \
     libqalculate \

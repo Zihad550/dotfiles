@@ -10,6 +10,9 @@
 
 set -euo pipefail
 
+# shellcheck source=pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/pacman-lib"
+
 PROFILE_NAME="${TUNED_PROFILE_NAME:?set TUNED_PROFILE_NAME (see the per-box wrapper)}"
 PROFILE_SUMMARY="${TUNED_SUMMARY:-Always-on devbox: power savings that never touch the ssh path}"
 
@@ -26,7 +29,7 @@ if systemctl is-enabled tlp.service &>/dev/null || systemctl is-active tlp.servi
 fi
 
 if command -v pacman &>/dev/null; then
-    sudo pacman -S --noconfirm --needed tuned
+    pacman_install tuned
 elif command -v apt-get &>/dev/null; then
     # tuned is in universe on Debian/Ubuntu.
     if ! apt-cache policy tuned 2>/dev/null | grep -q 'Candidate: [0-9]'; then

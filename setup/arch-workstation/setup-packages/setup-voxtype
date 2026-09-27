@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm wtype voxtype-bin
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install wtype voxtype-bin
 
 voxtype setup --download --no-post-install
 voxtype setup systemd

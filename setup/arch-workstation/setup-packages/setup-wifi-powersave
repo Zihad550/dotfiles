@@ -5,7 +5,10 @@
 #   on battery   -> on   (saves power)
 # Laptop-only; init gates this with is_laptop.
 
-sudo pacman -S --noconfirm --needed iw
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install iw
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 HELPER="$DOTFILES_DIR/bin/df-wifi-powersave"

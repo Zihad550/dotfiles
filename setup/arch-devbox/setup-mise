@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm mise
+# shellcheck source=../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../common/pacman-lib"
+
+pacman_install mise
 
 mise use -g usage

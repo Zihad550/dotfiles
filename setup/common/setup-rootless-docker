@@ -6,6 +6,9 @@
 
 set -e
 
+# shellcheck source=pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/pacman-lib"
+
 sudo modprobe ip_tables
 
 # A stale rootful daemon would fight the rootless one over the docker group
@@ -37,6 +40,6 @@ systemctl --user enable docker.service
 systemctl --user start docker.service
 
 # CLI plugins, not the daemon -- work fine against a rootless DOCKER_HOST.
-sudo pacman -S --noconfirm --needed docker-compose docker-buildx
+pacman_install docker-compose docker-buildx
 
 echo "rootless docker: $(systemctl --user is-active docker.service)"

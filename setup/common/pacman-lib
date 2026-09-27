@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Sourced by the Arch setup scripts so every package install uses the same
+# flags. --needed skips packages that are already installed and current, so a
+# rerun does not reinstall everything.
+
+pacman_install() {
+    sudo pacman -S --noconfirm --needed "$@"
+}

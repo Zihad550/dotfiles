@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-sudo pacman -S --noconfirm tlp tlp-rdw
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install tlp tlp-rdw
 sudo systemctl enable --now tlp.service
 sudo systemctl mask systemd-rfkill.service
 sudo systemctl mask systemd-rfkill.socket

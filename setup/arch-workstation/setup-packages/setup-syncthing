@@ -2,7 +2,10 @@
 
 set -euo pipefail
 
-sudo pacman -S --noconfirm --needed syncthing
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install syncthing
 
 syncthing generate >/dev/null 2>&1 || true
 systemctl --user enable --now syncthing.service

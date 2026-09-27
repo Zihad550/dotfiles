@@ -5,7 +5,10 @@
 # Helium's AUR build dependencies and Zed's package dependencies are declared
 # separately with those client applications.
 
-sudo pacman -S --noconfirm \
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pacman_install \
     openssh \
     tailscale \
     curl \
@@ -25,7 +28,7 @@ sudo pacman -S --noconfirm \
 
 sudo systemctl enable --now tailscaled.service
 
-sudo pacman -S --noconfirm \
+pacman_install \
     ttf-jetbrains-mono \
     ttf-hack-nerd \
     noto-fonts \
@@ -33,7 +36,7 @@ sudo pacman -S --noconfirm \
     noto-fonts-emoji \
     ttf-dejavu
 
-sudo pacman -S --noconfirm \
+pacman_install \
     zoxide \
     eza \
     ripgrep \

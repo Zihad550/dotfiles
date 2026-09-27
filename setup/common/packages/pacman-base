@@ -8,6 +8,9 @@
 # Arch. `setup-omarchy-repos` must run before this. claude and opencode are
 # not here: mise-dev-packages installs them.
 
+# shellcheck source=../pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../pacman-lib"
+
 #  core
 # gum - shell script UI, also drives the installer
 # aichat - commit msg generation for worktrunk
@@ -18,7 +21,8 @@
 # worktrunk - git worktree made simple
 # tea - gh equivalent for forgejo instance
 # bubblewrap socat - needed for claude code sandboxing
-sudo pacman -S --noconfirm \
+
+pacman_install \
     curl \
     git \
     less \
@@ -60,7 +64,7 @@ rm -rf "$HOME/.local/share/mise/installs/herdr" "$HOME/.local/share/mise/shims/h
 # termdown \        # terminal counter
 
 # fonts
-sudo pacman -S --noconfirm \
+pacman_install \
     ttf-jetbrains-mono \
     ttf-hack-nerd \
     noto-fonts \
@@ -72,7 +76,7 @@ sudo pacman -S --noconfirm \
 
 #  alternatives to core packages
 # zoxide - cd, eza - ls, ripgrep - grep, bat - cat, bottom - htop, fd - find, dust - du, procs - ps, tealdeer - tldr
-sudo pacman -S --noconfirm \
+pacman_install \
     zoxide \
     eza \
     ripgrep \
@@ -84,4 +88,4 @@ sudo pacman -S --noconfirm \
     tealdeer
 
 # install languages and dev tools
-sudo pacman -S --noconfirm gcc
+pacman_install gcc
