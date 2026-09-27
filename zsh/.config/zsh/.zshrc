@@ -50,10 +50,13 @@ source "${ZINIT_HOME}/zinit.zsh"
 # Add in zsh plugins (turbo: load after first prompt -> off critical path).
 # Order matters: fzf-tab must load AFTER compinit but BEFORE the widget-wrapping
 # plugins (autosuggestions, syntax-highlighting). syntax-highlighting MUST be last.
+if (( $+commands[pnpm] )) || { (( $+commands[mise] )) && mise which pnpm &>/dev/null; }; then
+    zinit wait lucid for g-plane/pnpm-shell-completion
+fi
+
 zinit wait lucid for \
     blockf \
     zsh-users/zsh-completions \
-    g-plane/pnpm-shell-completion \
     Aloxaf/fzf-tab \
     atload"_zsh_autosuggest_start" \
     zsh-users/zsh-autosuggestions \
