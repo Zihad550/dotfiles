@@ -329,6 +329,7 @@ catch_errors() {
 
 # Invoked on SIGINT/SIGTERM.
 ui_interrupted() {
+    ERROR_HANDLING=true # this is the report; exit_handler must not add a failure screen
     stop_log_output
     kill_lanes
     show_cursor
