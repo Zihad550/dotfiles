@@ -27,9 +27,11 @@ stow branch-creator
 # ai tools
 scripts/stow/stow-ai
 
-# mise
+# mise — only seed a missing file; see scripts/stow/stow-base
 mkdir -p ~/.config/mise
-cp "$DOTFILES/mise/.config/mise/config.toml" ~/.config/mise/config.toml
+if [[ ! -e ~/.config/mise/config.toml ]]; then
+    cp "$DOTFILES/mise/.config/mise/config.toml" ~/.config/mise/config.toml
+fi
 
 rm -rf ~/.bashrc
 stow bash

@@ -19,8 +19,11 @@ stow bash
 mkdir -p ~/.config/herdr
 ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml
 
+# Only seed a missing mise config; see scripts/stow/stow-base
 mkdir -p ~/.config/mise
-cp "$DOTFILES/mise/.config/mise/config.toml" ~/.config/mise/config.toml
+if [[ ! -e ~/.config/mise/config.toml ]]; then
+    cp "$DOTFILES/mise/.config/mise/config.toml" ~/.config/mise/config.toml
+fi
 
 mkdir -p ~/dev
 mkdir -p ~/.kilocode

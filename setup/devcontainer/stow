@@ -7,9 +7,11 @@ mkdir -p ~/.config
 ln -snf "$DOTFILES/git/.config/git" ~/.config/git
 # ln -snf "$DOTFILES/lazygit/.config/lazygit" ~/.config/lazygit
 
-# stow mise
+# stow mise — only seed a missing file; see scripts/stow/stow-base
 mkdir -p ~/.config/mise
-cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
+if [[ ! -e ~/.config/mise/config.toml ]]; then
+    cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
+fi
 
 # only config.toml is managed; the rest is runtime state (approvals, locks)
 mkdir -p ~/.config/worktrunk
