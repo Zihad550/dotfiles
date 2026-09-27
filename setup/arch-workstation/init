@@ -53,6 +53,9 @@ ui_header "ARCH WORKSTATION SETUP" "$(date '+%Y-%m-%d %H:%M:%S')"
 
 run_step "system upgrade + stow" sudo pacman -Syu --noconfirm stow
 
+# Right after the upgrade: a new kernel leaves the running one without modules.
+run_step "kernel modules" "$DOTFILES_DIR/setup/common/check-kernel-modules"
+
 run_step "stow client" "$ARCH_WORKSTATION_DIR/stow"
 run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
 run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \

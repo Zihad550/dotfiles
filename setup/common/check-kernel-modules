@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# Fails when the running kernel's modules are gone. pacman deletes the old
+# kernel's modules when it upgrades the kernel, so until a reboot every
+# modprobe fails (docker's ip_tables is the first step to trip on it).
+#
+#   DF_MODULES_DIR   where modules live; default /lib/modules (tests override)
+
+set -euo pipefail
+
+modules_dir="${DF_MODULES_DIR:-/lib/modules}"
+running="$(uname -r)"
+
+if [[ -d "$modules_dir/$running" ]]; then
+    exit 0
+fi
+
+echo "The running kernel ($running) has no modules in $modules_dir." >&2
+echo "The kernel was upgraded since the last boot. Reboot, then rerun this setup." >&2
+exit 1
