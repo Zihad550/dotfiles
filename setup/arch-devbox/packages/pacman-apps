@@ -21,7 +21,7 @@
 
 # apps — one browser, two editors, a terminal file browser, and the bits the
 # desktop needs
-# chromium - the only browser; df-theme-set-browser already themes it
+# the one browser is Helium, installed from ./yay-packages (AUR)
 # swappy slurp grim - screenshot (used by the hypr keybindings)
 # tesseract and tesseract-data-eng - OCR screen capture
 #

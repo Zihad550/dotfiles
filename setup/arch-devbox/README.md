@@ -3,7 +3,7 @@
 The [`arch-workstation`](../arch-workstation) desktop, stripped to web development.
 
 Same Hyprland session, same dotfiles, same theming, same system hardening. What
-changes is the app layer: **one browser (chromium), two editors (zed, neovim)**,
+changes is the app layer: **one browser (helium), two editors (zed, neovim)**,
 and none of the chat/media/notes/torrent packages.
 
 ## order
@@ -92,7 +92,7 @@ so a fix there lands on both targets.
 | `init` | entrypoint; the arch-workstation run order with the culled steps removed |
 | `packages/pacman-apps` | the cull — this box's app layer, the *whole* package difference from arch-workstation |
 | `packages/yay-packages` | Dragon Drop plus opt-in GUI code editors |
-| `post-install` | same as arch-workstation's, but sets chromium as default browser |
+| `post-install` | same as arch-workstation's, but sets helium as default browser |
 | `setup-mise` | installs mise for this profile's development-tool package list |
 | `setup-sshd` | installs openssh and **enables sshd** — Arch does not. Run by `init` and again by `setup-ufw-lan` |
 | `harden-ssh` | key-only sshd, no root, off port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
@@ -158,7 +158,7 @@ one-word reason** — uncomment to get any of them back.
 
 **Apps (not development):** discord, obs-studio, transmission-gtk, obsidian,
 mpv, converseen, xournalpp, veracrypt, rclone, net-tools, dosfstools,
-xorg-xhost, nautilus-image-converter, gnome-font-viewer, helium-browser-bin,
+xorg-xhost, nautilus-image-converter, gnome-font-viewer, chromium,
 zen-browser, and the syncthing step.
 
 Yazi, its `resvg` preview dependency, Dragon Drop, and `7zip` stay on the

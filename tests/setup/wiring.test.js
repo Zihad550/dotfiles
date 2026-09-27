@@ -131,7 +131,7 @@ test("Arch workstation is a remote-development client", () => {
     assert.doesNotMatch(stow, /stow (git|lazygit|worktrunk)|stow-ai/);
 });
 
-test("Arch devbox excludes workstation sync and browser", () => {
+test("Arch devbox excludes workstation sync", () => {
     const init = source("setup/arch-devbox/init");
     const packages = [
         source("setup/common/packages/pacman-base"),
@@ -142,7 +142,6 @@ test("Arch devbox excludes workstation sync and browser", () => {
     assert.doesNotMatch(init, /run_step[^\n]*syncthing/i);
     assert.doesNotMatch(packages, /^\s*syncthing(?:\s|\\|$)/m);
     assert.doesNotMatch(init, /setup\/common\/packages\/yay-packages/);
-    assert.doesNotMatch(packages, /helium-browser-bin/);
     assert.match(packages, /^\s*yazi resvg \\/m);
     assert.match(packages, /dragon-drop/);
 });
