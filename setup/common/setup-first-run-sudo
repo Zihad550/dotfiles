@@ -21,9 +21,10 @@ if [ "${1:-}" = "--remove" ]; then
     # The exact command the ARCH_SETUP_CLEANUP alias below permits, argv and
     # all -- a different spelling ('sudo rm -f', an extra flag) does not match
     # the rule and prompts for a password on the way out of a finished install.
-    if [ -f "$SUDOERS" ]; then
-        sudo /usr/bin/rm -f "$SUDOERS"
-    fi
+    # No existence check: /etc/sudoers.d is root-only, so from this user the
+    # file always looks gone. While it exists, its own rule makes this
+    # passwordless; once it is gone, -n fails quietly instead of prompting.
+    sudo -n /usr/bin/rm -f "$SUDOERS" 2>/dev/null || true
     exit 0
 fi
 

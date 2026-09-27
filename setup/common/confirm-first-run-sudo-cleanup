@@ -5,7 +5,11 @@ set -u
 SUDOERS="${DF_FIRST_RUN_SUDOERS:-/etc/sudoers.d/arch-setup-first-run}"
 SUDO="${DF_FIRST_RUN_SUDO:-sudo}"
 
-[[ -e "$SUDOERS" ]] || exit 0
+# Through sudo: /etc/sudoers.d is root-only, so a plain test from this user
+# always says the file is gone.
+sudoers_exists() { "$SUDO" test -e "$SUDOERS"; }
+
+sudoers_exists || exit 0
 
 echo
 echo "The temporary setup sudoers file still exists."
@@ -18,7 +22,7 @@ if [[ ! "$response" =~ ^[nN]([oO])?$ ]]; then
     "$SUDO" /usr/bin/rm -f "$SUDOERS" || true
 fi
 
-if [[ -e "$SUDOERS" ]]; then
+if sudoers_exists; then
     echo "The file still exists, so the restart prompt was skipped." >&2
     exit 1
 fi
