@@ -24,6 +24,9 @@ export ARCH_SETUP_STATE_DIR="$HOME/.local/state/arch-devbox-setup"
 mkdir -p "$ARCH_SETUP_STATE_DIR"
 export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 
+# Before utils/logging: its error screen would clear this message.
+"$DOTFILES_DIR/setup/common/check-machine-profile" arch-devbox
+
 # Consumed by utils/logging and preflight: what to call ourselves in errors, and
 # what "Retry installation" should re-exec.
 export ARCH_SETUP_NAME="arch-devbox"

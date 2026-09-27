@@ -78,6 +78,14 @@ Code inside `setup/arch-devbox/` or `setup/arch-workstation/` already belongs to
 one target and does not need this check. The variable is for shared runtime
 configuration and commands.
 
+Setup itself reads the file, not the variable, through
+[`check-machine-profile`](check-machine-profile): `boot.sh` runs it before any
+target, and both Arch `init`s run it first. A machine that has a profile only
+runs the setup with the same name; any other target stops with a message that
+names the machine's own setup. Deleting the profile file lifts the stop, for a
+machine that really is being repurposed. A machine set up before profiles
+existed has no file, so nothing stops it.
+
 ### Existing installs
 
 Register the profile once after pulling this change:

@@ -16,7 +16,7 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles ~/dotfiles
 ## install
 
 ```bash
-~/dotfiles/setup/boot.sh                 # auto-detects distro
+~/dotfiles/setup/boot.sh                 # pick a target from a menu
 ~/dotfiles/setup/boot.sh arch-workstation   # explicit target
 ~/dotfiles/setup/boot.sh --help          # list targets
 ```

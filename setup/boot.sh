@@ -1,81 +1,90 @@
 #!/usr/bin/env bash
 
-# Distro-detecting entrypoint for first-time setup.
-# Reads /etc/os-release ID and dispatches to the matching setup directory.
-# Override with: ./boot.sh <target>      (e.g. arch-workstation, ubuntu, alpine)
+# Entrypoint for first-time setup.
+#   ./boot.sh             pick a target from a menu
+#   ./boot.sh <target>    run it directly (e.g. arch-workstation, arch-devbox)
+#   ./boot.sh --help      list targets
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-list_targets() {
-   echo "Available targets:"
+# Prints the entrypoint of a setup directory; fails when it has none. Each
+# directory picks its own filename.
+entrypoint() {
+   local entry
+   for entry in init init.sh setup-gnome applications.sh; do
+      if [[ -f "$1/$entry" ]]; then
+         echo "$entry"
+         return 0
+      fi
+   done
+   return 1
+}
+
+# Setup directories that have an entrypoint, the running distro's first.
+targets() {
+   local id="" d name rest=()
+   # shellcheck disable=SC1091
+   [[ -r /etc/os-release ]] && id="$(. /etc/os-release && echo "$ID")"
    for d in "$SCRIPT_DIR"/*/; do
       name="$(basename "$d")"
-      case "$name" in
-         # Not install targets: shared assets and code used by the real ones.
-         systemd|common) ;;
-         *) echo "  - $name" ;;
-      esac
+      entrypoint "$d" >/dev/null || continue
+      if [[ -n "$id" && "$name" == "$id"* ]]; then
+         echo "$name"
+      else
+         rest+=("$name")
+      fi
    done
+   printf '%s\n' "${rest[@]}"
+}
+
+list_targets() {
+   echo "Available targets:"
+   targets | sed 's/^/  - /'
 }
 
 dispatch() {
    local target="$1"
    local dir="$SCRIPT_DIR/$target"
+   local entry
 
-   if [[ ! -d "$dir" ]]; then
-      echo "Error: setup directory '$target' not found" >&2
+   if [[ ! -d "$dir" ]] || ! entry="$(entrypoint "$dir")"; then
+      echo "Error: '$target' is not a setup target" >&2
       list_targets
       exit 1
    fi
 
-   # Each distro dir picks its own entrypoint filename. Try common ones.
-   for entry in init init.sh setup-gnome applications.sh; do
-      if [[ -x "$dir/$entry" || -f "$dir/$entry" ]]; then
-         echo "Running: $dir/$entry"
-         exec "$dir/$entry"
-      fi
-   done
-
-   echo "Error: no recognized entrypoint in $dir (looked for: init, init.sh, setup-gnome, applications.sh)" >&2
-   exit 1
+   "$SCRIPT_DIR/common/check-machine-profile" "$target"
+   echo "Running: $dir/$entry"
+   exec "$dir/$entry"
 }
 
-if [[ -n $1 ]]; then
-   case "$1" in
-      -h|--help) list_targets; exit 0 ;;
-      *) dispatch "$1" ;;
-   esac
-fi
+menu() {
+   local options name
+   mapfile -t options < <(targets)
+   PS3="Setup to run (number): "
+   select name in "${options[@]}"; do
+      [[ -n "$name" ]] && dispatch "$name"
+      echo "Pick a number from 1 to ${#options[@]}." >&2
+   done
+   exit 1 # stdin closed without a choice
+}
 
-if [[ ! -r /etc/os-release ]]; then
-   echo "Cannot read /etc/os-release; pass target explicitly:"
-   list_targets
-   exit 1
-fi
-
-# shellcheck disable=SC1091
-. /etc/os-release
-
-case "$ID" in
-   arch)
-      if pacman -Qi hyprland >/dev/null 2>&1 || command -v Hyprland >/dev/null 2>&1; then
-         dispatch arch-workstation
-      elif pacman -Qi gnome-shell >/dev/null 2>&1; then
-         dispatch arch-gnome
-      else
-         echo "Arch detected. Pick a target:"
+case "${1:-}" in
+   -h | --help)
+      list_targets
+      ;;
+   "")
+      # From /dev/tty, so the menu also works when this script is piped in.
+      if ! { : </dev/tty; } 2>/dev/null; then
+         echo "No terminal for the menu; pass a target:" >&2
          list_targets
          exit 1
       fi
+      menu </dev/tty
       ;;
-   ubuntu)        dispatch ubuntu ;;
-   alpine)        dispatch alpine ;;
-   debian)        dispatch ubuntu ;;   # close enough; override if you split later
    *)
-      echo "Unrecognized distro: $ID. Pick a target:"
-      list_targets
-      exit 1
+      dispatch "$1"
       ;;
 esac

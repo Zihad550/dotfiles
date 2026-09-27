@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# Stops a setup whose target differs from the machine profile this machine is
+# already registered as. See README.md "Machine profile".
+#
+#   check-machine-profile <target>
+
+set -euo pipefail
+
+target="${1:?usage: check-machine-profile <target>}"
+profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/uwsm/env.d/10-dotfiles-profile"
+
+[[ -f "$profile_file" ]] || exit 0
+current="$(sed -n 's/^export DOTFILES_PROFILE=//p' "$profile_file")"
+[[ -z "$current" || "$current" == "$target" ]] && exit 0
+
+cat >&2 <<EOF
+✗ This machine is already set up as '$current'. Not running '$target'.
+
+  Different setups conflict on packages, firewall and system settings.
+  To update this machine, run its own setup instead:
+      ~/dotfiles/setup/boot.sh $current
+
+  To repurpose it as '$target' anyway, delete the profile first:
+      rm $profile_file
+EOF
+exit 1

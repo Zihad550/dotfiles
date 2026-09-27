@@ -9,6 +9,9 @@ export ARCH_SETUP_STATE_DIR="$HOME/.local/state/arch-setup"
 mkdir -p "$ARCH_SETUP_STATE_DIR"
 export LOG_FILE="$ARCH_SETUP_STATE_DIR/install.log"
 
+# Before utils/logging: its error screen would clear this message.
+"$DOTFILES_DIR/setup/common/check-machine-profile" arch-workstation
+
 # shellcheck source=utils/logging
 source "$ARCH_WORKSTATION_DIR/utils/logging"
 # shellcheck source=utils/state
