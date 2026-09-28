@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Back up ~/.ssh to removable media, or restore it. The archive holds private
+# keys as they are on disk; keep it on encrypted media.
+# See scripts/backup/home-dir-backup.sh for media selection and naming.
+
+backup_label=ssh
+backup_dir=.ssh
+# tar skips sockets on its own, so ControlMaster sockets need no pattern.
+backup_excludes=('.ssh/known_hosts.old')
+
+# shellcheck source=SCRIPTDIR/../scripts/backup/home-dir-backup.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../scripts/backup/home-dir-backup.sh"
+home_dir_backup_main "$@"

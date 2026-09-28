@@ -1,0 +1,111 @@
+# shellcheck shell=bash disable=SC2154  # backup_* are set by the sourcing command
+# Back up a directory under $HOME to removable media, or restore it. Sourced by
+# the df-*-backup commands, which set:
+#   backup_label     archive label; names become <profile>-<label>-backup-<time>.tar.zst
+#   backup_dir       directory under $HOME, e.g. .ssh
+#   backup_excludes  tar --exclude patterns (array, may be empty)
+# and may define before_restore, run just before the old directory is moved aside.
+#
+# Without a path argument, media is picked from mounts under /run/media/$USER
+# and /mnt. DOTFILES_PROFILE prefixes the archive name, and restore lists only
+# archives with that prefix. When it is unset (setup has not finished), restore
+# lists all.
+
+set -euo pipefail
+umask 077
+
+media_pattern="^(/run/media/${USER:-$(id -un)}/|/mnt(/|$))"
+
+usage() {
+    cat <<EOF
+Usage:
+  df-$backup_label-backup create [directory]
+  df-$backup_label-backup restore [archive]
+EOF
+}
+
+die() {
+    echo "df-$backup_label-backup: $*" >&2
+    exit 1
+}
+
+interactive() {
+    [[ -t 0 ]] && command -v gum >/dev/null
+}
+
+choose_mount() {
+    local mounts
+    # findmnt -r escapes spaces and other specials as \xNN.
+    mounts=$(findmnt -rn -o TARGET | grep -E "$media_pattern" | while IFS= read -r m; do printf '%b\n' "$m"; done || true)
+    [[ -n $mounts ]] || die "no mounted media under /run/media/${USER:-} or /mnt"
+    interactive || die "pass a path when not running interactively"
+    gum choose --select-if-one --header "Backup media" <<<"$mounts"
+}
+
+profile() {
+    case "${DOTFILES_PROFILE:-}" in
+        arch-devbox | arch-workstation) printf '%s\n' "$DOTFILES_PROFILE" ;;
+        *) return 1 ;;
+    esac
+}
+
+choose_archive() {
+    local dir pattern="*$backup_label-backup*.tar.zst" archives
+    dir=$(choose_mount)
+    if profile >/dev/null; then pattern="$(profile)-$backup_label-backup-*.tar.zst"; fi
+    archives=$(find "$dir" -maxdepth 1 -type f -name "$pattern" -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
+    [[ -n $archives ]] || die "no $pattern archives in $dir"
+    gum choose --select-if-one --header "Archive to restore (newest first)" <<<"$archives"
+}
+
+setup_work() {
+    work=$(mktemp -d "$HOME/.$backup_label-backup.XXXXXX")
+    trap 'rm -rf "$work"' EXIT
+}
+
+create() {
+    local dir=${1:-} prefix archive partial exclude excludes=()
+    prefix=$(profile) || die "DOTFILES_PROFILE must be arch-devbox or arch-workstation"
+    [[ -d $HOME/$backup_dir ]] || die "$HOME/$backup_dir does not exist"
+    [[ -n $dir ]] || dir=$(choose_mount)
+    [[ -d $dir && -w $dir ]] || die "$dir is not a writable directory"
+
+    for exclude in "${backup_excludes[@]}"; do excludes+=(--exclude="$exclude"); done
+    archive="$dir/$prefix-$backup_label-backup-$(date +%Y%m%d-%H%M%S).tar.zst"
+    partial="$archive.partial"
+    tar -C "$HOME" "${excludes[@]}" -cf - "$backup_dir" \
+        | zstd -q -T0 -19 >"$partial" \
+        || { rm -f "$partial"; die "backup failed"; }
+    mv "$partial" "$archive"
+    sync "$archive"
+    echo "Saved $archive ($(du -h "$archive" | cut -f1))"
+}
+
+restore() {
+    local archive=${1:-} target="$HOME/$backup_dir" previous
+    [[ -n $archive ]] || archive=$(choose_archive)
+    [[ -f $archive ]] || die "$archive is not a file"
+
+    setup_work
+    zstd -dcq "$archive" | tar -C "$work" -xf - || die "could not unpack $archive"
+    [[ -d $work/$backup_dir ]] || die "$archive has no $backup_dir directory"
+
+    if declare -F before_restore >/dev/null; then before_restore; fi
+    if [[ -e $target ]]; then
+        previous="$target.pre-restore-$(date +%Y%m%d-%H%M%S)"
+        mv "$target" "$previous"
+        echo "Moved the existing $target to $previous"
+    fi
+    mv "$work/$backup_dir" "$target"
+    chmod 700 "$target"
+    echo "Restored $target from $archive"
+}
+
+home_dir_backup_main() {
+    case "${1:-}" in
+        create) create "${2:-}" ;;
+        restore) restore "${2:-}" ;;
+        -h | --help) usage ;;
+        *) usage >&2; exit 2 ;;
+    esac
+}

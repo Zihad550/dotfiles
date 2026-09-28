@@ -1,106 +1,17 @@
 #!/usr/bin/env bash
 # Back up ~/.gnupg to removable media, or restore it. The archive holds private
-# keys and revocation certs unencrypted; keep it on encrypted media. Without a
-# path argument, media is picked from mounts under /run/media/$USER and /mnt.
-#
-# DOTFILES_PROFILE prefixes the archive name, and restore lists only archives
-# with that prefix. When it is unset (setup has not finished), restore lists all.
+# keys and revocation certs unencrypted; keep it on encrypted media.
+# See scripts/backup/home-dir-backup.sh for media selection and naming.
 
-set -euo pipefail
-umask 077
+backup_label=gnupg
+backup_dir=.gnupg
+# Runtime state (sockets, locks, stale .#lk files) and the CRL cache.
+backup_excludes=('.gnupg/S.*' '*.lock' '.#lk*' '.gnupg/crls.d')
 
-gnupg_home="$HOME/.gnupg"
-media_pattern="^(/run/media/${USER:-$(id -un)}/|/mnt(/|$))"
-
-usage() {
-    cat <<'EOF'
-Usage:
-  df-gnupg-backup create [directory]
-  df-gnupg-backup restore [archive]
-EOF
-}
-
-die() {
-    echo "df-gnupg-backup: $*" >&2
-    exit 1
-}
-
-interactive() {
-    [[ -t 0 ]] && command -v gum >/dev/null
-}
-
-choose_mount() {
-    local mounts
-    # findmnt -r escapes spaces and other specials as \xNN.
-    mounts=$(findmnt -rn -o TARGET | grep -E "$media_pattern" | while IFS= read -r m; do printf '%b\n' "$m"; done || true)
-    [[ -n $mounts ]] || die "no mounted media under /run/media/${USER:-} or /mnt"
-    interactive || die "pass a path when not running interactively"
-    gum choose --select-if-one --header "Backup media" <<<"$mounts"
-}
-
-profile() {
-    case "${DOTFILES_PROFILE:-}" in
-        arch-devbox | arch-workstation) printf '%s\n' "$DOTFILES_PROFILE" ;;
-        *) return 1 ;;
-    esac
-}
-
-choose_archive() {
-    local dir pattern='*gnupg-backup*.tar.zst' archives
-    dir=$(choose_mount)
-    if profile >/dev/null; then pattern="$(profile)-gnupg-backup-*.tar.zst"; fi
-    archives=$(find "$dir" -maxdepth 1 -type f -name "$pattern" -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
-    [[ -n $archives ]] || die "no $pattern archives in $dir"
-    gum choose --select-if-one --header "Archive to restore (newest first)" <<<"$archives"
-}
-
-setup_work() {
-    work=$(mktemp -d "$HOME/.gnupg-backup.XXXXXX")
-    trap 'rm -rf "$work"' EXIT
-}
-
-create() {
-    local dir=${1:-} prefix archive partial
-    prefix=$(profile) || die "DOTFILES_PROFILE must be arch-devbox or arch-workstation"
-    [[ -d $gnupg_home ]] || die "$gnupg_home does not exist"
-    [[ -n $dir ]] || dir=$(choose_mount)
-    [[ -d $dir && -w $dir ]] || die "$dir is not a writable directory"
-
-    archive="$dir/$prefix-gnupg-backup-$(date +%Y%m%d-%H%M%S).tar.zst"
-    partial="$archive.partial"
-    # Skip runtime state (sockets, locks, stale .#lk files) and the CRL cache.
-    tar -C "$HOME" --exclude='.gnupg/S.*' --exclude='*.lock' --exclude='.#lk*' --exclude='.gnupg/crls.d' \
-        -cf - .gnupg \
-        | zstd -q -T0 -19 >"$partial" \
-        || { rm -f "$partial"; die "backup failed"; }
-    mv "$partial" "$archive"
-    sync "$archive"
-    echo "Saved $archive ($(du -h "$archive" | cut -f1))"
-}
-
-restore() {
-    local archive=${1:-} previous
-    [[ -n $archive ]] || archive=$(choose_archive)
-    [[ -f $archive ]] || die "$archive is not a file"
-
-    setup_work
-    zstd -dcq "$archive" | tar -C "$work" -xf - || die "could not unpack $archive"
-    [[ -d $work/.gnupg ]] || die "$archive has no .gnupg directory"
-
+before_restore() {
     gpgconf --kill all 2>/dev/null || true
-    if [[ -e $gnupg_home ]]; then
-        previous="$gnupg_home.pre-restore-$(date +%Y%m%d-%H%M%S)"
-        mv "$gnupg_home" "$previous"
-        echo "Moved the existing keyring to $previous"
-    fi
-    mv "$work/.gnupg" "$gnupg_home"
-    chmod 700 "$gnupg_home"
-    echo "Restored $gnupg_home from $archive"
 }
 
-case "${1:-}" in
-    create) create "${2:-}" ;;
-    restore) restore "${2:-}" ;;
-    -h | --help) usage ;;
-    *) usage >&2; exit 2 ;;
-esac
+# shellcheck source=SCRIPTDIR/../scripts/backup/home-dir-backup.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../scripts/backup/home-dir-backup.sh"
+home_dir_backup_main "$@"
