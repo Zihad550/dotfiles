@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Pull ~/dev from the devbox, deleting local files that no longer exist there.
+# Extra arguments go to rsync, e.g. `df-workstation-dev-sync --dry-run`.
+
+set -euo pipefail
+
+if [[ ${DOTFILES_PROFILE:-} != "arch-workstation" ]]; then
+    echo "df-workstation-dev-sync: only runs on arch-workstation" >&2
+    exit 1
+fi
+
+dotfiles_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+rsync -aPvh \
+    --exclude-from="$dotfiles_dir/scripts/rsync/.rsyncignore_dev" \
+    --delete-after \
+    "$@" \
+    devbox:dev/ "$HOME/dev/"
