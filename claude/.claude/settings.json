@@ -4,15 +4,6 @@
     "ENABLE_TOOL_SEARCH": "true"
   },
   "permissions": {
-    "allow": [
-      "Bash(mise run *)",
-      "Bash(* --version)",
-      "Bash(* --help *)",
-      "Bash(pnpm exec *)",
-      "Bash(echo \"exit=$?\")",
-      "Bash(sandboxed)",
-      "Bash(mise run lint)"
-    ],
     "deny": [
       "Bash(gh issue delete)",
       "Read(**/.secrets*)",
@@ -56,6 +47,9 @@
       "effortLevel": "high"
     },
     "claude-sonnet-5": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5-5": {
       "effortLevel": "high"
     }
   },
