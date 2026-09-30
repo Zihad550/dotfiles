@@ -14,7 +14,8 @@ stage = "none"
 
 [commit.generation]
 # command = "aichat -m gemini:gemini-3-flash-preview"
-command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=sonnet --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
+# command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=sonnet --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
+command = "codex exec -m gpt-6-luna -c model_reasoning_effort='none' -c project_doc_max_bytes=0 -c skills.max_context_tokens=1 -c agents.enabled=false -c features.goals=false -c web_search=disabled -c 'model_instructions_file=\"~/.codex/worktrunk-commit-instructions.txt\"' -c features.shell_tool=false -c features.unified_exec=false -c features.apps=false -c features.plugins=false --ephemeral --sandbox=read-only --json - | jq -sr '[.[] | select(.item.type? == \"agent_message\")] | last.item.text'"
 # command = "aichat -m gemini:gemini-3-flash-preview"
 # command = "opencode run -m google/gemini-3-flash-preview"
 template-append = """
