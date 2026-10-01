@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Print everything reviewers said on a Forgejo PR: the conversation comments,
+# the inline code comments, and the review bodies (see df-tprr).
+# Usage: df-tpr <pr>
+set -uo pipefail
+
+if [ -z "${1:-}" ]; then
+  printf 'usage: df-tpr <pr>\n' >&2
+  exit 2
+fi
+
+tea pr "$1" --comments
+tea pr rc -o simple "$1"
+"$(dirname "$(readlink -f "$0")")/df-tprr" "$1"

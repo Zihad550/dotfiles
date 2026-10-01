@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Print a Forgejo issue with its comments.
+# Usage: df-ti <issue> [tea flags...]
+exec tea issue --comments -o simple "$@"
