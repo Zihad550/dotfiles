@@ -53,7 +53,8 @@ test("no setup path installs or enables gdm any more", () => {
 test("the Greeter setup is idempotent and installs sddm", () => {
     const setup = source(greeterSetup);
 
-    assert.match(setup, /pacman -S[\s\S]*?--needed[\s\S]*?\bsddm\b/,
+    assert.match(setup, /^pacman_install\b[\s\S]*?\bsddm\b/m);
+    assert.match(source("setup/common/pacman-lib"), /pacman -S --noconfirm --needed "\$@"/,
         "without --needed a re-run reinstalls the package every time");
     assert.match(setup, /\bqt6-wayland\b/);
     assert.match(setup, /\bqt6-imageformats\b/);
@@ -210,7 +211,7 @@ test("shared setup protects boot and login with the required transaction order",
     const setup = source(greeterSetup);
 
     assertOrdered(setup, [
-        ["packages", "sudo pacman -S"],
+        ["packages", "pacman_install"],
         ["Boot Branding validation", '"$BOOT_BRANDING_DIR/validate"'],
         ["Greeter validation", '"$GREETER_DIR/validate"'],
         ["Boot Branding backup and rebuild", '"$BOOT_BRANDING_DIR/apply"'],
