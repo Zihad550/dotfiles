@@ -420,6 +420,11 @@ Re-running it synchronizes the declared set. Add upstream skills to the
 appropriate install block; add repository-owned skills to
 `github.com/Zihad550/skills` before listing them here.
 
+Update skills by re-running `setup-skills`, as `df-update-daily` does. Avoid
+`skills update -g`: it reinstalls without `--agent`, so each updated skill is
+linked into every detected agent. That includes `~/.claude/skills`, which
+duplicates skills the Claude plugin already ships (e.g. mattpocock's).
+
 ## Herdr on headless profiles
 
 The Ubuntu devbox, Ubuntu server, and Alpine call
