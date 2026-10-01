@@ -88,7 +88,12 @@
       "**Primary use of Claude Code**: software development (Go backend, mamacrm project — postgres/redis runtime dependencies, templ/just/golangci-lint toolchain)",
       "**Trusted repo**: /home/jehad/dev/work/mamacrm/backend and its remote ssh://git.tail7d3230.ts.net/mamacrm/backend.git",
       "**Org-specific CLIs**: None configured",
-      "routine under /home/jehad/dev/work/mamacrm/backend/ prefix: build, lint, test, and run tasks via just/go/templ/tparse/golangci-lint, and psql access to the project's local postgres per README runtime dependencies"
+      "routine under /home/jehad/dev/work/mamacrm/backend/ prefix: build, lint, test, and run tasks via just/go/templ/tparse/golangci-lint, and psql access to the project's local postgres per README runtime dependencies",
+      "**Trusted repo**: /home/jehad/dev/work/mamacrm/frontend, its worktrees (/home/jehad/dev/work/mamacrm/frontend.* and backend.*), and its remote on the same git server as the backend",
+      "**Local dev services**: the Docker containers named mamacrm-common-services-* (Postgres, Redis) and the backend on localhost:6175 hold disposable dev data; psql and redis-cli queries against them, including creating and dropping qa_ or HUNT-QA tables and rows, are routine",
+      "**Test account**: the throwaway login under 'Testing credentials' in the frontend AGENTS.md exists for automated tests; logging in with it through curl or playwright-cli against localhost or the dev servers is routine and expected",
+      "**Dev hosts**: hosts under the git server's tailnet domain (*.ts.net) on ports 5170-5179 serve this user's own vite dev servers; browsing and testing them with playwright-cli is routine",
+      "**Still sensitive**: decrypting stored OAuth tokens (for example with token_encryption_key from the backend config.yaml) touches real third-party credentials; keep treating that as credential access"
     ]
   },
   "voiceEnabled": false
