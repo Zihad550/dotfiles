@@ -2,37 +2,9 @@
 
 set -euo pipefail
 
-generation_dir=$(mktemp -d)
-trap 'rm -rf "$generation_dir"' EXIT
-
-# Keep the minimal instructions independent of per-machine setup.
-cat > "$generation_dir/instructions.txt" <<'EOF'
-Generate a Git commit message from the supplied prompt and diff.
-Follow the prompt's formatting and project guidance.
+export DF_HARNESS_INSTRUCTIONS='Generate a Git commit message from the supplied prompt and diff.
+Follow the requested formatting and project guidance.
 Use Conventional Commits unless the prompt specifies another format.
 Reference an issue only when its ID is supplied. Do not invent details.
-Output only the commit message, without explanations or code fences.
-EOF
-
-codex exec -m gpt-6-luna \
-    -c model_reasoning_effort=none \
-    -c project_doc_max_bytes=0 \
-    -c skills.max_context_tokens=1 \
-    -c agents.enabled=false \
-    -c features.goals=false \
-    -c web_search=disabled \
-    -c "model_instructions_file=\"$generation_dir/instructions.txt\"" \
-    -c features.shell_tool=false \
-    -c features.unified_exec=false \
-    -c features.apps=false \
-    -c features.plugins=false \
-    --ephemeral --sandbox=read-only --json \
-    --output-last-message "$generation_dir/message.txt" - > /dev/null
-
-message=$(cat "$generation_dir/message.txt")
-if [[ -z "${message//[[:space:]]/}" || "${message//[[:space:]]/}" == null ]]; then
-    printf 'Codex returned no valid commit message.\n' >&2
-    exit 1
-fi
-
-printf '%s\n' "$message"
+Output only the commit message, without explanations or code fences.'
+exec df-harness "$@"

@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# DF_HARNESS_MODEL overrides gpt-6-luna (Codex) or sonnet (Claude).
+# DF_HARNESS_REASONING overrides Codex's none reasoning effort.
+# DF_HARNESS_INSTRUCTIONS overrides the shared system instructions.
+die() {
+    printf 'df-harness: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+harness=codex
+case ${1:-} in
+    codex|claude) harness=$1; shift ;;
+    -h|--help)
+        printf 'usage: df-harness [codex|claude] [--] [message...]\nReads stdin when no message is supplied.\n'
+        exit 0
+        ;;
+esac
+[[ ${1:-} != -- ]] || shift
+if [[ $# -gt 0 ]]; then
+    prompt="$*"
+else
+    [[ ! -t 0 ]] || die "provide a message or pipe it through stdin" 2
+    prompt=$(cat)
+fi
+[[ $prompt =~ [^[:space:]] ]] || die "message must not be empty" 2
+command -v "$harness" >/dev/null 2>&1 || die "$harness is required"
+
+instructions=${DF_HARNESS_INSTRUCTIONS:-Respond to the supplied message. Follow its formatting and output constraints. Output only the requested reply.}
+if [[ $harness == codex ]]; then
+    generation_dir=$(mktemp -d)
+    trap 'rm -rf "$generation_dir"' EXIT
+    printf '%s\n' "$instructions" > "$generation_dir/instructions.txt"
+    codex exec -m "${DF_HARNESS_MODEL:-gpt-6-luna}" \
+        -c "model_reasoning_effort=${DF_HARNESS_REASONING:-high}" \
+        -c project_doc_max_bytes=0 \
+        -c skills.max_context_tokens=1 \
+        -c agents.enabled=false \
+        -c features.goals=false \
+        -c web_search=disabled \
+        -c "model_instructions_file=\"$generation_dir/instructions.txt\"" \
+        -c features.shell_tool=false \
+        -c features.unified_exec=false \
+        -c features.apps=false \
+        -c features.plugins=false \
+        --skip-git-repo-check --ephemeral --sandbox=read-only --json \
+        --output-last-message "$generation_dir/message.txt" - > /dev/null <<< "$prompt"
+    [[ -f "$generation_dir/message.txt" ]] || die "Codex returned no reply"
+    reply=$(cat "$generation_dir/message.txt")
+else
+    reply=$(env MAX_THINKING_TOKENS=0 claude -p --no-session-persistence \
+        --model="${DF_HARNESS_MODEL:-sonnet}" --tools='' --safe-mode \
+        --setting-sources='user' --system-prompt="$instructions" <<< "$prompt")
+fi
+[[ $reply =~ [^[:space:]] && ${reply//[[:space:]]/} != null ]] ||
+    die "$harness returned no valid reply"
+printf '%s\n' "$reply"

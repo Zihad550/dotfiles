@@ -72,7 +72,9 @@ df-hypr-monitor-watch              # recover clamshell state after monitor event
 df-launch-tui <cmd>                # launch TUI in ghostty (guards missing bin)
 df-launch-app <cmd>                # launch GUI (guards missing bin)
 df-cmd-present <cmd>...            # exit 0 if all on PATH
-df-work-branch-name-gen <issues>   # draft and copy a branch name with Claude
+df-harness [codex|claude] [message...] # reply to arguments or stdin
+df-commit-message [codex|claude]   # generate a commit message from stdin
+df-work-branch-name-gen [codex|claude] <issues> # default: Codex gpt-6-luna, high reasoning
 df-system-update                   # full system update (pacman/yay/flatpak/mise)
 ```
 
@@ -150,3 +152,12 @@ tea issues create --repo <owner>/<repo> --title "title" --description "desc" --l
 ```
 
 https://codeberg.org/jehad/dotfiles
+
+`df-harness` defaults to Codex with `gpt-6-luna` and no reasoning effort.
+Select Claude with `df-harness claude "your message"` to use Sonnet.
+Both run without tools or persistent sessions and print only the final reply.
+Use `DF_HARNESS_MODEL`, `DF_HARNESS_REASONING` (Codex only), and
+`DF_HARNESS_INSTRUCTIONS` to override the defaults. Use `--` before a message
+that begins with a selector or option. Empty input or missing replies fail.
+The branch generator uses high Codex reasoning and keeps its
+`DF_WORK_BRANCH_MODEL` override; the commit generator supplies commit instructions.
