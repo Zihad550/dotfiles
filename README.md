@@ -121,17 +121,6 @@ sudo rm -rf /var/cache/pacman/pkg/download-*/       # if needed
 sudo pacman -Rs --noconfirm $(pacman -Qtdq)         # remove unused
 ```
 
-### grub / LUKS
-
-```bash
-sudo nvim /etc/default/grub
-# Uncomment to enable booting from LUKS encrypted devices, not needed if use snapper from archinstall
-GRUB_ENABLE_CRYPTODISK=y
-
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
-```
-
 ### updates
 
 ```bash
