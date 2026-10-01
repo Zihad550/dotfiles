@@ -108,7 +108,7 @@ transform_mkinitcpio() {
 }
 
 transform_grub() {
-	local input="$1" output="$2" line args found=0
+	local input="$1" output="$2" line args found=0 has_bootnext=0
 
 	: >"$output"
 	while IFS= read -r line || [[ -n $line ]]; do
@@ -118,11 +118,17 @@ transform_grub() {
 			args="$(ensure_kernel_arguments "$args" splash initramfs_async=0)"
 			printf 'GRUB_CMDLINE_LINUX_DEFAULT="%s"\n' "$args" >>"$output"
 		else
+			[[ $line =~ ^GRUB_DISABLE_BOOTNEXT= ]] && has_bootnext=1
 			printf '%s\n' "$line" >>"$output"
 		fi
 	done <"$input"
 
 	(( found == 1 )) || die "expected GRUB_CMDLINE_LINUX_DEFAULT=\"...\" in $input"
+	# GRUB 2.16's 31_efi_bootnext adds a menu entry per firmware boot entry,
+	# stale ones included. Only when unset, so an explicit choice stays.
+	if (( has_bootnext == 0 )); then
+		printf 'GRUB_DISABLE_BOOTNEXT=true\n' >>"$output"
+	fi
 }
 
 transform_kernel_cmdline() {
@@ -187,6 +193,22 @@ install_staged_directory() {
 	as_root cp -a --no-preserve=ownership "$source_dir/." "$target_dir/" || return 1
 }
 
+# True when everything the rebuild would install already matches the live files.
+# The initramfs and grub.cfg were built from those files, so a rebuild would
+# only repeat it.
+boot_branding_current() {
+	local source_dir="$1" sddm_source_dir="$2" grub_stage="$3" hooks_stage="$4"
+	local kernel_stage="$5"
+
+	cmp -s "$grub_stage" "$(root_path /etc/default/grub)" &&
+		cmp -s "$hooks_stage" "$(root_path /etc/mkinitcpio.conf)" &&
+		{ [[ -z $kernel_stage ]] || cmp -s "$kernel_stage" "$(root_path /etc/kernel/cmdline)"; } &&
+		cmp -s "$BOOT_BRANDING_DIR/plymouthd.conf" "$(root_path /etc/plymouth/plymouthd.conf)" &&
+		diff -rq "$source_dir" "$(root_path /usr/share/plymouth/themes/omarchy)" >/dev/null 2>&1 &&
+		{ [[ -z $sddm_source_dir ]] ||
+			diff -rq "$sddm_source_dir" "$(root_path /usr/share/sddm/themes/omarchy)" >/dev/null 2>&1; }
+}
+
 install_boot_branding_files() {
 	local source_dir="$1" theme_target="$2" selector_target="$3"
 	local grub_conf="$4" mkinitcpio_conf="$5" grub_stage="$6" hooks_stage="$7"
@@ -231,6 +253,11 @@ commit_boot_branding() {
 	fi
 	if [[ -n $sddm_source_dir ]]; then
 		[[ -d $sddm_source_dir ]] || die "missing staged SDDM theme: $sddm_source_dir"
+	fi
+	if boot_branding_current "$source_dir" "$sddm_source_dir" "$grub_stage" \
+		"$hooks_stage" "$kernel_stage"; then
+		echo "Boot Branding already installed; nothing to rebuild"
+		return 0
 	fi
 
 	BOOT_BRANDING_BACKUP_DIR="$(root_path /var/lib/dotfiles/greeter-backups)/$(date +%Y%m%d-%H%M%S-%N)-$$"

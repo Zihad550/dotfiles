@@ -112,6 +112,40 @@ arguments are written there because `mkinitcpio` uses that file when building a
 UKI. The command-line update also adds `initramfs_async=0`, matching Omarchy's
 Plymouth workaround for asynchronous UKI unpacking.
 
+It also sets `GRUB_DISABLE_BOOTNEXT=true` unless `/etc/default/grub` already
+sets it: GRUB 2.16 adds a menu entry for every firmware boot entry, including
+ones left behind by earlier installs.
+
+A rerun compares everything it would install with the live files and stops
+when they all match: the initramfs and `grub.cfg` were already built from them,
+so it skips the backup and both rebuilds. A hand edit to `/etc/default/grub`
+therefore needs its own `grub-mkconfig -o /boot/grub/grub.cfg`.
+
+### Duplicate "Arch Linux" entries
+
+archinstall with GRUB and UKIs writes the kernel parameters, `cryptdevice=…`
+included, only to `/etc/kernel/cmdline`, adds `/etc/grub.d/15_uki` (GRUB's
+`uki` command), and turns off `10_linux`. It leaves `GRUB_CMDLINE_LINUX` empty.
+Without UKIs it writes those parameters to `GRUB_CMDLINE_LINUX` instead.
+
+A `grub` package upgrade reinstalls `10_linux` as executable, so the next
+`grub-mkconfig` lists each kernel twice under the same name: the regular entry
+and the UKI. The regular entry, and every grub-btrfs snapshot, boot with
+`/etc/default/grub`'s command line; on an encrypted root they cannot unlock the
+disk until `GRUB_CMDLINE_LINUX` carries the same `cryptdevice=…` as
+`/etc/kernel/cmdline`. `GRUB_ENABLE_CRYPTODISK` is not needed: archinstall
+keeps `/boot` on the unencrypted ESP.
+
+Once the regular entry boots, hide the UKI one:
+
+```sh
+sudo mv /etc/grub.d/15_uki /root/15_uki.disabled
+sudo grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+Setup leaves `15_uki` alone. This repo does not install it, and on a machine
+whose regular entry cannot unlock the disk it is the only entry that boots.
+
 ## SSH hardening
 
 Both Box Wrappers set the contract documented at the top of

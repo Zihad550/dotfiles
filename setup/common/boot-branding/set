@@ -79,4 +79,4 @@ done
 validate_assets "$plymouth_dir"
 "$GREETER_DIR/validate" "$greeter_dir"
 commit_boot_branding "$plymouth_dir" "$greeter_dir/omarchy"
-echo "Custom Boot Branding installed; initramfs and GRUB rebuilt"
+echo "Custom Boot Branding applied"

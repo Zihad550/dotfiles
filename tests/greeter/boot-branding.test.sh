@@ -67,19 +67,35 @@ grep -Fx 'quiet loglevel=3 splash initramfs_async=0' "$root/etc/kernel/cmdline" 
 [[ -f "$root/usr/share/plymouth/themes/omarchy/omarchy.script" ]]
 [[ -f "$root/etc/plymouth/plymouthd.conf" ]]
 [[ -d "$root/var/lib/dotfiles/greeter-backups" ]]
+grep -Fx 'GRUB_DISABLE_BOOTNEXT=true' "$root/etc/default/grub" >/dev/null
 
-run_apply
+# Nothing changed since the last run: no backup and no rebuild.
+calls_before=$(wc -l <"$calls")
+backups_before=$(find "$root/var/lib/dotfiles/greeter-backups" -mindepth 1 -maxdepth 1 | wc -l)
+run_apply >"$test_tmp/rerun.out"
+grep -Fx 'Boot Branding already installed; nothing to rebuild' "$test_tmp/rerun.out" >/dev/null
+[[ $(wc -l <"$calls") == "$calls_before" ]]
+[[ $(find "$root/var/lib/dotfiles/greeter-backups" -mindepth 1 -maxdepth 1 | wc -l) == "$backups_before" ]]
+[[ $(grep -c '^GRUB_DISABLE_BOOTNEXT=' "$root/etc/default/grub") == 1 ]]
 [[ $(grep -o 'plymouth' "$root/etc/mkinitcpio.conf" | wc -l) == 1 ]]
 [[ $(grep -o 'splash' "$root/etc/default/grub" | wc -l) == 1 ]]
 [[ $(grep -o 'splash' "$root/etc/kernel/cmdline" | wc -l) == 1 ]]
 [[ $(grep -o 'initramfs_async=0' "$root/etc/kernel/cmdline" | wc -l) == 1 ]]
 
 write_fixture 'autodetect' 'cryptdevice=UUID=abc root=/dev/mapper/root'
+calls_before=$(wc -l <"$calls")
 run_apply
+grep -q '^grub-mkconfig ' <(tail -n +"$((calls_before + 1))" "$calls")
 grep -Fx 'GRUB_CMDLINE_LINUX_DEFAULT="cryptdevice=UUID=abc root=/dev/mapper/root splash initramfs_async=0"' \
     "$root/etc/default/grub" >/dev/null
 grep -Fx 'cryptdevice=UUID=abc root=/dev/mapper/root splash initramfs_async=0' \
     "$root/etc/kernel/cmdline" >/dev/null
+
+# An explicit choice is kept, not overwritten or duplicated.
+printf 'GRUB_CMDLINE_LINUX_DEFAULT="quiet"\nGRUB_DISABLE_BOOTNEXT=false\n' >"$root/etc/default/grub"
+run_apply
+grep -Fx 'GRUB_DISABLE_BOOTNEXT=false' "$root/etc/default/grub" >/dev/null
+[[ $(grep -c '^GRUB_DISABLE_BOOTNEXT=' "$root/etc/default/grub") == 1 ]]
 
 printf 'HOOKS=(base systemd autodetect filesystems fsck)\n' >"$root/etc/mkinitcpio.conf"
 run_apply
