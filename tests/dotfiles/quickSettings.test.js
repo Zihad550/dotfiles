@@ -449,7 +449,7 @@ test("PageRow's current styling layers accent color without dropping the trailin
     const pageRow = source("modules/PageRow.qml");
 
     assert.match(pageRow, /property bool current: false/);
-    assert.match(pageRow, /text:\s*root\.icon\s*\n\s*color:\s*root\.current \? Theme\.accent : Theme\.foreground/);
+    assert.match(pageRow, /text:\s*root\.busy \? "◌" : root\.icon\s*\n\s*color:\s*root\.current \? Theme\.accent : Theme\.foreground/);
     assert.match(pageRow, /text:\s*root\.label\s*\n\s*color:\s*root\.current \? Theme\.accent : Theme\.foreground/);
     assert.match(pageRow, /id:\s*detailText[\s\S]*text:\s*root\.detail/,
         "current styling must not remove the detail Text element");
@@ -637,7 +637,7 @@ test("the Tailscale Page always offers Refresh and shows when it is running", ()
 
     assert.match(
         page,
-        /visible:\s*true\s*\n\s*enabled:\s*!TailscaleService\.operationRunning[\s\S]{0,120}label:\s*TailscaleService\.profilesLoading \? "Refreshing…" : "Refresh"[\s\S]{0,80}onClicked:\s*TailscaleService\.loadProfiles\(\)/,
+        /visible:\s*true\s*\n\s*enabled:\s*!TailscaleService\.operationRunning && !TailscaleService\.profilesRefreshing[\s\S]{0,120}busy:\s*TailscaleService\.profilesRefreshing[\s\S]{0,120}label:\s*TailscaleService\.profilesRefreshing \? "Refreshing…" : "Refresh"[\s\S]{0,80}onClicked:\s*TailscaleService\.loadProfiles\(\)/,
     );
 });
 

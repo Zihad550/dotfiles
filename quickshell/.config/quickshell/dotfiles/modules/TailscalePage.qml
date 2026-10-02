@@ -58,9 +58,10 @@ QuickSettingsPage {
     PageRow {
         width: root.width
         visible: true
-        enabled: !TailscaleService.operationRunning
+        enabled: !TailscaleService.operationRunning && !TailscaleService.profilesRefreshing
         icon: "↻"
-        label: TailscaleService.profilesLoading ? "Refreshing…" : "Refresh"
+        busy: TailscaleService.profilesRefreshing
+        label: TailscaleService.profilesRefreshing ? "Refreshing…" : "Refresh"
 
         onClicked: TailscaleService.loadProfiles()
     }

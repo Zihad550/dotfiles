@@ -88,6 +88,13 @@ an open Page asks for an elevated listing. Prompting on every open was the
 alternative, and it charged a password for a list that changes only when an
 account is added or removed.
 
+An explicit Refresh shows a rotating spinner and keeps its feedback visible
+for at least 650ms. With operator access, the listing can finish before the
+next frame, so process state alone gives no readable click feedback. Longer
+requests keep the spinner until they finish. Results apply immediately; the
+minimum display time only delays re-enabling Refresh. The focus grab still
+tracks actual operations rather than this display timer.
+
 ## Inline while visible, one notification once not
 
 TailscaleService counts how many Tailscale Page instances currently show

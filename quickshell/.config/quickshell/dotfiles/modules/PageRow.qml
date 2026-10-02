@@ -10,6 +10,7 @@ Item {
     property string icon: ""
     property string label: ""
     property string detail: ""
+    property bool busy: false
     property bool overflowVisible: false
     property bool mainFocusVisible: false
     property bool overflowFocusVisible: false
@@ -41,7 +42,7 @@ Item {
     activeFocusOnTab: root.enabled && root.visible
     Keys.onPressed: event => root.activateMain(event)
     onActiveFocusChanged: root.mainFocusVisible = root.activeFocus
-    opacity: root.enabled ? 1 : 0.45
+    opacity: root.enabled || root.busy ? 1 : 0.45
     scale: mainMouse.pressed || overflowMouse.pressed ? 0.99 : 1
 
     Behavior on opacity {
@@ -83,22 +84,30 @@ Item {
         Text {
             id: glyph
 
-            visible: root.icon !== ""
+            visible: root.icon !== "" || root.busy
             anchors.left: parent.left
             anchors.leftMargin: 12
             anchors.verticalCenter: parent.verticalCenter
 
-            text: root.icon
+            text: root.busy ? "◌" : root.icon
             color: root.current ? Theme.accent : Theme.foreground
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
             textFormat: Text.PlainText
+
+            RotationAnimation on rotation {
+                running: root.busy && root.visible
+                from: 0
+                to: 360
+                duration: 900
+                loops: Animation.Infinite
+            }
         }
 
         Text {
             id: labelText
 
-            anchors.left: root.icon === "" ? parent.left : glyph.right
+            anchors.left: root.icon === "" && !root.busy ? parent.left : glyph.right
             anchors.leftMargin: 12
             anchors.right: detailText.visible ? detailText.left : parent.right
             anchors.rightMargin: 10

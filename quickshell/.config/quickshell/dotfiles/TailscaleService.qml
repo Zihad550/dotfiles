@@ -47,6 +47,7 @@ Singleton {
     property string profilesState: ""
     property string profilesMessage: ""
     readonly property bool profilesLoading: profilesProc.running
+    readonly property bool profilesRefreshing: profilesLoading || refreshFeedback.running
     // Set while the running load is the non-elevating post-operation refresh.
     property bool quietRefresh: false
     // True while any Tailscale operation runs, and so while a pkexec prompt
@@ -142,10 +143,11 @@ Singleton {
     // No polling Timer: refresh happens when the Page opens. This is the
     // load the user asked for, so it may raise a prompt.
     function loadProfiles(): void {
-        if (!installed || profilesProc.running)
+        if (!installed || root.profilesRefreshing)
             return;
         root.quietRefresh = false;
         profilesProc.command = ["df-tailscale", "profiles"];
+        refreshFeedback.restart();
         profilesProc.running = true;
     }
 
@@ -254,6 +256,13 @@ Singleton {
     // exists to hold `running` for the busy flag.
     Process {
         id: toggleProc
+    }
+
+    // Operator access can finish before a frame is drawn; keep feedback readable.
+    Timer {
+        id: refreshFeedback
+
+        interval: 650
     }
 
     Process {
