@@ -5,8 +5,8 @@
 
 set -e
 
-AGENTS=(claude-code cursor codex pi kilo)
-AGENTS_WITHOUT_PLUGIN=(cursor codex pi kilo)
+AGENTS=(claude-code cursor codex)
+AGENTS_WITHOUT_PLUGIN=(cursor codex)
 
 mise use -g npm:skills
 eval "$(mise activate bash)"

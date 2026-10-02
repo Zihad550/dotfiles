@@ -24,18 +24,9 @@ if [[ ! -e ~/.config/mise/config.toml ]]; then
 fi
 
 mkdir -p ~/dev
-mkdir -p ~/.kilocode
-ln -snf "$DOTFILES/kilocode/.kilocode/kilo.jsonc" ~/.kilocode/kilo.jsonc
-ln -snf "$DOTFILES/kilocode/.kilocode/plugin" ~/.kilocode/plugin
-ln -snf "$DOTFILES/opencode/.config/opencode/agent" ~/.kilocode/agent
-ln -snf "$DOTFILES/opencode/.config/opencode/command" ~/.kilocode/command
-ln -snf "$DOTFILES/opencode/.config/opencode/AGENTS.md" ~/.kilocode/AGENTS.md
 
 # agents live in separate repo: https://github.com/Zihad550/.agents
 [ -d ~/.agents ] || git clone --depth 1 https://github.com/Zihad550/.agents.git ~/.agents
-
-mkdir -p ~/.kilocode/skills
-ln -snf ~/.agents/skills/* ~/.kilocode/skills/
 
 mise use -g usage
 

@@ -3,7 +3,7 @@
 set -e
 
 runtimes=(node@24 node go pnpm uv)
-agents=(claude opencode npm:@kilocode/cli gemini oh-my-pi)
+agents=(claude opencode gemini)
 agent_tools=(npm:skills npm:@playwright/cli aichat)
 diff_tools=(aqua:modem-dev/hunk)
 
@@ -57,9 +57,6 @@ mise use -g "${diff_tools[@]}"
 
 # mise use -g npm:@augmentcode/auggie@latest # no free plan but has one of the best context engine
 # mise use -g npm:codebuff # has free plan and ads
-
-# TODO: research more about pi (it seems to be good)
-# mise use -g npm:@mariozechner/pi-coding-agent # signup not working, redirect broken # need to research more
 
 # roo code cli
 # curl -fsSL https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh | sh

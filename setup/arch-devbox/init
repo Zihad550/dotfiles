@@ -252,7 +252,7 @@ if [[ "$first_install" == true ]]; then
     echo "  • After 'gh auth login', run: ~/dotfiles/bin/df-arch-devbox-post-install"
     echo "    (configures GitHub CLI; completions + go tools already ran during setup)"
     echo "  • AI CLIs already installed by 'mise packages' — several need a login on"
-    echo "    first run (claude, opencode, gemini, kilo)."
+    echo "    first run (claude, opencode, gemini)."
     echo
 else
     echo

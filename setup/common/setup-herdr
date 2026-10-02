@@ -30,4 +30,4 @@ herdr plugin link "$DOTFILES_DIR/herdr-plugins/tab-namer"
 herdr plugin link "$DOTFILES_DIR/herdr-plugins/sidebar-index"
 
 ##### install skill
-skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor pi kilo -y
+skills add herdrdev/herdr --skill herdr -g --agent claude-code cursor -y

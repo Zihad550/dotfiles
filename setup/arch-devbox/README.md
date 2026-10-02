@@ -224,7 +224,7 @@ records an installed app in the file selected by `DOTFILES_PROFILE`.
 
 
 Several CLIs need an interactive login on first run (`claude`, `opencode`,
-`gemini`, `kilo`) — `init` prints a reminder at the end.
+`gemini`) — `init` prints a reminder at the end.
 
 ## dns
 

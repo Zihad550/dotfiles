@@ -224,7 +224,6 @@ test("generated completions replace shell-startup generators", () => {
     const setupMise = source("setup/arch-devbox/setup-mise");
 
     assert.match(generator, /^gen mise mise completion zsh$/m);
-    assert.match(generator, /^gen kilo kilo completion$/m);
     assert.match(generator, /^gen kubectl kubectl completion zsh$/m);
     assert.match(generator, /^gen herdr herdr completion zsh$/m);
     assert.doesNotMatch(zshrc, /kubectl completion zsh|herdr completion zsh/);
