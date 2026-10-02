@@ -118,6 +118,17 @@ test("focus-grab dismissal suppresses the click that caused it", () => {
     assert.equal(panelState.shouldSuppressReopen(1000, 999), false);
 });
 
+test("the bar clock resyncs to the wall clock after a suspend", () => {
+    const clock = source("modules/Clock.qml");
+    const resume = source("ResumeService.qml");
+
+    assert.match(resume, /pragma Singleton/);
+    assert.match(resume, /"gdbus",\s*"monitor",\s*"--system"[\s\S]*org\.freedesktop\.login1/);
+    assert.match(resume, /PrepareForSleep[\s\S]*false[\s\S]*root\.resumed\(\)/);
+    assert.match(resume, /onExited:\s*retryTimer\.start\(\)/);
+    assert.match(clock, /target:\s*ResumeService[\s\S]*function onResumed\(\)\s*\{\s*clock\.enabled = false;\s*clock\.enabled = true;/);
+});
+
 test("an open calendar follows today across midnight while preserving browsing", () => {
     const calendar = source("modules/CalendarPanel.qml");
 

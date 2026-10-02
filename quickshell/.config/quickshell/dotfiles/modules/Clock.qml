@@ -39,6 +39,17 @@ Item {
         precision: SystemClock.Minutes
     }
 
+    // SystemClock arms its next tick on a monotonic timer, which does not
+    // advance during suspend; re-enabling it re-reads the wall clock.
+    Connections {
+        target: ResumeService
+
+        function onResumed() {
+            clock.enabled = false;
+            clock.enabled = true;
+        }
+    }
+
     CalendarPanel {
         id: calendarPanel
 
