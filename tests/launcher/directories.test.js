@@ -460,3 +460,37 @@ test("chooserEntriesFor threads the remote flag through to chooserApps", () => {
     assert.ok(zed.target.argv.join(" ").includes("ssh://arch-devbox"),
         "host-targeted even though routed is false -- remote forces it");
 });
+
+
+test("machine filters keep identical local and remote paths distinct through catalog building and opening", () => {
+    const path = `${HOME}/dev/backend`;
+    const host = "arch-devbox";
+    const provider = {};
+    const localPaths = [path, `${HOME}/dev/local-only`];
+    const remotePaths = [path, `${HOME}/dev/remote-only`];
+
+    for (const [filter, expectedHosts] of [
+        ["all", [undefined, host]],
+        ["local", [undefined]],
+        ["remote", [host]]
+    ]) {
+        const items = D.itemsFor(localPaths, remotePaths, host, filter);
+        const catalog = C.ownedCatalog(items,
+            item => D.entryFor(item.path, HOME, provider, item.host),
+            (item, entry) => D.textsFor(entry.name));
+        const matches = catalog.entries.filter(entry => entry.target.path === path);
+        assert.deepStrictEqual(matches.map(entry => entry.target.host), expectedHosts);
+        for (const entry of matches) {
+            assert.deepStrictEqual(D.defaultOpenArgv(entry.target.path,
+                entry.target.host !== undefined, [], entry.target.host),
+                ["zeditor", entry.target.host ? `ssh://${host}${path}` : path]);
+        }
+        assert.ok(catalog.entries.every(entry => filter === "all"
+            || (filter === "remote") === (entry.target.host !== undefined)));
+    }
+});
+
+test("a remote machine filter handles an empty index without exposing local paths", () => {
+    assert.deepStrictEqual(D.itemsFor([`${HOME}/dev/local`], [], "arch-devbox", "remote"), []);
+    assert.deepStrictEqual(D.itemsFor([`${HOME}/dev/local`], [`${HOME}/dev/remote`], "", "remote"), []);
+});

@@ -362,3 +362,17 @@ Ranking quality is a real design task, not a port.
 usable — around 500–700 of shell infrastructure plus the eight default Providers.
 The remaining Providers are estimated at 1,200–1,500 lines in total. For
 calibration, the bar, notification daemon and OSD together are about 2,200 lines.
+
+
+## Directory machine filter
+
+The `/` directory picker has an All machines / This machine / remote host filter.
+The remote host option appears when Devcontainer Routing is enabled and a custom
+host is configured, matching the remote directory index's existing availability
+rules. Click a filter or press Ctrl+Tab to cycle through the options. Filtering
+keeps the current search text and limits the directory catalog before ranking.
+An empty remote index shows no results when that host is selected.
+
+The selection survives entering the directory's app chooser and returning to the
+list. Closing the launcher resets it to All machines. Disabling remote routing or
+changing the configured host also clears a selected remote filter.

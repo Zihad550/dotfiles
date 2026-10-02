@@ -126,6 +126,9 @@ PanelWindow {
         ? [root.nestedProvider]
         : (root.routed.provider === null ? root.pool : (root.rankedRoutable.indexOf(root.routed.provider) >= 0 ? [root.routed.provider] : []))
 
+    readonly property bool directoryFilterVisible: root.routed.provider === directories
+        && root.nestedProvider === null && !root.prompting && !root.confirming
+
     property var directoryIndexProvider: null
 
     function syncDirectoryIndexAccess(): void {
@@ -285,7 +288,9 @@ PanelWindow {
         // Padding, the two Column gaps around the rule, the rule, the Query
         // line, and the footer + its gap when visible (an invisible child
         // still has a height, so this checks rather than adding unconditionally).
-        const chrome = Theme.padding * 4 + 1 + query.height + (footer.visible ? footer.height + Theme.padding : 0);
+        const chrome = Theme.padding * 4 + 1 + query.height
+            + (machineFilters.visible ? machineFilters.height + Theme.padding : 0)
+            + (footer.visible ? footer.height + Theme.padding : 0);
         const available = root.height - card.y - Theme.padding - chrome;
 
         // One Entry minimum, so a pathologically short output still shows something.
@@ -958,6 +963,14 @@ PanelWindow {
                     // Provider with no `back` propagate up to the FocusScope's
                     // Keys.onEscapePressed instead of being silently swallowed.
                     Keys.onPressed: event => {
+                        if (root.directoryFilterVisible && event.key === Qt.Key_Tab
+                            && event.modifiers === Qt.ControlModifier) {
+                            directories.cycleMachineFilter();
+                            root.highlightFirst();
+                            event.accepted = true;
+                            return;
+                        }
+
                         const chord = Actions.chordOf(event);
                         if (chord === "")
                             return;
@@ -1015,6 +1028,65 @@ PanelWindow {
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.queryFontSize
                         textFormat: Text.PlainText
+                    }
+                }
+
+                Row {
+                    id: machineFilters
+
+                    width: parent.width
+                    spacing: 8
+                    visible: root.directoryFilterVisible
+
+                    Repeater {
+                        model: directories.machineFilters
+
+                        delegate: Rectangle {
+                            id: machineFilter
+
+                            required property var modelData
+                            readonly property bool selected: directories.machineFilter === modelData.value
+
+                            width: (machineFilters.width - machineFilters.spacing * (directories.machineFilters.length - 1))
+                                / directories.machineFilters.length
+                            height: filterLabel.implicitHeight + 16
+                            radius: Math.round(Theme.radius / 2)
+                            color: {
+                                if (selected)
+                                    return Theme.highlight;
+                                return filterPointer.containsMouse ? Theme.hover : "transparent";
+                            }
+                            border.width: 1
+                            border.color: selected ? Theme.accent : Theme.muted
+
+                            Text {
+                                id: filterLabel
+
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                text: machineFilter.modelData.label
+                                color: machineFilter.selected ? Theme.foreground : Theme.muted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.hintFontSize
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                textFormat: Text.PlainText
+                            }
+
+                            MouseArea {
+                                id: filterPointer
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    directories.machineFilter = machineFilter.modelData.value;
+                                    root.highlightFirst();
+                                    query.forceActiveFocus();
+                                }
+                            }
+                        }
                     }
                 }
 

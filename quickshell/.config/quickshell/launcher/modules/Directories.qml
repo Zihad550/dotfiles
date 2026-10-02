@@ -37,8 +37,10 @@ QtObject {
     // unlike `snapshot` above, which is always this machine's own filesystem.
     required property var remoteSnapshot
     onActiveChanged: {
-        if (!root.active)
+        if (!root.active) {
             root.openFor = null;
+            root.machineFilter = "all";
+        }
     }
 
     // null while showing the directory list; `{ path }` for a local Entry,
@@ -77,6 +79,27 @@ QtObject {
     // cached scan sitting there.
     readonly property bool remoteReady: root.routingEnabled && root.devcontainerHost !== ""
     readonly property var remotePaths: root.remoteReady ? root.remoteSnapshot.paths : []
+
+    property string machineFilter: "all"
+    readonly property var machineFilters: [
+        { value: "all", label: "All machines" },
+        { value: "local", label: "This machine" }
+    ].concat(root.remoteReady ? [{ value: "remote", label: root.devcontainerHost }] : [])
+
+    onDevcontainerHostChanged: {
+        if (root.machineFilter === "remote")
+            root.machineFilter = "all";
+    }
+
+    onMachineFiltersChanged: {
+        if (!root.machineFilters.some(filter => filter.value === root.machineFilter))
+            root.machineFilter = "all";
+    }
+
+    function cycleMachineFilter(): void {
+        const index = root.machineFilters.findIndex(filter => filter.value === root.machineFilter);
+        root.machineFilter = root.machineFilters[(index + 1) % root.machineFilters.length].value;
+    }
 
     // A launch outlives the Launcher surface: the primary Action dismisses it
     // before the application is requested, but the compositor may take a few
@@ -121,16 +144,9 @@ QtObject {
             };
         }
 
-        // Local paths, plus remote ones when routing is on with a custom
-        // host set, merged into one pool -- entryFor's own `host` argument
-        // keeps a remote key from colliding with a local one of the same
-        // relative path.
-        //
-        // Two corpus texts per directory (leaf, then full relative path), so
-        // the corpus carries `owners` -- see lib/directories.js's header for
-        // the misranking one text alone produced.
-        const items = root.paths.map(path => ({ path: path, host: undefined }))
-            .concat(root.remotePaths.map(path => ({ path: path, host: root.devcontainerHost })));
+        // Filter before preparing the corpus so ranking only scans the selected machine.
+        // Leaf and full-path texts share an owner; see lib/directories.js.
+        const items = Dirs.itemsFor(root.paths, root.remotePaths, root.devcontainerHost, root.machineFilter);
         const built = Catalog.ownedCatalog(items,
             item => Dirs.entryFor(item.path, root.home, root, item.host),
             (item, entry) => Dirs.textsFor(entry.name));

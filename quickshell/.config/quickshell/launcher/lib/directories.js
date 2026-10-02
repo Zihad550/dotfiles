@@ -71,6 +71,15 @@ function entryFor(path, home, provider, host) {
     };
 }
 
+function itemsFor(localPaths, remotePaths, host, machineFilter) {
+    var items = [];
+    if (machineFilter === "all" || machineFilter === "local")
+        items = localPaths.map(function (path) { return { path: path, host: undefined }; });
+    if (host && (machineFilter === "all" || machineFilter === "remote"))
+        items = items.concat(remotePaths.map(function (path) { return { path: path, host: host }; }));
+    return items;
+}
+
 function leafOf(rel) {
     var at = rel.lastIndexOf("/");
     return at < 0 ? rel : rel.slice(at + 1);
@@ -246,6 +255,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         isMirrored: isMirrored,
         subtextFor: subtextFor,
         entryFor: entryFor,
+        itemsFor: itemsFor,
         leafOf: leafOf,
         textsFor: textsFor,
         sessionNameOf: sessionNameOf,
