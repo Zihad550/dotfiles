@@ -24,6 +24,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Workstation, Arch devbox |
 | [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Workstation, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu server, Alpine |
+| [`setup-herdr-integrations`](setup-herdr-integrations) | Installs or refreshes Herdr integrations for the agents present. | `setup-herdr`, `df-update-daily` |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
 | [`setup-power-button-suspend`](setup-power-button-suspend) | Makes a short power-button press suspend and a long press power off. | Arch Workstation, Arch devbox |
 | [`setup-rootless-docker`](setup-rootless-docker) | Replaces rootful Docker with a per-user daemon. | Arch devbox |

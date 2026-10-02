@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Install or refresh Herdr's agent integrations for the agents present on this
+# box. Re-running replaces outdated integrations with the current version.
+
+set -euo pipefail
+
+eval "$(mise activate bash)"
+
+# Not `command -v` alone: mise keeps shims for tools that are no longer active,
+# and those resolve with nothing behind them.
+has_command() {
+    local path
+    path="$(command -v "$1")" || return 1
+    [[ "$path" != */mise/shims/* ]] || mise which "$1" &>/dev/null
+}
+
+# install_integration <integration> <agent command>
+install_integration() {
+    if has_command "$2"; then
+        herdr integration install "$1"
+    else
+        echo "skip: herdr $1 integration — $2 is not installed"
+    fi
+}
+
+install_integration claude claude
+install_integration codex codex
+install_integration opencode opencode
+# install_integration cursor cursor-agent
+# herdr integration install copilot
+# herdr integration install devin
+# herdr integration install droid
+# herdr integration install kimi
+# herdr integration install hermes
+# herdr integration install qodercli
+# herdr integration install mastracode
+# herdr integration install antigravity-cli
+# herdr integration install grok
