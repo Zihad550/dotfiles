@@ -76,7 +76,15 @@ df-harness [codex|claude] [message...] # reply to arguments or stdin
 df-commit-message [codex|claude]   # generate a commit message from stdin
 df-work-branch-name-gen [codex|claude] <issues> # default: Codex gpt-6-luna, high reasoning
 df-system-update                   # full system update (pacman/yay/flatpak/mise)
+df-worstation-backup [directory]     # ZIP Documents, Videos, Pictures to chosen media
 ```
+
+`df-worstation-backup` uses 7-Zip and offers mounted media under `/run/media`
+and `/mnt` through `gum`. Pass an existing directory to skip the picker.
+It saves `documents-workstation.zip`, `videos-workstation.zip`, and
+`pictures-workstation.zip`, each containing its corresponding home directory.
+All three source directories must exist. Each run replaces the previous ZIP
+after creating its replacement successfully, so deleted files leave the backup.
 
 ### theme paths
 

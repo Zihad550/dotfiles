@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+umask 077
+
+usage() {
+    cat <<'EOF'
+Usage: df-worstation-backup [directory]
+
+Back up ~/Documents, ~/Videos, and ~/Pictures as separate ZIP files.
+Without a directory, choose mounted media under /run/media or /mnt.
+Existing documents-workstation.zip, videos-workstation.zip, and
+pictures-workstation.zip files are replaced after each archive succeeds.
+EOF
+}
+
+die() {
+    echo "df-worstation-backup: $*" >&2
+    exit 1
+}
+
+choose_mount() {
+    local mounts media_pattern="^(/run/media/|/mnt(/|$))"
+    mounts=$(findmnt -rn -o TARGET | grep -E "$media_pattern" | while IFS= read -r mount; do printf '%b\n' "$mount"; done || true)
+    [[ -n $mounts ]] || die "no mounted media under /run/media or /mnt"
+    if [[ ! -t 0 ]] || ! command -v gum >/dev/null; then
+        die "pass a path when not running interactively with gum"
+    fi
+    gum choose --select-if-one --header "Backup media" <<<"$mounts"
+}
+
+case "${1:-}" in
+    -h | --help) usage; exit 0 ;;
+    -*) usage >&2; exit 2 ;;
+esac
+[[ $# -le 1 ]] || { usage >&2; exit 2; }
+command -v 7z >/dev/null || die "7z is required; install the 7zip package"
+
+folders=(Documents Videos Pictures)
+for folder in "${folders[@]}"; do
+    [[ -d $HOME/$folder ]] || die "$HOME/$folder does not exist"
+done
+
+destination=${1:-}
+[[ -n $destination ]] || destination=$(choose_mount)
+[[ -d $destination && -w $destination ]] || die "$destination is not a writable directory"
+destination=$(realpath -- "$destination")
+for folder in "${folders[@]}"; do
+    source_dir=$(realpath -- "$HOME/$folder")
+    case "$destination/" in
+        "$source_dir/"*) die "destination must be outside $HOME/$folder" ;;
+    esac
+    [[ ! -d $destination/${folder,,}-workstation.zip ]] || die "$destination/${folder,,}-workstation.zip is a directory"
+done
+
+work=$(mktemp -d "$destination/.df-worstation-backup.XXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+for folder in "${folders[@]}"; do
+    archive="${folder,,}-workstation.zip"
+    echo "Backing up $HOME/$folder..."
+    # Updating a ZIP in place would retain files deleted since the last backup.
+    (cd "$HOME" && 7z a -tzip -bd -bso0 -- "$work/$archive" "$folder") \
+        || die "could not archive $HOME/$folder; previous $archive kept"
+    mv -fT -- "$work/$archive" "$destination/$archive"
+    sync "$destination/$archive"
+    echo "Saved $destination/$archive"
+done
