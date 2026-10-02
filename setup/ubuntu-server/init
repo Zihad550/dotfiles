@@ -14,6 +14,7 @@ sudo apt install stow -y
 "$SETUP_DIR/packages"
 "$SETUP_DIR/setup-mise"
 "$DOTFILES_DIR/setup/common/setup-herdr"
+"$DOTFILES_DIR/setup/common/setup-skills"
 
 sudo install -d -m755 -o "$(id -u)" -g "$(id -g)" /nix
 curl -L https://nixos.org/nix/install | sh
