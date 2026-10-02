@@ -76,15 +76,34 @@ df-harness [codex|claude] [message...] # reply to arguments or stdin
 df-commit-message [codex|claude]   # generate a commit message from stdin
 df-work-branch-name-gen [codex|claude] <issues> # default: Codex gpt-6-luna, high reasoning
 df-system-update                   # full system update (pacman/yay/flatpak/mise)
-df-worstation-backup [directory]     # ZIP Documents, Videos, Pictures to chosen media
+df-backup [directory]              # select home items and a drive to back up
+df-restore [directory]             # select a drive and home items to restore
 ```
 
-`df-worstation-backup` uses 7-Zip and offers mounted media under `/run/media`
-and `/mnt` through `gum`. Pass an existing directory to skip the picker.
-It saves `documents-workstation.zip`, `videos-workstation.zip`, and
-`pictures-workstation.zip`, each containing its corresponding home directory.
-All three source directories must exist. Each run replaces the previous ZIP
-after creating its replacement successfully, so deleted files leave the backup.
+`df-backup` and `df-restore` use Gum to select multiple items and a mounted drive
+at or under `/run/media` or `/mnt`. Use X to select items and Enter to
+continue. Pass an existing directory to skip the drive picker. Both commands
+require `gum`, `tar`, `zstd`, and an interactive terminal.
+
+The backup picker offers existing home items from Documents, Videos, Pictures,
+`.gnupg`, `.password-store`, `.ssh`, backups, dev, dotfiles, Downloads, Music,
+Templates, `.obsidian-vault`, and `bk.json`. Each selected item gets a separate
+`.tar.zst` archive that preserves Unix permissions and symbolic links. SSH and
+GnuPG runtime files are excluded, as are development caches and build
+output under `dev` and `dotfiles`.
+
+`DOTFILES_PROFILE` must be `arch-workstation` or `arch-devbox`. Filenames include
+that profile, such as `arch-workstation-documents-backup.tar.zst` and
+`arch-devbox-ssh-backup.tar.zst`. Backup replaces each previous archive only
+after creating its replacement successfully. Restore offers only fixed archive
+names for the current profile and unpacks all selected archives before changing
+home items. Existing home items move into `<item>.pre-restore.<random>/` first.
+GnuPG agents are stopped before replacing `.gnupg`.
+
+These two commands replace `df-backup-create`, `df-backup-extract`,
+`df-worstation-backup`, `df-ssh-backup`, and `df-gnupg-backup`. Existing archives
+remain on disk; timestamped archives and the old workstation archive names
+are not offered by the restore picker.
 
 ### theme paths
 

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# shellcheck source=SCRIPTDIR/../scripts/backup/home-backup.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../scripts/backup/home-backup.sh"
+home_backup_main restore "$@"
