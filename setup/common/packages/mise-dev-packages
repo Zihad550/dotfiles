@@ -4,7 +4,7 @@ set -e
 
 runtimes=(node@24 node go pnpm uv)
 agents=(claude opencode gemini)
-agent_tools=(npm:skills npm:@playwright/cli aichat)
+agent_tools=(npm:skills npm:@playwright/cli)
 diff_tools=(aqua:modem-dev/hunk)
 
 # One install call downloads everything in parallel (npm: tools wait for node).

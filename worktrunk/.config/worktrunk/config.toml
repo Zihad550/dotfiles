@@ -13,10 +13,8 @@ mise-trust = '[ -f mise.toml ] && mise trust'
 stage = "none"
 
 [commit.generation]
-# command = "aichat -m gemini:gemini-3-flash-preview"
 # command = "MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=sonnet --tools='' --safe-mode --setting-sources='user' --system-prompt=''"
 command = "df-commit-message"
-# command = "aichat -m gemini:gemini-3-flash-preview"
 # command = "opencode run -m google/gemini-3-flash-preview"
 template-append = """
 - Use conventional commits (feat:, fix:, docs:, …)

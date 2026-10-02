@@ -80,16 +80,12 @@ export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
 # export POSTGRES_USER=postgres
 # export POSTGRES_DB=postgres
 # export GEMINI_SANDBOX=podman # gemini
-# export AICHAT_MODEL="gemini:gemini-2.5-flash" # aichat
 ### portless
 # PORTLESS_PORT=80
 PORTLESS_HTTPS=1
 export PORTLESS_HTTPS
-OLLAMA_FLASH_ATTENTION=true                  # ollama
-AICHAT_PLATFORM="gemini"                     # aichat
-AICHAT_MODEL="gemini:gemini-3-flash-preview" # aichat
-# AICHAT_MODEL="gemini:gemini-2.5-flash" # aichat
-export OLLAMA_FLASH_ATTENTION AICHAT_PLATFORM AICHAT_MODEL
+OLLAMA_FLASH_ATTENTION=true # ollama
+export OLLAMA_FLASH_ATTENTION
 
 # PATH Configuration
 export PATH="$HOME/bin:$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"

@@ -13,7 +13,6 @@
 
 #  core
 # gum - shell script UI, also drives the installer
-# aichat - commit msg generation for worktrunk
 # git-delta - diff viewer
 # atuin - see command history
 # pastel - color generation tool
@@ -32,7 +31,6 @@ pacman_install \
     man-pages \
     starship \
     gum \
-    aichat \
     git-delta \
     atuin \
     pastel \

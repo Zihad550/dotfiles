@@ -12,7 +12,6 @@ mise use -g usage
 mise install just stripe-cli npm:fallow node@24 biome redis
 
 # missing apt packages - install via mise
-mise use -g aichat
 mise use -g worktrunk
 mise use -g lazydocker
 mise use -g ghq

@@ -132,7 +132,6 @@ flatpak update
 mise up --bump
 zinit update
 zinit self-update
-aichat --sync-models
 ```
 
 ### misc
