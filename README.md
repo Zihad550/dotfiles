@@ -82,8 +82,9 @@ df-restore [directory]             # select a drive and home items to restore
 
 `df-backup` and `df-restore` use Gum to select multiple items and a mounted drive
 at or under `/run/media` or `/mnt`. Use X to select items and Enter to
-continue. Pass an existing directory to skip the drive picker. Both commands
-require `gum`, `tar`, `zstd`, and an interactive terminal.
+continue. The drive picker always asks, even with one drive mounted; pass an
+existing directory to skip it. Both commands require `gum`, `tar`, `zstd`, and
+an interactive terminal.
 
 The backup picker offers existing home items from Documents, Videos, Pictures,
 `.gnupg`, `.password-store`, `.ssh`, backups, dev, dotfiles, Downloads, Music,
@@ -95,10 +96,12 @@ output under `dev` and `dotfiles`.
 `DOTFILES_PROFILE` must be `arch-workstation` or `arch-devbox`. Filenames include
 that profile, such as `arch-workstation-documents-backup.tar.zst` and
 `arch-devbox-ssh-backup.tar.zst`. Backup replaces each previous archive only
-after creating its replacement successfully. Restore offers only fixed archive
-names for the current profile and unpacks all selected archives before changing
-home items. Existing home items move into `<item>.pre-restore.<random>/` first.
-GnuPG agents are stopped before replacing `.gnupg`.
+after creating its replacement successfully, so the drive briefly needs room for
+both. When an item's uncompressed size exceeds the drive's free space, backup
+asks before writing it. Restore offers only fixed archive names for the current
+profile and unpacks all selected archives before changing home items. Existing
+home items move into `<item>.pre-restore.<random>/` first. GnuPG agents are
+stopped before replacing `.gnupg`.
 
 These two commands replace `df-backup-create`, `df-backup-extract`,
 `df-worstation-backup`, `df-ssh-backup`, and `df-gnupg-backup`. Existing archives

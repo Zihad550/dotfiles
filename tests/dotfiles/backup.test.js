@@ -27,6 +27,7 @@ action=$1
 shift
 case "$action" in
     style) exit 0 ;;
+    confirm) exit "\${BACKUP_TEST_CONFIRM:-0}" ;;
     spin)
         while [[ $1 != -- ]]; do shift; done
         shift
@@ -120,6 +121,7 @@ for (const profile of ["arch-workstation", "arch-devbox"]) {
         assert.match(fs.readFileSync(env.BACKUP_TEST_GPG_LOG, "utf8"), /--kill all/);
         assert.match(fs.readFileSync(log, "utf8"), /style --border rounded/);
         assert.match(fs.readFileSync(log, "utf8"), /spin --show-error/);
+        assert.doesNotMatch(fs.readFileSync(log, "utf8"), /--select-if-one|^confirm/m);
     });
 }
 
@@ -157,6 +159,23 @@ test("dangling symlink items back up and restore as links", (t) => {
     fs.unlinkSync(path.join(home, ".obsidian-vault"));
     succeeds(run("df-restore", [".obsidian-vault"]));
     assert.equal(fs.readlinkSync(path.join(home, ".obsidian-vault")), "/nonexistent/vault");
+});
+
+test("low free space asks before writing and keeps the previous archive when declined", (t) => {
+    const { home, media, bin, env, log, run, archive } = sandbox(t);
+    fs.writeFileSync(path.join(home, "Documents", "report.txt"), "new");
+    succeeds(run("df-backup"));
+    const oldArchive = fs.readFileSync(path.join(media, archive("Documents")));
+    fs.writeFileSync(path.join(bin, "df"), "#!/bin/sh\nprintf 'Avail\\n10\\n'\n", { mode: 0o755 });
+    env.BACKUP_TEST_CONFIRM = "1";
+    const declined = run("df-backup");
+    assert.equal(declined.status, 1);
+    assert.match(declined.stdout, /not enough space for Documents; previous archive kept/);
+    assert.match(fs.readFileSync(log, "utf8"), /^confirm --default=false Documents needs up to/m);
+    assert.deepEqual(fs.readFileSync(path.join(media, archive("Documents"))), oldArchive);
+    assert.deepEqual(fs.readdirSync(media), [archive("Documents")]);
+    env.BACKUP_TEST_CONFIRM = "0";
+    succeeds(run("df-backup"));
 });
 
 test("SSH backup skips active control sockets and restores private key permissions", async (t) => {

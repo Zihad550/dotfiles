@@ -19,7 +19,7 @@ choose_drive() {
     mounts=$(findmnt -rn -o TARGET | grep -E '^(/run/media|/mnt)(/|$)' \
         | while IFS= read -r mount; do printf '%b\n' "$mount"; done || true)
     [[ -n $mounts ]] || die "no mounted media at or under /run/media or /mnt"
-    gum choose --select-if-one --header "Select backup drive" <<<"$mounts"
+    gum choose --header "Select backup drive" <<<"$mounts"
 }
 
 choose_entries() {
@@ -46,7 +46,7 @@ choose_entries() {
 }
 
 backup_selected() {
-    local entry source archive excludes=()
+    local entry source archive needed free excludes=()
     for entry in "${selected[@]}"; do
         source=$(realpath -m -- "$HOME/$entry")
         case "$drive/" in
@@ -75,6 +75,15 @@ backup_selected() {
             .ssh) excludes=('--exclude=.ssh/known_hosts.old') ;;
             .gnupg) excludes=('--exclude=.gnupg/S.*' '--exclude=*.lock' '--exclude=.#lk*' '--exclude=.gnupg/crls.d') ;;
         esac
+        # Uncompressed size is an upper bound, so too little space only asks.
+        needed=$(tar -C "$HOME" "${excludes[@]}" --totals -cf /dev/null "$entry" 2>&1 >/dev/null \
+            | sed -n 's/^Total bytes written: \([0-9]*\).*/\1/p') || true
+        free=$(df --output=avail -B1 -- "$drive" | tail -n 1)
+        if [[ -n $needed ]] && ((needed > free)); then
+            gum confirm --default=false \
+                "$entry needs up to $(numfmt --to=iec "$needed") but $drive has $(numfmt --to=iec "$free") free. Continue?" \
+                || die "not enough space for $entry; previous archive kept"
+        fi
         gum spin --show-error --title "Backing up $entry" -- \
             tar -C "$HOME" "${excludes[@]}" --use-compress-program='zstd -q -T0' -cf "$work/archive.tar.zst" "$entry" \
             || die "could not back up $entry; previous archive kept"
