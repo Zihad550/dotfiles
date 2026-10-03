@@ -87,10 +87,12 @@ existing directory to skip it. Both commands require `gum`, `tar`, `zstd`, and
 an interactive terminal.
 
 The backup picker offers existing home items from Documents, Videos, Pictures,
-`.gnupg`, `.password-store`, `.ssh`, backups, dev, dotfiles, Downloads, Music,
-Templates, `.obsidian-vault`, and `bk.json`. Each selected item gets a separate
-`.tar.zst` archive that preserves Unix permissions and symbolic links. SSH and
-GnuPG runtime files are excluded, as are development caches and build
+`.gnupg`, `.password-store`, `.ssh`, backups, dev, dotfiles, Downloads,
+`Downloads/backups`, Music, Templates, `.obsidian-vault`, and `bk.json`. Each
+selected item gets a separate `.tar.zst` archive that preserves Unix
+permissions and symbolic links. `Downloads/backups` is also inside the
+Downloads archive; restore applies Downloads first when both are selected.
+SSH and GnuPG runtime files are excluded, as are development caches and build
 output under `dev` and `dotfiles`.
 
 `DOTFILES_PROFILE` must be `arch-workstation` or `arch-devbox`. Filenames include

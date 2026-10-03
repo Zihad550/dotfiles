@@ -2,16 +2,21 @@
 set -euo pipefail
 umask 077
 
-backup_entries=(Documents Videos Pictures .gnupg .password-store .ssh backups dev dotfiles Downloads Music Templates .obsidian-vault bk.json)
+backup_entries=(Documents Videos Pictures .gnupg .password-store .ssh backups dev dotfiles Downloads Downloads/backups Music Templates .obsidian-vault bk.json)
 
 die() {
     printf '%s: %s\n' "$command_name" "$*" >&2
     exit 1
 }
 
-archive_name() {
+item_label() {
     local label=${1#.}
-    printf '%s-%s-backup.tar.zst\n' "$DOTFILES_PROFILE" "${label,,}"
+    label=${label//\//-}
+    printf '%s\n' "${label,,}"
+}
+
+archive_name() {
+    printf '%s-%s-backup.tar.zst\n' "$DOTFILES_PROFILE" "$(item_label "$1")"
 }
 
 choose_drive() {
@@ -23,7 +28,7 @@ choose_drive() {
 }
 
 choose_entries() {
-    local entry choices=() picked
+    local entry pick choices=() picks=() picked
     for entry in "${backup_entries[@]}"; do
         if [[ $operation == backup ]]; then
             [[ -e $HOME/$entry || -L $HOME/$entry ]] || continue
@@ -35,14 +40,15 @@ choose_entries() {
     [[ ${#choices[@]} -gt 0 ]] || die "no items available to $operation for $DOTFILES_PROFILE"
     picked=$(gum choose --no-limit --ordered --header "Select items to $operation" "${choices[@]}") || exit $?
     [[ -n $picked ]] || exit 0
-    mapfile -t selected <<<"$picked"
-    for entry in "${selected[@]}"; do
-        local available=false choice
-        for choice in "${choices[@]}"; do
-            [[ $entry != "$choice" ]] || available=true
+    mapfile -t picks <<<"$picked"
+    # Keep list order so Downloads restores before Downloads/backups.
+    selected=()
+    for entry in "${choices[@]}"; do
+        for pick in "${picks[@]}"; do
+            [[ $pick != "$entry" ]] || selected+=("$entry")
         done
-        [[ $available == true ]] || die "invalid selection: $entry"
     done
+    [[ ${#selected[@]} -eq ${#picks[@]} ]] || die "invalid selection"
 }
 
 backup_selected() {
@@ -94,33 +100,43 @@ backup_selected() {
 }
 
 restore_selected() {
-    local entry archive target previous staged
+    local entry archive target previous stage dir rest extra
     work=$(mktemp -d "$HOME/.df-restore.XXXXXX")
     for entry in "${selected[@]}"; do
         archive="$drive/$(archive_name "$entry")"
-        mkdir "$work/$entry-stage"
+        stage="$work/$(item_label "$entry")-stage"
+        mkdir "$stage"
         # GNU tar already refuses '..' members and symlink escapes, so the
         # isolated stage only needs a top-level check after one read.
         gum spin --show-error --title "Restoring $entry" -- \
-            tar --zstd -xpf "$archive" -C "$work/$entry-stage" \
+            tar --zstd -xpf "$archive" -C "$stage" \
             || die "could not unpack $archive; existing $entry kept"
-        staged=$(find "$work/$entry-stage" -mindepth 1 -maxdepth 1 ! -name "$entry" -print -quit)
-        [[ -z $staged ]] || die "$archive contains a path outside $entry"
-        [[ -e $work/$entry-stage/$entry || -L $work/$entry-stage/$entry ]] || die "$archive has no $entry"
+        dir=$stage
+        rest=$entry
+        while :; do
+            extra=$(find "$dir" -mindepth 1 -maxdepth 1 ! -name "${rest%%/*}" -print -quit)
+            [[ -z $extra ]] || die "$archive contains a path outside $entry"
+            [[ $rest == */* ]] || break
+            dir+="/${rest%%/*}"
+            rest=${rest#*/}
+        done
+        [[ -e $stage/$entry || -L $stage/$entry ]] || die "$archive has no $entry"
     done
 
     for entry in "${selected[@]}"; do
         target="$HOME/$entry"
+        stage="$work/$(item_label "$entry")-stage"
         if [[ $entry == .gnupg ]]; then
             gpgconf --kill all 2>/dev/null || true
         fi
         previous=
         if [[ -e $target || -L $target ]]; then
             previous=$(mktemp -d "$HOME/$entry.pre-restore.XXXXXX")
-            mv -- "$target" "$previous/$entry"
+            mv -- "$target" "$previous/${entry##*/}"
         fi
-        if ! mv -- "$work/$entry-stage/$entry" "$target"; then
-            [[ -z $previous ]] || mv -- "$previous/$entry" "$target"
+        mkdir -p -- "${target%/*}"
+        if ! mv -- "$stage/$entry" "$target"; then
+            [[ -z $previous ]] || mv -- "$previous/${entry##*/}" "$target"
             die "could not restore $entry"
         fi
         case "$entry" in

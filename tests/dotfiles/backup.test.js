@@ -76,7 +76,7 @@ esac
         return spawnSync("script", ["-qec", shellCommand, "/dev/null"], { env, encoding: "utf8" });
     }
     function archive(entry) {
-        return `${profile}-${entry.replace(/^\./, "").toLowerCase()}-backup.tar.zst`;
+        return `${profile}-${entry.replace(/^\./, "").replaceAll("/", "-").toLowerCase()}-backup.tar.zst`;
     }
     return { root, home, media, bin, env, log, run, archive };
 }
@@ -176,6 +176,41 @@ test("low free space asks before writing and keeps the previous archive when dec
     assert.deepEqual(fs.readdirSync(media), [archive("Documents")]);
     env.BACKUP_TEST_CONFIRM = "0";
     succeeds(run("df-backup"));
+});
+
+test("Downloads/backups is its own item and restores after Downloads", (t) => {
+    const { home, media, run, archive } = sandbox(t);
+    const backups = path.join(home, "Downloads", "backups");
+    fs.mkdirSync(backups, { recursive: true });
+    fs.writeFileSync(path.join(home, "Downloads", "other.txt"), "other");
+    fs.writeFileSync(path.join(backups, "db.sql"), "v1");
+    succeeds(run("df-backup", ["Downloads"]));
+    fs.writeFileSync(path.join(backups, "db.sql"), "v2");
+    succeeds(run("df-backup", ["Downloads/backups"]));
+    assert.ok(fs.existsSync(path.join(media, "arch-workstation-downloads-backups-backup.tar.zst")));
+    assert.deepEqual(fs.readdirSync(media).sort(), [archive("Downloads"), archive("Downloads/backups")].sort());
+
+    fs.rmSync(path.join(home, "Downloads"), { recursive: true });
+    succeeds(run("df-restore", ["Downloads/backups"]));
+    assert.deepEqual(fs.readdirSync(path.join(home, "Downloads")), ["backups"]);
+    assert.equal(fs.readFileSync(path.join(backups, "db.sql"), "utf8"), "v2");
+
+    fs.rmSync(path.join(home, "Downloads"), { recursive: true });
+    succeeds(run("df-restore", ["Downloads/backups", "Downloads"]));
+    assert.equal(fs.readFileSync(path.join(home, "Downloads", "other.txt"), "utf8"), "other");
+    assert.equal(fs.readFileSync(path.join(backups, "db.sql"), "utf8"), "v2");
+});
+
+test("restore rejects nested item archives containing sibling paths", (t) => {
+    const { home, media, run, archive } = sandbox(t);
+    fs.mkdirSync(path.join(home, "Downloads", "backups"), { recursive: true });
+    fs.writeFileSync(path.join(home, "Downloads", "other.txt"), "other");
+    succeeds(spawnSync("tar", ["--zstd", "-cf", path.join(media, archive("Downloads/backups")), "-C", home,
+        "Downloads/backups", "Downloads/other.txt"], { encoding: "utf8" }));
+    const result = run("df-restore", ["Downloads/backups"]);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /contains a path outside Downloads\/backups/);
+    assert.ok(fs.existsSync(path.join(home, "Downloads", "backups")));
 });
 
 test("SSH backup skips active control sockets and restores private key permissions", async (t) => {
