@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Arguments replace the saved trusted IPv4 peers; no arguments reuse them.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/ufw-lib
+. "$HERE/../common/ufw-lib"
+
+PEERS_FILE=/etc/ufw/localsend-peers
+peers=()
+if (( $# )); then
+    peers=("$@")
+elif sudo test -f "$PEERS_FILE"; then
+    saved_peers="$(sudo cat "$PEERS_FILE")"
+    if [[ -n "$saved_peers" ]]; then
+        mapfile -t peers <<< "$saved_peers"
+    fi
+fi
+
+for peer in "${peers[@]}"; do
+    if [[ "$peer" == */* ]] || ! valid_src "$peer"; then
+        echo "Expected a trusted device's IPv4 address, got: $peer" >&2
+        exit 1
+    fi
+done
+
+LAN_IFACE="$(ip -4 route show default | awk '{print $5; exit}')"
+if [[ -z "$LAN_IFACE" ]]; then
+    echo "No default route; cannot identify the LAN interface." >&2
+    exit 1
+fi
+
+sudo install -d -m 755 /etc/ufw/applications.d
+sudo tee /etc/ufw/applications.d/localsend >/dev/null <<'EOF'
+[LocalSend]
+title=LocalSend
+description=Local file sharing
+ports=53317/tcp|53317/udp
+EOF
+
+if (( $# )); then
+    printf '%s\n' "${peers[@]}" | sudo tee "$PEERS_FILE" >/dev/null
+    sudo chmod 644 "$PEERS_FILE"
+fi
+
+delete_rules_matching 'localsend trusted|localsend discovery'
+if (( ${#peers[@]} == 0 )); then
+    echo "LocalSend profile installed; no LAN exceptions without trusted peers."
+    echo "Run $HERE/setup-ufw-localsend <trusted-ip> [<trusted-ip> ...]"
+    exit 0
+fi
+
+# Insert before existing VLAN denies, including on machines already configured.
+for peer in "${peers[@]}"; do
+    sudo ufw insert 1 allow in on "$LAN_IFACE" from "$peer" to any app LocalSend comment 'localsend trusted'
+    for protocol in tcp udp; do
+        sudo ufw insert 1 allow out on "$LAN_IFACE" proto "$protocol" to "$peer" port 53317 comment 'localsend trusted'
+    done
+done
+sudo ufw insert 1 allow out on "$LAN_IFACE" proto udp to 224.0.0.167 port 53317 comment 'localsend discovery'
+
+echo "LocalSend LAN exceptions applied for: ${peers[*]}"

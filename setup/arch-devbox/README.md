@@ -102,6 +102,7 @@ so a fix there lands on both targets.
 | `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
 | `docker` | rootless docker via [`../common/setup-rootless-docker`](../common/setup-rootless-docker), called directly (no local wrapper) — an AI harness box shouldn't hand a compromised container a root-owned daemon |
 | `setup-ufw-base` | non-interactive deny-all baseline, run by `init` |
+| `setup-ufw-localsend` | LocalSend profile and LAN exceptions for saved trusted IPv4 peers |
 | `setup-ufw-lan` | step 1: a temporary ssh hole from one LAN machine, so the rest can be driven remotely |
 | `setup-tailscale` | join the tailnet, open `tailscale0` in ufw (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-ufw` | step 2: allow the tailnet, delete the LAN hole, cut the box off from the rest of the VLAN |
@@ -532,6 +533,41 @@ bash and iproute2 too, so the portable implementation is the one that survives.
 The subnet comes from the kernel's scope-link route on the uplink, so there is
 no prefix arithmetic to do by hand.
 
+### LocalSend
+
+`init` installs LocalSend and its Nautilus extension using the workstation's
+`setup-packages/setup-localsend`. The firewall profile opens no LAN access until
+you name trusted peers. To install on an existing arch-devbox, run:
+
+```bash
+cd ~/dotfiles
+./setup/arch-workstation/setup-packages/setup-localsend
+./setup/arch-devbox/setup-ufw-localsend 192.168.1.10 192.168.1.11
+sudo ufw app info LocalSend
+sudo ufw status numbered
+```
+
+Replace the example addresses with your devices' LAN IPv4 addresses. Reserve
+those addresses in DHCP. Restart Nautilus with `nautilus -q` to load its extension,
+then open LocalSend on both devices. Both devices must be reachable on the LAN;
+these rules cannot bypass router or VLAN isolation.
+
+The helper saves peers in `/etc/ufw/localsend-peers`. Arguments replace that list;
+running without arguments reapplies it. `setup-ufw` also reapplies it, inserting
+exceptions before existing VLAN denies. It allows inbound TCP/UDP 53317 from
+trusted peers, outbound TCP/UDP 53317 to them, and outbound UDP 53317 to discovery
+multicast `224.0.0.167`. Keep LocalSend's default port and multicast address.
+Discovery announcements reach the multicast group, but only trusted peers can
+connect back through these rules. UFW matches ports and addresses, so any program
+using those ports receives the same access. Routed container rules stay blocked.
+
+To revoke the exceptions, empty the saved list and rerun the helper:
+
+```bash
+sudo truncate -s 0 /etc/ufw/localsend-peers
+./setup/arch-devbox/setup-ufw-localsend
+```
+
 ### what `setup-ufw` blocks beyond deny-all-inbound
 
 This machine runs AI harnesses against web projects, so the design point is that
@@ -540,8 +576,8 @@ internet. Inbound rules do nothing about that; what matters is reach.
 
 | | |
 |---|---|
-| egress to `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `255.255.255.255`, multicast | dropped **on the physical interface only** |
-| same, as `ufw route` rules | so a container can't walk past the host rules |
+| egress to `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `255.255.255.255`, multicast | dropped **on the physical interface only**, except the configured LocalSend peers on port 53317 and its discovery multicast |
+| same ranges, as `ufw route` rules | so a container can't walk past the host rules; no LocalSend forwarding exceptions |
 | egress to `fc00::/7` (v6 unique-local), both forms | the v6 half of the same boundary. `fe80::/10` and `ff00::/8` are left alone — NDP runs over both, and dropping them removes IPv6 rather than hardening it |
 | the default gateway | the one LAN peer left reachable, so DNS/NTP/internet work — only if the resolver runs on the gateway itself; a resolver elsewhere on the LAN (a pi-hole on its own box) is blocked same as anything else, see `./setup-dns` |
 | DHCP to `255.255.255.255:67`, allowed out | added before the broadcast deny above it. `dhcpcd` and `systemd-networkd` use raw packet sockets that never reach the filter table; this is for anything that doesn't |

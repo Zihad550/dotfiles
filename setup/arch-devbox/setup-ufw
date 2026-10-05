@@ -114,6 +114,8 @@ for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4; d
 done
 sudo ufw deny out on "$LAN_IFACE" log to 255.255.255.255 comment 'vlan isolation'
 
+"$HERE/setup-ufw-localsend"
+
 # IPv6 unique-local. Link-local (fe80::/10) and multicast (ff00::/8) are left
 # alone on purpose -- NDP runs over both, and dropping them does not harden the
 # box, it just removes IPv6.
@@ -260,7 +262,7 @@ echo
 sudo ufw status verbose
 echo
 echo "Tailnet-only. Reachable at $(tailscale ip -4 2>/dev/null | head -1 || echo '<tailnet down>')."
-echo "On $LAN_IFACE the box talks to ${GATEWAY:-<no gateway>} and nothing else,"
+echo "On $LAN_IFACE the box talks to ${GATEWAY:-<no gateway>} and configured LocalSend peers,"
 echo "and does not answer pings. Denied egress shows up in:"
 echo "  journalctl -kg '\[UFW BLOCK\]' -f"
 echo

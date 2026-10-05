@@ -144,6 +144,8 @@ run_step "sshd" "$ARCH_DEVBOX_DIR/setup-sshd"
 # NOT ../arch-workstation/setup-packages/setup-ufw: that one denies all inbound
 # traffic, while this box must accept SSH over the tailnet.
 run_step "ufw baseline" "$ARCH_DEVBOX_DIR/setup-ufw-base"
+run_step "localsend" "$ARCH_WORKSTATION_DIR/setup-packages/setup-localsend"
+run_step "localsend firewall" "$ARCH_DEVBOX_DIR/setup-ufw-localsend"
 
 # syncthing dropped — file sync, not development.
 
@@ -260,6 +262,12 @@ else
     echo "logins); they are in setup/arch-devbox/README.md under \"order\"."
     echo
 fi
+
+echo "Optional LocalSend access from your host machine:"
+echo "  $ARCH_DEVBOX_DIR/setup-ufw-localsend <host-LAN-IPv4>"
+echo "  Replace <host-LAN-IPv4> with your host's LAN address, not its Tailscale IP."
+echo "  You can supply multiple trusted device IPs. Reserve them in DHCP."
+echo
 
 if [[ -e /dev/tty ]]; then
     if gum confirm "Clone the optional theme backgrounds now?" </dev/tty; then
