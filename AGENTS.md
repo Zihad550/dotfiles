@@ -16,6 +16,14 @@ resources:
       path: resources/quickshell-examples
 ```
 
+
+## The loop
+
+After every implementation, run the code-review skill on the task's changes.
+Fix actionable findings and rerun the review.
+A task is not done until the review and required checks pass.
+
+
 ## Guidelines
 
 - Write code comments only for what the code can't say for itself: a non-obvious
