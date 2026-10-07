@@ -2,8 +2,14 @@
 
 set -u
 
-if (($# < 3)); then
-   echo "usage: df-launch-special-workspace <initialClass> <workspace> [--workspace-owned] <program> [args ...]" >&2
+toggle_only=false
+if [[ "${1:-}" == "--toggle-only" ]]; then
+   toggle_only=true
+fi
+
+if { [[ "$toggle_only" == false ]] && (($# < 3)); } || { [[ "$toggle_only" == true ]] && (($# != 2)); }; then
+   echo "usage: df-launch-special-workspace <initialClass> <workspace> [--workspace-owned] <program> [args ...]
+       df-launch-special-workspace --toggle-only <workspace>" >&2
    exit 64
 fi
 
@@ -17,7 +23,7 @@ if [[ "${1:-}" == "--workspace-owned" ]]; then
    shift
 fi
 
-if (($# == 0)) || [[ -z "$initial_class" || ! "$workspace" =~ ^[A-Za-z0-9._-]+$ ]]; then
+if { [[ "$toggle_only" == false ]] && (($# == 0)); } || [[ -z "$initial_class" || ! "$workspace" =~ ^[A-Za-z0-9._-]+$ ]]; then
    echo "df-launch-special-workspace: initialClass and a safe workspace name are required" >&2
    exit 64
 fi
@@ -116,6 +122,9 @@ focus_existing() {
       notify_failure "Could not focus '$initial_class' at '$address' for Special Workspace '$workspace'."
       return 2
    fi
+   if [[ "$(jq -r --arg address "$address" '.[] | select(.address == $address) | .workspace.name' <<<"$exact")" == "special:$workspace" ]]; then
+      remember_previous_special
+   fi
    return 0
 }
 
@@ -134,18 +143,58 @@ resolve_existing_client_or_exit() {
    fi
 }
 
-active_special_workspace="$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .specialWorkspace.name // empty')"
+runtime_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+focused_monitor="$(hyprctl monitors -j | jq -c '.[] | select(.focused)')"
+active_special_workspace="$(jq -r '.specialWorkspace.name // empty' <<<"$focused_monitor")"
+monitor_id="$(jq -r '.id // 0' <<<"$focused_monitor")"
+base_workspace="$(jq -r '.activeWorkspace.id // 0' <<<"$focused_monitor")"
+session="${HYPRLAND_INSTANCE_SIGNATURE:-default}"
+return_file="$runtime_dir/df-special-return-${session//[^A-Za-z0-9._-]/_}-$monitor_id-$workspace.json"
+
+remember_previous_special() {
+   if [[ "$active_special_workspace" == special:* && "$active_special_workspace" != "special:$workspace" ]]; then
+      jq -n --arg previous "$active_special_workspace" --arg base "$base_workspace" \
+         '{previous: $previous, base: $base}' >"$return_file"
+   else
+      rm -f -- "$return_file"
+   fi
+}
+
 if [[ "$active_special_workspace" == "special:$workspace" ]]; then
+   previous_special=""
+   if [[ -f "$return_file" ]]; then
+      previous_special="$(jq -r --arg base "$base_workspace" 'select(.base == $base) | .previous // empty' "$return_file")"
+   fi
    if toggle_special "$workspace"; then
+      rm -f -- "$return_file"
+      if [[ "$previous_special" =~ ^special:[A-Za-z0-9._-]+$ && "$previous_special" != "special:$workspace" ]]; then
+         if ! clients="$(read_clients)"; then
+            exit 1
+         fi
+         if jq -e --arg previous "$previous_special" 'any(.[]; .workspace.name == $previous)' >/dev/null <<<"$clients"; then
+            if ! toggle_special "${previous_special#special:}"; then
+               notify_failure "Could not restore Special Workspace '$previous_special'."
+               exit 1
+            fi
+         fi
+      fi
       exit 0
    fi
    notify_failure "Could not hide active Special Workspace '$workspace'."
    exit 1
 fi
 
+if [[ "$toggle_only" == true ]]; then
+   if toggle_special "$workspace"; then
+      remember_previous_special
+      exit 0
+   fi
+   notify_failure "Could not open Special Workspace '$workspace'."
+   exit 1
+fi
+
 resolve_existing_client_or_exit
 
-runtime_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
 lock_file="$runtime_dir/df-special-workspace-$workspace.lock"
 if ! exec {lock_fd}>"$lock_file"; then
    notify_failure "Could not create the launch lock for Special Workspace '$workspace'."
@@ -171,6 +220,7 @@ if ! toggle_special "$workspace" || ! exec_on_special "$workspace" "$launch_comm
    notify_failure "Could not launch '$initial_class' for Special Workspace '$workspace'."
    exit 1
 fi
+remember_previous_special
 
 moved_address=""
 last_new_count=0

@@ -65,6 +65,7 @@ function fixture(t, options = {}) {
 
     fs.writeFileSync(path.join(state, "clients.json"), JSON.stringify(options.clients || [[]]));
     fs.writeFileSync(path.join(state, "active-special-workspace"), options.activeSpecialWorkspace || "");
+    fs.writeFileSync(path.join(state, "base-workspace"), "1");
     fs.writeFileSync(path.join(state, "client-call"), "0");
 
     writeExecutable(path.join(bin, "hyprctl"), `#!/usr/bin/node
@@ -80,7 +81,8 @@ if (args[0] === "clients" && args[1] === "-j") {
     process.stdout.write(JSON.stringify(responses[Math.min(call, responses.length - 1)]));
 } else if (args[0] === "monitors" && args[1] === "-j") {
     const name = fs.readFileSync(path.join(state, "active-special-workspace"), "utf8");
-    process.stdout.write(JSON.stringify([{ focused: true, specialWorkspace: { name } }]));
+    const id = Number(fs.readFileSync(path.join(state, "base-workspace"), "utf8"));
+    process.stdout.write(JSON.stringify([{ id: 0, focused: true, activeWorkspace: { id }, specialWorkspace: { name } }]));
 } else if (args[0] === "dispatch") {
     fs.appendFileSync(path.join(state, "dispatches"), JSON.stringify(args.slice(1)) + "\\n");
     if (process.env.FAIL_LUA === "1" && args[1].startsWith("hl."))
@@ -125,6 +127,9 @@ fs.appendFileSync(path.join(process.env.TEST_STATE, "notifications"),
     return {
         env,
         run,
+        toggle: workspace => childProcess.spawnSync(LAUNCHER, ["--toggle-only", workspace], { env, encoding: "utf8" }),
+        setActiveSpecial: name => fs.writeFileSync(path.join(state, "active-special-workspace"), name),
+        setBaseWorkspace: id => fs.writeFileSync(path.join(state, "base-workspace"), String(id)),
         dispatches: () => records("dispatches"),
         notifications: () => records("notifications")
     };
@@ -172,6 +177,117 @@ test("an active configured Special Workspace hides before client selection", t =
     assert.strictEqual(dispatchesNamed(dispatches, "togglespecialworkspace", "toggle_special").length, 1);
     assert.strictEqual(dispatchesNamed(dispatches, "focuswindow", "hl.dsp.focus").length, 0);
     assert.strictEqual(dispatchesNamed(dispatches, "exec", "hl.dsp.exec_cmd").length, 0);
+});
+
+test("toggling development returns to the special workspace it was opened from", t => {
+    for (const failLua of [false, true]) {
+        const harness = fixture(t, {
+            failLua,
+            activeSpecialWorkspace: "special:herdr",
+            clients: [[
+                client("0xherdr", INITIAL_CLASS, "special:herdr"),
+                client("0xdev", "helium", "special:development")
+            ]]
+        });
+        const open = harness.run("development", ["--workspace-owned", "helium-browser"], "helium");
+        assert.strictEqual(open.status, 0, open.stderr);
+        harness.setActiveSpecial("special:development");
+        const close = harness.run("development", ["--workspace-owned", "helium-browser"], "helium");
+        assert.strictEqual(close.status, 0, close.stderr);
+        const toggles = dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special");
+        const successful = failLua ? toggles.filter(args => args[0] === "togglespecialworkspace") : toggles;
+        assert.strictEqual(successful.length, 2);
+        assert.match(successful[0].join(" "), /development/);
+        assert.match(successful[1].join(" "), /herdr/);
+    }
+});
+
+test("a first launch also remembers the previous special workspace", t => {
+    const herdr = client("0xherdr", INITIAL_CLASS, "special:herdr");
+    const development = client("0xdev", "helium", "special:development");
+    const harness = fixture(t, {
+        activeSpecialWorkspace: "special:herdr",
+        clients: [[herdr], [herdr], [herdr, development]]
+    });
+    assert.strictEqual(harness.run("development", ["--workspace-owned", "helium-browser"], "helium").status, 0);
+    harness.setActiveSpecial("special:development");
+    assert.strictEqual(harness.run("development", ["--workspace-owned", "helium-browser"], "helium").status, 0);
+    const toggles = dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special");
+    assert.strictEqual(toggles.length, 3);
+    assert.match(toggles[2].join(" "), /herdr/);
+});
+
+test("return history is discarded after entering from a numbered workspace", t => {
+    const harness = fixture(t, {
+        activeSpecialWorkspace: "special:herdr",
+        clients: [[client("0xh", INITIAL_CLASS, "special:herdr"), client("0xd", "helium", "special:development")]]
+    });
+    const run = () => harness.run("development", ["--workspace-owned", "helium-browser"], "helium");
+    assert.strictEqual(run().status, 0);
+    harness.setActiveSpecial("");
+    assert.strictEqual(run().status, 0);
+    harness.setActiveSpecial("special:development");
+    assert.strictEqual(run().status, 0);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special").length, 1);
+});
+
+test("a closed previous workspace or changed numbered workspace is not restored", t => {
+    for (const changeBase of [false, true]) {
+        const development = client("0xd", "helium", "special:development");
+        const herdr = client("0xh", INITIAL_CLASS, "special:herdr");
+        const harness = fixture(t, {
+            activeSpecialWorkspace: "special:herdr",
+            clients: [[herdr, development], changeBase ? [herdr, development] : [development]]
+        });
+        const run = () => harness.run("development", ["--workspace-owned", "helium-browser"], "helium");
+        assert.strictEqual(run().status, 0);
+        harness.setActiveSpecial("special:development");
+        if (changeBase)
+            harness.setBaseWorkspace(2);
+        assert.strictEqual(run().status, 0);
+        assert.strictEqual(dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special").length, 1);
+    }
+});
+
+test("magic toggles without launching an application and returns to the previous special workspace", t => {
+    for (const failLua of [false, true]) {
+        const harness = fixture(t, {
+            failLua,
+            activeSpecialWorkspace: "special:herdr",
+            clients: [[client("0xherdr", INITIAL_CLASS, "special:herdr")]]
+        });
+        const open = harness.toggle("magic");
+        assert.strictEqual(open.status, 0, open.stderr);
+        harness.setActiveSpecial("special:magic");
+        const close = harness.toggle("magic");
+        assert.strictEqual(close.status, 0, close.stderr);
+        const toggles = dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special");
+        const successful = failLua ? toggles.filter(args => args[0] === "togglespecialworkspace") : toggles;
+        assert.strictEqual(successful.length, 3);
+        assert.match(successful[0].join(" "), /magic/);
+        assert.match(successful[1].join(" "), /magic/);
+        assert.match(successful[2].join(" "), /herdr/);
+        assert.strictEqual(dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length, 0);
+        assert.strictEqual(dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus").length, 0);
+    }
+});
+
+test("magic opened from a numbered workspace hides on a second press", t => {
+    const harness = fixture(t);
+    assert.strictEqual(harness.toggle("magic").status, 0);
+    harness.setActiveSpecial("special:magic");
+    assert.strictEqual(harness.toggle("magic").status, 0);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special").length, 2);
+    assert.strictEqual(dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length, 0);
+});
+
+test("toggle-only requires exactly one safe workspace name", t => {
+    const harness = fixture(t);
+    for (const args of [["--toggle-only"], ["--toggle-only", "magic", "extra"], ["--toggle-only", "../magic"]]) {
+        const result = childProcess.spawnSync(LAUNCHER, args, { env: harness.env, encoding: "utf8" });
+        assert.strictEqual(result.status, 64, result.stderr);
+    }
+    assert.strictEqual(harness.dispatches().length, 0);
 });
 
 test("a sole exact client is focused wherever the user moved it", t => {

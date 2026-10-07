@@ -33,9 +33,16 @@ o.bind("SUPER + SHIFT + k", "Swap window up",    hl.dsp.window.swap({ direction 
 o.bind("SUPER + SHIFT + j", "Swap window down",  hl.dsp.window.swap({ direction = "d" }))
 
 -- Workspace switching (code:10 = key 1, ... code:19 = key 0)
+local runtime_dir = os.getenv("XDG_RUNTIME_DIR") or os.getenv("TMPDIR") or "/tmp"
+local session = (os.getenv("HYPRLAND_INSTANCE_SIGNATURE") or "default"):gsub("[^%w._-]", "_")
+hl.on("workspace.active", function(workspace)
+    -- Native navigation invalidates an older return; the helper writes after its dispatch.
+    os.remove(runtime_dir .. "/df-normal-return-" .. session .. "-" .. workspace.id .. ".json")
+end)
+
 for i = 1, 10 do
     local code = tostring(i + 9)
-    o.bind("SUPER + code:" .. code,         "Switch to workspace " .. i,    hl.dsp.focus({ workspace = tostring(i) }))
+    o.bind("SUPER + code:" .. code,         "Switch to workspace " .. i,    dotfiles_bin .. "/df-hypr-workspace-toggle " .. i)
     o.bind("SUPER + SHIFT + code:" .. code, "Move window to workspace " .. i, hl.dsp.window.move({ workspace = tostring(i) }))
 end
 
@@ -86,7 +93,7 @@ for i = 1, 5 do
 end
 
 -- Special workspaces (scratchpad)
-o.bind("SUPER + S",         "Toggle magic workspace", hl.dsp.workspace.toggle_special("magic"))
+o.bind("SUPER + S",         "Toggle magic workspace", dotfiles_bin .. "/df-launch-special-workspace --toggle-only magic")
 o.bind("SUPER + SHIFT + S", "Move to magic workspace", hl.dsp.window.move({ workspace = "special:magic" }))
 -- o.bind("SUPER + SHIFT + O", "Move to note workspace",   hl.dsp.window.move({ workspace = "special:note" }))
 -- o.bind("SUPER + SHIFT + A", "Move to ai workspace",     hl.dsp.window.move({ workspace = "special:ai" }))

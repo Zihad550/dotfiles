@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if (($# != 1)) || [[ ! "$1" =~ ^([1-9]|10)$ ]]; then
+   echo "usage: df-hypr-workspace-toggle <1-10>" >&2
+   exit 64
+fi
+
+workspace="$1"
+focused_monitor="$(hyprctl monitors -j | jq -ce '.[] | select(.focused)')"
+base_workspace="$(jq -r '.activeWorkspace.id' <<<"$focused_monitor")"
+active_special="$(jq -r '.specialWorkspace.name // empty' <<<"$focused_monitor")"
+[[ "$base_workspace" =~ ^[1-9][0-9]*$ ]] || exit 1
+[[ -z "$active_special" || "$active_special" =~ ^special:[A-Za-z0-9._-]*$ ]] || exit 1
+
+runtime_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+session="${HYPRLAND_INSTANCE_SIGNATURE:-default}"
+return_file="$runtime_dir/df-normal-return-${session//[^A-Za-z0-9._-]/_}-$workspace.json"
+
+focus_workspace() {
+   hyprctl dispatch "hl.dsp.focus({ workspace = \"$1\" })" >/dev/null 2>&1 \
+      || hyprctl dispatch workspace "$1"
+}
+
+toggle_special() {
+   local name="${1#special:}"
+   hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$name\")" >/dev/null 2>&1 \
+      || hyprctl dispatch togglespecialworkspace "$name"
+}
+
+if [[ "$base_workspace" == "$workspace" && -z "$active_special" ]]; then
+   if [[ -f "$return_file" ]]; then
+      previous_base="$(jq -r '.base // empty' "$return_file")"
+      previous_special="$(jq -r '.special // empty' "$return_file")"
+      if [[ "$previous_base" =~ ^[1-9][0-9]*$ && "$previous_special" =~ ^special:[A-Za-z0-9._-]*$ ]]; then
+         clients="$(hyprctl clients -j)"
+         jq -e 'type == "array"' >/dev/null <<<"$clients"
+         if [[ "$previous_base" != "$workspace" ]]; then
+            focus_workspace "$previous_base"
+         fi
+         if jq -e --arg previous "$previous_special" 'any(.[]; .workspace.name == $previous)' >/dev/null <<<"$clients"; then
+            toggle_special "$previous_special"
+         elif [[ "$previous_base" == "$workspace" ]]; then
+            focus_workspace previous_per_monitor
+         fi
+         rm -f -- "$return_file"
+         exit 0
+      fi
+   fi
+   rm -f -- "$return_file"
+   focus_workspace previous_per_monitor
+   exit 0
+fi
+
+if [[ -n "$active_special" ]]; then
+   toggle_special "$active_special"
+fi
+if [[ "$base_workspace" != "$workspace" ]]; then
+   focus_workspace "$workspace"
+fi
+if [[ -n "$active_special" ]]; then
+   jq -n --arg base "$base_workspace" --arg special "$active_special" \
+      '{base: $base, special: $special}' >"$return_file"
+else
+   rm -f -- "$return_file"
+fi
