@@ -5,6 +5,7 @@ set -euo pipefail
 herdr=${HERDR_BIN_PATH:-herdr}
 state_dir=${HERDR_PLUGIN_STATE_DIR:?}
 source_id="plugin:dotfiles.sidebar-index"
+plugin_bin=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 mkdir -p "$state_dir"
 exec 9>"$state_dir/reconcile.lock"
@@ -45,16 +46,15 @@ agents=$("$herdr" agent list)
 jq -e '(.result.agents // .agents) | type == "array"' \
     <<<"$agents" >/dev/null
 
-workspace_rows=$(jq -r '
-    (.result.workspaces // .workspaces // [])
-    | to_entries[]
-    | ((.value.number // (.key + 1)) as $index
+workspace_rows=$(jq -f "$plugin_bin/workspace-order.jq" <<<"$workspaces" | jq -r '
+    to_entries[]
+    | ((.key + 1) as $index
        | [(.value.workspace_id // .value.id // ""),
           (if $index <= 9 then ($index | tostring) else "0" end),
        (.value.tokens.space_index // "")]
       )
     | @tsv
-' <<<"$workspaces")
+')
 
 while IFS=$'\t' read -r workspace_id index current; do
     [[ -n $workspace_id ]] || continue
