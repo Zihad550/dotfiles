@@ -30,10 +30,8 @@ if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
     o.bind("SUPER + ALT + S", "Share", hl.dsp.global("launcher:share"))
 end
 
--- Dictation
--- "Dictation start" used to claim SUPER + CTRL + V, which collided with the
--- clipboard manager keybind (bindings/clipboard.lua) on the same combo --
--- Hyprland fired this one instead, so the launcher's clipboard Provider never
--- saw the keypress. Disabled in favor of the clipboard manager.
--- o.bind("SUPER + CTRL + V",  "Dictation start", "voxtype record start")
-o.bind("SUPER + SHIFT + V", "Dictation stop",  "voxtype record stop", { release = true })
+if o.cmd_present("voxtype") then
+    o.bind("SUPER + CTRL + X", "Toggle dictation", "voxtype record toggle")
+    o.bind("F9", "Start dictation (push-to-talk)", "voxtype record start")
+    o.bind("F9", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
+end

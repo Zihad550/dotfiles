@@ -199,6 +199,14 @@ Code and opencode are available there too, but this box installs them with
 mise.) Dropping `setup-omarchy-repos` as "not minimal" breaks
 half of `pacman-base` plus the Hyprland steps.
 
+### Dictation
+
+Setup enables Voxtype with the `small.en` English model. Hold F9 to dictate or
+toggle recording with Super+Ctrl+X. Dictation uses this machine's microphone
+and graphical session. Settings are local files, editable through
+`voxtype configure`. See [Voxtype integration](../../docs/voxtype-spec.md)
+for installation on existing machines and live checks.
+
 ### flatpak is off by default
 
 The flatpak set was zen browser, Quran, MongoDB Compass and Beekeeper Studio.

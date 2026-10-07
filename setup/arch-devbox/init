@@ -176,8 +176,7 @@ run_step "herdr" "$DOTFILES_DIR/setup/common/setup-herdr"
 # setup-github-cli intentionally not run — needs `gh auth login` first.
 # Run manually after login: ~/dotfiles/bin/df-arch-devbox-post-install
 
-# setup-voxtype intentionally not run — uncomment to enable.
-# run_step "voxtype" "$ARCH_WORKSTATION_DIR/setup-packages/setup-voxtype"
+run_step "voxtype" "$DOTFILES_DIR/setup/common/setup-voxtype"
 
 run_step "shell completions" "$DOTFILES_DIR/bin/df-gen-completions"
 

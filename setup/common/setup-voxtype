@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+# shellcheck source=pacman-lib
+source "$DOTFILES_DIR/setup/common/pacman-lib"
+
+new_install=false
+if ! command -v voxtype >/dev/null 2>&1; then
+    new_install=true
+fi
+
+pacman_install wtype wl-clipboard python voxtype-bin
+"$DOTFILES_DIR/setup/common/voxtype/seed-config"
+voxtype setup --download --no-post-install
+
+gpu_enabled=false
+if [[ "$new_install" == true ]] && compgen -G '/usr/share/vulkan/icd.d/*.json' >/dev/null; then
+    if sudo voxtype setup gpu --enable; then
+        gpu_enabled=true
+    else
+        echo "Vulkan setup failed; restoring the CPU backend." >&2
+        sudo voxtype setup gpu --disable
+    fi
+fi
+
+voxtype setup systemd
+# Upstream setup does not propagate all systemctl failures.
+systemctl --user daemon-reload
+systemctl --user is-enabled --quiet voxtype.service
+
+start_service() {
+    systemctl --user stop voxtype.service || return 1
+    # A crashed daemon can leave idle behind; only a new state write proves readiness.
+    python3 - "${XDG_CONFIG_HOME:-$HOME/.config}/voxtype/config.toml" <<'PY' || return 1
+import os
+from pathlib import Path
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as config:
+    state_file = tomllib.load(config).get("state_file", "auto")
+if state_file.lower() in {"disabled", "none", "off", "false"}:
+    sys.exit("Voxtype integration requires state_file to be enabled.")
+if state_file.lower() == "auto":
+    state_file = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "voxtype/state"
+Path(state_file).unlink(missing_ok=True)
+PY
+    systemctl --user restart voxtype.service || return 1
+    # Type=simple becomes active before model initialization finishes.
+    for ((attempt = 0; attempt < 120; attempt++)); do
+        systemctl --user is-active --quiet voxtype.service || return 1
+        if [[ $(voxtype status) == "idle" ]]; then
+            return 0
+        fi
+        sleep 0.25
+    done
+    return 1
+}
+
+if ! start_service; then
+    if [[ "$gpu_enabled" != true ]]; then
+        echo "Voxtype failed to start. Check journalctl --user -u voxtype.service." >&2
+        exit 1
+    fi
+    echo "Voxtype failed with Vulkan; restoring the CPU backend." >&2
+    sudo voxtype setup gpu --disable
+    voxtype setup systemd
+    systemctl --user daemon-reload
+    systemctl --user is-enabled --quiet voxtype.service
+    start_service
+fi
+
+echo "Voxtype is ready. Reload Hyprland, then hold F9 or toggle with Super+Ctrl+X."

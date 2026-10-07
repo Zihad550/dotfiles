@@ -118,8 +118,7 @@ fi
 
 run_step "kanata" "$ARCH_WORKSTATION_DIR/setup-packages/setup-kanata"
 
-# setup-voxtype intentionally not run — uncomment to enable.
-# run_step "voxtype" "$ARCH_WORKSTATION_DIR/setup-packages/setup-voxtype"
+run_step "voxtype" "$DOTFILES_DIR/setup/common/setup-voxtype"
 
 run_step "shell completions" "$ARCH_WORKSTATION_DIR/setup-completions"
 

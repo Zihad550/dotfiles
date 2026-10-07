@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/voxtype"
+config_file="$config_dir/config.toml"
+
+# Stow can link the whole directory; detach it before writing local settings.
+if [[ -L "$config_dir" ]]; then
+    local_dir=$(mktemp -d "${config_dir}.XXXXXX")
+    cp -aL "$config_dir/." "$local_dir/"
+    rm "$config_dir"
+    mv "$local_dir" "$config_dir"
+fi
+
+mkdir -p "$config_dir"
+if [[ -L "$config_file" ]]; then
+    local_file=$(mktemp "$config_dir/config.toml.XXXXXX")
+    cp -L "$config_file" "$local_file"
+    mv -T "$local_file" "$config_file"
+elif [[ ! -e "$config_file" ]]; then
+    cp "$DOTFILES_DIR/voxtype/.config/voxtype/config.toml" "$config_file"
+fi

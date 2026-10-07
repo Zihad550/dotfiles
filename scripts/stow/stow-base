@@ -18,7 +18,7 @@ stow lazygit
 stow themes
 stow starship
 stow yazi
-stow voxtype
+DOTFILES_DIR="$DOTFILES" "$DOTFILES/setup/common/voxtype/seed-config"
 # stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
 mkdir -p ~/.config/herdr
 ln -snf ~/dotfiles/herdr/.config/herdr/config.toml ~/.config/herdr/config.toml

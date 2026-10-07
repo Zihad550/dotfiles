@@ -107,6 +107,14 @@ dotfiles Quickshell instance. Restart any already-open mpv process to load its
 MPRIS plugin. Browser downloads and screen-recording integration are excluded.
 See the [port provenance](../../quickshell/.config/quickshell/dotfiles/media/PROVENANCE.md).
 
+### Dictation
+
+Setup enables Voxtype with the `small.en` English model. Hold F9 to dictate or
+toggle recording with Super+Ctrl+X. Starter settings pause media and disable
+audible feedback. Settings are local files, so `voxtype configure` does not
+modify the repository. See [Voxtype integration](../../docs/voxtype-spec.md)
+for installation on existing machines and live checks.
+
 ### Disk setup
 
 During the Arch installation, select disk encryption, Btrfs, GRUB, and

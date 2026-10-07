@@ -14,7 +14,7 @@ ln -snf "$HOME/.config/zed/backup/extensions/index.json" \
     "$HOME/.local/share/zed/extensions/index.json"
 stow themes
 stow starship
-stow voxtype
+"$DOTFILES_DIR/setup/common/voxtype/seed-config"
 stow procs
 stow atuin
 stow dotfiles

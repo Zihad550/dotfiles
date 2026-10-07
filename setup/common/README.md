@@ -34,6 +34,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-tailscale`](setup-tailscale) | Joins a box to the tailnet after its wrapper installs Tailscale. | Arch and Ubuntu wrappers |
 | [`setup-ts-serve`](setup-ts-serve) | Grants passwordless `ts-serve` through a validating root wrapper. | Arch devbox |
 | [`setup-tuned`](setup-tuned) | Installs the always-on bare-metal power profile. | Arch and Ubuntu wrappers |
+| [`setup-voxtype`](setup-voxtype) | Installs local voice dictation, its model, and user service. | Arch Workstation, Arch devbox |
 
 ### Support and package input
 

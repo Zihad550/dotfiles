@@ -1,6 +1,4 @@
 #!/bin/bash
 set -e
 
-# Used by the Voxtype quickshell module to open config on right click
-
-exec df-launch-editor ~/.config/voxtype/config.toml
+exec df-launch-floating-presentation "voxtype configure"

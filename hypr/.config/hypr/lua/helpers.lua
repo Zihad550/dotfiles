@@ -9,6 +9,18 @@ end
 
 o.shell_quote = shell_quote
 
+-- Hyprland reaps subprocesses, so os.execute cannot reliably report success.
+function o.cmd_present(command)
+    for directory in ((os.getenv("PATH") or "") .. ":"):gmatch("([^:]*):") do
+        local file = io.open((directory ~= "" and directory or ".") .. "/" .. command, "r")
+        if file then
+            file:close()
+            return true
+        end
+    end
+    return false
+end
+
 -- Wrap hl.bind so callers can pass a description and a dispatcher OR a shell command string.
 function o.bind(keys, description, dispatcher, options)
     local opts = options or {}
