@@ -30,7 +30,7 @@ Item {
 
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property bool muted: sink?.audio?.muted ?? false
-    readonly property int volume: sink?.audio ? Math.round(sink.audio.volume * 100) : 0
+    readonly property int volume: AudioService.volume
 
     readonly property UPowerDevice battery: UPower.displayDevice
     readonly property bool charging: battery?.state === UPowerDeviceState.Charging

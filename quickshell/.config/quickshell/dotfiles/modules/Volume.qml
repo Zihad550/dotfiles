@@ -2,43 +2,16 @@ import QtQuick
 import Quickshell.Services.Pipewire
 import qs
 import "lib/statusCluster.js" as Status
-import "lib/audio.js" as Audio
 
 // The effective default sink is the single source of truth for the primary
 // surface. The chevron is the only route to the output-selection Page.
 Item {
     id: root
 
-    readonly property PwNode sink: Pipewire.defaultAudioSink
+    readonly property PwNode sink: AudioService.sink
     readonly property bool available: !!root.sink?.audio
     readonly property bool muted: root.sink?.audio?.muted ?? false
-    readonly property int volume: Math.round(Audio.enabledChannelVolume(root.sink?.audio?.volumes ?? [], root.sink?.audio?.channels ?? [], root.savedChannelVolumes) * 100)
-    property var savedVolumesBySink: ({})
-    readonly property var savedChannelVolumes: root.savedVolumesBySink[root.sink?.name] ?? ({})
-
-    function saveChannelVolumes(saved): void {
-        if (root.sink)
-            root.savedVolumesBySink = Object.assign({}, root.savedVolumesBySink, { [root.sink.name]: saved });
-    }
-
-    Connections {
-        target: root.sink?.audio ?? null
-
-        function onVolumesChanged(): void {
-            const saved = Object.assign({}, root.savedChannelVolumes);
-            const channels = root.sink.audio.channels;
-            const volumes = root.sink.audio.volumes;
-            let changed = false;
-            for (let index = 0; index < channels.length; index++) {
-                if (volumes[index] > 0 && saved[channels[index]] !== undefined) {
-                    delete saved[channels[index]];
-                    changed = true;
-                }
-            }
-            if (changed)
-                root.saveChannelVolumes(saved);
-        }
-    }
+    readonly property int volume: AudioService.volume
     readonly property string icon: Status.volumeIcon(root.available, root.muted, root.volume)
 
     property bool sliderFocusVisible: false
@@ -51,26 +24,11 @@ Item {
     activeFocusOnTab: root.enabled && root.visible
 
     function setVolume(percent: int): void {
-        if (root.sink?.audio)
-            root.sink.audio.volumes = Audio.setEnabledChannelVolume(root.sink.audio.volumes, root.sink.audio.channels, root.savedChannelVolumes, Math.max(0, Math.min(100, percent)) / 100);
+        AudioService.setVolume(percent);
     }
 
     function toggleChannel(channel: int): void {
-        const audio = root.sink?.audio;
-        const index = audio ? Array.from(audio.channels).indexOf(channel) : -1;
-        if (index < 0)
-            return;
-        const volumes = Array.from(audio.volumes);
-        const saved = Object.assign({}, root.savedChannelVolumes);
-        if (volumes[index] > 0) {
-            saved[channel] = volumes[index];
-            volumes[index] = 0;
-        } else {
-            volumes[index] = saved[channel] ?? Math.max(root.volume / 100, 0.5);
-            delete saved[channel];
-        }
-        root.saveChannelVolumes(saved);
-        audio.volumes = volumes;
+        AudioService.toggleChannel(channel);
     }
 
     function toggleMute(): void {
@@ -263,11 +221,11 @@ Item {
                 id: channelButton
 
                 required property int modelData
-                readonly property int channelIndex: Array.from(root.sink?.audio?.channels ?? []).indexOf(modelData)
-                readonly property bool silenced: (root.sink?.audio?.volumes[channelIndex] ?? 0) === 0
+                readonly property bool silenced: AudioService.savedChannelVolumes[modelData] !== undefined
                 readonly property string channelName: modelData === PwAudioChannel.FrontLeft ? "Left" : "Right"
                 property bool focusVisible: false
 
+                enabled: AudioService.writable
                 width: 30
                 height: Theme.quickSettingsRowHeight
                 activeFocusOnTab: root.enabled && root.visible
@@ -320,7 +278,7 @@ Item {
 
                 Tooltip {
                     target: channelButton
-                    text: `${channelButton.channelName} speaker: ${channelButton.silenced ? "disabled" : "enabled"}. Click to ${channelButton.silenced ? "enable" : "disable"}.`
+                    text: AudioService.error || `${channelButton.channelName} speaker: ${channelButton.silenced ? "disabled" : "enabled"}. Click to ${channelButton.silenced ? "enable" : "disable"}.`
                     shown: channelMouse.containsMouse || channelButton.focusVisible
                 }
             }
@@ -376,7 +334,7 @@ Item {
 
     Tooltip {
         target: root
-        text: root.available ? `Volume ${root.volume}%${root.muted ? " (muted)" : ""}` : "Volume unavailable"
+        text: root.available ? `Volume ${root.volume}%${root.muted ? " (muted)" : ""}${AudioService.error ? ": " + AudioService.error : ""}` : "Volume unavailable"
         shown: root.muteFocusVisible || muteMouse.containsMouse || root.sliderFocusVisible || trackMouse.containsMouse || percentMouse.containsMouse || root.pageFocusVisible || pageMouse.containsMouse
     }
 

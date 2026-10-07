@@ -12,9 +12,8 @@ import Quickshell.Services.Pipewire
 // draw the overlay. Both halves live here now -- shell.qml exposes this over
 // IPC and hypr/lua/bindings/media.lua calls `qs -c dotfiles ipc call osd ...`.
 //
-// Volume is applied through Pipewire directly rather than by shelling out, so
-// the bar's volume slider and this stay on one source of truth. BacklightService
-// likewise owns brightness state and execution for every caller.
+// AudioService owns output volume for the slider and media keys.
+// BacklightService owns brightness state and execution for every caller.
 //
 // Not replaced: swayosd's caps/num-lock indicators, which need its
 // libinput backend reading /dev/input. autostart.lua never started that.
@@ -63,8 +62,7 @@ Singleton {
         if (!sink?.audio || step === 0)
             return;
 
-        const current = Math.round(sink.audio.volume * 100);
-        sink.audio.volume = Math.max(0, Math.min(100, current + step)) / 100;
+        AudioService.setVolume(AudioService.volume + step);
 
         // swayosd unmutes when you raise from muted; without this the bar moves
         // and nothing comes out.
@@ -141,7 +139,7 @@ Singleton {
     function showVolume(): void {
         if (!sink?.audio)
             return;
-        const percent = Math.round(sink.audio.volume * 100);
+        const percent = AudioService.volume;
         if (sink.audio.muted) {
             show(root.mutedIcon, percent / 100, "");
             return;

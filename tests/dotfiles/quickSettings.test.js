@@ -119,7 +119,8 @@ test("Audio Page is native, availability-aware, and keeps advanced settings as a
     assert.match(quickSettings, /AudioPage\s*\{/);
     assert.match(audioPage, /title:\s*"Audio"/);
     assert.match(audioPage, /Pipewire\.preferredDefaultAudioSink\s*=\s*node/);
-    assert.match(volume, /Pipewire\.defaultAudioSink/);
+    assert.match(volume, /AudioService\.sink/);
+    assert.match(source("AudioService.qml"), /Pipewire\.defaultAudioSink/);
     assert.match(volume, /signal pageRequested\(bool keyboard\)/);
     assert.match(audioPage, /pactl.*-f.*json.*list.*sinks/);
     assert.match(audioPage, /availableSinkNames/);
@@ -148,7 +149,7 @@ test("Volume shows a persistent percentage and its Tooltip responds to hover", (
         volume,
         /shown:\s*root\.muteFocusVisible \|\| muteMouse\.containsMouse \|\| root\.sliderFocusVisible \|\| trackMouse\.containsMouse \|\| percentMouse\.containsMouse \|\| root\.pageFocusVisible \|\| pageMouse\.containsMouse/,
     );
-    assert.match(volume, /text:\s*root\.available \? `Volume \$\{root\.volume\}%\$\{root\.muted \? " \(muted\)" : ""\}` : "Volume unavailable"/);
+    assert.match(volume, /text:\s*root\.available \? `Volume \$\{root\.volume\}%\$\{root\.muted \? " \(muted\)" : ""\}\$\{AudioService\.error[\s\S]*"Volume unavailable"/);
 });
 
 test("Brightness sits between Volume and Wired, refreshes on open, and never raises the OSD itself", () => {
