@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+dotfiles_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=SCRIPTDIR/../scripts/backup/home-items.sh
+source "$dotfiles_dir/scripts/backup/home-items.sh"
+entries=("${backup_entries[@]}" .backup.hc .recovery.hc)
+
+die() {
+    printf 'df-rsync: %s\n' "$*" >&2
+    exit 1
+}
+
+choose_remote() {
+    local hosts choice address user port
+    hosts=$(python3 "$dotfiles_dir/scripts/rsync/ssh-hosts.py") || exit $?
+    local options=()
+    [[ -z $hosts ]] || mapfile -t options <<<"$hosts"
+    choice=$(gum choose --header "Select remote" "${options[@]}" "Custom IP") || exit $?
+    [[ -n $choice ]] || exit 0
+    ssh_options=()
+    if [[ $choice == "Custom IP" ]]; then
+        address=$(gum input --placeholder "IP address (required)") || exit $?
+        python3 -c 'import ipaddress, sys; ipaddress.ip_address(sys.argv[1])' "$address" 2>/dev/null \
+            || die "enter an IPv4 or IPv6 address"
+        user=$(gum input --placeholder "SSH user (blank uses SSH default)") || exit $?
+        [[ -z $user || $user =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ ]] || die "invalid SSH user"
+        port=$(gum input --placeholder "SSH port (blank uses SSH default)") || exit $?
+        if [[ -n $port ]]; then
+            [[ $port =~ ^[0-9]{1,5}$ ]] || die "invalid SSH port"
+            ((10#$port >= 1 && 10#$port <= 65535)) || die "SSH port must be between 1 and 65535"
+            ssh_options=(-p "$port")
+        fi
+        remote=$address
+        [[ -z $user ]] || remote="$user@$remote"
+        rsync_remote=$address
+        [[ $address != *:* ]] || rsync_remote="[$address]"
+        [[ -z $user ]] || rsync_remote="$user@$rsync_remote"
+    else
+        # Keep in sync with USABLE_ALIAS in scripts/rsync/ssh-hosts.py.
+        [[ $choice =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ ]] || die "invalid SSH alias"
+        remote=$choice
+        rsync_remote=$choice
+    fi
+    ssh_transport="ssh"
+    [[ ${#ssh_options[@]} -eq 0 ]] || ssh_transport+=" -p ${ssh_options[1]}"
+}
+
+list_local_items() {
+    local entry
+    for entry in "${entries[@]}"; do
+        if [[ -L $HOME/$entry ]]; then
+            printf '%s\tl\n' "$entry"
+        elif [[ -d $HOME/$entry ]]; then
+            printf '%s\td\n' "$entry"
+        elif [[ -f $HOME/$entry ]]; then
+            printf '%s\tf\n' "$entry"
+        fi
+    done
+}
+
+list_remote_items() {
+    {
+        # HOME belongs to the remote shell.
+        # shellcheck disable=SC2016
+        printf 'cd "$HOME" || exit 1\nfor entry in'
+        printf " '%s'" "${entries[@]}"
+        cat <<'EOF'
+; do
+    if [ -L "$entry" ]; then
+        printf '%s\tl\n' "$entry"
+    elif [ -d "$entry" ]; then
+        printf '%s\td\n' "$entry"
+    elif [ -f "$entry" ]; then
+        printf '%s\tf\n' "$entry"
+    fi
+done
+EOF
+    } | ssh "${ssh_options[@]}" "$remote" 'sh -s' || die "cannot list home items on $remote"
+}
+
+choose_items() {
+    local listing=$1 entry kind pick picked
+    local choices=() picks=()
+    declare -gA item_types=()
+    while IFS=$'\t' read -r entry kind; do
+        [[ -n $entry ]] || continue
+        for pick in "${entries[@]}"; do
+            if [[ $entry == "$pick" && $kind =~ ^[dfl]$ ]]; then
+                choices+=("$entry")
+                item_types["$entry"]=$kind
+                break
+            fi
+        done
+    done <<<"$listing"
+    [[ ${#choices[@]} -gt 0 ]] || die "no items available to $operation"
+    picked=$(gum choose --no-limit --ordered --header "Select items to $operation" "${choices[@]}") || exit $?
+    [[ -n $picked ]] || exit 0
+    mapfile -t picks <<<"$picked"
+    selected=()
+    # Parent directories must transfer before independently selected children.
+    for entry in "${entries[@]}"; do
+        for pick in "${picks[@]}"; do
+            [[ $pick != "$entry" ]] || selected+=("$entry")
+        done
+    done
+    [[ ${#selected[@]} -eq ${#picks[@]} ]] || die "invalid selection"
+    for entry in "${selected[@]}"; do
+        [[ -v item_types[$entry] ]] || die "unavailable item: $entry"
+    done
+}
+
+sync_items() {
+    local entry target parent pattern source destination
+    local excludes=() rsync_excludes=()
+    for entry in "${selected[@]}"; do
+        parent=.
+        [[ $entry != */* ]] || parent=${entry%/*}
+        if [[ $operation == receive ]]; then
+            target="$HOME/$entry"
+            [[ ! -L $target && ! -L $HOME/$parent ]] || die "destination is a symlink: $target"
+            mkdir -p -- "$HOME/$parent"
+            source="$rsync_remote:./$entry"
+            destination="$HOME/$parent/"
+        else
+            # Only fixed allowlisted home paths enter this remote command.
+            # shellcheck disable=SC2029
+            ssh "${ssh_options[@]}" "$remote" \
+                "cd \"\$HOME\" && test ! -L '$entry' && test ! -L '$parent' && mkdir -p -- '$parent'" \
+                || die "cannot prepare destination for $entry on $remote (check for symlinks)"
+            source="$HOME/$entry"
+            destination="$rsync_remote:./$parent/"
+        fi
+        # Keep the item name in the transfer root so tar-style exclusions match.
+        home_item_excludes "$entry"
+        rsync_excludes=()
+        for pattern in "${excludes[@]}"; do
+            pattern=${pattern#--exclude=}
+            if [[ $pattern == '*/'* ]]; then
+                rsync_excludes+=("--exclude=${pattern#\*/}")
+            else
+                rsync_excludes+=("--exclude=$pattern")
+            fi
+        done
+        printf '\n%s %s (%s)\n' "$operation" "$entry" "$remote"
+        rsync -avhP --delete-after --protect-args -e "$ssh_transport" \
+            "${rsync_excludes[@]}" -- "$source" "$destination" \
+            || die "could not $operation $entry; stopped before the remaining items"
+    done
+}
+
+case "${1:-}" in
+    -h | --help)
+        cat <<'EOF'
+Usage: df-rsync [send|receive]
+
+Select home items and an SSH remote with Gum.
+Custom IP prompts for user and port; blank values use SSH defaults.
+Uses rsync -avhP --delete-after with df-backup exclusions.
+Both directions confirm overwrites and destination-only deletions.
+EOF
+        exit 0 ;;
+esac
+[[ $# -le 1 ]] || die "usage: df-rsync [send|receive]"
+for dependency in gum rsync ssh python3; do
+    command -v "$dependency" >/dev/null || die "$dependency is required"
+done
+[[ -t 0 ]] || die "run interactively to select items with Gum"
+operation=${1:-}
+[[ -n $operation ]] || operation=$(gum choose --header "Select operation" send receive) || exit $?
+case "$operation" in
+    send)
+        choose_items "$(list_local_items)"
+        choose_remote ;;
+    receive)
+        choose_remote
+        listing=$(list_remote_items) || exit $?
+        choose_items "$listing" ;;
+    '') exit 0 ;;
+    *) die "usage: df-rsync [send|receive]" ;;
+esac
+gum style --foreground 3 "Remote: $remote${ssh_options[*]:+ (port ${ssh_options[1]})}" \
+    "Items: ${selected[*]}"
+if [[ $operation == receive ]]; then
+    warning="Receive from $remote? This will overwrite this host's files and delete destination-only files inside selected folders."
+else
+    warning="Send to $remote? This will overwrite remote files and delete destination-only files inside selected folders."
+fi
+gum confirm --default=false "$warning" || exit 0
+sync_items

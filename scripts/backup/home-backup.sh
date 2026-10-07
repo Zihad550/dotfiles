@@ -2,7 +2,8 @@
 set -euo pipefail
 umask 077
 
-backup_entries=(Documents Videos Pictures .gnupg .password-store .ssh backups dev dotfiles Downloads Downloads/backups Music Templates .obsidian-vault bk.json)
+# shellcheck source=SCRIPTDIR/home-items.sh
+source "$(dirname "${BASH_SOURCE[0]}")/home-items.sh"
 
 die() {
     printf '%s: %s\n' "$command_name" "$*" >&2
@@ -65,22 +66,7 @@ backup_selected() {
     work=$(mktemp -d "$drive/.df-backup.XXXXXX")
     for entry in "${selected[@]}"; do
         archive="$drive/$(archive_name "$entry")"
-        excludes=()
-        case "$entry" in
-            dev | dotfiles) excludes=(
-                '--exclude=*/node_modules' '--exclude=*/.pnpm-store' '--exclude=*/.next'
-                '--exclude=*/.nuxt' '--exclude=*/dist' '--exclude=*/.cache' '--exclude=*/cache'
-                '--exclude=*/logs' '--exclude=*/__pycache__' '--exclude=*/.venv' '--exclude=*/venv'
-                '--exclude=*/.turbo' '--exclude=*/.svelte-kit' '--exclude=*/.astro'
-                '--exclude=*/.build' '--exclude=*/compiled' '--exclude=*/.vercel'
-                '--exclude=*/.netlify' '--exclude=*/.output' '--exclude=*/cmake-build-*'
-                '--exclude=*.log' '--exclude=*.tmp' '--exclude=*.pyc' '--exclude=*.tsbuildinfo'
-                '--exclude=*.o' '--exclude=*.out' '--exclude=*.so' '--exclude=*.dll'
-                '--exclude=*.dylib' '--exclude=.DS_Store' '--exclude=Thumbs.db'
-            ) ;;
-            .ssh) excludes=('--exclude=.ssh/known_hosts.old') ;;
-            .gnupg) excludes=('--exclude=.gnupg/S.*' '--exclude=*.lock' '--exclude=.#lk*' '--exclude=.gnupg/crls.d') ;;
-        esac
+        home_item_excludes "$entry"
         # Uncompressed size is an upper bound, so too little space only asks.
         needed=$(tar -C "$HOME" "${excludes[@]}" --totals -cf /dev/null "$entry" 2>&1 >/dev/null \
             | sed -n 's/^Total bytes written: \([0-9]*\).*/\1/p') || true

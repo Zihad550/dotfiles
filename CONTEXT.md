@@ -420,6 +420,22 @@ worked on with no possibility of lockout. Its own Quickshell config
 (`quickshell/.config/quickshell/lock-probe/`), run with `df-qs-test lock-probe`.
 _Avoid_: preview, mock, test lock, dry run
 
+# Home transfer
+
+Selected home data copied between machines or archived for later restoration.
+
+## Language
+
+**Home Item**:
+A named file or directory under a user's home that can be selected as a whole
+for backup or transfer. A nested directory can be an independent Home Item.
+_Avoid_: backup folder, sync folder
+
+**Home Sync**:
+A one-way transfer of selected Home Items to matching paths in another user's
+home. The source determines the destination contents, except for excluded files.
+_Avoid_: two-way sync, backup, restore
+
 # Setup
 
 The scripts and documentation that configure a development box.
