@@ -49,6 +49,8 @@ test("fresh defaults are copied and subsequent local edits survive", t => {
     assert.equal(run(SEED, f.env).status, 0);
     assert.equal(fs.lstatSync(f.config).isSymbolicLink(), false);
     const defaults = fs.readFileSync(f.config, "utf8");
+    assert.match(defaults, /^engine = "parakeet"$/m);
+    assert.match(defaults, /\[parakeet\]\nmodel = "parakeet-tdt-0\.6b-v2"/);
     assert.match(defaults, /model = "small.en"/);
     assert.match(defaults, /pause_media = true/);
     assert.doesNotMatch(defaults, /audio.feedback/);

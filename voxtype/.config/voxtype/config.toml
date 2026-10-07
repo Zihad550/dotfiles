@@ -1,3 +1,4 @@
+engine = "parakeet"
 state_file = "auto"
 
 [hotkey]
@@ -23,3 +24,6 @@ type_delay_ms = 1
 on_recording_start = false
 on_recording_stop = false
 on_transcription = false
+
+[parakeet]
+model = "parakeet-tdt-0.6b-v2"
