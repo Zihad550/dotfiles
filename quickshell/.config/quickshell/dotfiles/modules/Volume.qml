@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Services.Pipewire
 import qs
 import "lib/statusCluster.js" as Status
+import "lib/audio.js" as Audio
 
 // The effective default sink is the single source of truth for the primary
 // surface. The chevron is the only route to the output-selection Page.
@@ -11,7 +12,33 @@ Item {
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property bool available: !!root.sink?.audio
     readonly property bool muted: root.sink?.audio?.muted ?? false
-    readonly property int volume: root.sink?.audio ? Math.round(root.sink.audio.volume * 100) : 0
+    readonly property int volume: Math.round(Audio.enabledChannelVolume(root.sink?.audio?.volumes ?? [], root.sink?.audio?.channels ?? [], root.savedChannelVolumes) * 100)
+    property var savedVolumesBySink: ({})
+    readonly property var savedChannelVolumes: root.savedVolumesBySink[root.sink?.name] ?? ({})
+
+    function saveChannelVolumes(saved): void {
+        if (root.sink)
+            root.savedVolumesBySink = Object.assign({}, root.savedVolumesBySink, { [root.sink.name]: saved });
+    }
+
+    Connections {
+        target: root.sink?.audio ?? null
+
+        function onVolumesChanged(): void {
+            const saved = Object.assign({}, root.savedChannelVolumes);
+            const channels = root.sink.audio.channels;
+            const volumes = root.sink.audio.volumes;
+            let changed = false;
+            for (let index = 0; index < channels.length; index++) {
+                if (volumes[index] > 0 && saved[channels[index]] !== undefined) {
+                    delete saved[channels[index]];
+                    changed = true;
+                }
+            }
+            if (changed)
+                root.saveChannelVolumes(saved);
+        }
+    }
     readonly property string icon: Status.volumeIcon(root.available, root.muted, root.volume)
 
     property bool sliderFocusVisible: false
@@ -25,7 +52,25 @@ Item {
 
     function setVolume(percent: int): void {
         if (root.sink?.audio)
-            root.sink.audio.volume = Math.max(0, Math.min(100, percent)) / 100;
+            root.sink.audio.volumes = Audio.setEnabledChannelVolume(root.sink.audio.volumes, root.sink.audio.channels, root.savedChannelVolumes, Math.max(0, Math.min(100, percent)) / 100);
+    }
+
+    function toggleChannel(channel: int): void {
+        const audio = root.sink?.audio;
+        const index = audio ? Array.from(audio.channels).indexOf(channel) : -1;
+        if (index < 0)
+            return;
+        const volumes = Array.from(audio.volumes);
+        const saved = Object.assign({}, root.savedChannelVolumes);
+        if (volumes[index] > 0) {
+            saved[channel] = volumes[index];
+            volumes[index] = 0;
+        } else {
+            volumes[index] = saved[channel] ?? Math.max(root.volume / 100, 0.5);
+            delete saved[channel];
+        }
+        root.saveChannelVolumes(saved);
+        audio.volumes = volumes;
     }
 
     function toggleMute(): void {
@@ -41,10 +86,10 @@ Item {
     Item {
         id: track
 
-        anchors.left: parent.left
+        anchors.left: channelButtons.right
         anchors.right: percentLabel.left
         anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: 48
+        anchors.leftMargin: 8
         anchors.rightMargin: Theme.edgeMargin
         height: 12
 
@@ -201,6 +246,84 @@ Item {
             color: "transparent"
             border.color: Theme.accent
             border.width: root.muteFocusVisible ? 2 : 0
+        }
+    }
+
+    Row {
+        id: channelButtons
+
+        anchors.left: muteTarget.right
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 4
+
+        Repeater {
+            model: [PwAudioChannel.FrontLeft, PwAudioChannel.FrontRight].filter(channel => Array.from(root.sink?.audio?.channels ?? []).includes(channel))
+
+            delegate: Item {
+                id: channelButton
+
+                required property int modelData
+                readonly property int channelIndex: Array.from(root.sink?.audio?.channels ?? []).indexOf(modelData)
+                readonly property bool silenced: (root.sink?.audio?.volumes[channelIndex] ?? 0) === 0
+                readonly property string channelName: modelData === PwAudioChannel.FrontLeft ? "Left" : "Right"
+                property bool focusVisible: false
+
+                width: 30
+                height: Theme.quickSettingsRowHeight
+                activeFocusOnTab: root.enabled && root.visible
+                onActiveFocusChanged: focusVisible = activeFocus
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        root.toggleChannel(modelData);
+                        event.accepted = true;
+                    }
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.topMargin: 6
+                    anchors.bottomMargin: 6
+                    radius: 6
+                    color: channelButton.silenced ? Theme.warn : Theme.accent
+                    opacity: channelMouse.containsMouse ? 0.25 : 0.12
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: channelButton.modelData === PwAudioChannel.FrontLeft ? "L" : "R"
+                    color: channelButton.silenced || root.muted ? Theme.warn : Theme.accent
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize
+                    textFormat: Text.PlainText
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 2
+                    radius: 6
+                    color: "transparent"
+                    border.color: Theme.accent
+                    border.width: channelButton.focusVisible ? 2 : 0
+                }
+
+                MouseArea {
+                    id: channelMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onPressed: {
+                        channelButton.forceActiveFocus();
+                        channelButton.focusVisible = false;
+                    }
+                    onClicked: root.toggleChannel(channelButton.modelData)
+                }
+
+                Tooltip {
+                    target: channelButton
+                    text: `${channelButton.channelName} speaker: ${channelButton.silenced ? "disabled" : "enabled"}. Click to ${channelButton.silenced ? "enable" : "disable"}.`
+                    shown: channelMouse.containsMouse || channelButton.focusVisible
+                }
+            }
         }
     }
 
