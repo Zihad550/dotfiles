@@ -19,9 +19,14 @@ resources:
 
 ## The loop
 
-After every implementation, run the code-review skill on the task's changes.
-Fix actionable findings and rerun the review.
-A task is not done until the review and required checks pass.
+After every implementation:
+
+1. Run the code-review skill on the task's changes. Fix actionable findings and
+   rerun the review until it passes.
+2. Run required checks and resolve failures before staging.
+3. Automatically stage the task's changes for the user's manual review,
+   respecting the staging restrictions below. In files with unrelated changes,
+   stage only the task's hunks.
 
 
 ## Guidelines

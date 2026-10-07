@@ -96,7 +96,7 @@ close_workspace    = "prefix+shift+d"        # closes only the current workspace
 # zero workspaces. tmux: bind ^W kill-session.
 previous_workspace = "prefix+ctrl+p"
 next_workspace     = "prefix+ctrl+n"
-switch_workspace   = "prefix+shift+1..9"
+switch_workspace   = "prefix+ctrl+1..9"
 workspace_picker   = "prefix+w"              # tmux: bind w list-windows (closest picker)
 goto               = ["prefix+g", "prefix+shift+s"]   # tmux: bind S choose-session
 
