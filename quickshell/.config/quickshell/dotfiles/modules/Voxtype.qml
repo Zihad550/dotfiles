@@ -12,6 +12,7 @@ BarItem {
     readonly property var icons: ({
         idle: "",
         recording: "󰍬",
+        streaming: "󰜟",
         transcribing: "󰔟"
     })
 
