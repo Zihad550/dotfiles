@@ -37,10 +37,9 @@ QtObject {
     // unlike `snapshot` above, which is always this machine's own filesystem.
     required property var remoteSnapshot
     onActiveChanged: {
-        if (!root.active) {
+        root.machineFilter = root.defaultMachineFilter;
+        if (!root.active)
             root.openFor = null;
-            root.machineFilter = "all";
-        }
     }
 
     // null while showing the directory list; `{ path }` for a local Entry,
@@ -80,20 +79,21 @@ QtObject {
     readonly property bool remoteReady: root.routingEnabled && root.devcontainerHost !== ""
     readonly property var remotePaths: root.remoteReady ? root.remoteSnapshot.paths : []
 
-    property string machineFilter: "all"
+    readonly property string defaultMachineFilter: root.remoteReady ? "remote" : "all"
+    property string machineFilter: root.defaultMachineFilter
+    onDefaultMachineFilterChanged: root.machineFilter = root.defaultMachineFilter
     readonly property var machineFilters: [
         { value: "all", label: "All machines" },
         { value: "local", label: "This machine" }
     ].concat(root.remoteReady ? [{ value: "remote", label: root.devcontainerHost }] : [])
 
     onDevcontainerHostChanged: {
-        if (root.machineFilter === "remote")
-            root.machineFilter = "all";
+        root.machineFilter = root.defaultMachineFilter;
     }
 
     onMachineFiltersChanged: {
         if (!root.machineFilters.some(filter => filter.value === root.machineFilter))
-            root.machineFilter = "all";
+            root.machineFilter = root.defaultMachineFilter;
     }
 
     function cycleMachineFilter(): void {

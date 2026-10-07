@@ -373,6 +373,8 @@ rules. Click a filter or press Ctrl+Tab to cycle through the options. Filtering
 keeps the current search text and limits the directory catalog before ranking.
 An empty remote index shows no results when that host is selected.
 
-The selection survives entering the directory's app chooser and returning to the
-list. Closing the launcher resets it to All machines. Disabling remote routing or
-changing the configured host also clears a selected remote filter.
+The picker defaults to the host selected in Quick Settings when Devcontainer
+Routing is enabled and a custom host is configured. Otherwise it defaults to All
+machines. A manual selection survives entering the directory's app chooser and
+returning to the list. Reopening the launcher, changing the configured host, or
+enabling or disabling remote routing resets the filter to the current default.
