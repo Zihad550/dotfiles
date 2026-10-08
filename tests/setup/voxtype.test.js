@@ -52,7 +52,7 @@ test("fresh defaults are copied and subsequent local edits survive", t => {
     assert.match(defaults, /^engine = "parakeet"$/m);
     assert.match(defaults, /\[parakeet\]\nmodel = "parakeet-tdt-0\.6b-v2"/);
     assert.match(defaults, /model = "small.en"/);
-    assert.match(defaults, /pause_media = true/);
+    assert.match(defaults, /pause_media = false/);
     assert.doesNotMatch(defaults, /audio.feedback/);
     fs.writeFileSync(f.config, 'custom = "local"\n');
     assert.equal(run(SEED, f.env).status, 0);

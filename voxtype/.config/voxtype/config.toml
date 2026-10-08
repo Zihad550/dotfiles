@@ -8,7 +8,7 @@ enabled = false
 device = "default"
 sample_rate = 16000
 max_duration_secs = 60
-pause_media = true
+pause_media = false
 
 [whisper]
 model = "small.en"
@@ -27,3 +27,9 @@ on_transcription = false
 
 [parakeet]
 model = "parakeet-tdt-0.6b-v2"
+on_demand_loading = false
+streaming = false
+
+[text]
+spoken_punctuation = true
+smart_auto_submit = false

@@ -12,7 +12,7 @@ Status: implemented in the repository. Live microphone and text-insertion checks
 - Use F9 press/release for push-to-talk and Super+Ctrl+X for recording toggle. Remove the obsolete Super+Shift+V stop binding.
 - The existing bar indicator opens `voxtype configure` on left-click and the local config in an editor on right-click.
 - Store starter defaults in the repository. On first setup, seed a regular local config; subsequent setup runs preserve it. Machine-specific model and hardware choices must not modify repository defaults.
-- Adopt Omarchy's recording behavior: pause media during recording and leave audible feedback disabled. Do not add a settings migration for existing local configs.
+- Disable media pausing and audible feedback. Waiting for media players to pause caused a 1–3 second recording-start delay. Do not add a settings migration for existing local configs.
 - Attempt Vulkan setup on a new installation with an installed Vulkan ICD. Preserve backend choices when Voxtype was already installed. Restore CPU operation if GPU setup or service startup fails.
 - Package, model-download, and service failures fail the setup step so it can be retried.
 
@@ -64,7 +64,7 @@ Do not run the entire profile installer just to add dictation. No remote microph
 
 1. Focus a text field, hold F9, say a short sentence, and release. Confirm the text appears and the recording/transcription indicator returns to idle.
 2. Start and stop another recording with Super+Ctrl+X. Confirm Super+Ctrl+V still opens clipboard history.
-3. Play media and record again. With the starter defaults, media pauses during recording and audible feedback is off.
+3. Play media and record again. With the starter defaults, media keeps playing during recording and audible feedback is off.
 4. While the indicator is visible, left-click it to open `voxtype configure`; right-click to edit the local config. Configuration is also always available from a terminal through `voxtype configure`.
 5. Rerun the standalone installer. Confirm local settings and downloaded models remain intact.
 
