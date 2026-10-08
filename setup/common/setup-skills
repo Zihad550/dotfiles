@@ -22,14 +22,10 @@ skills add max-sixty/worktrunk --skill worktrunk -g --agent "${AGENTS[@]}" -y
 skills add mattpocock/skills -g --agent "${AGENTS_WITHOUT_PLUGIN[@]}" -y
 
 # cursor skills
-skills add https://github.com/cursor/plugins --skill unslop  -g --agent "${AGENTS[@]}" -y
-skills add https://github.com/cursor/plugins --skill deslop typescript-best-practices -g --agent "${AGENTS[@]}" -y
 # how -> learn something about codebase, "how does X work?"
-skills add https://github.com/cursor/plugins --skill how -g --agent "${AGENTS[@]}" -y
 # why -> Companion to the how skill. how answers what the code does and how it works. why answers what forces led to its shape.
-skills add https://github.com/cursor/plugins --skill why -g --agent "${AGENTS[@]}" -y
 # blast-radius -> Companion to how and why. how tells you what the code does. why tells you why it's shaped that way. Blast radius tells you what it breaks somewhere else.
-skills add https://github.com/cursor/plugins --skill blast-radius -g --agent "${AGENTS[@]}" -y
+skills add https://github.com/cursor/plugins --skill unslop deslop typescript-best-practices how why blast-radius  -g --agent "${AGENTS[@]}" -y
 
 
 ######## our own skills, no upstream repo — sourced from github.com/Zihad550/skills
