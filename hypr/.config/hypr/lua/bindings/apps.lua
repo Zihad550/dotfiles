@@ -58,7 +58,8 @@ o.bind("SUPER + U", "Herdr",
 
 -- Web apps (PWA-like)
 o.bind("SUPER + A", "Default AI App", role_launcher .. " ai")
-o.bind("SUPER + M", "Gmail", dotfiles_bin .. "/df-launch-webapp-gmail")
+o.bind("SUPER + M", "Gmail",
+    dotfiles_bin .. [[/df-launch-special-workspace "chrome-mail.google.com__mail-Profile_2" "gmail" --workspace-owned helium-browser "--profile-directory=Profile 2" --new-window --ozone-platform=wayland --ozone-platform-hint=wayland --app=https://mail.google.com/mail]])
 o.bind("SUPER + SHIFT + C", "Calendar",
     dotfiles_bin .. [[/df-launch-special-webapp "chrome-calendar.google.com__calendar-Profile_2" "https://calendar.google.com/calendar" "calendar"]])
 o.bind("SUPER + SHIFT + M", "Meet",

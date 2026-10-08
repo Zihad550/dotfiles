@@ -29,9 +29,9 @@ const NATIVE_APPLICATIONS = [
     },
     {
         keys: "SUPER + M",
-        initialClass: "org.mozilla.Thunderbird",
-        workspace: "thunderbird",
-        launch: "thunderbird"
+        initialClass: "chrome-mail.google.com__mail-Profile_2",
+        workspace: "gmail",
+        launch: 'helium-browser "--profile-directory=Profile 2" --new-window --ozone-platform=wayland --ozone-platform-hint=wayland --app=https://mail.google.com/mail'
     }
 ];
 
@@ -504,7 +504,7 @@ test("native application bindings declare their exact initial classes", () => {
         assert.match(binding, new RegExp(`"${escapeRegExp(initialClass)}" "${escapeRegExp(workspace)}"`));
         assert.match(binding, new RegExp(escapeRegExp(launch)));
         assert.doesNotMatch(binding, /df-launch-special-app/);
-        if (initialClass === "helium")
+        if (initialClass === "helium" || workspace === "gmail")
             assert.match(binding, /--workspace-owned/);
     }
 });
