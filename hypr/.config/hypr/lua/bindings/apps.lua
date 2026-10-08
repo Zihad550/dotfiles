@@ -36,8 +36,6 @@ o.bind("SUPER + SHIFT + W", "Helium (work)",
     dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" --workspace-owned helium-browser --profile-directory='Profile 2']])
 o.bind("SUPER + D", "Helium (development)",
     dotfiles_bin .. [[/df-launch-special-workspace "helium" "development" --workspace-owned helium-browser --profile-directory=Default]])
-o.bind("SUPER + M", "Thunderbird",
-    dotfiles_bin .. [[/df-launch-special-workspace "org.mozilla.Thunderbird" "thunderbird" thunderbird]])
 
 -- TUI apps
 o.bind("SUPER + SHIFT + T", "Bottom", dotfiles_bin .. "/df-launch-tui btm")
@@ -60,8 +58,7 @@ o.bind("SUPER + U", "Herdr",
 
 -- Web apps (PWA-like)
 o.bind("SUPER + A", "Default AI App", role_launcher .. " ai")
--- o.bind("SUPER + M", "Gmail",
---     dotfiles_bin .. [[/df-launch-special-webapp "gmail" "https://mail.google.com/mail/u/0" "gmail"]])
+o.bind("SUPER + M", "Gmail", dotfiles_bin .. "/df-launch-webapp-gmail")
 o.bind("SUPER + SHIFT + C", "Calendar",
     dotfiles_bin .. [[/df-launch-special-webapp "chrome-calendar.google.com__calendar-Profile_2" "https://calendar.google.com/calendar" "calendar"]])
 o.bind("SUPER + SHIFT + M", "Meet",
