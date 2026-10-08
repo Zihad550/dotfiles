@@ -34,9 +34,39 @@ o.bind("switch:off:Lid Switch", "Lid open",  dotfiles_bin .. "/df-hypr-clamshell
 o.bind("SUPER + SPACE", "Launcher", hl.dsp.global("launcher:toggle"))
 
 -- Screenshots
-o.bind("PRINT",        "Screenshot",
-    [[bash -c 'grim -g "$(slurp -d)" - | tee ~/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png | wl-copy']])
-o.bind("SHIFT + PRINT", "Screenshot (edit)",
-    [[bash -c 'grim -g "$(slurp -d)" - | tee ~/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png | swappy -f -']])
+o.bind("PRINT",         "Screenshot",        dotfiles_bin .. "/df-capture-screenshot smart copy")
+o.bind("SHIFT + PRINT", "Screenshot (edit)", dotfiles_bin .. "/df-capture-screenshot smart edit")
 o.bind("SUPER + PRINT", "Color picker", "hyprpicker -a")
 o.bind("SUPER + CTRL + PRINT", "Extract text from screen", dotfiles_bin .. "/df-capture-text")
+
+local capture_layers = 0
+local capture_binds = {}
+
+hl.on("layer.opened", function(layer)
+    if layer.namespace == "selection" then
+        capture_layers = capture_layers + 1
+        if capture_layers == 1 then
+            capture_binds = {
+                hl.bind("RETURN", hl.dsp.exec_cmd(dotfiles_bin .. "/df-capture-region --take-window"), { description = "Capture highlighted window" }),
+                hl.bind("CTRL + RETURN", hl.dsp.exec_cmd(dotfiles_bin .. "/df-capture-region --take-fullscreen"), { description = "Capture focused monitor" }),
+                hl.bind("TAB", hl.dsp.exec_cmd(dotfiles_bin .. "/df-capture-region --select-window next"), { description = "Select next capture window" }),
+                hl.bind("CTRL + TAB", hl.dsp.exec_cmd(dotfiles_bin .. "/df-capture-region --select-window prev"), { description = "Select previous capture window" }),
+            }
+            for _, direction in ipairs({ "left", "right", "up", "down" }) do
+                table.insert(capture_binds,
+                    hl.bind(direction:upper(), hl.dsp.exec_cmd(dotfiles_bin .. "/df-capture-region --select-window " .. direction),
+                        { description = "Select capture window" }))
+            end
+        end
+    end
+end)
+
+hl.on("layer.closed", function(layer)
+    if layer.namespace == "selection" and capture_layers > 0 then
+        capture_layers = capture_layers - 1
+        if capture_layers == 0 then
+            for _, binding in ipairs(capture_binds) do binding:unbind() end
+            capture_binds = {}
+        end
+    end
+end)

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+mode=${1:-smart}
+action=${2:-copy}
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+case "$mode" in smart|region|windows|fullscreen) ;; *) exit 2 ;; esac
+case "$action" in copy|edit|save) ;; *) exit 2 ;; esac
+
+if pgrep -x slurp >/dev/null; then
+    pkill -x slurp
+    exit 0
+fi
+
+output_dir=${DF_SCREENSHOT_DIR:-$HOME/Pictures/Screenshots}
+mkdir -p "$output_dir"
+filepath="$output_dir/screenshot-$(date +'%Y-%m-%d_%H-%M-%S').png"
+
+freeze_pid=""
+cleanup() {
+    [[ -z $freeze_pid ]] || kill "$freeze_pid" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+{ read -r freeze_pid; read -r selection; } < <("$script_dir/df-capture-region" "$mode" --keep-freeze)
+[[ -n ${selection:-} ]] || exit 0
+
+grim -g "$selection" "$filepath"
+cleanup
+freeze_pid=""
+
+case "$action" in
+    copy)
+        wl-copy --type image/png <"$filepath"
+        notify-send "Screenshot saved" "$filepath"
+        ;;
+    edit)
+        wl-copy --type image/png <"$filepath"
+        swappy -f "$filepath"
+        ;;
+    save)
+        notify-send "Screenshot saved" "$filepath"
+        ;;
+esac
+
+printf '%s\n' "$filepath"

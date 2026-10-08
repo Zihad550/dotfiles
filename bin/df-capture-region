@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+fullscreen_marker="$runtime_dir/df-capture-region-fullscreen"
+window_marker="$runtime_dir/df-capture-region-window"
+
+# jq interpolation, not shell interpolation.
+# shellcheck disable=SC2016
+monitor_geometry_jq='
+  def geometry:
+    .x as $x | .y as $y |
+    (.width / .scale | floor) as $w |
+    (.height / .scale | floor) as $h |
+    if .transform == 1 or .transform == 3 then
+      "\($x),\($y) \($h)x\($w)"
+    else
+      "\($x),\($y) \($w)x\($h)"
+    end;
+'
+
+active_workspace() {
+    hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .activeWorkspace.id'
+}
+
+window_rectangles() {
+    hyprctl clients -j | jq -r --arg workspace "$(active_workspace)" \
+        '[.[] | select(.workspace.id == ($workspace | tonumber) and .hidden != true) |
+          "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"] | unique[]'
+}
+
+monitor_rectangles() {
+    hyprctl monitors -j | jq -r --arg workspace "$(active_workspace)" \
+        "$monitor_geometry_jq .[] | select(.activeWorkspace.id == (\$workspace | tonumber)) | geometry"
+}
+
+focused_monitor_geometry() {
+    hyprctl monitors -j | jq -r "$monitor_geometry_jq .[] | select(.focused == true) | geometry"
+}
+
+all_rectangles() {
+    monitor_rectangles
+    window_rectangles
+}
+
+resolve_rectangle_at() {
+    local x=$1 y=$2 rectangle area smallest_area=0
+    resolved_rectangle=""
+
+    while IFS= read -r rectangle; do
+        [[ $rectangle =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]] || continue
+        ((x >= BASH_REMATCH[1] && x < BASH_REMATCH[1] + BASH_REMATCH[3])) || continue
+        ((y >= BASH_REMATCH[2] && y < BASH_REMATCH[2] + BASH_REMATCH[4])) || continue
+
+        area=$((BASH_REMATCH[3] * BASH_REMATCH[4]))
+        if [[ -z $resolved_rectangle ]] || ((area < smallest_area)); then
+            resolved_rectangle=$rectangle
+            smallest_area=$area
+        fi
+    done
+
+    [[ -n $resolved_rectangle ]]
+}
+
+geometry_at_cursor() {
+    local position x y
+    position=$(hyprctl cursorpos)
+    x=${position%,*}
+    y=${position#*, }
+
+    if resolve_rectangle_at "$x" "$y" < <(window_rectangles) ||
+        resolve_rectangle_at "$x" "$y" < <(monitor_rectangles); then
+        printf '%s\n' "$resolved_rectangle"
+    else
+        focused_monitor_geometry
+    fi
+}
+
+if [[ ${1:-} == --take-fullscreen ]]; then
+    pgrep -x slurp >/dev/null || exit 0
+    touch "$fullscreen_marker"
+    pkill -x slurp
+    exit 0
+fi
+
+if [[ ${1:-} == --take-window ]]; then
+    pgrep -x slurp >/dev/null || exit 0
+    touch "$window_marker"
+    pkill -x slurp
+    exit 0
+fi
+
+if [[ ${1:-} == --select-window ]]; then
+    pgrep -x slurp >/dev/null || exit 0
+    direction=${2:-}
+    mapfile -t navigation_rectangles < <(window_rectangles)
+    ((${#navigation_rectangles[@]})) || exit 0
+
+    position=$(hyprctl cursorpos)
+    origin_x=${position%,*}
+    origin_y=${position#*, }
+    current=""
+    resolve_rectangle_at "$origin_x" "$origin_y" < <(printf '%s\n' "${navigation_rectangles[@]}") &&
+        current=$resolved_rectangle
+
+    current_index=-1
+    for index in "${!navigation_rectangles[@]}"; do
+        [[ ${navigation_rectangles[index]} == "$current" ]] && current_index=$index
+    done
+
+    case "$direction" in
+        next) target=${navigation_rectangles[$(((current_index + 1) % ${#navigation_rectangles[@]}))]} ;;
+        prev) target=${navigation_rectangles[$(((current_index - 1 + ${#navigation_rectangles[@]}) % ${#navigation_rectangles[@]}))]} ;;
+        left|right|up|down)
+            best_score=""
+            target=""
+            for rectangle in "${navigation_rectangles[@]}"; do
+                [[ $rectangle == "$current" ]] && continue
+                [[ $rectangle =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]] || continue
+                center_x=$((BASH_REMATCH[1] + BASH_REMATCH[3] / 2))
+                center_y=$((BASH_REMATCH[2] + BASH_REMATCH[4] / 2))
+                case "$direction" in
+                    left)  primary=$((origin_x - center_x)); perpendicular=$((center_y - origin_y)) ;;
+                    right) primary=$((center_x - origin_x)); perpendicular=$((center_y - origin_y)) ;;
+                    up)    primary=$((origin_y - center_y)); perpendicular=$((center_x - origin_x)) ;;
+                    down)  primary=$((center_y - origin_y)); perpendicular=$((center_x - origin_x)) ;;
+                esac
+                ((primary > 0)) || continue
+                ((perpendicular < 0)) && perpendicular=$((-perpendicular))
+                score=$((primary + perpendicular * 2))
+                if [[ -z $best_score ]] || ((score < best_score)); then
+                    best_score=$score
+                    target=$rectangle
+                fi
+            done
+            ;;
+        *) exit 2 ;;
+    esac
+
+    if [[ ${target:-} =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]]; then
+        target_x=$((BASH_REMATCH[1] + BASH_REMATCH[3] / 2))
+        target_y=$((BASH_REMATCH[2] + BASH_REMATCH[4] / 2))
+        hyprctl eval "hl.dispatch(hl.dsp.cursor.move({ x = $target_x, y = $target_y }))" >/dev/null
+    fi
+    exit 0
+fi
+
+mode=smart
+keep_freeze=false
+for argument in "$@"; do
+    case "$argument" in
+        --keep-freeze) keep_freeze=true ;;
+        smart|region|windows|fullscreen) mode=$argument ;;
+        *) printf 'usage: %s [smart|region|windows|fullscreen] [--keep-freeze]\n' "$0" >&2; exit 2 ;;
+    esac
+done
+
+freeze_pid=""
+cleanup() {
+    [[ $keep_freeze == true ]] || [[ -z $freeze_pid ]] || kill "$freeze_pid" 2>/dev/null || true
+    rm -f "$fullscreen_marker" "$window_marker"
+}
+trap cleanup EXIT
+
+pick() {
+    local selection
+    rm -f "$fullscreen_marker" "$window_marker"
+    selection=$(slurp "$@" 2>/dev/null || true)
+    if [[ -z $selection && -e $fullscreen_marker ]]; then
+        selection=$(focused_monitor_geometry)
+    elif [[ -z $selection && -e $window_marker ]]; then
+        selection=$(geometry_at_cursor)
+    fi
+    printf '%s' "$selection"
+}
+
+freeze_screen() {
+    hyprpicker -r -z >/dev/null 2>&1 &
+    freeze_pid=$!
+    sleep 0.1
+}
+
+case "$mode" in
+    region)
+        freeze_screen
+        selection=$(pick)
+        ;;
+    windows)
+        freeze_screen
+        selection=$(all_rectangles | pick -r)
+        ;;
+    fullscreen)
+        selection=$(focused_monitor_geometry)
+        ;;
+    smart)
+        selection_rectangles=$(all_rectangles)
+        freeze_screen
+        selection=$(printf '%s\n' "$selection_rectangles" | pick)
+        if [[ $selection =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]([0-9]+)x([0-9]+)$ ]] &&
+            ((BASH_REMATCH[3] * BASH_REMATCH[4] < 20)); then
+            click_x=${BASH_REMATCH[1]}
+            click_y=${BASH_REMATCH[2]}
+            if resolve_rectangle_at "$click_x" "$click_y" <<<"$selection_rectangles"; then
+                selection=$resolved_rectangle
+            fi
+        fi
+        ;;
+esac
+
+[[ $keep_freeze == true ]] && printf '%s\n' "$freeze_pid"
+[[ -n ${selection:-} ]] || exit 1
+printf '%s\n' "$selection"
