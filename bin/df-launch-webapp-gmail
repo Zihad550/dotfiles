@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+url='https://mail.google.com/mail'
+if [[ ${1:-} == mailto:* ]]; then
+   encoded=$(python3 -c 'import sys; from urllib.parse import quote; print(quote(sys.argv[1], safe=""))' "$1")
+   url="https://mail.google.com/mail/?extsrc=mailto&url=$encoded"
+fi
+
+exec "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/df-launch-webapp" "$url"
