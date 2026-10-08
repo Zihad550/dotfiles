@@ -24,7 +24,7 @@ xdg-mime default Gmail.desktop x-scheme-handler/mailto
 # ~/dotfiles/bin/df-webapp-install "Bitwarden" https://vault.bitwarden.com
 ~/dotfiles/bin/df-webapp-install "Memrise" "https://community-courses.memrise.com/aprender/learn?course_id=5767825"
 ~/dotfiles/bin/df-webapp-install "Monkey Type" https://monkeytype.com
-~/dotfiles/bin/df-webapp-install "Claude" https://claude.ai/chat
+~/dotfiles/bin/df-webapp-install "Claude web" https://claude.ai/chat
 # ~/dotfiles/bin/df-webapp-install "Cambridge Dictionary" https://dictionary.cambridge.org/translate/
 ~/dotfiles/bin/df-webapp-install "Deepl " https://www.deepl.com/en/translator
 ~/dotfiles/bin/df-webapp-install "Pi-hole " https://pihole.home/admin https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png
