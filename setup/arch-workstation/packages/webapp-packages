@@ -14,7 +14,8 @@ export DF_WEBAPP_PACKAGE_REPLAY=1
 # ~/dotfiles/bin/df-webapp-install "Perplexity" https://www.perplexity.ai
 ~/dotfiles/bin/df-webapp-install "Gemini" https://gemini.google.com/app
 ~/dotfiles/bin/df-webapp-install "Calendar" https://calendar.google.com/calendar
-~/dotfiles/bin/df-webapp-install "Mail" https://mail.google.com/mail
+~/dotfiles/bin/df-webapp-install "Gmail" https://mail.google.com/mail "" "$HOME/dotfiles/bin/df-launch-webapp-gmail %u" "x-scheme-handler/mailto;"
+xdg-mime default Gmail.desktop x-scheme-handler/mailto
 # ~/dotfiles/bin/df-webapp-install "LinkedIn" https://linkedin.com/
 # ~/dotfiles/bin/df-webapp-install "Facebook" https://facebook.com/
 ~/dotfiles/bin/df-webapp-install "Proton Mail" https://mail.proton.me
