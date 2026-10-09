@@ -109,3 +109,18 @@ test("distinct prefixes report no problems", () => {
 test("a Provider declaring no prefix at all is not a collision with another that does", () => {
     assert.deepEqual(Routing.problems([apps, windows, calc]), []);
 });
+
+test("a Query routed to a Provider declaring queryDebounceMs is held that long", () => {
+    const directories = { label: "directories", prefix: "/", queryDebounceMs: 90 };
+
+    assert.equal(Routing.debounceFor([apps, directories], "/proj"), 90);
+});
+
+test("a Query routed nowhere, or to a Provider without a debounce, ranks at once", () => {
+    const directories = { label: "directories", prefix: "/", queryDebounceMs: 90 };
+    const pool = [apps, calc, directories];
+
+    assert.equal(Routing.debounceFor(pool, "proj"), 0);
+    assert.equal(Routing.debounceFor(pool, "=1+1"), 0);
+    assert.equal(Routing.debounceFor([{ label: "bad", prefix: "!", queryDebounceMs: "90" }], "!x"), 0);
+});

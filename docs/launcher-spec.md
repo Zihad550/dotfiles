@@ -206,6 +206,10 @@ A Provider is a QtObject exposing:
 - **prefix** — optional (ticket 11): the leading character that routes a
   Query to this Provider alone (`=` calculator, `@` web search). A Provider
   that never sets it is simply never prefix-matched.
+- **queryDebounceMs** — optional: while a Query routes to this Provider,
+  ranking waits until typing pauses this long (Directories.qml's ~17,000-path
+  corpus). Any key that acts on the Entries ranks the pending text first.
+  Absent or 0 means rank on every keystroke.
 - **nested** — optional (ticket 12): true while the Provider is showing a
   sub-view of its own (Directories.qml's chooser). Gives the Provider the
   whole pool to itself, like a routed prefix, and clears the Query crossing

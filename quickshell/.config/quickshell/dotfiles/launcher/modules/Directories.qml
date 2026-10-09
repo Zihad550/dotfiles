@@ -32,6 +32,9 @@ QtObject {
     readonly property string label: "directories"
     readonly property string description: "Jump to a directory"
     readonly property string prefix: "/"
+    // Ranking this corpus costs most of a frame budget per keystroke; holding
+    // it until typing pauses keeps fast typing from stalling the field.
+    readonly property int queryDebounceMs: 90
 
     // Required so a Provider bound to nothing fails loudly instead of
     // silently never closing its own chooser. Going false closes it, so

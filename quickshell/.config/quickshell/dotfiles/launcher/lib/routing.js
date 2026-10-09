@@ -71,9 +71,18 @@ function problems(providers) {
     return found;
 }
 
+// How long to hold a typed Query before ranking it: the routed Provider's own
+// `queryDebounceMs`, or 0 (rank at once) when it declares none.
+function debounceFor(providers, queryText) {
+    var provider = route(providers, queryText).provider;
+    var ms = provider && provider.queryDebounceMs;
+    return typeof ms === "number" && ms > 0 ? ms : 0;
+}
+
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
         route: route,
+        debounceFor: debounceFor,
         problems: problems
     };
 }

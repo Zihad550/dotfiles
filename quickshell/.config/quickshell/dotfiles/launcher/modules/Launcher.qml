@@ -618,7 +618,29 @@ PanelWindow {
     // root.queryText stale.
     function setQuery(text: string): void {
         query.text = text;
+        root.flushQuery();
         root.queryText = text;
+    }
+
+    // Moves the typed text into `queryText` (and so into ranking). Typing
+    // routed to a Provider declaring `queryDebounceMs` gets here through
+    // `queryDebounce` instead of on every keystroke.
+    function commitQuery(): void {
+        queryDebounce.stop();
+        root.queryText = query.text;
+        root.highlightFirst();
+    }
+
+    // Any key that acts on the Entries must see the text as typed, not as
+    // last ranked.
+    function flushQuery(): void {
+        if (queryDebounce.running)
+            root.commitQuery();
+    }
+
+    Timer {
+        id: queryDebounce
+        onTriggered: root.commitQuery()
     }
 
     // Everything a session accumulates is cleared here rather than by the
@@ -950,11 +972,14 @@ PanelWindow {
                     readOnly: root.confirming
                     cursorVisible: !root.confirming
 
-                    // Assigned first, so the Entries reflect this keystroke
-                    // before the highlight moves.
                     onTextChanged: {
-                        root.queryText = query.text;
-                        root.highlightFirst();
+                        const delay = Routing.debounceFor(root.routable, query.text);
+                        if (delay > 0) {
+                            queryDebounce.interval = delay;
+                            queryDebounce.restart();
+                        } else {
+                            root.commitQuery();
+                        }
                     }
 
                     // Handled here, not on the ListView, since the ListView
@@ -963,10 +988,12 @@ PanelWindow {
                     // are single-column, so Up/Down move the highlight by one
                     // Entry in either.
                     Keys.onUpPressed: event => {
+                        root.flushQuery();
                         root.moveHighlight(-1);
                         event.accepted = true;
                     }
                     Keys.onDownPressed: event => {
+                        root.flushQuery();
                         root.moveHighlight(1);
                         event.accepted = true;
                     }
@@ -983,6 +1010,7 @@ PanelWindow {
                     Keys.onPressed: event => {
                         if (root.directoryFilterVisible && event.key === Qt.Key_Tab
                             && event.modifiers === Qt.ControlModifier) {
+                            root.flushQuery();
                             directories.cycleMachineFilter();
                             root.highlightFirst();
                             event.accepted = true;
@@ -992,6 +1020,7 @@ PanelWindow {
                         const chord = Actions.chordOf(event);
                         if (chord === "")
                             return;
+                        root.flushQuery();
 
                         // While a Provider holds the Query line as a text
                         // A prompt/confirmation answers only to Return/Escape;
