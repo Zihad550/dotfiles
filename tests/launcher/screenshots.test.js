@@ -12,7 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const S = require("../../quickshell/.config/quickshell/launcher/lib/screenshots.js");
+const S = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/screenshots.js");
 
 test("screenshotsDir is ~/Pictures/Screenshots", () => {
     assert.strictEqual(S.screenshotsDir("/home/jehad"), "/home/jehad/Pictures/Screenshots");

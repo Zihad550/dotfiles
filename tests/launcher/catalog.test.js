@@ -12,7 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
 
 const entryFor = (item, provider) => ({
     name: item.toUpperCase(),

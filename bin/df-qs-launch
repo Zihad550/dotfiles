@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# Run the Shared Shell, relaunching it after an abnormal exit and logging it to
+# the journal as `df-qs`. Autostart and df-qs-restart are its only callers.
+# SIGUSR1 releases the shell from supervision without stopping it.
+# Adapted from resources/omarchy/bin/omarchy-launch-shell; see docs/quickshell-memory.md.
+
+# systemd-cat execs, so the background job is Quickshell itself. Backgrounded
+# because bash runs a trap only once a foreground command returns.
+run_shell() {
+    QS_DISABLE_FILE_WATCHER=1 QS_NO_RELOAD_POPUP=1 \
+        systemd-cat -t df-qs -- quickshell -c dotfiles -n &
+    shell_pid=$!
+
+    local status
+    while true; do
+        wait "$shell_pid"
+        status=$?
+        # A trapped signal also ends the wait while the shell keeps running.
+        kill -0 "$shell_pid" 2>/dev/null || break
+    done
+
+    shell_pid=""
+    return "$status"
+}
+
+# A compositor busy reconfiguring outputs can miss one query without being gone.
+compositor_alive() {
+    local attempt
+    for attempt in 1 2 3; do
+        hyprctl -j monitors >/dev/null 2>&1 && return 0
+        (( attempt < 3 )) && sleep 0.5
+    done
+    return 1
+}
+
+terminating=0
+shell_pid=""
+
+stop() {
+    terminating=1
+    [[ -n $shell_pid ]] && kill -TERM "$shell_pid" 2>/dev/null
+    return 0
+}
+trap stop HUP INT TERM
+
+# df-qs-restart's IPC kill can still end in a crash, which must not relaunch.
+release() {
+    terminating=1
+}
+trap release USR1
+
+attempts=0
+window_started=$SECONDS
+
+while true; do
+    (( terminating )) && exit 0
+
+    run_shell
+    status=$?
+
+    # A clean exit is a deliberate stop, such as df-qs-restart's IPC kill.
+    (( terminating )) && exit 0
+    (( status == 0 )) && exit 0
+    compositor_alive || exit 0
+
+    if (( SECONDS - window_started > 60 )); then
+        attempts=0
+        window_started=$SECONDS
+    fi
+    if (( ++attempts > 5 )); then
+        logger -t df-qs "Giving up on the Shared Shell after $attempts relaunches in under a minute."
+        exit 1
+    fi
+
+    logger -t df-qs "Shared Shell exited with status $status; relaunching."
+    sleep 1
+done

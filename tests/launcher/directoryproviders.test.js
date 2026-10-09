@@ -1,10 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Catalog = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
-const Directories = require("../../quickshell/.config/quickshell/launcher/lib/directories.js");
-const Files = require("../../quickshell/.config/quickshell/launcher/lib/files.js");
-const Index = require("../../quickshell/.config/quickshell/launcher/lib/directoryindex.js");
+const Catalog = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
+const Directories = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/directories.js");
+const Files = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/files.js");
+const Index = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/directoryindex.js");
 
 const HOME = "/home/jehad";
 

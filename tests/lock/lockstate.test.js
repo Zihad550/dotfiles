@@ -10,7 +10,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Lock = require("../../quickshell/.config/quickshell/lock/lib/lockstate.js");
+const Lock = require("../../quickshell/.config/quickshell/dotfiles/lock/lib/lockstate.js");
 
 test("a fresh state takes input and offers the prompt", () => {
     const state = Lock.initial();

@@ -22,14 +22,14 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const Menus = require("../../quickshell/.config/quickshell/launcher/lib/menus.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const Menus = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/menus.js");
 const CatalogCheck = require("./catalog-check.js");
 
 const HOME = "/home/jehad";
 const PREFIX = ["uwsm-app", "--"];
 
-const MODULES = path.join(__dirname, "../../quickshell/.config/quickshell/launcher/modules");
+const MODULES = path.join(__dirname, "../../quickshell/.config/quickshell/dotfiles/launcher/modules");
 
 // A minimal Provider stand-in. The QML passes its own `root`; nothing in
 // menus.js reads anything off it, which is what lets these tests exist.
@@ -42,7 +42,7 @@ function menu(entries, name) {
 // -- Commands -------------------------------------------------------------
 
 test("argvOf runs a declared argv under the launch prefix", () => {
-    const command = ["qs", "-c", "lock", "ipc", "call", "lock", "lock"];
+    const command = ["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"];
     assert.deepStrictEqual(Menus.argvOf({ command: command, scoped: false }, HOME, PREFIX), command);
 });
 
@@ -206,8 +206,8 @@ const audit = [
         file: "SystemMenu.qml",
         menu: "system",
         elephant: "hyprlock",
-        entry: { name: "Lock", icon: "system-lock-screen", command: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"], scoped: false },
-        argv: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"]
+        entry: { name: "Lock", icon: "system-lock-screen", command: ["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"], scoped: false },
+        argv: ["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"]
     },
     {
         file: "SystemMenu.qml",

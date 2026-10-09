@@ -14,6 +14,11 @@ import "../lib/devservers.js" as Dev
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+    }
+
     readonly property string label: "dev servers"
     readonly property string description: "Open a dev server"
     readonly property bool ready: true
@@ -25,6 +30,8 @@ NestableProvider {
     // Keyed: a URL is a stable identity, and opening a dev server is a
     // genuine recurring choice.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Catalog.keyedCatalog(root.urls, Dev.entryFor, root);
         return {
             entries: built.entries,
@@ -34,8 +41,11 @@ NestableProvider {
 
     // A function passed between two imported JS modules inside QML's engine
     // fails as an empty list rather than as an error -- this logs a sanity check.
-    Component.onCompleted: console.log("launcher: dev servers Provider built",
-        root.catalog.entries.length, "Entries; entryFor is a", typeof Dev.entryFor)
+    onCatalogChanged: {
+        if (retention.retained)
+            console.log("launcher: dev servers Provider built",
+                root.catalog.entries.length, "Entries; entryFor is a", typeof Dev.entryFor);
+    }
 
     readonly property var actions: ({
         primary: {

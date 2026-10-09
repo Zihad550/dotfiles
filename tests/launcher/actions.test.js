@@ -14,7 +14,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const A = require("../../quickshell/.config/quickshell/launcher/lib/actions.js");
+const A = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/actions.js");
 
 // Qt key codes, spelled out here rather than imported, so a test that passes
 // against the wrong number is impossible to write by copying the module.

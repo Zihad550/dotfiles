@@ -18,7 +18,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const F = require("../../quickshell/.config/quickshell/launcher/lib/frecency.js");
+const F = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/frecency.js");
 
 const DAY = 24 * 60 * 60;
 

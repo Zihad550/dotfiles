@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const childProcess = require("node:child_process");
 
-const Keybindings = require("../../quickshell/.config/quickshell/launcher/lib/keybindings.js");
+const Keybindings = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/keybindings.js");
 const SAMPLE = JSON.parse(fs.readFileSync(
     "tests/launcher/fixtures/keybindings-binds.json", "utf8"));
 const TILING = fs.readFileSync(

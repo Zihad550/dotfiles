@@ -61,7 +61,7 @@ run_step "kernel modules" "$DOTFILES_DIR/setup/common/check-kernel-modules"
 run_step "stow client" "$ARCH_WORKSTATION_DIR/stow"
 run_step "stow hyprland" "$DOTFILES_DIR/scripts/stow/stow-hyprland"
 run_step "idle ladder timings" "$DOTFILES_DIR/setup/common/setup-idle-ladder" \
-    "$DOTFILES_DIR/quickshell/.config/quickshell/lock/idle.json"
+    "$DOTFILES_DIR/quickshell/.config/quickshell/dotfiles/lock/idle.json"
 
 run_step "theme" "$ARCH_WORKSTATION_DIR/theme"
 run_step "gnome-theme" "$ARCH_WORKSTATION_DIR/gnome-theme"

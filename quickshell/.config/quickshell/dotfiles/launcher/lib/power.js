@@ -47,7 +47,7 @@ var ACTIONS = [
         key: "lock",
         label: "Lock",
         question: "Lock the screen?",
-        argv: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"]
+        argv: ["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"]
     }
 ];
 

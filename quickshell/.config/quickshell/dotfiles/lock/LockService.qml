@@ -4,36 +4,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import qs.lock
 import "lib/idle.js" as Idle
 import "lib/session.js" as Session
 import "lib/sleep.js" as Sleep
 
-// The Session Lock, as its own always-running Quickshell instance -- the third
-// alongside the bar's `dotfiles` config and the Launcher's.
-//
-// Isolation is the reason it is not a module in either: `df-qs-restart` exists
-// to be used, and a QML fault in a bar module must not be able to drop a live
-// lock. See docs/session-lifecycle-spec.md (Implementation Decisions).
-//
-// Restart with `df-qs-restart lock`; read this instance's log with
-// `qs -c lock log` (`-f` follows). Lock it with
-// `qs -c lock ipc call lock lock` -- from a shell that has WAYLAND_DISPLAY,
-// since `qs -c` matches on the display too and says `No running instances`
-// without it. The runbook's TTY section covers that.
-//
-// The appearance and the PAM conversation live in LockSurface.qml, which is
-// also what the `lock-probe` config renders (`df-qs-test lock-probe`) in an
-// ordinary window -- so iterating on the lock cannot lock anyone out.
-//
-// What this file adds on top of that surface is the lock itself: the
-// compositor's session lock, the IPC command that takes it, the three signals
-// that report it (ADR 0017), and the logind delay inhibitor that makes suspend
-// wait for Secure (ADR 0016).
-//
-// The WlSessionLock arrangement follows Omarchy's shell/plugins/lock/Service.qml,
-// read at revision 83881e979b35468c3e7d60b171e319ede61a88fd; the state file and
-// its command-only IPC are this repo's, and have no upstream counterpart.
-ShellRoot {
+// Persistent lock and idle service. See docs/session-lifecycle-spec.md.
+Scope {
     id: root
 
     property var session: Session.initial()
@@ -240,7 +217,7 @@ ShellRoot {
         }
     }
 
-    // `qs -c lock ipc call lock lock`. Idempotent: a repeat while locked is a
+    // `qs -c dotfiles ipc call lock lock`. Idempotent: a repeat while locked is a
     // second press of the keybind, not a second lock.
     function lock(): void {
         const next = Session.request(root.session);
@@ -354,7 +331,7 @@ ShellRoot {
     FileView {
         id: idleDefaultsFile
 
-        path: Quickshell.shellPath("idle.json")
+        path: Quickshell.shellPath("lock/idle.json")
         watchChanges: false
         onLoaded: {
             root.idleDefaultsReady = true;

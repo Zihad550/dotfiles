@@ -1,1 +1,1 @@
-../lock/LockSurface.qml
+../dotfiles/lock/LockSurface.qml

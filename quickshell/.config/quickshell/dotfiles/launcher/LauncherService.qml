@@ -1,20 +1,11 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
-import qs
-import qs.modules
+import qs.launcher
+import qs.launcher.modules
 
-// The Launcher, as its own always-running Quickshell instance. Separate from
-// the bar's `dotfiles` config, not a module inside it: QML is single-threaded
-// and filtering the largest Provider was measured at 46-61ms per keystroke
-// against ~17,000 entries, which inside the bar's process would block the
-// bar, OSD and notification rendering on every keystroke. A fault here also
-// can't take down the notification daemon.
-//
-// Restart with `df-qs-restart launcher`, which leaves the bar alone. One
-// instance only, enforced by -n/--no-duplicate on every start. To read this
-// instance's logs without starting a second one: `qs -c launcher log` (`-f` follows).
-ShellRoot {
+// Launcher shortcuts and state hosted by the shared desktop shell.
+Scope {
     DirectoryIndex {
         id: directoryIndex
     }
@@ -122,14 +113,7 @@ ShellRoot {
         }
     }
 
-    // `qs -c launcher ipc call theme reload`, called by df-theme-set
-    // alongside the identical call to the bar. Lives here rather than in
-    // Theme.qml because an IpcHandler inside a Singleton doesn't register.
-    IpcHandler {
-        target: "theme"
-
-        function reload(): void {
-            Theme.reload();
-        }
+    function reloadTheme(): void {
+        Theme.reload();
     }
 }

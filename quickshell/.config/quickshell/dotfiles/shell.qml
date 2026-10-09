@@ -5,10 +5,18 @@ import Quickshell.Hyprland
 import qs
 import qs.modules
 import qs.media as Media
+import qs.launcher as LauncherConfig
+import qs.lock as LockConfig
 
 ShellRoot {
     id: root
     readonly property bool workstation: Quickshell.env("DOTFILES_PROFILE") === "arch-workstation"
+
+    LockConfig.LockService {}
+
+    LauncherConfig.LauncherService {
+        id: launcherService
+    }
 
     Loader {
         id: mediaLoader
@@ -125,6 +133,7 @@ ShellRoot {
 
         function reload(): void {
             Theme.reload();
+            launcherService.reloadTheme();
         }
     }
 
@@ -140,7 +149,7 @@ ShellRoot {
     // -- opens whichever monitor's Quick Settings is focused, via the
     // registry each Bar fills in (QuickSettingsRegistry.qml). No fork/exec,
     // same reasoning as the Launcher's "launcher:toggle" in
-    // quickshell/.config/quickshell/launcher/shell.qml.
+    // quickshell/.config/quickshell/dotfiles/launcher/LauncherService.qml.
     GlobalShortcut {
         appid: "quicksettings"
         name: "toggle"

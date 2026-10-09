@@ -17,6 +17,11 @@ import "../lib/providerlist.js" as ProvList
 QtObject {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+    }
+
     readonly property string label: "providers"
     readonly property string prefix: "?"
 
@@ -39,6 +44,8 @@ QtObject {
     signal queryRequested(string text)
 
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Catalog.ownedCatalog(root.providers.filter(ProvList.isListable),
             provider => ProvList.entryFor(provider, root),
             provider => ProvList.textsFor(provider));

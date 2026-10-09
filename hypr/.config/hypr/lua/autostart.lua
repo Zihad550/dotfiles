@@ -4,18 +4,9 @@
 -- o.exec_on_start("hyprctl dispatch workspace 1")
 -- o.exec_on_start("exec ssh-agent zsh")
 -- o.exec_on_start("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
--- -n is quickshell's --no-duplicate: an autostart firing twice refuses rather
--- than becoming a second instance. See GitHub issue #33.
-o.exec_on_start("uwsm-app -- quickshell -c dotfiles -n")
--- The Launcher, as its own instance so that filtering a large provider cannot
--- stall the bar's rendering and a fault in it cannot take the notification
--- daemon down. See quickshell/.config/quickshell/launcher/shell.qml.
-o.exec_on_start("uwsm-app -- quickshell -c launcher -n")
--- The Session Lock, as a third instance for the same reason the Launcher is a
--- second one: `df-qs-restart dotfiles` exists to be used, and restarting the
--- bar must not be able to drop a live lock.
--- See quickshell/.config/quickshell/lock/shell.qml.
-o.exec_on_start("uwsm-app -- quickshell -c lock -n")
+-- The Shared Shell, supervised. QML updates use df-qs-restart; data and theme
+-- files still reload live. See docs/quickshell-memory.md.
+o.exec_on_start("uwsm-app -- " .. os.getenv("HOME") .. "/dotfiles/bin/df-qs-launch")
 o.exec_on_start("uwsm-app -- " .. os.getenv("HOME") .. "/dotfiles/bin/df-hypr-monitor-watch")
 -- Feeds cliphist, which the Launcher's clipboard Provider reads (ticket 14);
 -- cliphist keeps no history unless something pipes changes into it.

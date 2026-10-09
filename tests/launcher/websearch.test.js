@@ -11,7 +11,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Web = require("../../quickshell/.config/quickshell/launcher/lib/websearch.js");
+const Web = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/websearch.js");
 
 const provider = { label: "websearch" };
 const PREFIX = ["uwsm-app", "--"];

@@ -6,8 +6,8 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const W = require("../../quickshell/.config/quickshell/launcher/lib/webapps.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const W = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/webapps.js");
 const CatalogCheck = require("./catalog-check.js");
 
 const HOME = "/home/jehad";

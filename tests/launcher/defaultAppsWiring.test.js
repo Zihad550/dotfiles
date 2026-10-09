@@ -12,7 +12,7 @@ function source(relativePath) {
 }
 
 test("the launcher exposes Default Apps through the provider list, not the default pool", () => {
-    const launcher = source("quickshell/.config/quickshell/launcher/modules/Launcher.qml");
+    const launcher = source("quickshell/.config/quickshell/dotfiles/launcher/modules/Launcher.qml");
     const pool = launcher.match(/readonly property var pool: \[[^\n]+\]/)[0];
     const routable = launcher.match(/readonly property var rankedRoutable:[^\n]+/)[0];
 

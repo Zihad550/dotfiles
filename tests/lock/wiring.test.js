@@ -18,7 +18,7 @@ function source(relativePath) {
     return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
-const lockRoot = "quickshell/.config/quickshell/lock";
+const lockRoot = "quickshell/.config/quickshell/dotfiles/lock";
 const probeRoot = "quickshell/.config/quickshell/lock-probe";
 
 test("the conversation and the setup script name the same PAM service", () => {
@@ -64,7 +64,7 @@ test("unlocking does not re-run the login-time account policy", () => {
 
 test("one conversation for the whole lock, not one per screen", () => {
     const surface = source(`${lockRoot}/LockSurface.qml`);
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.doesNotMatch(surface, /PamContext/,
         "a conversation per surface is a failure count per screen, while faillock counts them "
@@ -85,7 +85,7 @@ test("a surface writing the shared password back into its field cannot echo", ()
 });
 
 test("re-locking does not show the previous lock's failures", () => {
-    assert.match(source(`${lockRoot}/shell.qml`), /lockAuth\.reset\(\);/,
+    assert.match(source(`${lockRoot}/LockService.qml`), /lockAuth\.reset\(\);/,
         "the conversation outlives the surfaces now, so nothing else clears it");
 });
 
@@ -121,7 +121,7 @@ test("the lock reads the active theme's Quickshell data and nothing lock-specifi
 test("df-font-set patches every Quickshell Theme.qml, not just the bar's", () => {
     const fontSet = source("bin/df-font-set");
 
-    assert.match(fontSet, /quickshell\/\.config\/quickshell\/\*\/Theme\.qml/);
+    assert.match(fontSet, /quickshell\/\.config\/quickshell\/\{\*,dotfiles\/\*\}\/Theme\.qml/);
     assert.match(fontSet, /! -L \$theme/,
         "sed -i would turn the probe's symlinked Theme.qml into a regular copy");
 });
@@ -139,14 +139,14 @@ test("the probe's symlinks still point at the lock's files", () => {
         const link = path.join(repoRoot, probeRoot, entry);
         assert.strictEqual(fs.lstatSync(link).isSymbolicLink(), true,
             `${entry} must stay a symlink -- a copy is a surface that can drift from the lock's`);
-        assert.strictEqual(fs.readlinkSync(link), `../lock/${entry}`);
+        assert.strictEqual(fs.readlinkSync(link), `../dotfiles/lock/${entry}`);
         assert.ok(fs.existsSync(link), `${entry} points at nothing`);
     });
 });
 
 test("every top-level entry of the lock config is reachable from the probe", () => {
     const lockEntries = fs.readdirSync(path.join(repoRoot, lockRoot))
-        .filter(entry => entry !== "shell.qml");
+        .filter(entry => entry !== "LockService.qml");
     const probeEntries = fs.readdirSync(path.join(repoRoot, probeRoot));
 
     lockEntries.forEach(entry => {
@@ -156,7 +156,7 @@ test("every top-level entry of the lock config is reachable from the probe", () 
 });
 
 test("the lock takes the compositor's session lock, one surface per screen", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /WlSessionLock\s*\{/);
     assert.match(shell, /WlSessionLockSurface\s*\{/,
@@ -165,7 +165,7 @@ test("the lock takes the compositor's session lock, one surface per screen", () 
 });
 
 test("a lock waits for a real screen and retries when screens change", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /Session\.shouldAcquire\(root\.session, Quickshell\.screens\)/);
     assert.match(shell, /id:\s*sessionLockStabilizeTimer[\s\S]*interval:\s*500/,
@@ -176,14 +176,14 @@ test("a lock waits for a real screen and retries when screens change", () => {
 });
 
 test("a monitor attached while locked gets a protocol lock surface", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /WlSessionLock\s*\{[\s\S]*WlSessionLockSurface\s*\{/,
         "the compositor creates a surface for each monitor, including monitors attached later");
 });
 
 test("startup recovers only a compositor-reported Stranded Lock", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /command:\s*\["hyprctl",\s*"-j",\s*"monitors"\]/);
     assert.match(shell, /Session\.compositorLockReport\(stdout\.text\)/);
@@ -201,7 +201,7 @@ test("Hyprland permits a fresh client to recover its failsafe lock", () => {
 });
 
 test("the surface takes keystrokes only once the compositor calls it Secure", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /inputEnabled:\s*sessionLock\.secure/,
         "keystrokes before Secure are not guaranteed to be exclusive to the lock, and the "
@@ -210,7 +210,7 @@ test("the surface takes keystrokes only once the compositor calls it Secure", ()
 
 // The IpcHandler body, without the rest of shell.qml.
 function lockIpcHandler() {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
     const block = shell.match(/IpcHandler \{\s*\n\s*target: "lock"\n([\s\S]*?)\n    \}/);
     assert.ok(block, "the lock no longer exposes an IpcHandler targeting `lock`");
     return block[1];
@@ -229,14 +229,14 @@ test("the IPC surface carries commands and nothing that answers a question", () 
 });
 
 test("every external lock call site uses the lock IPC command vector", () => {
-    const argv = /"qs",\s*"-c",\s*"lock",\s*"ipc",\s*"call",\s*"lock",\s*"lock"/;
+    const argv = /"qs",\s*"-c",\s*"dotfiles",\s*"ipc",\s*"call",\s*"lock",\s*"lock"/;
 
     assert.match(source("hypr/.config/hypr/lua/bindings/system.lua"), /launcher:confirm-lock/,
         "the lock keybind must keep the Launcher's confirmation flow");
-    assert.match(source(`${lockRoot}/shell.qml`), /root\.lock\(\)/,
+    assert.match(source(`${lockRoot}/LockService.qml`), /root\.lock\(\)/,
         "the Idle Ladder must call the in-process Session Lock");
-    assert.match(source("quickshell/.config/quickshell/launcher/lib/power.js"), argv);
-    assert.match(source("quickshell/.config/quickshell/launcher/modules/SystemMenu.qml"), argv);
+    assert.match(source("quickshell/.config/quickshell/dotfiles/launcher/lib/power.js"), argv);
+    assert.match(source("quickshell/.config/quickshell/dotfiles/launcher/modules/SystemMenu.qml"), argv);
     assert.match(source("quickshell/.config/quickshell/dotfiles/modules/QuickSettings.qml"), argv);
 });
 
@@ -250,7 +250,7 @@ test("df-power reads lock state without running a process", () => {
 });
 
 test("the state file is runtime, blocking and atomic", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
     const session = source(`${lockRoot}/lib/session.js`);
 
     assert.match(session, /XDG_RUNTIME_DIR|runtimeDir/,
@@ -264,14 +264,14 @@ test("the state file is runtime, blocking and atomic", () => {
 });
 
 test("every transition publishes", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /onSessionChanged:[\s\S]*?stateFile\.setText\(text\)/,
         "publishing anywhere but on the state changing is a transition waiting to be missed");
 });
 
 test("a fresh instance does not claim unlocked over a lock it inherited", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /Component\.onCompleted:[\s\S]*?Session\.startupText\(stateFile\.text\(\)\)/,
         "a previous instance can die still holding a lock the compositor keeps up, and "
@@ -284,7 +284,7 @@ test("a fresh instance does not claim unlocked over a lock it inherited", () => 
 });
 
 test("logind's hint is set on lock and cleared on unlock", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /SetLockedHint/);
     assert.match(shell, /Quickshell\.env\("XDG_SESSION_ID"\)/,
@@ -298,39 +298,26 @@ test("logind's hint is set on lock and cleared on unlock", () => {
         + "a lock");
 });
 
-test("the lock starts as its own instance, and cannot be run as a scratch config", () => {
-    assert.match(source("hypr/.config/hypr/lua/autostart.lua"), /quickshell -c lock -n/);
+test("the shared shell owns the lock and cannot be run as a scratch config", () => {
+    assert.match(source("hypr/.config/hypr/lua/autostart.lua"), /uwsm-app -- " \.\. os\.getenv\("HOME"\) \.\. "\/dotfiles\/bin\/df-qs-launch"/);
+    assert.match(source("bin/df-qs-launch"), /quickshell -c dotfiles -n/);
     assert.match(source("bin/df-qs-test"), /dotfiles \| launcher \| lock\)/,
         "a foreground lock instance dies with its terminal, which is a dropped lock");
     assert.match(source("bin/df-qs-restart"), /dotfiles \| launcher \| lock/);
 });
 
-test("df-qs-restart survives a lock instance that will not exit on request", () => {
+test("df-qs-restart escalates past a lock instance that will not exit on request", () => {
     const restart = source("bin/df-qs-restart");
-    const running = restart.match(/^RUNNING="(.*)"$/m);
 
-    assert.ok(running, "the instance pattern must remain extractable");
-
-    // What pgrep -f matches it against: whole command lines, this one's own
-    // `kill` call among them. `\$` is bash's escape, not part of the pattern.
-    const pattern = new RegExp(
-        running[1].replaceAll("$CONFIG", "lock").replaceAll("\\$", "$"));
-
-    assert.match("quickshell -c lock -n -d", pattern);
-    assert.match("/usr/bin/quickshell -c lock -n", pattern);
-    assert.doesNotMatch("quickshell -c lock kill", pattern,
-        "a pattern that matches this script's own kill call never sees the count reach zero");
-    assert.doesNotMatch("/bin/zsh -c pgrep -f 'quickshell -c lock'", pattern,
-        "and one that matches a shell mentioning the config kills the wrong process");
-
-    assert.match(restart, /timeout \d+ quickshell -c "\$CONFIG" kill/,
+    assert.match(restart, /timeout \d+ quickshell kill -i "\$id" >/,
         "the IPC kill blocks until the instance exits, and one stuck in shutdown never does");
-    assert.match(restart, /pkill -f "\$RUNNING"/,
-        "SIGTERM is what moves an instance that accepted the exit request and stalled");
+    assert.match(restart, /pkill -TERM -x df-qs-launch[\s\S]*kill -TERM "\$pid"/,
+        "the supervisor goes first, or it relaunches the shell SIGTERM just stopped");
+    assert.match(restart, /refusing a duplicate Shared Shell/);
 });
 
 test("the Idle Ladder reads box timings and respects compositor inhibitors", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
     const stageMonitor = shell.match(/component StageMonitor: IdleMonitor \{([\s\S]*?)\n    \}/);
     const idleFileView = shell.match(/FileView \{\s*\n\s*id: idleConfigFile([\s\S]*?)\n\s*JsonAdapter \{/);
 
@@ -351,7 +338,7 @@ test("the Idle Ladder reads box timings and respects compositor inhibitors", () 
     assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.lock[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.lock/);
     assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.blank[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.blank/);
     assert.match(shell, /active: root\.idleConfigReady && root\.stayAwakeStateLoaded && !root\.stayAwake && idleTimings\.suspend[\s\S]*sourceComponent: StageMonitor \{ seconds: idleTimings\.suspend/);
-    assert.match(shell, /id: idleDefaultsFile[\s\S]*path:\s*Quickshell\.shellPath\("idle\.json"\)/,
+    assert.match(shell, /id: idleDefaultsFile[\s\S]*path:\s*Quickshell\.shellPath\("lock\/idle\.json"\)/,
         "the shared timing data must be loaded separately from the box override");
     assert.match(shell, /Loader\s*\{[\s\S]*active:\s*root\.idleConfigReady\s*&&/,
         "no compositor idle monitor may exist before asynchronous timing data is loaded");
@@ -372,7 +359,7 @@ test("the Idle Ladder reads box timings and respects compositor inhibitors", () 
 });
 
 test("the Idle Ladder restores exact brightness and refreshes the Bar cache", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
     const bar = source("quickshell/.config/quickshell/dotfiles/shell.qml");
 
     assert.match(shell, /"brightnessctl",\s*"--class=backlight",\s*"-s",\s*"set",\s*"10"/);
@@ -386,7 +373,7 @@ test("the Idle Ladder restores exact brightness and refreshes the Bar cache", ()
 });
 
 test("Stay Awake suppresses the Idle Ladder and resets its timer when released", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
     const statePath = shell.match(/stayAwakeStatePath:[\s\S]*stay-awake/);
 
     assert.ok(statePath, "the lock must read the persisted Stay Awake toggle");
@@ -403,7 +390,7 @@ test("Stay Awake suppresses the Idle Ladder and resets its timer when released",
 });
 
 test("the Idle Ladder uses Hyprland's Lua dispatcher API for display blanking", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /hl\.dsp\.dpms\(\{action = \\"off\\"\}\)/);
     assert.match(shell, /hl\.dsp\.dpms\(\{action = \\"on\\"\}\)/);
@@ -424,8 +411,8 @@ test("box timing data shares defaults and disables only devbox suspend", () => {
 
     assert.deepStrictEqual(laptop, { dim: 120, lock: 1800, blank: 1830, suspend: 1860 });
     assert.deepStrictEqual(devbox, { suspend: null });
-    const shell = source(`${lockRoot}/shell.qml`);
-    assert.match(shell, /path:\s*Quickshell\.shellPath\("idle\.json"\)/,
+    const shell = source(`${lockRoot}/LockService.qml`);
+    assert.match(shell, /path:\s*Quickshell\.shellPath\("lock\/idle\.json"\)/,
         "the shared timing file must remain the base for every box");
     assert.match(shell, /idleConfig\.dim !== undefined \? idleConfig\.dim : idleDefaults\.dim/,
         "a box override must merge onto the shared timing file");
@@ -435,7 +422,7 @@ test("box timing data shares defaults and disables only devbox suspend", () => {
         "a relative source must not become a broken link relative to ~/.config/df");
     assert.match(setup, /mkdir -p "\$HOME\/\.config\/df"/);
     assert.match(setup, /ln -snf "\$SOURCE" "\$HOME\/\.config\/df\/idle\.json"/);
-    assert.match(laptopInit, /setup-idle-ladder" \\\n\s*"\$DOTFILES_DIR\/quickshell\/\.config\/quickshell\/lock\/idle\.json"/);
+    assert.match(laptopInit, /setup-idle-ladder" \\\n\s*"\$DOTFILES_DIR\/quickshell\/\.config\/quickshell\/dotfiles\/lock\/idle\.json"/);
     assert.match(devboxInit, /setup-idle-ladder" \\\n\s*"\$DOTFILES_DIR\/setup\/arch-devbox\/idle\.json"/);
     assert.doesNotMatch(packages, /^\s*hypridle\s*\\/m);
     assert.match(packages, /disable --now hypridle\.service/,
@@ -467,7 +454,7 @@ test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
 });
 
 test("the lock holds the delay inhibitor itself, and holds it from startup", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
     const inhibitor = shell.match(/Process \{\s*\n\s*id: sleepInhibitor([\s\S]*?)\n    \}/);
 
     assert.ok(inhibitor, "the inhibitor process must remain extractable");
@@ -484,7 +471,7 @@ test("the lock holds the delay inhibitor itself, and holds it from startup", () 
 });
 
 test("the lock locks on logind's announcement and releases once Secure", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /"gdbus",\s*"monitor",\s*"--system",\s*"--dest",\s*"org\.freedesktop\.login1"/,
         "`dbus-monitor` needs BecomeMonitor or eavesdropping, and the system bus refuses both "
@@ -502,7 +489,7 @@ test("the lock locks on logind's announcement and releases once Secure", () => {
 });
 
 test("the wait for Secure is bounded, and a suspend without it is reported", () => {
-    const shell = source(`${lockRoot}/shell.qml`);
+    const shell = source(`${lockRoot}/LockService.qml`);
 
     assert.match(shell, /id:\s*secureBudgetTimer[\s\S]*interval:\s*Sleep\.SECURE_BUDGET_MS[\s\S]*root\.onSecureBudgetExpired\(\)/,
         "an unbounded wait strands a closed laptop in a bag");

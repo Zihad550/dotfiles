@@ -24,6 +24,11 @@ import "../lib/workspaces.js" as Ws
 QtObject {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+    }
+
     readonly property string label: "directories"
     readonly property string description: "Jump to a directory"
     readonly property string prefix: "/"
@@ -127,6 +132,8 @@ QtObject {
     // something is. The chooser's corpus carries no keys -- the directory
     // itself already recorded Frecency, on the secondary Action that opened it.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         if (root.openFor !== null) {
             // A remote-provenance entry always routes, to the host it was
             // scanned from -- there's no local path to fall back to. A

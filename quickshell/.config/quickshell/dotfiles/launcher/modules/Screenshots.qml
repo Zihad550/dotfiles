@@ -32,6 +32,12 @@ import "../lib/screenshots.js" as Shots
 QtObject {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: "screenshots"
     readonly property string description: "Recent screenshots"
     readonly property string prefix: "#"
@@ -84,6 +90,8 @@ QtObject {
     // delegate reads `target.marked` off the Entry, and a catalog that
     // ignored the selection would go on showing a stale tick.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Shots.catalogOf(root.items, root.marked, root);
         return {
             entries: built.entries,
@@ -125,33 +133,22 @@ QtObject {
         root.marked = ({});
     }
 
-    // Called at startup and on every open, so a screenshot taken since the
+    // Called on selection and after actions, so a screenshot taken since the
     // Launcher last opened shows up.
     function refresh(): void {
-        if (finder.running)
-            return;
-        finder.command = Shots.listCommand(root.home);
-        finder.running = true;
+        finder.request();
     }
 
-    Component.onCompleted: root.refresh()
-
     // QtObject has no default property to nest a child into.
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.listingText = output.text
-        }
+        retained: retention.retained
+        command: Shots.listCommand(root.home)
 
         // Collected and dropped: `find` writes a diagnostic per unreadable
         // entry, which an empty list already covers without a log line per refresh.
         stderr: StdioCollector {}
 
-        // Not a duplicate of onStreamFinished: which fires first isn't
-        // guaranteed, and a process exiting before its stream drains would
-        // otherwise leave `listingText` stale.
-        onExited: root.listingText = output.text
+        onSettled: output => root.listingText = output
     }
 }

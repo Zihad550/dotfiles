@@ -12,7 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Routing = require("../../quickshell/.config/quickshell/launcher/lib/routing.js");
+const Routing = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/routing.js");
 
 const apps = { label: "applications" };
 const windows = { label: "windows" };

@@ -140,7 +140,7 @@ made sense for a GNOME greeter is deleted rather than translated.
     compositor, so that stage transitions and lock states are covered by ordinary
     tests.
 35. As the maintainer, I want the Session Lock isolated from the Bar and the
-    Launcher, so that restarting the shell or crashing a Bar module cannot drop a
+    Launcher, with state recovery after restarting the shared shell or crashing a Bar module during a
     live lock.
 36. As the maintainer, I want the imported Omarchy logic attributed to the
     upstream file and revision it came from, so that a future reader knows it is
@@ -163,13 +163,12 @@ made sense for a GNOME greeter is deleted rather than translated.
 
 ## Implementation Decisions
 
-**A third Quickshell config owns both the Session Lock and the Idle Ladder.**
-It runs as its own instance alongside the existing Bar and Launcher configs,
-autostarted the same way. Isolation is the point: the shell restart script
-exists to be used, and a QML fault in a Bar module must not be able to drop a
-live lock. Idle lives with the lock rather than in the Bar because its only job
-is to drive the lock, and splitting them would require IPC between two processes
-under the same ownership.
+**The shared desktop shell owns the Session Lock and Idle Ladder.** The lock
+service remains loaded for the process lifetime. Restarts preserve its state
+file and recover a compositor-held lock. QML hot reload is disabled so partial
+edits cannot replace live services. A crash can strand the compositor lock;
+recovery is documented in [session-lock-break-glass.md](session-lock-break-glass.md).
+See [quickshell-memory.md](quickshell-memory.md) for the process consolidation.
 
 **The lock is a real session-lock client, not an overlay window.** It takes the
 compositor's session lock protocol and renders one lock surface per screen,

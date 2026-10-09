@@ -5,7 +5,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const D = require("../../quickshell/.config/quickshell/launcher/lib/defaultapps.js");
+const D = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/defaultapps.js");
 
 const listing = {
     roles: [

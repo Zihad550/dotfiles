@@ -11,7 +11,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Seq = require("../../quickshell/.config/quickshell/launcher/lib/sequence.js");
+const Seq = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/sequence.js");
 
 // What a QML model's `values` looks like from JavaScript: indexable, with a
 // length, and not an Array.

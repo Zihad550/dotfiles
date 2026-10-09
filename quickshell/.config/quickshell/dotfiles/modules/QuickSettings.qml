@@ -94,21 +94,13 @@ PopupWindow {
         source: "BluetoothRuntime.qml"
     }
 
-    readonly property real surfaceImplicitHeight: {
-        if (root.currentPage === QuickSettings.Wifi)
-            return wifiPage.implicitHeight;
-        if (root.currentPage === QuickSettings.Audio)
-            return audioPage.implicitHeight;
-        if (root.currentPage === QuickSettings.Bluetooth)
-            return bluetoothPageLoader.item?.implicitHeight ?? 0;
-        if (root.currentPage === QuickSettings.Power)
-            return powerPage.implicitHeight;
-        if (root.currentPage === QuickSettings.Devcontainer)
-            return devcontainerPage.implicitHeight;
-        if (root.currentPage === QuickSettings.Tailscale)
-            return tailscalePage.implicitHeight;
-        return primaryContent.implicitHeight;
-    }
+    // The surface of the current Page, or null on the primary surface.
+    readonly property var currentSurface: [wifiSurface, audioSurface, bluetoothSurface, powerSurface, devcontainerSurface, tailscaleSurface]
+        .find(surface => surface.current && surface.available) ?? null
+
+    readonly property real surfaceImplicitHeight: root.currentSurface
+        ? (root.currentSurface.item?.implicitHeight ?? 0)
+        : primaryContent.implicitHeight
 
     // Set when the focus grab closes the panel. Hyprland may still deliver
     // that click to the Status Cluster underneath; toggle() ignores the
@@ -137,18 +129,8 @@ PopupWindow {
             return;
         if (!root.keyboardFocusRequested)
             panelFocus.forceActiveFocus();
-        else if (root.currentPage === QuickSettings.Wifi)
-            wifiPage.focusHeader();
-        else if (root.currentPage === QuickSettings.Audio)
-            audioPage.focusHeader();
-        else if (root.currentPage === QuickSettings.Bluetooth && bluetoothPageLoader.item)
-            bluetoothPageLoader.item.focusHeader();
-        else if (root.currentPage === QuickSettings.Power)
-            powerPage.focusHeader();
-        else if (root.currentPage === QuickSettings.Devcontainer)
-            devcontainerPage.focusHeader();
-        else if (root.currentPage === QuickSettings.Tailscale)
-            tailscalePage.focusHeader();
+        else if (root.currentSurface)
+            root.currentSurface.item?.focusHeader();
         else if (lockAction.visible)
             lockAction.forceActiveFocus();
         else if (wifiTile.visible)
@@ -399,7 +381,7 @@ PopupWindow {
                                         tooltipText: "Lock"
 
                                         onClicked: {
-                                            Quickshell.execDetached(["qs", "-c", "lock", "ipc", "call", "lock", "lock"]);
+                                            Quickshell.execDetached(["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"]);
                                             root.dismiss();
                                         }
                                     }
@@ -545,145 +527,68 @@ PopupWindow {
                 }
             }
 
-            Item {
+            QuickSettingsPageSurface {
                 id: wifiSurface
 
-                x: root.currentPage === QuickSettings.Wifi ? 0 : 8
-                width: parent.width
-                height: parent.height
-                visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Wifi
-                opacity: root.currentPage === QuickSettings.Wifi ? 1 : 0
+                page: QuickSettings.Wifi
+                currentPage: root.currentPage
+                shown: root.shown
+                onPageLoaded: Qt.callLater(() => root.focusCurrentSurface())
 
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                WifiPage {
-                    id: wifiPage
-
-                    anchors.fill: parent
-                    active: root.shown && root.currentPage === QuickSettings.Wifi
+                sourceComponent: WifiPage {
+                    active: wifiSurface.pageActive
 
                     onBack: keyboard => root.showPrimary(keyboard)
                     onCloseRequested: root.dismiss()
                 }
             }
 
-            Item {
+            QuickSettingsPageSurface {
                 id: audioSurface
 
-                x: root.currentPage === QuickSettings.Audio ? 0 : 8
-                width: parent.width
-                height: parent.height
-                visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Audio
-                opacity: root.currentPage === QuickSettings.Audio ? 1 : 0
+                page: QuickSettings.Audio
+                currentPage: root.currentPage
+                shown: root.shown
+                onPageLoaded: Qt.callLater(() => root.focusCurrentSurface())
 
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                AudioPage {
-                    id: audioPage
-
-                    anchors.fill: parent
-                    active: root.shown && root.currentPage === QuickSettings.Audio
+                sourceComponent: AudioPage {
+                    active: audioSurface.pageActive
 
                     onBack: keyboard => root.showPrimary(keyboard)
                     onCloseRequested: root.dismiss()
                 }
             }
 
-            Item {
+            QuickSettingsPageSurface {
                 id: bluetoothSurface
 
-                x: root.currentPage === QuickSettings.Bluetooth ? 0 : 8
-                width: parent.width
-                height: parent.height
-                visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Bluetooth
-                opacity: root.currentPage === QuickSettings.Bluetooth ? 1 : 0
+                page: QuickSettings.Bluetooth
+                currentPage: root.currentPage
+                shown: root.shown
+                available: root.bluetoothAvailable
+                source: "BluetoothPage.qml"
 
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Loader {
-                    id: bluetoothPageLoader
-
-                    anchors.fill: parent
-                    active: root.bluetoothAvailable && root.shown && root.currentPage === QuickSettings.Bluetooth
-                    source: "BluetoothPage.qml"
-
-                    onLoaded: {
-                        item.active = true;
-                        item.back.connect(root.showPrimary);
-                        item.closeRequested.connect(root.dismiss);
-                    }
+                onPageLoaded: {
+                    item.active = Qt.binding(() => bluetoothSurface.pageActive);
+                    item.back.connect(root.showPrimary);
+                    item.closeRequested.connect(root.dismiss);
+                    Qt.callLater(() => root.focusCurrentSurface());
                 }
             }
 
-            Item {
+            QuickSettingsPageSurface {
                 id: powerSurface
 
-                x: root.currentPage === QuickSettings.Power ? 0 : 8
-                width: parent.width
-                height: parent.height
-                visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Power
-                opacity: root.currentPage === QuickSettings.Power ? 1 : 0
+                page: QuickSettings.Power
+                currentPage: root.currentPage
+                shown: root.shown
+                onPageLoaded: Qt.callLater(() => root.focusCurrentSurface())
 
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                QuickSettingsPage {
+                sourceComponent: QuickSettingsPage {
                     id: powerPage
 
-                    anchors.fill: parent
                     title: "Power"
-                    active: root.shown && root.currentPage === QuickSettings.Power
+                    active: powerSurface.pageActive
                     onBack: keyboard => root.showPrimary(keyboard)
 
                     Repeater {
@@ -705,69 +610,31 @@ PopupWindow {
                 }
             }
 
-            Item {
+            QuickSettingsPageSurface {
                 id: devcontainerSurface
 
-                x: root.currentPage === QuickSettings.Devcontainer ? 0 : 8
-                width: parent.width
-                height: parent.height
-                visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Devcontainer
-                opacity: root.currentPage === QuickSettings.Devcontainer ? 1 : 0
+                page: QuickSettings.Devcontainer
+                currentPage: root.currentPage
+                shown: root.shown
+                onPageLoaded: Qt.callLater(() => root.focusCurrentSurface())
 
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                DevcontainerRoutingPage {
-                    id: devcontainerPage
-
-                    anchors.fill: parent
+                sourceComponent: DevcontainerRoutingPage {
                     routingState: devcontainerRouting
-                    active: root.shown && root.currentPage === QuickSettings.Devcontainer
+                    active: devcontainerSurface.pageActive
                     onBack: keyboard => root.showPrimary(keyboard)
                 }
             }
 
-            Item {
+            QuickSettingsPageSurface {
                 id: tailscaleSurface
 
-                x: root.currentPage === QuickSettings.Tailscale ? 0 : 8
-                width: parent.width
-                height: parent.height
-                visible: opacity > 0
-                enabled: root.currentPage === QuickSettings.Tailscale
-                opacity: root.currentPage === QuickSettings.Tailscale ? 1 : 0
+                page: QuickSettings.Tailscale
+                currentPage: root.currentPage
+                shown: root.shown
+                onPageLoaded: Qt.callLater(() => root.focusCurrentSurface())
 
-                Behavior on x {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.quickSettingsPageMotion
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                TailscalePage {
-                    id: tailscalePage
-
-                    anchors.fill: parent
-                    active: root.shown && root.currentPage === QuickSettings.Tailscale
+                sourceComponent: TailscalePage {
+                    active: tailscaleSurface.pageActive
                     onBack: keyboard => root.showPrimary(keyboard)
                 }
             }

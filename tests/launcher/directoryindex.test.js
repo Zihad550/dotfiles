@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const Index = require("../../quickshell/.config/quickshell/launcher/lib/directoryindex.js");
+const Index = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/directoryindex.js");
 
 const HOME = "/home/jehad";
 

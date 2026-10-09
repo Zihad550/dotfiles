@@ -12,7 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const H = require("../../quickshell/.config/quickshell/launcher/lib/highlight.js");
+const H = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/highlight.js");
 
 // Entries are compared by identity, which is what the rule turns on, so these
 // are objects rather than strings.

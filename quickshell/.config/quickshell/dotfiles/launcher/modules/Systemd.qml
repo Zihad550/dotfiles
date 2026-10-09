@@ -28,6 +28,12 @@ import "../lib/systemd.js" as S
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: "systemd"
     readonly property string description: "Restart a systemd service"
 
@@ -56,6 +62,8 @@ NestableProvider {
     // from. The two corpora are concatenated with the system owners offset
     // by the user count, since each corpus's owners index into its own listing.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const user = Catalog.keylessCatalog(root.userListing,
             unit => S.entryFor(unit, "user", root), S.textsFor);
         const system = Catalog.keylessCatalog(root.systemListing,
@@ -116,75 +124,34 @@ NestableProvider {
         }
     }
 
-    // One function per scope, deliberately: a single pending flag re-running
+    // One finder per scope, deliberately: a single pending flag re-running
     // *both* scopes could form a respawn loop (user exits, restarts user,
     // finds system still running, arms system's flag; system exits, restarts
     // system, arms user's flag; repeat) armed by any `after: "refresh"`
-    // landing mid-listing. A scope's pending flag re-runs only its own scope.
-    property bool userRefreshPending: false
-    property bool systemRefreshPending: false
-
+    // landing mid-listing. Each finder queues only its own scope.
     function refresh(): void {
-        root.refreshUser();
-        root.refreshSystem();
+        finderUser.request();
+        finderSystem.request();
     }
-
-    function refreshUser(): void {
-        if (finderUser.running) {
-            root.userRefreshPending = true;
-            return;
-        }
-        finderUser.command = S.listCommand("user");
-        finderUser.running = true;
-    }
-
-    function refreshSystem(): void {
-        if (finderSystem.running) {
-            root.systemRefreshPending = true;
-            return;
-        }
-        finderSystem.command = S.listCommand("system");
-        finderSystem.running = true;
-    }
-
-    Component.onCompleted: root.refresh()
 
     // QtObject has no default property to nest children into.
-    readonly property Process finderUser: Process {
+    readonly property ListingProcess finderUser: ListingProcess {
         id: finderUser
-
-        stdout: StdioCollector {
-            id: userOutput
-            onStreamFinished: root.userListingText = userOutput.text
-        }
+        retained: retention.retained
+        command: S.listCommand("user")
 
         stderr: StdioCollector {}
 
-        onExited: {
-            root.userListingText = userOutput.text;
-            if (root.userRefreshPending) {
-                root.userRefreshPending = false;
-                root.refreshUser();
-            }
-        }
+        onSettled: output => root.userListingText = output
     }
 
-    readonly property Process finderSystem: Process {
+    readonly property ListingProcess finderSystem: ListingProcess {
         id: finderSystem
-
-        stdout: StdioCollector {
-            id: systemOutput
-            onStreamFinished: root.systemListingText = systemOutput.text
-        }
+        retained: retention.retained
+        command: S.listCommand("system")
 
         stderr: StdioCollector {}
 
-        onExited: {
-            root.systemListingText = systemOutput.text;
-            if (root.systemRefreshPending) {
-                root.systemRefreshPending = false;
-                root.refreshSystem();
-            }
-        }
+        onSettled: output => root.systemListingText = output
     }
 }

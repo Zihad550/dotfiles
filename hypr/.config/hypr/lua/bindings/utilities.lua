@@ -21,7 +21,7 @@ o.bind("SUPER + CTRL + D", "Display", hl.dsp.global("display:toggle"))
 -- Workspaces
 -- Dispatches straight into the running Launcher process, which opens as a
 -- rename prompt for the focused workspace -- see the "rename-workspace"
--- GlobalShortcut in quickshell/.config/quickshell/launcher/shell.qml. Replaces
+-- GlobalShortcut in quickshell/.config/quickshell/dotfiles/launcher/LauncherService.qml. Replaces
 -- the walker rename menu (deleted with ticket 19) on the combo it used to own;
 -- no fork and no exec, because the Launcher is already running.
 o.bind("SUPER + SHIFT + R", "Rename workspace", hl.dsp.global("launcher:rename-workspace"))

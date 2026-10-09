@@ -11,9 +11,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const T = require("../../quickshell/.config/quickshell/launcher/lib/themes.js");
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
+const T = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/themes.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
 const CatalogCheck = require("./catalog-check.js");
 
 const HOME = "/home/jehad";

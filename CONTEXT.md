@@ -1,8 +1,8 @@
 # Launcher
 
 The keyboard-driven launcher: the thing that appears on `SUPER+SPACE` and lets a
-query select and act on something. A Quickshell QML config of its own
-(`quickshell/.config/quickshell/launcher/`); it replaced walker (frontend) plus
+query select and act on something. A module of the Shared Shell
+(`quickshell/.config/quickshell/dotfiles/launcher/`); it replaced walker (frontend) plus
 elephant (providers and matching), which were deleted outright in ticket 19 —
 the keybind, the configs, the helper scripts and the packages are gone, and the
 Launcher is now the only launcher.
@@ -220,6 +220,12 @@ _Avoid_: default player, selected source
 The Hyprland desktop's application and workspace conventions.
 
 ## Language
+
+**Shared Shell**:
+The one Quickshell process that runs the bar, the Launcher, the Session Lock
+and the Idle Ladder, from the `dotfiles` config. Restarting it restarts all of
+them. See `docs/adr/0036-one-quickshell-process.md`.
+_Avoid_: desktop shell, main config, bar process
 
 **Share**:
 The workstation workflow for sending clipboard text, files, or folders through

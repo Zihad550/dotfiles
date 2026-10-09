@@ -23,6 +23,12 @@ import "../lib/clipboard.js" as Clip
 QtObject {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: "clipboard"
     readonly property string description: "Clipboard history"
     readonly property string prefix: "$"
@@ -45,6 +51,8 @@ QtObject {
 
     // No `keys` (see the header above), no `owners`: one corpus text per Entry.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Clip.catalogOf(root.items, root);
         return {
             entries: built.entries,
@@ -119,45 +127,23 @@ QtObject {
         onExited: root.refresh()
     }
 
-    // Queued, not dropped: `wiper`/`remover` both call refresh() from their
-    // own onExited, and one landing while `finder` is already running must
-    // still be honoured once it settles.
-    property bool refreshPending: false
-
-    // Called at startup and on every open, so something copied since the
-    // Launcher last opened is first in the list.
+    // Called on selection and after actions, so something copied since the
+    // Launcher last opened is first in the list. `wiper`/`remover` call this
+    // from their own onExited, so one landing mid-listing is queued by the finder.
     function refresh(): void {
-        if (finder.running) {
-            root.refreshPending = true;
-            return;
-        }
-        finder.command = Clip.listCommand();
-        finder.running = true;
+        finder.request();
     }
 
-    Component.onCompleted: root.refresh()
-
     // QtObject has no default property to nest a child into.
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.listingText = output.text
-        }
+        retained: retention.retained
+        command: Clip.listCommand()
 
         // Collected and dropped: an empty list already says plainly that
         // nothing was found.
         stderr: StdioCollector {}
 
-        // Not a duplicate of onStreamFinished: which fires first isn't
-        // guaranteed, so both settle the same text. Drains `refreshPending`.
-        onExited: {
-            root.listingText = output.text;
-            if (root.refreshPending) {
-                root.refreshPending = false;
-                root.refresh();
-            }
-        }
+        onSettled: output => root.listingText = output
     }
 }

@@ -17,7 +17,7 @@ Menu {
             name: "Lock",
             keywords: ["lock", "lock screen"],
             icon: "system-lock-screen",
-            command: ["qs", "-c", "lock", "ipc", "call", "lock", "lock"],
+            command: ["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"],
             scoped: false
         },
         {

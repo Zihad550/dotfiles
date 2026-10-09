@@ -30,7 +30,7 @@ Replace walker and elephant with a Quickshell QML Launcher that we own end to
 end, migrating provider by provider with the main keybind switching over on day
 one.
 
-The Launcher runs as its own always-running Quickshell config, so the window
+The Launcher runs inside the shared Quickshell desktop process, so the window
 already exists when the keybind fires and opening is instant. Providers produce
 Entries of a uniform shape; the shell owns Query, Marking, keyboard navigation
 and Action dispatch, so behaviour is identical everywhere. A Provider may
@@ -51,8 +51,8 @@ the only signal comparable between Providers.
 6. As a user, I want the Launcher to take keyboard focus the moment it appears, so that I can start typing without clicking first.
 7. As a user, I want Escape to dismiss the Launcher, so that abandoning a Query is instant.
 8. As a user, I want focus to return to the window I came from when the Launcher closes, so that dismissing it does not disturb what I was doing.
-9. As a user, I want the Launcher's filtering to never stall the bar, so that typing a Query does not hitch the clock, the OSD, or a notification animation.
-10. As a user, I want a crash in the Launcher to leave my bar, notifications and OSD running, so that an immature feature cannot take down my whole shell.
+9. As a user, I want filtering and provider refreshes limited to what I am using, so that hidden providers do not compete with desktop rendering.
+10. As a user, I want the Launcher to share the desktop process, so that it does not duplicate Qt startup memory.
 11. As a user, I want to type a few characters and see matches narrow immediately, so that I can act as soon as I recognise the right Entry.
 12. As a user, I want the best match to win regardless of which Provider produced it, so that I do not have to think about where a thing lives.
 13. As a user, I want the things I pick most often to rise to the top, so that my common actions get shorter over time.
@@ -73,7 +73,7 @@ the only signal comparable between Providers.
 28. As a user, I want to type an arithmetic expression and get a result, so that quick sums do not need another tool.
 29. As a user, I want to search the web from the Launcher, so that a query I cannot answer locally goes straight out.
 30. As a user, I want my static menus — system, media, display, other — available from the Launcher, so that nothing I had before is missing when the keybind switches.
-31. As a user, I want to add an entry to a static menu by editing one file and seeing it hot-reload, so that extending menus stays as cheap as it is today.
+31. As a user, I want to add an entry to a static menu by editing one file and restarting the shared shell, so that extending menus stays as cheap as it is today.
 32. As a user, I want menu entries that depend on shell expansion to keep working, so that commands reading a secret or substituting a command do not silently break.
 33. As a user, I want to find a directory by fuzzy-matching its path, so that I can jump into projects without navigating.
 34. As a user, I want directory search to stay responsive across many thousands of entries, so that the largest Provider is not the slowest one.
@@ -101,13 +101,13 @@ and UI. Elephant is not retained as a backend: its entry model is the source of
 the Marking and ordering workarounds, so keeping it would preserve the exact
 constraints motivating the work.
 
-**The Launcher is its own Quickshell config**, autostarted alongside the bar,
-not a module inside it. QML is single-threaded, and filtering the largest
-Provider was measured at 46–61ms per keystroke against ~17,000 entries. Inside
-the bar's process that would block the bar, OSD and notification rendering on
-every keystroke. Separation also means Launcher faults cannot take down the
-notification daemon. Cost is a second process and a duplicated theme singleton;
-the existing theme template already covers a second config.
+**The Launcher shares the desktop process with the bar and lock.** Its window
+stays ready for the keybind. Prefix-only and nested providers refresh when
+selected and release prepared catalogs after 30 seconds of inactivity. Queries
+are not scored while hidden. Large directory queries still run on the shared
+QML thread; the previously measured 46–61ms filtering cost can delay rendering.
+This accepts shared failure and scheduling in exchange for lower memory use.
+See [quickshell-memory.md](quickshell-memory.md).
 
 **The keybind registers as a compositor shortcut from within QML**, so the
 keypress dispatches into the running process with no client binary. This is
@@ -144,7 +144,7 @@ rather than patched.
 
 **Static menus become QML data files** rather than staying in their current
 configuration format or moving to JSON. Nothing machine-generates them, they
-hot-reload on save exactly as today, and they gain load-time syntax checking. A
+load after `df-qs-restart`, and they gain load-time syntax checking. A
 per-entry audit is required: some commands rely on shell expansion, which the
 detached-exec path does not provide, so those must be invoked through a shell
 explicitly.

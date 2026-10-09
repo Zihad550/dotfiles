@@ -10,10 +10,10 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const B = require("../../quickshell/.config/quickshell/launcher/lib/backgrounds.js");
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
+const B = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/backgrounds.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
 const CatalogCheck = require("./catalog-check.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
 
 const HOME = "/home/jehad";
 

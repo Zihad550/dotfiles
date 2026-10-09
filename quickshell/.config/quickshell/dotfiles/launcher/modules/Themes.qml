@@ -17,12 +17,15 @@ import "../lib/themes.js" as Thm
 // `activePool` to hold exactly one Provider). The tradeoff: typing a theme
 // name into the unrouted Launcher no longer finds it, which is deliberate.
 //
-// Applying a theme restyles the Launcher live with no code added here:
-// df-theme-set retargets the theme symlink and calls `qs -c launcher ipc call
-// theme reload`, which shell.qml's `IpcHandler { target: "theme" }` already
-// answers by calling Theme.reload(). This file only has to run df-theme-set.
+// df-theme-set refreshes every desktop theme module through shared IPC.
 NestableProvider {
     id: root
+
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
 
     readonly property string label: "themes"
     readonly property string description: "Switch the colour theme"
@@ -53,6 +56,8 @@ NestableProvider {
     // `owners`: textsFor gives a theme two corpus texts (its raw slug and
     // formatted display name) -- see lib/themes.js's own textsFor.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Catalog.ownedCatalog(root.listing.names,
             name => Thm.entryFor(name, root.listing.current, root.listing.previews[name], root),
             name => Thm.textsFor(name));
@@ -83,43 +88,23 @@ NestableProvider {
         Quickshell.execDetached(Thm.applyArgv(root.home, entry.target.name));
     }
 
-    // Called at startup and on every open, same as Clipboard.qml's own
+    // Called on selection and after actions, same as Clipboard.qml's own
     // refresh -- a theme applied from a terminal, or the active marker
     // moving, should show correctly next time the Launcher opens.
-    property bool refreshPending: false
-
     function refresh(): void {
-        if (finder.running) {
-            root.refreshPending = true;
-            return;
-        }
-        finder.command = Thm.listCommand(root.home);
-        finder.running = true;
+        finder.request();
     }
 
-    Component.onCompleted: root.refresh()
-
     // QtObject has no default property to nest a child into.
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.listingText = output.text
-        }
+        retained: retention.retained
+        command: Thm.listCommand(root.home)
 
         // Collected and dropped: an empty list already says plainly that
         // nothing was found.
         stderr: StdioCollector {}
 
-        // Not a duplicate of onStreamFinished. Drains `refreshPending`: a
-        // refresh() that arrived mid-run gets a fresh run once this one clears.
-        onExited: {
-            root.listingText = output.text;
-            if (root.refreshPending) {
-                root.refreshPending = false;
-                root.refresh();
-            }
-        }
+        onSettled: output => root.listingText = output
     }
 }

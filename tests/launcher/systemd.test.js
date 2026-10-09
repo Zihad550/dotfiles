@@ -11,9 +11,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
-const S = require("../../quickshell/.config/quickshell/launcher/lib/systemd.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
+const S = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/systemd.js");
 const CatalogCheck = require("./catalog-check.js");
 
 // One scope's catalog, composed exactly as Systemd.qml composes each of its

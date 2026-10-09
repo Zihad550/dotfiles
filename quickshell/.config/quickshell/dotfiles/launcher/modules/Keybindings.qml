@@ -8,6 +8,12 @@ import "../lib/keybindings.js" as Keybindings
 QtObject {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: "keybindings"
     readonly property string description: "Search Hyprland keybindings"
     readonly property string prefix: "!"
@@ -20,6 +26,8 @@ QtObject {
     readonly property var binds: Keybindings.parseListing(root.listingText)
 
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Keybindings.catalogOf(root.binds, root);
         return {
             entries: built.entries,
@@ -46,40 +54,20 @@ QtObject {
         Quickshell.execDetached(Keybindings.editArgv(entry.target.description));
     }
 
-    property bool refreshPending: false
-
     function refresh(): void {
-        if (finder.running) {
-            root.refreshPending = true;
-            return;
-        }
-        finder.command = Keybindings.listCommand();
-        finder.running = true;
+        finder.request();
     }
 
-    Component.onCompleted: root.refresh()
-
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.settleListing(output.text)
-        }
+        retained: retention.retained
+        command: Keybindings.listCommand()
 
         stderr: StdioCollector {}
 
-        onExited: {
-            root.settleListing(output.text);
-            if (root.refreshPending) {
-                root.refreshPending = false;
-                root.refresh();
-            }
+        onSettled: output => {
+            root.listingText = output;
+            root.loaded = finder.retained;
         }
-    }
-
-    function settleListing(text): void {
-        root.listingText = text;
-        root.loaded = true;
     }
 }

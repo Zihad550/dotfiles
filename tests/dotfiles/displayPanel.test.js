@@ -10,8 +10,8 @@ test("SUPER+CTRL+D opens the bar-owned Display panel", () => {
     const bindings = source("hypr/.config/hypr/lua/bindings/utilities.lua");
     const shell = source("quickshell/.config/quickshell/dotfiles/shell.qml");
     const bar = source("quickshell/.config/quickshell/dotfiles/modules/Bar.qml");
-    const launcherShell = source("quickshell/.config/quickshell/launcher/shell.qml");
-    const launcher = source("quickshell/.config/quickshell/launcher/modules/Launcher.qml");
+    const launcherShell = source("quickshell/.config/quickshell/dotfiles/launcher/LauncherService.qml");
+    const launcher = source("quickshell/.config/quickshell/dotfiles/launcher/modules/Launcher.qml");
 
     assert.match(bindings,
         /SUPER \+ CTRL \+ D", "Display", hl\.dsp\.global\("display:toggle"\)/);

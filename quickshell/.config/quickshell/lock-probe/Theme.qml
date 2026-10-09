@@ -1,1 +1,1 @@
-../lock/Theme.qml
+../dotfiles/lock/Theme.qml

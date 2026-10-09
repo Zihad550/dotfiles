@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
 import Quickshell.Hyprland
-import qs
+import qs.launcher
 import "../lib/matching.js" as Matching
 import "../lib/highlight.js" as Highlight
 import "../lib/actions.js" as Actions
@@ -86,9 +86,13 @@ PanelWindow {
     // below reads it). Ranking them against every keystroke would put a row
     // whose Return is `kill -9`, removal or a unit restart one tie away from an
     // ordinary Query; being enter-only makes that impossible rather than
-    // merely unlikely. They keep `refresh()` on every open regardless -- this
-    // list is what `open()` walks.
+    // merely unlikely. Their data refreshes when selected.
     readonly property var rankedRoutable: root.pool.concat([directories, files, screenshots, clipboard, keybindings, themes, backgrounds, workspaces, processes, webapps, defaultApps, systemd, devServers, providerList])
+
+    // Whether a Provider's data is in use; it releases that data otherwise.
+    function isSelected(provider): bool {
+        return root.visible && root.activePool.indexOf(provider) >= 0;
+    }
 
     // `root.activePool`, not `root.pool`: a Query routed to one Provider that
     // hasn't populated yet should report pending for *that* Provider only.
@@ -245,6 +249,8 @@ PanelWindow {
     // because an ordered catalog is prefix-only and never merges with a
     // scored Provider. See lib/files.js and Files.qml's `catalog`.
     readonly property var scoredEntries: {
+        if (!root.visible)
+            return [];
         const usage = Frecency.usage;
         const catalogs = root.activePool.map(provider => provider.catalog);
         const ranked = catalogs.map(catalog => catalog.ordered
@@ -466,10 +472,8 @@ PanelWindow {
         root.visible = true;
         query.forceActiveFocus();
 
-        // Every Provider that can be asked for fresher data is, since an open
-        // is exactly when being out of date shows (`rankedRoutable`, not
-        // `pool`, since prefix-only Providers like directories want this too).
-        root.rankedRoutable.forEach(provider => {
+        // Other providers refresh when selected, rather than on every open.
+        root.pool.forEach(provider => {
             if (typeof provider.refresh === "function")
                 provider.refresh();
         });
@@ -681,6 +685,7 @@ PanelWindow {
 
     Directories {
         id: directories
+        catalogSelected: root.isSelected(directories)
 
         // Closes any open chooser the moment the Launcher is dismissed -- see
         // the note on `active` there.
@@ -691,6 +696,7 @@ PanelWindow {
 
     Files {
         id: files
+        catalogSelected: root.isSelected(files)
 
         // `queryText`: the Query with its prefix stripped, or "" when routed
         // elsewhere -- the catalog binds on this, so every keystroke re-selects.
@@ -701,6 +707,7 @@ PanelWindow {
 
     Screenshots {
         id: screenshots
+        catalogSelected: root.isSelected(screenshots)
 
         // Clears any Marks the moment the Launcher is dismissed -- see the
         // note on `active` there, and checkbox 6 on ticket 13.
@@ -709,10 +716,12 @@ PanelWindow {
 
     Clipboard {
         id: clipboard
+        catalogSelected: root.isSelected(clipboard)
     }
 
     Keybindings {
         id: keybindings
+        catalogSelected: root.isSelected(keybindings)
     }
 
     // Static menus declare their entries; Menu.qml owns the behaviour.
@@ -752,12 +761,14 @@ PanelWindow {
     // Reached by entering from the "?" list, not by prefix or from `pool`.
     Themes {
         id: themes
+        catalogSelected: root.isSelected(themes)
 
         active: root.visible
     }
 
     Backgrounds {
         id: backgrounds
+        catalogSelected: root.isSelected(backgrounds)
 
         active: root.visible
     }
@@ -766,12 +777,14 @@ PanelWindow {
     // `rankedRoutable`. On Workspaces, `active` also clears a half-typed rename.
     Workspaces {
         id: workspaces
+        catalogSelected: root.isSelected(workspaces)
 
         active: root.visible
     }
 
     Processes {
         id: processes
+        catalogSelected: root.isSelected(processes)
 
         // Same reason as apps' `active` above.
         active: root.visible
@@ -779,6 +792,7 @@ PanelWindow {
 
     Webapps {
         id: webapps
+        catalogSelected: root.isSelected(webapps)
 
         // Same reason as apps' `active` above.
         active: root.visible
@@ -786,18 +800,21 @@ PanelWindow {
 
     DefaultApps {
         id: defaultApps
+        catalogSelected: root.isSelected(defaultApps)
 
         active: root.visible
     }
 
     Systemd {
         id: systemd
+        catalogSelected: root.isSelected(systemd)
 
         active: root.visible
     }
 
     DevServers {
         id: devServers
+        catalogSelected: root.isSelected(devServers)
 
         active: root.visible
     }
@@ -807,6 +824,7 @@ PanelWindow {
     // Filters itself out (`listable: false`).
     ProviderList {
         id: providerList
+        catalogSelected: root.isSelected(providerList)
 
         providers: root.routable
 
@@ -1352,7 +1370,7 @@ PanelWindow {
                         // treats as no source rather than an error.
                         readonly property string previewFile: root.highlightedEntry
                             ? (root.highlightedEntry.target.preview || root.highlightedEntry.target.path || "") : ""
-                        readonly property string previewSource: root.previewMode && previewPane.previewFile !== ""
+                        readonly property string previewSource: root.visible && root.previewMode && previewPane.previewFile !== ""
                             ? "file://" + encodeURI(previewPane.previewFile) : ""
 
                         Image {
@@ -1370,6 +1388,7 @@ PanelWindow {
                             sourceSize.width: Theme.previewImageSize
                             sourceSize.height: Theme.previewImageSize
 
+                            cache: false
                             source: previewPane.previewSource
                         }
 

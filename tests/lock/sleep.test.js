@@ -10,7 +10,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Sleep = require("../../quickshell/.config/quickshell/lock/lib/sleep.js");
+const Sleep = require("../../quickshell/.config/quickshell/dotfiles/lock/lib/sleep.js");
 
 test("the inhibitor is held from the start, before anything announces sleep", () => {
     const state = Sleep.initial();

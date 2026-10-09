@@ -73,9 +73,9 @@ Three things bite immediately in that shell:
 ## 1. Stop the broken lock
 
     qs list --all
-    qs -c lock kill
+    qs -c dotfiles kill
 
-`qs -c lock kill` prints `No running instances` and exits 0 when there is
+`qs -c dotfiles kill` prints `No running instances` and exits 0 when there is
 nothing to kill, so it is safe to run first and ask questions after — but read
 the `WAYLAND_DISPLAY` note above before believing it, because an unset one
 prints exactly the same thing over a live instance. `qs list --all` is what
@@ -86,7 +86,11 @@ then stalls in shutdown, and the `kill` call blocks waiting for an exit that
 never comes. `SIGTERM` to that pid ends it immediately, and is safe — every
 transition is on disk before it happens, so the next instance adopts the truth
 and Stranded Lock recovery takes back a lock the compositor still holds.
-`df-qs-restart lock` escalates that way on its own.
+Stop its supervisor first, or it relaunches a shell that exits on a signal:
+
+    pkill -x df-qs-launch
+
+`df-qs-restart` escalates that way on its own.
 
 What the lock last published about itself — and, once its call site moves, what
 `df-power` reads (`docs/adr/0017-lock-state-is-a-file-not-a-process-probe.md`):
@@ -94,7 +98,8 @@ What the lock last published about itself — and, once its call site moves, wha
     cat /run/user/$UID/df-lock-state     # unlocked | requested | secure
 
 `requested` left standing is a lock that was asked for and never became Secure.
-A missing file means the lock config never started; `qs -c lock log` says why.
+A missing file means the lock config never started; `qs -c dotfiles log` says why,
+and `journalctl --user -t df-qs` keeps that output across a reboot.
 
 If the screens stay covered after that, the compositor is holding a lock whose
 client is gone — a Stranded Lock. Nothing at the console clears it; end the
@@ -137,7 +142,7 @@ and they look the same from the outside.
     systemd-inhibit --list | grep 'df lock'
 
 Nothing listed means the lock config is not running, or `gdbus` is missing and
-its sleep monitor died. `qs -c lock log` says which.
+its sleep monitor died. `qs -c dotfiles log` says which.
 
 **The window was too short.** The lock gives up after its own budget and lets
 the machine sleep, because logind suspends at the end of its window either way.
@@ -186,8 +191,8 @@ What has to come back, so you can check the revert covered it:
   generated `hyprlock.conf` and the `themes/templates/hyprlock.conf.tpl` that
   rendered it.
 - The `["hyprlock"]` command vector at the three call sites:
-  `quickshell/.config/quickshell/launcher/lib/power.js`,
-  `quickshell/.config/quickshell/launcher/modules/SystemMenu.qml` and
+  `quickshell/.config/quickshell/dotfiles/launcher/lib/power.js`,
+  `quickshell/.config/quickshell/dotfiles/launcher/modules/SystemMenu.qml` and
   `quickshell/.config/quickshell/dotfiles/modules/QuickSettings.qml`.
 - The `pidof hyprlock` check in `bin/df-power`, which is how the power keybinds
   stay reachable from a locked screen
@@ -209,9 +214,10 @@ reinstall above:
     systemctl --user enable --now hypridle.service
     systemctl --user is-enabled hypridle.service    # expect: enabled
 
-**Stop the Quickshell lock from competing:**
+**Stop the shared Quickshell desktop before enabling the old lock:**
 
-    qs -c lock kill
+    pkill -x df-qs-launch
+    qs -c dotfiles kill
 
 Then log out and back in. Confirm the lock works before you walk away from it:
 
@@ -239,7 +245,7 @@ Run on Arch Linux, `hyprlock 0.9.6-2` / `hypridle 0.1.8-1`, Hyprland 0.56.2,
 writing this before the removal rather than after.
 
 Run and confirmed: the `HYPRLAND_INSTANCE_SIGNATURE` export followed by
-`hyprctl monitors`; `qs list --all`; `qs -c lock kill` against a config with no
+`hyprctl monitors`; `qs list --all`; `qs -c dotfiles kill` against a config with no
 instance; both `faillock` invocations, unprivileged; `pacman -Si hyprlock
 hypridle` and `pacman -Sp hyprlock hypridle`, resolving both from `extra`;
 `stow` against `hypr` in simulation mode; `systemctl --user daemon-reload` and

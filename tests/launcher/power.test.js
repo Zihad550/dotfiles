@@ -15,7 +15,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const Power = require("../../quickshell/.config/quickshell/launcher/lib/power.js");
+const Power = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/power.js");
 
 // The keys shell.qml's four GlobalShortcuts pass in. Written out rather than
 // derived from the table, which is the entire point: this is the other end of
@@ -49,7 +49,7 @@ test("the commands are the keybinds' own", () => {
     assert.deepStrictEqual(Power.actionFor("shutdown").argv, ["shutdown", "now"]);
     assert.deepStrictEqual(Power.actionFor("restart").argv, ["shutdown", "-r", "now"]);
     assert.deepStrictEqual(Power.actionFor("lock").argv,
-        ["qs", "-c", "lock", "ipc", "call", "lock", "lock"]);
+        ["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"]);
 });
 
 // The Lua dispatch form, for the reason lib/workspaces.js documents at length:

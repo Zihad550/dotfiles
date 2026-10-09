@@ -82,7 +82,7 @@ test("Quick Settings exposes laptop battery state and immediate header actions",
     assert.match(quickSettings, /id:\s*headerActions[\s\S]*anchors\.right:\s*parent\.right/);
     assert.match(quickSettings, /HeaderAction\s*{[\s\S]*id:\s*lockAction/);
     assert.match(quickSettings, /HeaderAction\s*{[\s\S]*id:\s*powerAction/);
-    assert.match(quickSettings, /lockAction[\s\S]*Quickshell\.execDetached\(\["qs", "-c", "lock", "ipc", "call", "lock", "lock"\]\)[\s\S]*root\.dismiss\(\)/);
+    assert.match(quickSettings, /lockAction[\s\S]*Quickshell\.execDetached\(\["qs", "-c", "dotfiles", "ipc", "call", "lock", "lock"\]\)[\s\S]*root\.dismiss\(\)/);
     assert.match(quickSettings, /powerAction[\s\S]*root\.navigate\(QuickSettings\.Power/);
 });
 
@@ -250,7 +250,7 @@ test("Bluetooth Page groups nearby devices and keeps volatile BlueZ objects out 
     const quickSettings = source("modules/QuickSettings.qml");
     const bluetoothPage = source("modules/BluetoothPage.qml");
 
-    assert.match(quickSettings, /id:\s*bluetoothPageLoader[\s\S]*source:\s*"BluetoothPage\.qml"/);
+    assert.match(quickSettings, /id:\s*bluetoothSurface[\s\S]*available:\s*root\.bluetoothAvailable[\s\S]*source:\s*"BluetoothPage\.qml"/);
     assert.match(bluetoothPage, /resources\/omarchy\/shell\/plugins\/panels\/bluetooth\/Panel\.qml/);
     assert.match(bluetoothPage, /text:\s*"Bluetooth"/);
     assert.match(bluetoothPage, /Model\.deviceGroups\(Bluetooth\.devices\.values\)/);
@@ -313,13 +313,14 @@ test("The Tailscale Tile's chevron opens the Page and requests enable without ga
         /id:\s*tailscaleTile[\s\S]*onChevronClicked:\s*keyboard\s*=>\s*\{[\s\S]*root\.navigate\(QuickSettings\.Tailscale,\s*keyboard\)[\s\S]*TailscaleService\.enable\(\)[\s\S]*\}/,
     );
     assert.match(quickSettings, /enum Page \{[\s\S]*Tailscale[\s\S]*\}/);
-    assert.match(quickSettings, /TailscalePage\s*\{[\s\S]*id:\s*tailscalePage/);
+    assert.match(quickSettings, /id:\s*tailscaleSurface[\s\S]*page:\s*QuickSettings\.Tailscale/);
     assert.match(
         quickSettings,
-        /id:\s*tailscalePage[\s\S]*active:\s*root\.shown && root\.currentPage === QuickSettings\.Tailscale[\s\S]*onBack:\s*keyboard\s*=>\s*root\.showPrimary\(keyboard\)/,
+        /TailscalePage\s*\{[\s\S]*active:\s*tailscaleSurface\.pageActive[\s\S]*onBack:\s*keyboard\s*=>\s*root\.showPrimary\(keyboard\)/,
     );
-    assert.match(quickSettings, /root\.currentPage === QuickSettings\.Tailscale[\s\S]*return tailscalePage\.implicitHeight/);
-    assert.match(quickSettings, /root\.currentPage === QuickSettings\.Tailscale\s*\)\s*\n\s*tailscalePage\.focusHeader\(\)/);
+    assert.match(quickSettings, /currentSurface:\s*\[[^\]]*tailscaleSurface[^\]]*\]/);
+    assert.match(quickSettings, /surfaceImplicitHeight:\s*root\.currentSurface[\s\S]*root\.currentSurface\.item\?\.implicitHeight/);
+    assert.match(quickSettings, /else if \(root\.currentSurface\)\s*\n\s*root\.currentSurface\.item\?\.focusHeader\(\)/);
 });
 
 test("TailscaleService, not the Page, owns Profile loading and normalized Profile state", () => {

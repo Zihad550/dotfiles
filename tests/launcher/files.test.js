@@ -16,7 +16,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const F = require("../../quickshell/.config/quickshell/launcher/lib/files.js");
+const F = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/files.js");
 
 const HOME = "/home/jehad";
 const PATHS = [

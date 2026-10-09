@@ -10,7 +10,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Session = require("../../quickshell/.config/quickshell/lock/lib/session.js");
+const Session = require("../../quickshell/.config/quickshell/dotfiles/lock/lib/session.js");
 
 test("a fresh session holds nothing and publishes unlocked", () => {
     const state = Session.initial();

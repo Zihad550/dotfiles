@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Print "id pid" for each running Quickshell instance of the named configs.
+# Matches on Quickshell's own instance registry rather than command lines.
+
+set -e
+
+if (( $# == 0 )); then
+    echo "Usage: df-qs-instances CONFIG..." >&2
+    exit 1
+fi
+
+# Prints "No running instances." instead of JSON when there are none.
+listing=$(quickshell list -a -j 2>/dev/null || true)
+[[ $listing == "["* ]] || exit 0
+
+jq -r '.[]
+    | select(.config_path as $path
+        | $ARGS.positional | any(. as $name | $path | endswith("/quickshell/\($name)/shell.qml")))
+    | "\(.id) \(.pid)"' --args "$@" <<<"$listing"

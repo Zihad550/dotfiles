@@ -26,6 +26,11 @@ import "../lib/files.js" as Files
 QtObject {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+    }
+
     readonly property string label: "files"
     readonly property string description: "Find a file inside a folder"
     readonly property string prefix: "~"
@@ -88,6 +93,8 @@ QtObject {
     // 3. Matched folders and their contents, in lib/files.js's own order
     //    (the only branch that's `ordered`).
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         if (root.openFor !== null) {
             const chooser = Files.chooserEntriesFor(root.openFor.path, root.launchPrefix, root);
             return {
@@ -96,7 +103,7 @@ QtObject {
             };
         }
 
-        if (root.queryText === "")
+        if (!root.catalogSelected || root.queryText === "")
             return { entries: [], ordered: true };
 
         return {
@@ -151,65 +158,35 @@ QtObject {
         Quickshell.execDetached(entry.target.argv);
     }
 
-    // True between a request that found the finder mid-run and the run that covers it.
-    property bool listingPending: false
-
     // Called on every keystroke and Directory Index change. Not awaited: the
     // catalog renders whatever children data already exists and this fills
     // in the rest when the find lands.
     //
     // At most one process in flight -- unlike the calculator's qalc, a stale
-    // run here isn't wrong (see childrenText above), so this just stops a
-    // burst of keystrokes stacking finds. The run that finishes re-triggers
-    // scheduleListing for whatever the Query has become since.
+    // run here isn't wrong (see childrenText above), so the finder queues a
+    // burst of keystrokes into one follow-up run for the latest Query.
     function scheduleListing(): void {
-        if (root.queryText === "")
+        if (!root.catalogSelected || root.queryText === "")
             return;
 
         const dirs = Files.expandPaths(root.paths, root.home, root.queryText);
         if (dirs.length === 0)
             return;
 
-        if (finder.running) {
-            root.listingPending = true;
-            return;
-        }
-
-        finder.command = Files.childrenCommand(dirs);
-        finder.running = true;
+        finder.request(Files.childrenCommand(dirs));
     }
 
     onQueryTextChanged: root.scheduleListing()
 
     // QtObject has no default property to nest a child into.
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.childrenText = output.text
-        }
+        retained: retention.retained
 
         // Collected and dropped: an empty listing already says plainly that
         // nothing was found.
         stderr: StdioCollector {}
 
-        // Not a duplicate of onStreamFinished: which fires first isn't
-        // guaranteed, so both settle the same text.
-        //
-        // Drains `listingPending`: a keystroke that arrived mid-run gets a
-        // fresh run once this one clears, recomputed for the *current* Query.
-        //
-        // Deferred via Qt.callLater rather than called in place, since
-        // `running` may not have gone false yet when this handler runs --
-        // calling scheduleListing() in place could re-set the flag with no
-        // further exit left to drain it.
-        onExited: {
-            root.childrenText = output.text;
-            if (root.listingPending) {
-                root.listingPending = false;
-                Qt.callLater(root.scheduleListing);
-            }
-        }
+        onSettled: output => root.childrenText = output
     }
 }

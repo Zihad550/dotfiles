@@ -48,7 +48,7 @@ application question, not a role-level one.
 
 - Per-application flags leave the launcher. Ozone and Wayland settings belong to
   the session environment or each application's own configuration file; browser
-  profiles become named presets in `quickshell/.config/quickshell/launcher/modules/OtherMenu.qml`,
+  profiles become named presets in `quickshell/.config/quickshell/dotfiles/launcher/modules/OtherMenu.qml`,
   where two Zen profiles already live.
 - `SUPER+B` stops carrying Zen's `-P dev` profile. That invocation moves into
   `OtherMenu.qml` beside the `008` and `webdev` entries.

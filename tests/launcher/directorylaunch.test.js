@@ -8,9 +8,9 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const D = require("../../quickshell/.config/quickshell/launcher/lib/directories.js");
-const L = require("../../quickshell/.config/quickshell/launcher/lib/directorylaunch.js");
-const W = require("../../quickshell/.config/quickshell/launcher/lib/workspaces.js");
+const D = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/directories.js");
+const L = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/directorylaunch.js");
+const W = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/workspaces.js");
 
 const HOME = "/home/jehad";
 
@@ -272,7 +272,7 @@ test("parallel launches claim different focused windows instead of renaming one 
 });
 
 test("both Directory Action paths call one shared launch coordinator", () => {
-    const qmlPath = path.join(__dirname, "../../quickshell/.config/quickshell/launcher/modules/Directories.qml");
+    const qmlPath = path.join(__dirname, "../../quickshell/.config/quickshell/dotfiles/launcher/modules/Directories.qml");
     const qml = fs.readFileSync(qmlPath, "utf8");
 
     assert.match(qml, /function openDefault[\s\S]*?root\.openDirectory\(/);

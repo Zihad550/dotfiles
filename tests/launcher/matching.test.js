@@ -14,10 +14,10 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
 // Where EXACT_WEIGHT meets a real Frecency score is a claim about the two
 // modules together, so the store is built rather than a usage number invented.
-const F = require("../../quickshell/.config/quickshell/launcher/lib/frecency.js");
+const F = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/frecency.js");
 
 // Rank a corpus and return the matching texts in order, which is what every
 // assertion below is actually about.

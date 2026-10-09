@@ -1,1 +1,1 @@
-../lock/LockAuth.qml
+../dotfiles/lock/LockAuth.qml

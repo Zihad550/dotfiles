@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // logind's PrepareForSleep(false), for state that goes stale across a suspend.
-// Same `gdbus monitor` the Session Lock uses -- see lock/shell.qml.
+// Same `gdbus monitor` the Session Lock uses -- see lock/LockService.qml.
 Singleton {
     id: root
 

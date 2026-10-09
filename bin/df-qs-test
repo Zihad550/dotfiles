@@ -28,14 +28,14 @@ for arg in "$@"; do
    esac
 done
 
-# These are long-running instances that autostart.lua owns. Running one here
+# These names belong to the shared desktop shell. Running it here
 # would kill the live one and replace it with a foreground copy that dies with
 # this terminal -- and for "lock", dying with the terminal is a dropped lock.
 # The Session Lock's surface is meant to be run here as "lock-probe", which
 # takes no session lock.
 case "$CONFIG" in
    dotfiles | launcher | lock)
-      echo "Refusing to run the $CONFIG config as a scratch instance; use df-qs-restart $CONFIG." >&2
+      echo "Refusing to run the $CONFIG config as a scratch instance; use df-qs-restart." >&2
       exit 1
       ;;
 esac
@@ -61,10 +61,9 @@ fi
 # Leaves nothing behind from an earlier run; not an error when none is running.
 quickshell -c "$CONFIG" kill >/dev/null 2>&1 || true
 
-# Same pattern df-qs-restart matches on, word-end anchored so that "test" does
-# not also match an unrelated "test-probe" instance.
+BIN_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 for _ in {1..30}; do
-   pgrep -f "(quickshell|qs) -c $CONFIG( |\$)" >/dev/null || break
+   [[ -z $("$BIN_DIR/df-qs-instances" "$CONFIG") ]] && break
    sleep 0.1
 done
 

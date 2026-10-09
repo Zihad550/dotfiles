@@ -21,6 +21,12 @@ import "../lib/processes.js" as Proc
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: "processes"
     readonly property string description: "Kill a running process"
 
@@ -41,6 +47,8 @@ NestableProvider {
     }
 
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Catalog.keylessCatalog(root.listing,
             item => Proc.entryFor(item, root), Proc.textsFor);
         return {
@@ -96,39 +104,21 @@ NestableProvider {
         }
     }
 
-    // Called at startup and on every open -- processes come and go between opens.
-    property bool refreshPending: false
-
+    // Called on selection and after actions -- processes come and go between opens.
     function refresh(): void {
-        if (finder.running) {
-            root.refreshPending = true;
-            return;
-        }
-        finder.command = Proc.listCommand();
-        finder.running = true;
+        finder.request();
     }
 
-    Component.onCompleted: root.refresh()
-
     // QtObject has no default property to nest a child into.
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.listingText = output.text
-        }
+        retained: retention.retained
+        command: Proc.listCommand()
 
         // Collected and dropped: an empty listing already says plainly that
         // nothing was found.
         stderr: StdioCollector {}
 
-        onExited: {
-            root.listingText = output.text;
-            if (root.refreshPending) {
-                root.refreshPending = false;
-                root.refresh();
-            }
-        }
+        onSettled: output => root.listingText = output
     }
 }

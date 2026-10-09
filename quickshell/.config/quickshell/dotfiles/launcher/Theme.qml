@@ -4,15 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The Launcher's colors and metrics. A second copy of the bar's Theme.qml,
-// deliberately: each Quickshell config root is its own import namespace, so
-// the bar's singleton can't be imported here. Not a duplication of the theme
-// itself -- color *definitions* live in ~/.config/theme/quickshell.json, and
-// both configs just read that one file, so they can't drift on color.
-//
-// What differs below the color block is deliberate: the bar is compact
-// (read at a glance), the Launcher is read up close and at length, so it's
-// sized more like the notification popups.
+// Launcher metrics are separate from the bar; colors share the theme file.
 Singleton {
     id: root
 

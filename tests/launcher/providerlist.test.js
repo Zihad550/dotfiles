@@ -12,9 +12,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const P = require("../../quickshell/.config/quickshell/launcher/lib/providerlist.js");
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
+const P = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/providerlist.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
 const CatalogCheck = require("./catalog-check.js");
 
 // The catalog build lives in lib/catalog.js, wired to this Provider's own

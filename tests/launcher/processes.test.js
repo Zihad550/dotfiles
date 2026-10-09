@@ -14,9 +14,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
-const P = require("../../quickshell/.config/quickshell/launcher/lib/processes.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
+const P = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/processes.js");
 const CatalogCheck = require("./catalog-check.js");
 
 // The processes Provider's catalog, composed exactly as Processes.qml

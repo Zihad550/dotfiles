@@ -15,9 +15,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
-const W = require("../../quickshell/.config/quickshell/launcher/lib/windows.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
+const W = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/windows.js");
 const CatalogCheck = require("./catalog-check.js");
 
 // The windows Provider's catalog, paired with prepare() exactly as Windows.qml

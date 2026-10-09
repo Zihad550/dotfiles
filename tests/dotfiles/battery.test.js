@@ -14,7 +14,7 @@ test("battery thresholds have one notification producer across multiple monitors
     const bar = source("modules/Bar.qml");
     const statusCluster = source("modules/StatusCluster.qml");
 
-    assert.match(shell, /Variants\s*{[\s\S]*model:\s*Quickshell\.screens[\s\S]*Bar\s*{}/);
+    assert.match(shell, /Variants\s*{[\s\S]*model:\s*Quickshell\.screens[\s\S]*Bar\s*{\s*mediaService: mediaLoader\.item\s*}/);
     assert.match(bar, /StatusCluster\s*{/);
     assert.doesNotMatch(
         statusCluster,

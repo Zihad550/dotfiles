@@ -27,6 +27,11 @@ import "../lib/workspaces.js" as Ws
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+    }
+
     readonly property string label: "workspaces"
     readonly property string description: "Switch to a workspace"
 
@@ -52,6 +57,8 @@ NestableProvider {
     // (same reasoning as the windows Provider) -- see lib/workspaces.js's
     // note on entryFor.
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Catalog.keylessCatalog(root.workspaceList,
             item => Ws.entryFor(item, root), Ws.textsFor);
         return {

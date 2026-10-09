@@ -8,7 +8,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Idle = require("../../quickshell/.config/quickshell/lock/lib/idle.js");
+const Idle = require("../../quickshell/.config/quickshell/dotfiles/lock/lib/idle.js");
 
 const timings = { dim: 120, lock: 1800, blank: 1830, suspend: 1860 };
 

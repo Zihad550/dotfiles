@@ -10,6 +10,12 @@ import "../lib/defaultapps.js" as DefaultApps
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: DefaultApps.ROLE_LABEL
     readonly property string description: "Choose the app for a desktop role"
     readonly property bool ready: true
@@ -30,6 +36,8 @@ NestableProvider {
     readonly property var selected: DefaultApps.roleFor(root.listing, root.selectedRole)
 
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         if (root.selected !== null) {
             const entries = DefaultApps.candidatesFor(root.selected, root);
             return {
@@ -79,33 +87,17 @@ NestableProvider {
     }
 
     function refresh(): void {
-        if (finder.running) {
-            root.refreshPending = true;
-            return;
-        }
-        finder.command = DefaultApps.listArgv(root.home);
-        finder.running = true;
+        finder.request();
     }
 
-    property bool refreshPending: false
-    Component.onCompleted: root.refresh()
-
-    readonly property Process finder: Process {
+    // QtObject has no default property to nest a child into.
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.listingText = output.text
-        }
+        retained: retention.retained
+        command: DefaultApps.listArgv(root.home)
 
         stderr: StdioCollector {}
 
-        onExited: {
-            root.listingText = output.text;
-            if (root.refreshPending) {
-                root.refreshPending = false;
-                root.refresh();
-            }
-        }
+        onSettled: output => root.listingText = output
     }
 }

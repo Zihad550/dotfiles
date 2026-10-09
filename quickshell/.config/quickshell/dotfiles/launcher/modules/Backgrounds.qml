@@ -15,6 +15,12 @@ import "../lib/matching.js" as Matching
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+        onRefreshRequested: root.refresh()
+    }
+
     readonly property string label: "backgrounds"
     readonly property string description: "Set the desktop background"
     readonly property string layout: "preview"
@@ -39,6 +45,8 @@ NestableProvider {
 
     // `owners`: textsFor gives a background two corpus texts (raw stem, formatted name).
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Catalog.ownedCatalog(root.paths,
             path => Bgs.entryFor(path, root),
             path => Bgs.textsFor(path));
@@ -64,40 +72,21 @@ NestableProvider {
         Quickshell.execDetached(Bgs.applyArgv(root.home, entry.target.path));
     }
 
-    // Called at startup and on every open.
-    property bool refreshPending: false
-
+    // Called on selection and after actions.
     function refresh(): void {
-        if (finder.running) {
-            root.refreshPending = true;
-            return;
-        }
-        finder.command = Bgs.listCommand(root.home);
-        finder.running = true;
+        finder.request();
     }
 
-    Component.onCompleted: root.refresh()
-
     // QtObject has no default property to nest a child into.
-    readonly property Process finder: Process {
+    readonly property ListingProcess finder: ListingProcess {
         id: finder
-
-        stdout: StdioCollector {
-            id: output
-            onStreamFinished: root.listingText = output.text
-        }
+        retained: retention.retained
+        command: Bgs.listCommand(root.home)
 
         // Collected and dropped: an empty list already says plainly that
         // nothing was found.
         stderr: StdioCollector {}
 
-        // Not a duplicate of onStreamFinished. Drains `refreshPending`.
-        onExited: {
-            root.listingText = output.text;
-            if (root.refreshPending) {
-                root.refreshPending = false;
-                root.refresh();
-            }
-        }
+        onSettled: output => root.listingText = output
     }
 }

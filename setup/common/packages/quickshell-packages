@@ -23,8 +23,8 @@
 . "$(dirname "${BASH_SOURCE[0]}")/../pacman-lib"
 
 # quickshell - the bar, notification daemon, OSD, launcher and Session Lock
-#     (dotfiles/shell.qml, launcher/shell.qml and lock/shell.qml)
-# ttf-fira-code - Theme.qml's fontFamily in both shells; every label renders in
+#     (one shared shell: quickshell/.config/quickshell/dotfiles)
+# ttf-fira-code - every Theme.qml fontFamily in that shell; every label renders in
 #     the fallback font without it
 # libqalculate - qalc, behind the launcher's calculator (launcher/lib/calc.js)
 # cliphist - clipboard history, behind the launcher's clipboard provider

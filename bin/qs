@@ -1,17 +1,6 @@
 #!/bin/bash
 
-# quickshell, with -n/--no-duplicate injected into config launches.
-#
-# Two instances of one config answer the same keybind out of phase and split
-# the theme-reload IPC, and `qs log`/`qs ipc call` then fail outright with
-# "More than one instance starts with...". bin/ is first on PATH
-# (zsh/.zshenv:86, which bash/.bashrc sources), so this shadows the system
-# binary for interactive use; the repo's scripted starts spell the flag out on
-# `quickshell` themselves. See GitHub issue #33.
-#
-# The flag is appended rather than prepended so the resulting command line
-# still matches the `(quickshell|qs) -c CONFIG` pattern df-qs-restart and
-# df-qs-test pgrep for.
+# Quickshell config launches are single-instance; legacy names select dotfiles.
 
 set -e
 
@@ -20,7 +9,32 @@ if ! command -v quickshell &>/dev/null; then
    exit 1
 fi
 
+canonical_config() {
+   case "$1" in
+      launcher | lock) echo dotfiles ;;
+      *) echo "$1" ;;
+   esac
+}
+
+args=("$@")
+prev=""
+LAUNCH_CONFIG=""
+for index in "${!args[@]}"; do
+   arg="${args[$index]}"
+   if [[ "$prev" == -c || "$prev" == --config ]]; then
+      arg=$(canonical_config "$arg")
+      LAUNCH_CONFIG="$arg"
+   elif [[ "$arg" == --config=* ]]; then
+      LAUNCH_CONFIG=$(canonical_config "${arg#--config=}")
+      arg="--config=$LAUNCH_CONFIG"
+   fi
+   args[index]="$arg"
+   prev="$arg"
+done
+set -- "${args[@]}"
+
 CONFIG_SELECTED=0
+NO_DUPLICATE=0
 prev=""
 for arg in "$@"; do
    case "$arg" in
@@ -34,7 +48,7 @@ for arg in "$@"; do
          fi
          ;;
       -n | --no-duplicate)
-         exec quickshell "$@"
+         NO_DUPLICATE=1
          ;;
       -c | --config | --config=*)
          CONFIG_SELECTED=1
@@ -49,4 +63,13 @@ if (( ! CONFIG_SELECTED )); then
    exec quickshell "$@"
 fi
 
+# df-qs-launch owns the Shared Shell's launch, with supervision and its environment.
+if [[ "$LAUNCH_CONFIG" == dotfiles ]]; then
+   echo "Start the Shared Shell with df-qs-restart" >&2
+   exit 1
+fi
+
+if (( NO_DUPLICATE )); then
+   exec quickshell "$@"
+fi
 exec quickshell "$@" -n

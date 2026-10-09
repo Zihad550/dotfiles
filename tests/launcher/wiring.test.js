@@ -13,8 +13,8 @@ const path = require("node:path");
 const repoRoot = path.resolve(__dirname, "../..");
 const retiredPaths = [
     "bin/df-zellij-f",
-    "quickshell/.config/quickshell/launcher/lib/zellij.js",
-    "quickshell/.config/quickshell/launcher/modules/Zellij.qml",
+    "quickshell/.config/quickshell/dotfiles/launcher/lib/zellij.js",
+    "quickshell/.config/quickshell/dotfiles/launcher/modules/Zellij.qml",
     "tests/launcher/zellij.test.js",
     "zellij"
 ];
@@ -56,7 +56,7 @@ test("zellij leaves no live Provider, shell, menu, or config surface", () => {
 });
 
 test("webapps is routable from the provider list but absent from the default pool", () => {
-    const launcher = source("quickshell/.config/quickshell/launcher/modules/Launcher.qml");
+    const launcher = source("quickshell/.config/quickshell/dotfiles/launcher/modules/Launcher.qml");
     const pool = launcher.match(/readonly property var pool: \[[^\n]+\]/)[0];
     const routable = launcher.match(/readonly property var rankedRoutable:[^\n]+/)[0];
 
@@ -66,7 +66,7 @@ test("webapps is routable from the provider list but absent from the default poo
 });
 
 test("webapps keeps one removal in flight and stays open after Return", () => {
-    const webapps = source("quickshell/.config/quickshell/launcher/modules/Webapps.qml");
+    const webapps = source("quickshell/.config/quickshell/dotfiles/launcher/modules/Webapps.qml");
 
     assert.match(webapps, /after: "stay"/);
     assert.match(webapps, /if \(remover\.running\)/);
@@ -74,7 +74,7 @@ test("webapps keeps one removal in flight and stays open after Return", () => {
 });
 
 test("webapps installs through a two-step Launcher prompt", () => {
-    const webapps = source("quickshell/.config/quickshell/launcher/modules/Webapps.qml");
+    const webapps = source("quickshell/.config/quickshell/dotfiles/launcher/modules/Webapps.qml");
 
     assert.match(webapps, /Web\.catalogOf\(root\.applications, root, installActions\)/);
     assert.match(webapps, /promptStage === "name"/);
@@ -83,7 +83,7 @@ test("webapps installs through a two-step Launcher prompt", () => {
 });
 
 test("text prompts leave the standard paste shortcut to the Query input", () => {
-    const launcher = source("quickshell/.config/quickshell/launcher/modules/Launcher.qml");
+    const launcher = source("quickshell/.config/quickshell/dotfiles/launcher/modules/Launcher.qml");
 
     assert.match(launcher,
         /if \(event\.matches\(StandardKey\.Paste\)\)\s+return;/,

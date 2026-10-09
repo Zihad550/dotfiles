@@ -13,7 +13,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Calc = require("../../quickshell/.config/quickshell/launcher/lib/calc.js");
+const Calc = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/calc.js");
 
 const provider = { label: "calc" };
 

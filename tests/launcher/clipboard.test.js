@@ -12,7 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const C = require("../../quickshell/.config/quickshell/launcher/lib/clipboard.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/clipboard.js");
 
 test("listCommand is cliphist list, no shell needed", () => {
     assert.deepStrictEqual(C.listCommand(), ["cliphist", "list"]);

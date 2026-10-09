@@ -481,7 +481,7 @@ test("focus dispatch tries Lua before the legacy fallback", t => {
 test("the fixed Herdr binding declares its dotted identity while Launcher-created Herdr stays generic", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
     const directories = fs.readFileSync(path.join(ROOT,
-        "quickshell/.config/quickshell/launcher/lib/directories.js"), "utf8");
+        "quickshell/.config/quickshell/dotfiles/launcher/lib/directories.js"), "utf8");
 
     const herdrBinding = apps.match(/o\.bind\("SUPER \+ U"[\s\S]*?\n\s*dotfiles_bin[^\n]+\)/)[0];
     assert.match(herdrBinding, /df-launch-special-workspace/);
@@ -554,7 +554,7 @@ test("each native identity ignores titles and focuses its sole exact client wher
 test("enabled Special Workspace bindings use only the shared exact-class lifecycle", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
     const otherMenu = fs.readFileSync(path.join(ROOT,
-        "quickshell/.config/quickshell/launcher/modules/OtherMenu.qml"), "utf8");
+        "quickshell/.config/quickshell/dotfiles/launcher/modules/OtherMenu.qml"), "utf8");
     const enabledConfig = apps.split("\n").filter(line => !/^\s*--/.test(line)).join("\n");
 
     assert.strictEqual(fs.existsSync(path.join(ROOT, "bin/df-launch-special-app")), false);

@@ -13,6 +13,11 @@ import "../lib/webapps.js" as Web
 NestableProvider {
     id: root
 
+    required property bool catalogSelected
+    readonly property ProviderRetention retention: ProviderRetention {
+        selected: root.catalogSelected
+    }
+
     readonly property string label: "webapps"
     readonly property string description: "Install and remove Webapps"
 
@@ -31,6 +36,8 @@ NestableProvider {
     readonly property var applications: DesktopEntries.applications.values.filter(application => Web.isWebapp(application))
 
     readonly property var catalog: {
+        if (!retention.retained)
+            return Matching.emptyCatalog();
         const built = Web.catalogOf(root.applications, root, installActions);
         return {
             entries: built.entries,

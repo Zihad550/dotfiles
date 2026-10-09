@@ -193,6 +193,11 @@ function prepare(texts, keys, owners) {
     };
 }
 
+// The catalog of a Provider holding no data.
+function emptyCatalog() {
+    return { entries: [], corpus: prepare([], null) };
+}
+
 // Whether the previous result set is a sound starting point for `query`.
 // Sound only because matching is a subsequence test: a string that doesn't
 // contain "fo" as a subsequence can't contain "foo" either, so the previous
@@ -374,6 +379,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         DEFAULT_LIMIT: DEFAULT_LIMIT,
         score: score,
         prepare: prepare,
+        emptyCatalog: emptyCatalog,
         canNarrow: canNarrow,
         rank: rank,
         collapse: collapse,

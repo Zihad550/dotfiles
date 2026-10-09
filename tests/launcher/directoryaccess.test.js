@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const Access = require("../../quickshell/.config/quickshell/launcher/lib/directoryaccess.js");
+const Access = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/directoryaccess.js");
 
 const directories = { label: "directories" };
 const files = { label: "files" };

@@ -37,11 +37,8 @@ REPO="$HOME/dotfiles"
 sed -i 's|^font-family[[:space:]]*=.*|font-family = "'"$font"'"|' \
    "$REPO/ghostty/.config/ghostty/config"
 
-# quickshell -- every config's Theme.qml, not just the bar's. Each Quickshell
-# config root is its own import namespace, so the bar, the Launcher and the
-# Session Lock each carry a copy of the property; patching one left the others
-# on whatever font they were written with.
-for theme in "$REPO"/quickshell/.config/quickshell/*/Theme.qml; do
+# Update each module's metrics without replacing the probe's symlink.
+for theme in "$REPO"/quickshell/.config/quickshell/{*,dotfiles/*}/Theme.qml; do
    # Skipped rather than followed: lock-probe/Theme.qml is a symlink to the
    # lock's, and `sed -i` would replace it with a regular copy.
    [[ -f $theme && ! -L $theme ]] || continue
@@ -55,8 +52,10 @@ if [[ -f "$REPO/zed/.config/zed/settings.json" ]]; then
       "$REPO/zed/.config/zed/settings.json"
 fi
 
-# Reload visual daemons. Quickshell watches its own config directory and
-# hot-reloads when Theme.qml changes, so only ghostty needs poking.
+# QML code changes take effect through an explicit Shared Shell restart.
+if command -v df-qs-restart >/dev/null 2>&1; then
+   df-qs-restart --if-running
+fi
 if df-cmd-present ghostty && pgrep -x ghostty >/dev/null; then
    killall -SIGUSR2 ghostty
 fi

@@ -101,7 +101,7 @@ run_command "$ROOT/bin/df-hypr-clamshell"
 printf 'disconnected\n' >"$drm_path/card0-HDMI-A-1/status"
 : >"$call_log"
 run_command "$ROOT/bin/df-system-lid-close"
-grep -Fx 'qs -c lock ipc call lock lock' "$call_log" >/dev/null
+grep -Fx 'qs -c dotfiles ipc call lock lock' "$call_log" >/dev/null
 
 echo "PASS: Omarchy-style clamshell reconciliation"
 

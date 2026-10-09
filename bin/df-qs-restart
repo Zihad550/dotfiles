@@ -1,154 +1,124 @@
 #!/bin/bash
 
-# Restart a long-running quickshell config: the bar ("dotfiles", the default),
-# the Launcher ("launcher") or the Session Lock ("lock").
-#
-# QML edits hot-reload on their own, so this is for the cases that do not: a
-# reload that errored and left the previous config running, a quickshell
-# upgrade, or newly stowed files. Launches the way
-# hypr/.config/hypr/lua/autostart.lua does, so the instance lands in the session
-# scope rather than in this shell's.
-#
-# Takes one config at a time on purpose. They run as separate instances so that
-# a fault in the Launcher cannot take the bar's notification daemon down with
-# it, and so that neither can drop a live lock; restarting them together would
-# give that up at exactly the moment it matters.
-
+# Restart the Shared Shell. Legacy launcher/lock names are aliases.
+#   --if-running  restart only when the Shared Shell is already running
 set -e
 
-CONFIG="dotfiles"
+BIN_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 SHOW_LOG=0
-
+IF_RUNNING=0
 for arg in "$@"; do
-   case "$arg" in
-      -l|--log) SHOW_LOG=1 ;;
-      -h|--help)
-         echo "Usage: df-qs-restart [config] [--log]"
-         echo "  Restart a quickshell config (default: dotfiles, the bar)."
-         echo "  config  dotfiles | launcher | lock"
-         echo "  --log   print the new instance's log afterwards"
-         exit 0
-         ;;
-      -*)
-         echo "Unknown arg: $arg" >&2
-         exit 1
-         ;;
-      *) CONFIG="$arg" ;;
-   esac
+    case "$arg" in
+        -l|--log) SHOW_LOG=1 ;;
+        --if-running) IF_RUNNING=1 ;;
+        -h|--help)
+            echo "Usage: df-qs-restart [dotfiles|launcher|lock] [--log] [--if-running]"
+            echo "  Restart the shared bar, launcher, and lock process."
+            exit 0
+            ;;
+        -*) echo "Unknown arg: $arg" >&2; exit 1 ;;
+        dotfiles | launcher | lock) ;;
+        *) echo "Error: use df-qs-test for scratch configs" >&2; exit 1 ;;
+    esac
 done
 
-# A scratch config is not something to detach into the session scope -- it
-# wants its errors on the terminal, which is what df-qs-test is for.
-if [ ! -d "$HOME/.config/quickshell/$CONFIG" ]; then
-   echo "Error: no quickshell config at ~/.config/quickshell/$CONFIG" >&2
-   echo "       (stowed? run scripts/stow/stow-hyprland)" >&2
-   exit 1
+if ! command -v quickshell >/dev/null 2>&1; then
+    echo "Error: quickshell not found" >&2
+    exit 1
+fi
+if (( IF_RUNNING )) && [[ -z $("$BIN_DIR/df-qs-instances" dotfiles) ]]; then
+    exit 0
+fi
+if [[ ! -f "$HOME/.config/quickshell/dotfiles/shell.qml" ]]; then
+    echo "Error: Shared Shell is not stowed" >&2
+    exit 1
 fi
 
-# quickshell throughout, never the bin/qs shim: this script spells out -n where
-# it wants it, and going through the shim would inject it into the kill and log
-# calls too.
-if ! command -v quickshell &>/dev/null; then
-   echo "Error: quickshell not found" >&2
-   exit 1
+# Callable from outside the session, such as over SSH.
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    hypr_dir=$(find "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' 2>/dev/null |
+        sort -n | tail -n 1 | cut -d' ' -f2-)
+    [[ -n $hypr_dir ]] && export HYPRLAND_INSTANCE_SIGNATURE=${hypr_dir##*/}
 fi
 
-# Either name, since autostart.lua uses `quickshell` and a shell may use `qs`.
-# Anchored at both ends: at the front so a shell that merely mentions the config
-# is not an instance, and at the back so neither an unrelated "launcher-probe"
-# nor this script's own `quickshell -c launcher kill` is -- only flags may
-# follow. A pattern that matches the kill call counts it as a survivor, and the
-# waits below then never see the instance go.
-RUNNING="^[^ ]*(quickshell|qs) -c $CONFIG( -[^ ]+)*\$"
+wait_until_stopped() {
+    local name="$1"
+    for _ in {1..30}; do
+        [[ -z $("$BIN_DIR/df-qs-instances" "$name") ]] && return 0
+        sleep 0.1
+    done
+    return 1
+}
 
-# Kill in a loop, because `qs kill` kills exactly one instance. New starts are
-# single-instance (ticket 21), but a session that accumulated several before
-# that guard existed is still possible, and one kill would leave one behind --
-# the wait below would then never clear and this would start a third on top.
-#
-# Not an error when nothing is running -- this doubles as a plain start.
-KILLED=0
-for _ in {1..20}; do
-   BEFORE=$(pgrep -cf "$RUNNING" || true)
-   (( BEFORE > 0 )) || break
+# `kill -i` only finds instances on the caller's display, and takes no
+# --any-display, so it borrows the instance's own.
+instance_display() {
+    tr '\0' '\n' <"/proc/$1/environ" 2>/dev/null | sed -n 's/^WAYLAND_DISPLAY=//p'
+}
 
-   # Bounded: the request blocks until the instance is gone, and one stalled in
-   # shutdown never goes -- which is the lock's failure mode, not a rare one.
-   timeout 5 quickshell -c "$CONFIG" kill >/dev/null 2>&1 || true
+stop_config() {
+    local name="$1" id pid display
+    [[ $name == "dotfiles" ]] && pkill -USR1 -x df-qs-launch || true
+    while read -r id pid; do
+        [[ -n $id ]] || continue
+        display=$(instance_display "$pid")
+        WAYLAND_DISPLAY=${display:-${WAYLAND_DISPLAY:-}} timeout 30 quickshell kill -i "$id" >/dev/null 2>&1 || true
+    done < <("$BIN_DIR/df-qs-instances" "$name")
+    wait_until_stopped "$name" && return 0
 
-   # kill returns before the instance is gone, so wait for the *count* to drop
-   # before killing again -- otherwise the next pass targets a pid that is
-   # already on its way out. Waiting for zero instead would burn the full three
-   # seconds on every instance but the last, since the others are still there.
-   DROPPED=0
-   for _ in {1..30}; do
-      (( $(pgrep -cf "$RUNNING" || true) < BEFORE )) && { DROPPED=1; break; }
-      sleep 0.1
-   done
+    # A supervisor would relaunch a shell that exits on a signal.
+    echo "'$name' did not exit on request; sending SIGTERM"
+    [[ $name == "dotfiles" ]] && pkill -TERM -x df-qs-launch || true
+    while read -r id pid; do
+        [[ -n $pid ]] && kill -TERM "$pid" 2>/dev/null || true
+    done < <("$BIN_DIR/df-qs-instances" "$name")
+    wait_until_stopped "$name" && return 0
 
-   # Asking a stalled instance again only waits on it again.
-   (( DROPPED )) || break
-   KILLED=$((KILLED + 1))
+    echo "Error: '$name' would not exit; refusing a duplicate Shared Shell" >&2
+    return 1
+}
+
+# Checked before anything stops: the new shell is launched through Hyprland.
+if ! hyprctl -j monitors >/dev/null 2>&1; then
+    echo "Error: Hyprland is unreachable; leaving the running shell alone" >&2
+    exit 1
+fi
+
+# Clear pre-consolidation instances too; stop the old lock last.
+for old_config in launcher dotfiles lock; do
+    stop_config "$old_config"
 done
 
-# The IPC exit is a request; SIGTERM is not. Safe to escalate to: the lock
-# publishes each transition before it happens, so the next instance adopts the
-# truth from the state file, and Stranded Lock recovery takes back a lock the
-# compositor is still holding (ADR 0017, docs/session-lock-break-glass.md).
-if pgrep -f "$RUNNING" >/dev/null; then
-   echo "'$CONFIG' did not exit on request; sending SIGTERM"
-   pkill -f "$RUNNING" || true
-   for _ in {1..30}; do
-      pgrep -f "$RUNNING" >/dev/null || break
-      sleep 0.1
-   done
+echo "Starting the Shared Shell"
+# Through Hyprland, so the shell gets the session's environment, not this
+# caller's. hyprctl reports a rejected dispatch on stdout, not its exit status.
+reply=$(hyprctl dispatch "hl.dsp.exec_cmd(\"uwsm-app -- $BIN_DIR/df-qs-launch\")" 2>&1 || true)
+if [[ $reply != "ok" ]]; then
+    echo "Error: Hyprland did not accept the launch: $reply" >&2
+    echo "Start it with: uwsm-app -- $BIN_DIR/df-qs-launch" >&2
+    exit 1
 fi
 
-# Say so rather than starting on top: starting anyway would hide the surviving
-# instance behind a Launcher that needs two presses to close.
-if pgrep -f "$RUNNING" >/dev/null; then
-   echo "Error: $(pgrep -cf "$RUNNING") instance(s) of '$CONFIG' would not exit" >&2
-   echo "       still running: $(pgrep -f "$RUNNING" | tr '\n' ' ')" >&2
-   echo "       kill them by pid, then run this again" >&2
-   exit 1
-fi
-
-# More than one killed means the session had been running several, which
-# nothing else would have told you.
-if (( KILLED > 1 )); then
-   echo "Killed $KILLED instances of '$CONFIG' -- there should only ever be one"
-fi
-
-echo "Starting quickshell -c $CONFIG"
-if command -v uwsm-app &>/dev/null; then
-   # -n as a backstop: the count check above should have cleared the field, but
-   # refusing to start over a straggler beats becoming a second instance.
-   uwsm-app -- quickshell -c "$CONFIG" -n -d
-else
-   quickshell -c "$CONFIG" -n -d
-fi
-
-# The -n refusal exits 0, so a refused start is indistinguishable from a good
-# one by exit code alone -- and quickshell's own check can see an instance
-# pgrep does not, e.g. one still dying after a kill, whose lock outlives it.
-# The count passes through a transient 2 while the daemonize parent exits.
-COUNT=0
-for _ in {1..20}; do
-   COUNT=$(pgrep -cf "$RUNNING" || true)
-   (( COUNT == 1 )) && break
-   sleep 0.25
+# Ready once the config has loaded far enough to register the lock's IPC target.
+ready=0
+for _ in {1..300}; do
+    if quickshell ipc -c dotfiles --any-display show 2>/dev/null | grep -qx "target lock"; then
+        ready=1
+        break
+    fi
+    sleep 0.1
 done
-
-if (( COUNT != 1 )); then
-   echo "Error: expected 1 instance of '$CONFIG' after starting, found ${COUNT:-0}" >&2
-   echo "       if one is still finishing its exit from a kill, wait a moment and" >&2
-   echo "       run this again" >&2
-   exit 1
+if (( ! ready )); then
+    echo "Error: the Shared Shell did not become ready" >&2
+    exit 1
 fi
 
+count=$("$BIN_DIR/df-qs-instances" dotfiles | wc -l)
+if (( count != 1 )); then
+    echo "Error: expected one Shared Shell, found $count" >&2
+    exit 1
+fi
 if (( SHOW_LOG )); then
-   # QML errors keep the old config alive rather than crashing the bar, so a
-   # bar that looks unchanged after this is usually an error in here.
-   sleep 1
-   quickshell -c "$CONFIG" log
+    sleep 1
+    quickshell -c dotfiles log
 fi

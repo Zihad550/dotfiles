@@ -11,9 +11,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const M = require("../../quickshell/.config/quickshell/launcher/lib/matching.js");
-const C = require("../../quickshell/.config/quickshell/launcher/lib/catalog.js");
-const W = require("../../quickshell/.config/quickshell/launcher/lib/workspaces.js");
+const M = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/matching.js");
+const C = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/catalog.js");
+const W = require("../../quickshell/.config/quickshell/dotfiles/launcher/lib/workspaces.js");
 const CatalogCheck = require("./catalog-check.js");
 
 // A real HyprlandWorkspace reports its windows as `toplevels.values` -- the

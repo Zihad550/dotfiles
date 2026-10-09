@@ -26,7 +26,7 @@ o.bind("switch:off:Lid Switch", "Lid open",  dotfiles_bin .. "/df-hypr-clamshell
 --
 -- The primary bind dispatches straight into the running Quickshell process
 -- via Quickshell.Hyprland.GlobalShortcut -- no fork, no exec -- registered in
--- quickshell/.config/quickshell/launcher/shell.qml as appid "launcher", name
+-- quickshell/.config/quickshell/dotfiles/launcher/LauncherService.qml as appid "launcher", name
 -- "toggle". `hl.dsp.global`, not the bare `global` dispatcher: this machine
 -- runs Hyprland's Lua config layer, which evaluates a bare dispatcher
 -- argument as Lua rather than passing it through, so the bare form is a

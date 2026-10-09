@@ -162,7 +162,7 @@ opening the lid fails to restore the layout.
 After the tests, run:
 
 ```bash
-qs -c lock log | tail -30
+qs -c dotfiles log | tail -30
 ```
 
 Pass for the normal path: there is no `df lock: suspending without a Secure

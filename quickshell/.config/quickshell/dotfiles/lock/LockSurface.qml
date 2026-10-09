@@ -77,8 +77,10 @@ Item {
             source: root.loadWallpaper ? `file://${Quickshell.env("HOME")}/.config/theme/background` : ""
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
-            sourceSize.width: width
-            sourceSize.height: height
+            cache: false
+            // The wallpaper is heavily blurred, so decode at half resolution.
+            sourceSize.width: Math.ceil(width / 2)
+            sourceSize.height: Math.ceil(height / 2)
         }
 
         MultiEffect {
