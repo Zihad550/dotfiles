@@ -54,6 +54,11 @@ result is cached until that source text or branch changes. Issue numbers are
 extracted from the source text or branch and appended without asking the model
 to infer one.
 
+A model call that fails, times out, or does not return three or four words is
+not cached. The tab keeps whatever label it already had — Herdr's number or
+the previous summary — and the next agent event retries. The reason is kept in
+the last 100 lines of `errors.log` under `HERDR_PLUGIN_STATE_DIR`.
+
 ## Consequences
 
 - Labels use `<position>:<three or four word summary> [#issue]`. The position

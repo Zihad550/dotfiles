@@ -65,11 +65,14 @@ case "$1 $2" in
 esac
 `);
     fs.chmodSync(path.join(bin, "herdr"), 0o755);
-    fs.writeFileSync(path.join(bin, "claude"), `#!/usr/bin/env bash
+    function setGenerated(generated) {
+        fs.writeFileSync(path.join(bin, "claude"), `#!/usr/bin/env bash
 printf x >> "${generatorCalls}"
-printf '%s\\n' '${options.generated ?? "add default app picker"}'
+printf '%s\\n' '${generated}'
 `);
-    fs.chmodSync(path.join(bin, "claude"), 0o755);
+        fs.chmodSync(path.join(bin, "claude"), 0o755);
+    }
+    setGenerated(options.generated ?? "add default app picker");
 
     function fire(event) {
         const result = childProcess.spawnSync(path.join(PLUGIN, "bin/tab-namer"), [], {
@@ -106,7 +109,12 @@ printf '%s\\n' '${options.generated ?? "add default app picker"}'
         return fs.existsSync(generatorCalls) ? fs.readFileSync(generatorCalls, "utf8").length : 0;
     }
 
-    return { fire, setPane, setTabs, label, calls };
+    function errors() {
+        const log = path.join(home, "state", "errors.log");
+        return fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "";
+    }
+
+    return { fire, setPane, setTabs, setGenerated, label, calls, errors };
 }
 
 const codexPane = (overrides = {}) => ({
@@ -229,14 +237,33 @@ test("the generated summary is cached while the source stays unchanged", (t) => 
     assert.strictEqual(herdr.calls(), 1);
 });
 
-test("a malformed model answer falls back to a three-word summary", (t) => {
+test("a malformed model answer leaves the numeric label, logs why, and retries", (t) => {
     const herdr = fixture(t, {
         pane: codexPane(),
         generated: "Auth",
         threads: [{ id: "thread-1", thread_name: "Fix auth" }]
     });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "1:Fix auth task");
+    assert.strictEqual(herdr.label(), "3");
+    assert.match(herdr.errors(), /w1:t2V .*Auth/);
+    herdr.fire();
+    assert.strictEqual(herdr.calls(), 2);
+});
+
+test("a failed model call keeps the previous summary", (t) => {
+    const herdr = fixture(t, {
+        pane: codexPane(),
+        threads: [
+            { id: "thread-1", thread_name: "Add default app picker" },
+            { id: "thread-2", thread_name: "Rework the login flow" }
+        ]
+    });
+    herdr.fire();
+    herdr.setGenerated("");
+    herdr.setPane(codexPane({ agent_session: { value: "thread-2" } }));
+    herdr.fire();
+    assert.strictEqual(herdr.calls(), 2);
+    assert.strictEqual(herdr.label(), "1:add default app picker");
 });
 
 test("a title that says nothing the tab does not already show is ignored", (t) => {

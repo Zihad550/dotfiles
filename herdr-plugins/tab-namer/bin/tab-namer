@@ -193,31 +193,33 @@ if [[ $source_key != "$cached_key" || -z $summary ]]; then
         'Prefer concrete nouns and verbs. Do not explain your answer.' \
         "Branch: ${branch:-unknown}" \
         "Work: $source_text")
-    summary=$(printf '%s' "$prompt" | timeout "$tab_name_timeout" env MAX_THINKING_TOKENS=0 \
+    answer=$(printf '%s' "$prompt" | timeout "$tab_name_timeout" env MAX_THINKING_TOKENS=0 \
         claude -p --no-session-persistence --model="$tab_name_model" --tools='' \
-        --safe-mode --setting-sources='user' --system-prompt='' 2>/dev/null | head -n1)
+        --safe-mode --setting-sources='user' --system-prompt='' 2>"$state_dir/claude.err")
+    status=$?
     # The backtick is data in the sed expression.
     # shellcheck disable=SC2016
-    summary=$(sed -E 's/^[[:space:]"`]+|[[:space:]"`]+$//g; s/[[:punct:]]+$//' <<<"$summary")
+    generated=$(head -n1 <<<"$answer" |
+        sed -E 's/^[[:space:]"`]+|[[:space:]"`]+$//g; s/[[:punct:]]+$//')
+    words=$(awk '{ print NF }' <<<"$generated")
 
-    # A failed or malformed model answer should still leave a useful tab.
-    words=$(awk '{ print NF }' <<<"$summary")
-    if (( words < 3 || words > 4 )); then
-        summary=$(sed -E 's/#[0-9]+//g; s/[^[:alnum:]_-]+/ /g' <<<"$source_text" |
-            awk '{
-                limit = NF < 4 ? NF : 4
-                for (i = 1; i <= limit; i++) printf "%s%s", (i > 1 ? " " : ""), $i
-                if (limit == 1) printf " task summary"
-                else if (limit == 2) printf " task"
-            }')
+    # Raw source words make a worse label than the one already shown, so a
+    # failed answer leaves the cache alone and the next event retries.
+    if (( status != 0 || words < 3 || words > 4 )); then
+        detail=$({ head -c 300 <<<"$answer"; head -c 300 "$state_dir/claude.err"; } | tr '\n' ' ')
+        printf '%s %s status=%s %s\n' "$(date -Is)" "$tab_id" "$status" "$detail" \
+            >>"$state_dir/errors.log"
+        tail -n 100 "$state_dir/errors.log" >"$state_dir/errors.log.tmp" &&
+            mv "$state_dir/errors.log.tmp" "$state_dir/errors.log"
+    else
+        summary=$generated
+        issue=$(printf '%s\n%s\n' "$source_text" "$branch" |
+            grep -Eio '#[0-9]+|issue[[:space:]_/-]*[0-9]+' | tail -n1 |
+            grep -Eo '[0-9]+' || true)
+        [[ -z $issue ]] || summary="$summary #$issue"
+        printf '%s' "$source_key" >"$state.source"
+        printf '%s' "$summary" >"$state.summary"
     fi
-
-    issue=$(printf '%s\n%s\n' "$source_text" "$branch" |
-        grep -Eio '#[0-9]+|issue[[:space:]_/-]*[0-9]+' | tail -n1 |
-        grep -Eo '[0-9]+' || true)
-    [[ -z $issue ]] || summary="$summary #$issue"
-    printf '%s' "$source_key" >"$state.source"
-    printf '%s' "$summary" >"$state.summary"
 fi
 
 renumber_workspace "$workspace_id"
