@@ -3,6 +3,27 @@ const assert = require("node:assert");
 
 const Audio = require("../../quickshell/.config/quickshell/dotfiles/modules/lib/audio.js");
 
+test("headphone detection follows the active port on a shared analog sink", () => {
+    const sink = {
+        ports: [{ name: "analog-output-speaker", type: "Speaker" }, { name: "analog-output-headphones", type: "Headphones" }],
+        properties: { "device.form_factor": "headphone" },
+    };
+    assert.strictEqual(Audio.sinkUsesHeadphones({ ...sink, active_port: "analog-output-speaker" }), false);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ ...sink, active_port: "analog-output-headphones" }), true);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ active_port: "analog-output-headphones" }), true);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ active_port: "headset-output", ports: [{ name: "headset-output", type: "Headset" }] }), true);
+});
+
+test("headphone metadata supports Bluetooth and USB without treating every Bluetooth output as headphones", () => {
+    assert.strictEqual(Audio.sinkUsesHeadphones({ properties: { "device.form_factor": "headset", "device.bus": "bluetooth" } }), true);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ properties: { "device.form-factor": "headphone", "device.bus": "usb" } }), true);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ properties: { "device.icon_name": "audio-headphones-usb", "device.bus": "usb" } }), true);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ properties: { "device.form_factor": "headphone", "device.bus": "pci" } }), false);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ properties: { "device.form_factor": "speaker", "device.bus": "bluetooth" } }), false);
+    assert.strictEqual(Audio.sinkUsesHeadphones({ properties: { "device.bus": "bluetooth" } }), false);
+    assert.strictEqual(Audio.sinkUsesHeadphones(null), false);
+});
+
 test("audio output availability keeps sinks without ports", () => {
     assert.strictEqual(Audio.hasAvailablePort({ name: "speakers", ports: [] }), true);
     assert.strictEqual(Audio.hasAvailablePort({ name: "speakers" }), true);

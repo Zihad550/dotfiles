@@ -11,20 +11,22 @@ Singleton {
     id: root
 
     readonly property PwNode sink: Pipewire.defaultAudioSink
+    readonly property var backend: root.backendBySink[root.sink?.name] ?? null
+    readonly property bool usesHeadphones: root.backend?.usesHeadphones ?? false
     readonly property var stereoChannelIds: ({ "front-left": PwAudioChannel.FrontLeft, "front-right": PwAudioChannel.FrontRight })
-    readonly property var channels: root.backendChannelMapsBySink[root.sink?.name]?.map((channel, index) => root.stereoChannelIds[channel] ?? root.sink?.audio?.channels[index]) ?? root.sink?.audio?.channels ?? []
+    readonly property var channels: root.backend?.channelMap?.map((channel, index) => root.stereoChannelIds[channel] ?? root.sink?.audio?.channels[index]) ?? root.sink?.audio?.channels ?? []
     readonly property var requestedWrite: root.writes.slice().reverse().find(write => write.sinkName === root.sink?.name) ?? (root.activeWrite?.sinkName === root.sink?.name ? root.activeWrite : null)
-    readonly property var volumes: root.requestedWrite?.volumes ?? root.backendVolumesBySink[root.sink?.name] ?? root.sink?.audio?.volumes ?? []
-    readonly property bool writable: !!root.sink?.ready && !!root.backendVolumesBySink[root.sink.name] && !!root.backendChannelMapsBySink[root.sink.name]
+    readonly property var volumes: root.requestedWrite?.volumes ?? root.backend?.volumes ?? root.sink?.audio?.volumes ?? []
+    readonly property bool writable: !!root.sink?.ready && !!root.backend?.volumes && !!root.backend?.channelMap
     readonly property var savedChannelVolumes: root.savedVolumesBySink[root.sink?.name] ?? ({})
     readonly property int volume: Math.round(Audio.sharedChannelVolume(root.volumes, root.channels, root.savedChannelVolumes) * 100)
 
     property var savedVolumesBySink: ({})
-    property var backendVolumesBySink: ({})
-    property var backendChannelMapsBySink: ({})
+    property var backendBySink: ({})
     property var writes: []
     property var activeWrite: null
     property string error: ""
+    property bool refreshPending: false
 
     onSinkChanged: root.refreshVolumes()
 
@@ -86,12 +88,19 @@ Singleton {
             }
         }
         root.activeWrite = null;
+        if (root.refreshPending)
+            root.refreshVolumes();
         Qt.callLater(root.startNextWrite);
     }
 
     function refreshVolumes(): void {
-        if (!volumeWriter.running && !volumeReader.running)
-            volumeReader.running = true;
+        // A read already in flight may predate the event, so queue one more.
+        if (volumeWriter.running || volumeReader.running) {
+            root.refreshPending = true;
+            return;
+        }
+        root.refreshPending = false;
+        volumeReader.running = true;
     }
 
     Process {
@@ -121,18 +130,17 @@ Singleton {
                 try {
                     const sinks = JSON.parse(volumeReader.stdout.text);
                     const backend = {};
-                    const channelMaps = {};
                     for (const sink of sinks) {
                         const volumes = Audio.sinkChannelVolumes(sink);
-                        if (volumes) {
-                            backend[sink.name] = volumes;
-                            channelMaps[sink.name] = sink.channel_map.split(",");
-                        }
+                        backend[sink.name] = {
+                            volumes: volumes,
+                            channelMap: volumes ? sink.channel_map.split(",") : null,
+                            usesHeadphones: Audio.sinkUsesHeadphones(sink)
+                        };
                     }
-                    root.backendChannelMapsBySink = channelMaps;
-                    root.backendVolumesBySink = backend;
+                    root.backendBySink = backend;
                     const write = root.activeWrite;
-                    success = !write || Audio.channelVolumesMatch(backend[write.sinkName], write.volumes);
+                    success = !write || Audio.channelVolumesMatch(backend[write.sinkName]?.volumes, write.volumes);
                 } catch (error) {
                     console.warn(`dotfiles: could not read speaker volumes: ${error}`);
                 }

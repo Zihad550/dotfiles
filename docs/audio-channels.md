@@ -9,6 +9,16 @@ including zero. With both channels disabled, the slider still changes the
 remembered level without making either channel audible.
 Selection is remembered per output for the lifetime of the shell.
 
+The primary mute button, the bar's volume icon, and the volume OSD show
+headphones when the default output's active port is headphones or a headset.
+The active port's type takes priority over device metadata; a port with no type
+or an `unknown` type is matched by name instead. Only Bluetooth and USB outputs
+fall back to their form factor or icon name. Unidentified outputs keep the
+speaker icon. Muted headphones use the headphones-off icon and the same warning
+color as muted speakers. Port changes, including plugging into a shared analog
+output, update the icon through the sink subscription. An event that arrives
+while a read is in flight queues one more read, so a stale result cannot stick.
+
 ## Backend writes and confirmation
 
 Output volume is written as a complete channel vector through

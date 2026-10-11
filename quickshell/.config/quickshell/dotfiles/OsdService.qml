@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
+import "modules/lib/statusCluster.js" as Status
 
 // The on-screen display, replacing swayosd-server.
 //
@@ -140,12 +141,7 @@ Singleton {
         if (!sink?.audio)
             return;
         const percent = AudioService.volume;
-        if (sink.audio.muted) {
-            show(root.mutedIcon, percent / 100, "");
-            return;
-        }
-        const index = Math.min(volumeIcons.length - 1, Math.floor(percent / 100 * volumeIcons.length));
-        show(volumeIcons[index], percent / 100, "");
+        show(Status.volumeIcon(true, sink.audio.muted, percent, AudioService.usesHeadphones), percent / 100, "");
     }
 
     Timer {

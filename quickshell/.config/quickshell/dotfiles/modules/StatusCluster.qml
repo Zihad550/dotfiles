@@ -141,7 +141,7 @@ Item {
         }
 
         Indicator {
-            text: Status.volumeIcon(!!root.sink?.audio, root.muted, root.volume)
+            text: Status.volumeIcon(!!root.sink?.audio, root.muted, root.volume, AudioService.usesHeadphones)
             color: root.muted || !root.sink?.audio ? Theme.warn : Theme.foreground
         }
 

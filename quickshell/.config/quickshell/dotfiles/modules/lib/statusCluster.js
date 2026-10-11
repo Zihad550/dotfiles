@@ -20,7 +20,9 @@ function networkIcon(state) {
     return iconAt(WIFI_ICONS, state.wifiStrength);
 }
 
-function volumeIcon(available, muted, volume) {
+function volumeIcon(available, muted, volume, headphones) {
+    if (available && headphones)
+        return muted ? "󰟎" : "󰋋";
     if (!available || muted)
         return "";
     return iconAt(VOLUME_ICONS, volume / 100);

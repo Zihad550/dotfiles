@@ -12,6 +12,26 @@ function availableSinkNames(sinks) {
         .map(sink => sink.name);
 }
 
+function sinkUsesHeadphones(sink) {
+    const headphonePattern = /headphones?|headset/i;
+    const port = (Array.isArray(sink?.ports) ? sink.ports : []).find(port => port.name === sink.active_port);
+    const type = port?.type ?? "";
+    // The selected route wins over card metadata on shared speaker/headphone outputs.
+    if (type && type.toLowerCase() !== "unknown")
+        return headphonePattern.test(type);
+    if (headphonePattern.test(sink?.active_port ?? ""))
+        return true;
+
+    const properties = sink?.properties ?? {};
+    const property = key => properties[key] ?? properties[key.replace("_", "-")];
+    if (!["bluetooth", "usb"].includes(property("device.bus")))
+        return false;
+    const formFactor = property("device.form_factor");
+    if (formFactor)
+        return headphonePattern.test(formFactor);
+    return headphonePattern.test(property("device.icon_name") ?? "");
+}
+
 function sharedChannelVolume(volumes, channels, savedVolumes) {
     const enabled = Array.from(volumes).filter((volume, index) => savedVolumes[channels[index]] === undefined);
     const levels = enabled.length ? enabled : Array.from(channels, channel => savedVolumes[channel]).filter(volume => volume !== undefined);
@@ -48,5 +68,5 @@ function channelVolumesMatch(actual, requested) {
 }
 
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
-    module.exports = { hasAvailablePort, availableSinkNames, sharedChannelVolume, setEnabledChannelVolume, toggleSpeakerChannel, sinkChannelVolumes, channelVolumesMatch };
+    module.exports = { hasAvailablePort, availableSinkNames, sinkUsesHeadphones, sharedChannelVolume, setEnabledChannelVolume, toggleSpeakerChannel, sinkChannelVolumes, channelVolumesMatch };
 }

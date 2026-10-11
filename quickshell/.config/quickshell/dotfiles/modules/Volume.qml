@@ -12,7 +12,7 @@ Item {
     readonly property bool available: !!root.sink?.audio
     readonly property bool muted: root.sink?.audio?.muted ?? false
     readonly property int volume: AudioService.volume
-    readonly property string icon: Status.volumeIcon(root.available, root.muted, root.volume)
+    readonly property string icon: Status.volumeIcon(root.available, root.muted, root.volume, AudioService.usesHeadphones)
 
     property bool sliderFocusVisible: false
     property bool muteFocusVisible: false

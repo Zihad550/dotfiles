@@ -144,6 +144,13 @@ test("volume glyph follows mute and effective output level", () => {
     assert.strictEqual(Status.volumeIcon(true, false, 100), "");
 });
 
+test("volume glyph shows headphones regardless of level and headphones-off when muted", () => {
+    assert.strictEqual(Status.volumeIcon(true, false, 0, true), "󰋋");
+    assert.strictEqual(Status.volumeIcon(true, false, 100, true), "󰋋");
+    assert.strictEqual(Status.volumeIcon(true, true, 50, true), "󰟎");
+    assert.strictEqual(Status.volumeIcon(false, false, 50, true), Status.volumeIcon(false, false, 50));
+});
+
 test("battery glyph follows charging state and charge level", () => {
     assert.strictEqual(Status.batteryIcon(true, false, 9), "󰢜");
     assert.strictEqual(Status.batteryIcon(false, false, 9), "󰁺");
