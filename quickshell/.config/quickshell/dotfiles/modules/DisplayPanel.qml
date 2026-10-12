@@ -129,6 +129,8 @@ PopupWindow {
         onExited: exitCode => {
             if (exitCode !== 0)
                 console.warn(`display: monitor toggle failed: ${actionError.text.trim()}`);
+            else
+                root.dismiss();
             root.refresh();
         }
     }
