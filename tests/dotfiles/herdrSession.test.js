@@ -29,6 +29,12 @@ function fixture(t, options = {}) {
 `);
     fs.chmodSync(path.join(bin, "herdr"), 0o755);
 
+    const notifications = path.join(home, "notifications");
+    fs.writeFileSync(path.join(bin, "notify-send"), `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "${notifications}"
+`);
+    fs.chmodSync(path.join(bin, "notify-send"), 0o755);
+
     if (options.routing)
         fs.writeFileSync(path.join(toggles, "devcontainer-routing"), "");
     if (options.host !== undefined)
@@ -42,6 +48,9 @@ function fixture(t, options = {}) {
         result.invocation = fs.existsSync(invocation)
             ? fs.readFileSync(invocation, "utf8").trim().split("\n")
             : null;
+        result.notifications = fs.existsSync(notifications)
+            ? fs.readFileSync(notifications, "utf8")
+            : "";
         return result;
     }
 
@@ -102,13 +111,60 @@ test("a configured host replaces the default, and a blank one falls back to it",
             "--remote-keybindings", "server"]);
 });
 
-test("SUPER+U routes like every other call site, passing no local override", () => {
+test("SUPER+U and SUPER+SHIFT+U route like every other call site, passing no local override", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
     const script = fs.readFileSync(SESSION, "utf8");
 
-    const binding = apps.match(/o\.bind\("SUPER \+ U"[\s\S]*?\n\s*dotfiles_bin[^\n]+\)/);
-    assert.ok(binding, "the SUPER+U binding is no longer recognisable in apps.lua");
+    const binding = apps.match(/local function herdr_group[\s\S]*?\nend/);
+    assert.ok(binding, "the Herdr Project Group binding is no longer recognisable in apps.lua");
     assert.match(binding[0], /df-herdr-session/);
     assert.doesNotMatch(binding[0], /--local/);
     assert.doesNotMatch(script, /--local/);
 });
+
+for (const name of ["work", "personal"]) {
+    for (const [routing, root] of [[false, "dev"], [true, "scratch"]]) {
+        test(`${name} reports a missing local launch directory with routing ${routing ? "on" : "off"}`, t => {
+            const harness = fixture(t, { routing });
+            const missing = path.join(harness.home, root, "missing project");
+            const result = harness.run(name, missing);
+            assert.notStrictEqual(result.status, 0);
+            assert.match(result.notifications, /launch directory does not exist: .*missing project/);
+            assert.strictEqual(result.invocation, null);
+            assert.strictEqual(fs.existsSync(missing), false);
+        });
+    }
+
+    test(`${name} attaches remotely for a mirrored path with no local copy`, t => {
+        const harness = fixture(t, { routing: true });
+        const result = harness.run(name, path.join(harness.home, "dev", "remote only"));
+        assert.strictEqual(result.status, 0, result.stderr);
+        assert.deepStrictEqual(result.invocation.slice(1), ["--remote", "devcontainer.devpod",
+            "--session", name, "--remote-keybindings", "server"]);
+    });
+
+    const cases = [
+        { routing: false, mirrored: false },
+        { routing: false, mirrored: true },
+        { routing: true, mirrored: false },
+        { routing: true, mirrored: true },
+        { routing: true, mirrored: true, host: "workbox.local" }
+    ];
+    for (const { routing, mirrored, host } of cases) {
+        test(`${name} routes ${mirrored ? "mirrored" : "unmirrored"} paths with spaces, routing=${routing}, host=${host ?? "default"}`, t => {
+            const harness = fixture(t, { routing, host });
+            const directory = path.join(harness.home, mirrored ? "dev" : "scratch", "a project");
+            fs.mkdirSync(directory, { recursive: true });
+            const result = harness.run(name, directory);
+            assert.strictEqual(result.status, 0, result.stderr);
+            const [cwd, ...argv] = result.invocation;
+            if (routing && mirrored) {
+                assert.deepStrictEqual(argv, ["--remote", host || "devcontainer.devpod",
+                    "--session", name, "--remote-keybindings", "server"]);
+            } else {
+                assert.strictEqual(cwd, fs.realpathSync(directory));
+                assert.deepStrictEqual(argv, ["--session", name]);
+            }
+        });
+    }
+}

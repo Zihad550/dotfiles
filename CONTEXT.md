@@ -324,14 +324,21 @@ A Role Selection naming an App Candidate that is no longer available. It is
 reported and fallen back from, never silently rewritten.
 _Avoid_: broken default, invalid selection, orphaned choice
 
+**Herdr Project Group**:
+A named Herdr session for a workflow. The work group holds work repositories;
+the personal group holds personal projects and dotfiles. Each has a dedicated
+terminal and Special Workspace. Membership is a user convention and does not
+restrict access to projects.
+_Avoid_: Herdr profile, session group, local group, remote group
+
 **Devcontainer Routing**:
-The persisted, default-off switch that makes Herdr (`SUPER+U` and the
-Launcher's own Herdr chooser row) open a Mirrored Directory on the
-devcontainer host instead of locally, and gates whether the Directories
-Provider's remote Directory Index exists at all. Every other Launcher
-action — opening or choosing an app for a local-provenance directory or file
-in Zed, VSCode, Cursor, Neovim, or Files — ignores it: those always open
-where the files actually are, mirrored or not. The Devcontainer Tile in
+The persisted, default-off switch that makes Herdr (`SUPER+U`,
+`SUPER+SHIFT+U`, and the Launcher's own Herdr chooser row) open a Mirrored
+Directory on the devcontainer host instead of locally, and gates whether the
+Directories Provider's remote Directory Index exists at all. Every other
+Launcher action — opening or choosing an app for a local-provenance directory
+or file in Zed, VSCode, Cursor, Neovim, or Files — ignores it: those always
+open where the files actually are, mirrored or not. The Devcontainer Tile in
 Quick Settings flips it, and while on, its label shows the custom host in
 place of the generic name — off, or with no custom host set, it reads
 "Devcontainer". Off means neither Herdr nor the remote scan does anything:

@@ -478,19 +478,137 @@ test("focus dispatch tries Lua before the legacy fallback", t => {
     assert.deepStrictEqual(dispatches[1], ["focuswindow", "address:0xexisting"]);
 });
 
-test("the fixed Herdr binding declares its dotted identity while Launcher-created Herdr stays generic", () => {
-    const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
+function herdrBinding(keys) {
+    const result = childProcess.spawnSync("lua", ["-", keys], {
+        input: `o = { bind = function(keys, description, command)
+            if keys == arg[1] then
+                print(description)
+                print(command)
+            end
+        end }
+        dofile("hypr/.config/hypr/lua/bindings/apps.lua")`,
+        cwd: ROOT,
+        encoding: "utf8"
+    });
+    assert.strictEqual(result.status, 0, result.stderr);
+    const [description, command] = result.stdout.trim().split("\n");
+    return { description, command };
+}
+
+const HERDR_GROUPS = [
+    { keys: "SUPER + U", name: "work", directory: "dev" },
+    { keys: "SUPER + SHIFT + U", name: "personal", directory: "dotfiles" }
+].map(group => ({
+    ...group,
+    identity: `io.github.zihad550.dotfiles.herdr.${group.name}`,
+    workspace: `herdr-${group.name}`
+}));
+
+function runHerdrGroup(harness, keys, options = {}) {
+    const { command } = herdrBinding(keys);
+    const argv = ["-c", command.replace(/^\S+/, `"${LAUNCHER}"`)];
+    if (options.async)
+        return childProcess.spawn("bash", argv, { env: harness.env, stdio: "ignore" });
+    return childProcess.spawnSync("bash", argv, { env: harness.env, encoding: "utf8" });
+}
+
+for (const { keys, name, directory, identity, workspace } of HERDR_GROUPS) {
+    const other = HERDR_GROUPS.find(group => group.name !== name);
+
+    test(`${keys} selects the ${name} session with a dedicated identity and title`, () => {
+        const { description, command } = herdrBinding(keys);
+        const result = childProcess.spawnSync("bash", ["-c",
+            `function capture() { printf '%s\\n' "$@"; }\n${command.replace(/^\S+/, "capture")}`],
+            { encoding: "utf8" });
+        assert.strictEqual(result.status, 0, result.stderr);
+        assert.strictEqual(description, `Herdr (${name})`);
+        assert.deepStrictEqual(result.stdout.trim().split("\n"), [
+            identity, workspace, "ghostty", `--class=${identity}`, `--title=Herdr (${name})`,
+            "-e", path.join(process.env.HOME, "dotfiles/bin/df-herdr-session"),
+            name, path.join(process.env.HOME, directory)
+        ]);
+    });
+
+    for (const present of [[], [name], [other.name], [name, other.name]]) {
+        test(`${name} shortcut selects only its window when ${present.join(" and ") || "neither"} is present`, t => {
+            const existing = [
+                client("0xordinary", "com.mitchellh.ghostty", "1"),
+                client("0xbrowser", "helium", "special:work"),
+                client("0xgeneric", INITIAL_CLASS, "special:herdr"),
+                ...HERDR_GROUPS.filter(group => present.includes(group.name)).map(group =>
+                    client(`0x${group.name}`, group.identity, `special:${group.workspace}`))
+            ];
+            const harness = fixture(t, { clients: [existing, existing,
+                [...existing, client(`0x${name}`, identity, `special:${workspace}`)]] });
+            const result = runHerdrGroup(harness, keys);
+            assert.strictEqual(result.status, 0, result.stderr);
+            const launches = dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd");
+            const focuses = dispatchesNamed(harness.dispatches(), "focuswindow", "hl.dsp.focus");
+            if (present.includes(name)) {
+                assert.strictEqual(launches.length, 0);
+                assert.strictEqual(focuses.length, 1);
+                assert.match(focuses[0].join(" "), new RegExp(`address:0x${name}`));
+            } else {
+                assert.strictEqual(focuses.length, 0);
+                assert.strictEqual(launches.length, 1);
+                assert.ok(launches[0].join(" ").includes(`--class=${identity}`));
+            }
+        });
+    }
+
+    test(`${name} toggles back to the other Herdr group without launching a process`, t => {
+        const harness = fixture(t, {
+            activeSpecialWorkspace: `special:${other.workspace}`,
+            clients: [[client(`0x${name}`, identity, `special:${workspace}`),
+                client(`0x${other.name}`, other.identity, `special:${other.workspace}`)]]
+        });
+        assert.strictEqual(runHerdrGroup(harness, keys).status, 0);
+        const returnFiles = fs.readdirSync(harness.env.XDG_RUNTIME_DIR)
+            .filter(file => file.startsWith("df-special-return-") && file.endsWith(`-${workspace}.json`));
+        assert.strictEqual(returnFiles.length, 1);
+        const remembered = JSON.parse(fs.readFileSync(
+            path.join(harness.env.XDG_RUNTIME_DIR, returnFiles[0]), "utf8"));
+        assert.strictEqual(remembered.previous, `special:${other.workspace}`);
+
+        harness.setActiveSpecial(`special:${workspace}`);
+        assert.strictEqual(runHerdrGroup(harness, keys).status, 0);
+        const toggles = dispatchesNamed(harness.dispatches(), "togglespecialworkspace", "toggle_special");
+        assert.strictEqual(toggles.length, 2);
+        assert.ok(toggles[0].join(" ").includes(workspace));
+        assert.ok(toggles[1].join(" ").includes(other.workspace));
+        assert.strictEqual(dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length, 0);
+    });
+
+    test(`a pending ${name} launch locks only its own group`, async t => {
+        const harness = fixture(t, { clients: [[]], pollAttempts: "20", pollInterval: "0.02" });
+        const first = runHerdrGroup(harness, keys, { async: true });
+        t.after(() => first.kill());
+
+        const deadline = Date.now() + 1000;
+        while (dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd").length === 0) {
+            assert.ok(Date.now() < deadline, "first invocation did not reach launch dispatch");
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        const same = runHerdrGroup(harness, keys);
+        runHerdrGroup(harness, other.keys);
+        if (first.exitCode === null)
+            await new Promise(resolve => first.once("exit", resolve));
+
+        assert.notStrictEqual(same.status, 0);
+        assert.match(harness.notifications().flat().join(" "), /launch.*progress/i);
+        const launches = dispatchesNamed(harness.dispatches(), "exec", "hl.dsp.exec_cmd");
+        assert.strictEqual(launches.length, 2);
+        assert.ok(launches[1].join(" ").includes(`--class=${other.identity}`));
+    });
+}
+
+test("Launcher-created Herdr windows keep their ordinary identity", () => {
     const directories = fs.readFileSync(path.join(ROOT,
         "quickshell/.config/quickshell/dotfiles/launcher/lib/directories.js"), "utf8");
-
-    const herdrBinding = apps.match(/o\.bind\("SUPER \+ U"[\s\S]*?\n\s*dotfiles_bin[^\n]+\)/)[0];
-    assert.match(herdrBinding, /df-launch-special-workspace/);
-    assert.match(herdrBinding, new RegExp(INITIAL_CLASS.replaceAll(".", "\\.")));
-    assert.match(herdrBinding, new RegExp(`--class=${INITIAL_CLASS.replaceAll(".", "\\.")}`));
-
     const launcherHerdr = directories.match(/function herdrLaunchArgv[\s\S]*?\n}/)[0];
     assert.doesNotMatch(launcherHerdr, /--class/);
-    assert.doesNotMatch(launcherHerdr, new RegExp(INITIAL_CLASS.replaceAll(".", "\\.")));
+    assert.doesNotMatch(launcherHerdr, /io\.github\.zihad550\.dotfiles\.herdr/);
 });
 
 test("native application bindings declare their exact initial classes", () => {

@@ -45,11 +45,15 @@ o.bind("SUPER + SHIFT + D", "Docker", dotfiles_bin .. "/df-launch-tui lazydocker
 --     dotfiles_bin .. [[/df-launch-special-app "^lazydocker$" "ghostty -e lazydocker" "lazydocker"]])
 
 -- Special TUI sessions
--- Fixed Herdr window; its dotted identity excludes ordinary Launcher-created
--- Ghostty windows. Follows Devcontainer Routing like every other call site --
--- see docs/adr/0007-super-u-follows-devcontainer-routing.md.
-o.bind("SUPER + U", "Herdr",
-    dotfiles_bin .. [[/df-launch-special-workspace "io.github.zihad550.dotfiles.herdr" "herdr" ghostty "--class=io.github.zihad550.dotfiles.herdr" "--title=herdr" -e "]] .. dotfiles_bin .. [[/df-herdr-session" herdr "]] .. home .. [[/dotfiles"]])
+-- Herdr Project Groups -- see docs/adr/0037-herdr-project-groups.md.
+-- Titles stay literal at each call: the Launcher's edit action greps for them.
+local function herdr_group(keys, title, name, directory)
+    local identity = "io.github.zihad550.dotfiles.herdr." .. name
+    o.bind(keys, title,
+        dotfiles_bin .. [[/df-launch-special-workspace "]] .. identity .. [[" "herdr-]] .. name .. [[" ghostty "--class=]] .. identity .. [[" "--title=]] .. title .. [[" -e "]] .. dotfiles_bin .. [[/df-herdr-session" ]] .. name .. [[ "]] .. directory .. [["]])
+end
+herdr_group("SUPER + U", "Herdr (work)", "work", home .. "/dev")
+herdr_group("SUPER + SHIFT + U", "Herdr (personal)", "personal", home .. "/dotfiles")
 
 -- doesn't work, executable not found, not on PATH
 -- o.bind("SUPER + SHIFT + R", "Timer",

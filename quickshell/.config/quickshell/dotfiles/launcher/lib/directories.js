@@ -127,7 +127,7 @@ function defaultOpenArgv(path, routed, launchPrefix, host) {
 // directory's session name and its path as separate arguments.
 //
 // `--title` is the session name -- required so this window's title never
-// collides with SUPER+U's bare "herdr" one. See hypr/.../bindings/apps.lua
+// collides with another Herdr window's title. See hypr/.../bindings/apps.lua
 // and docs/adr/0003-tmux-to-herdr.md.
 //
 // The path is passed raw, not through shellEscape: ghostty 1.2+ execs its

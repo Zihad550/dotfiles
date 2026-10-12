@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
 
 # Open a directory in herdr, routing into the devcontainer when the toggle
-# says to -- see docs/adr/0002-devcontainer-routing-toggle.md and
-# docs/adr/0007-super-u-follows-devcontainer-routing.md.
+# says to -- see docs/adr/0002-devcontainer-routing-toggle.md,
+# docs/adr/0007-super-u-follows-devcontainer-routing.md, and
+# docs/adr/0037-herdr-project-groups.md.
 #
-# Called by the Launcher's Herdr entry and directly by SUPER+U -- neither
-# hands in a routing decision, so this re-derives it itself. Args are argv,
-# never shell-words.
-name="$1"
-path="$2"
+# Called by the Launcher's Herdr entry and by SUPER+U and SUPER+SHIFT+U --
+# neither hands in a routing decision, so this re-derives it itself. Args are
+# argv, never shell-words.
+name="${1:-}"
+path="${2:-}"
+
+# The Ghostty window closes on exit, so stderr alone is never seen.
+fail() {
+    echo "df-herdr-session: $1" >&2
+    notify-send --urgency=critical "Herdr" "$1" 2>/dev/null || true
+}
+
+if [ $# -ne 2 ] || [ -z "$name" ]; then
+    fail "usage: df-herdr-session <session> <directory>"
+    exit 64
+fi
 
 # Resolved once, before any `cd` below (a directory containing an entry
 # named "herdr" -- ~/dotfiles/herdr/ -- would otherwise shadow the real
@@ -28,7 +40,7 @@ if [ -z "$HERDR_BIN" ]; then
     done
 fi
 if [ -z "$HERDR_BIN" ]; then
-    echo "df-herdr-session: herdr not found on PATH or in known install locations" >&2
+    fail "herdr not found on PATH or in known install locations"
     exit 127
 fi
 
@@ -84,5 +96,10 @@ if [ "$routed" = true ]; then
         --remote-keybindings server
 fi
 
-cd "$path"
+# Checked only here: a routed attach never uses the local path, and the
+# Launcher offers remote-provenance directories that have none.
+if ! cd -- "$path" 2>/dev/null; then
+    fail "launch directory does not exist: $path"
+    exit 1
+fi
 exec "$HERDR_BIN" --session "$name"

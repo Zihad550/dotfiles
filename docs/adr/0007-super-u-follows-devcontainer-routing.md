@@ -1,5 +1,8 @@
 # SUPER+U follows Devcontainer Routing instead of forcing local
 
+The single-window decision is revised by [ADR-0037](0037-herdr-project-groups.md).
+Its routing and process-preservation decisions still apply to each group.
+
 `SUPER+U` was the only consumer of Devcontainer Routing that opted out of it.
 `bin/df-herdr-session` carried a `--local` flag that skipped the toggle and the
 Mirrored Directory check entirely, and `apps.lua`'s binding was its sole caller;
