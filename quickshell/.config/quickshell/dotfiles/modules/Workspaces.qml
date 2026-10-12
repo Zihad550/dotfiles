@@ -34,7 +34,7 @@ Row {
     // strict here would leave SpecialWorkspaces with just the open one to show.
     readonly property var specials: Hyprland.workspaces.values.filter(ws => root.isSpecial(ws) && (!root.monitor || !ws.monitor || ws.monitor === root.monitor))
 
-    readonly property var normals: Hyprland.workspaces.values.filter(ws => !root.isSpecial(ws) && (!root.monitor || ws.monitor === root.monitor))
+    readonly property var normals: Hyprland.workspaces.values.filter(ws => !root.isSpecial(ws) && (!root.monitor || ws.monitor === root.monitor)).sort((a, b) => a.id - b.id)
 
     // 1.5px margin per side in waybar -> 3px between buttons.
     spacing: 3
