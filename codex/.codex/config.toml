@@ -1,8 +1,7 @@
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 approvals_reviewer = "auto_review"
 service_tier = "default"
-
 
 [projects."/home/jehad/dotfiles"]
 trust_level = "trusted"
@@ -28,6 +27,8 @@ trust_level = "trusted"
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "context-used", "used-tokens", "five-hour-limit", "weekly-limit", "task-progress", "approval-mode", "context-window-size"]
 status_line_use_colors = true
+session_picker_view = "comfortable"
+screen_reader_detection_done = true
 
 [tui.keymap.pager]
 close = ["q"]
