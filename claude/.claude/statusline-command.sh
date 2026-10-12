@@ -1,162 +1,152 @@
 #!/usr/bin/env bash
-# Claude Code statusLine command
+# Claude Code statusLine command (Nerd Font glyphs)
 # 2 lines:
-#   1: model [effort] | user ➜ cwd (branch)
-#   2: ctx [bar] X% used/total  5h [bar] X% (rem)  7d [bar] X% (rem)
+#   1: <robot> model effort · user <folder> cwd <branch> branch
+#   2: ctx ━━━─── X% USED/total · 5h ━━─── X% ↻ rem · 7d ━━─── X% ↻ rem
+# Meters turn green → yellow → red as usage crosses 50% and 80%. For ctx the
+# bold USED token count carries that color and the percentage is dimmed.
 
 input=$(cat)
 
-cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd')
-model=$(echo "$input" | jq -r '.model.display_name // "Claude"')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-used_tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
-total_tokens=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
+# One jq pass; \x1f keeps empty fields from collapsing under `read`. jq rounds
+# so bash never parses decimals (locale-safe).
+IFS=$'\x1f' read -r cwd model effort ctx_pct ctx_used ctx_size \
+    five_pct five_reset week_pct week_reset < <(
+    jq -r '[
+        (.workspace.current_dir // .cwd // ""),
+        (.model.display_name // "Claude"),
+        (.effort.level // ""),
+        (.context_window.used_percentage | if . then round else "" end),
+        # total_input_tokens is cumulative across the session, so derive window usage from %.
+        (.context_window | if .used_percentage then
+            (.used_percentage * (.context_window_size // 200000) / 100 | round) else "" end),
+        (.context_window.context_window_size // 200000),
+        (.rate_limits.five_hour.used_percentage | if . then round else "" end),
+        (.rate_limits.five_hour.resets_at // ""),
+        (.rate_limits.seven_day.used_percentage | if . then round else "" end),
+        (.rate_limits.seven_day.resets_at // "")
+    ] | map(tostring | gsub("[\n\u001f]"; " ")) | join("\u001f")' <<<"$input" 2>/dev/null
+)
+model="${model:-Claude}"
 
-# Username: prefer GITHUB_USER env var, fall back to whoami
-if [ -n "$GITHUB_USER" ]; then
-    prompt_username="@${GITHUB_USER}"
-else
-    prompt_username="$(whoami)"
+I_MODEL=$'\xf3\xb0\x9a\xa9'
+I_DIR=$'\xef\x81\xbc'
+I_BRANCH=$'\xee\x82\xa0'
+
+C_R=$'\033[0m'
+C_DIM=$'\033[2m'
+C_BOLD=$'\033[1m'
+C_MODEL=$'\033[1;33m'
+C_USER=$'\033[32m'
+C_DIR=$'\033[1;34m'
+C_BR=$'\033[36m'
+C_OK=$'\033[32m'
+C_WARN=$'\033[33m'
+C_HOT=$'\033[31m'
+SEP="${C_DIM} · ${C_R}"
+
+prompt_username="${GITHUB_USER:+@$GITHUB_USER}"
+prompt_username="${prompt_username:-${USER:-$(whoami)}}"
+
+# Shorten home to ~, then keep the root plus the last 3 components.
+case "$cwd" in
+    "$HOME") short_cwd="~" ;;
+    "$HOME"/*) short_cwd="~${cwd#"$HOME"}" ;;
+    *) short_cwd="$cwd" ;;
+esac
+IFS=/ read -ra parts <<<"$short_cwd"
+if [ "${#parts[@]}" -gt 4 ]; then
+    short_cwd="${parts[0]}/…/${parts[-3]}/${parts[-2]}/${parts[-1]}"
 fi
 
-# Shorten home directory to ~, then truncate to last 4 path components
-home="$HOME"
-short_cwd="${cwd/#$home/\~}"
-component_count=$(echo "$short_cwd" | tr -cd '/' | wc -c)
-if [ "$component_count" -ge 4 ]; then
-    first=$(echo "$short_cwd" | cut -d'/' -f1)
-    last3=$(echo "$short_cwd" | rev | cut -d'/' -f1-3 | rev)
-    short_cwd="${first}/…/${last3}"
-fi
-
-# Git branch (skip optional lock to avoid conflicts)
-git_branch=""
-if git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+branch=""
+if [ -n "$cwd" ]; then
     branch=$(git -C "$cwd" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null \
         || git -C "$cwd" --no-optional-locks rev-parse --short HEAD 2>/dev/null)
-    [ -n "$branch" ] && git_branch="($branch) "
 fi
 
-# Build a 10-block bar (filled=█ empty=░) for a 0-100 percentage
-make_bar() {
-    local pct="$1"
-    local filled=$(( pct / 10 ))
-    [ "$filled" -gt 10 ] && filled=10
-    [ "$filled" -lt 0 ] && filled=0
-    local empty=$(( 10 - filled ))
-    local bar="" i
-    for (( i=0; i<filled; i++ )); do bar="${bar}█"; done
-    for (( i=0; i<empty;  i++ )); do bar="${bar}░"; done
-    printf '%s' "$bar"
+# Sets REPLY to the threshold color for a 0-100 percentage.
+pct_color() {
+    if (( $1 >= 80 )); then REPLY="$C_HOT"
+    elif (( $1 >= 50 )); then REPLY="$C_WARN"
+    else REPLY="$C_OK"
+    fi
 }
 
-# Format seconds remaining as compact duration (e.g. 2h15m, 3d4h, 45m)
+# Sets REPLY to a 10-cell bar plus the percentage (in pct_style, default the bar color).
+meter() {
+    local pct="$1" pct_style="$2" color filled fill rest
+    pct_color "$pct"; color="$REPLY"
+    filled=$(( pct / 10 ))
+    (( filled > 10 )) && filled=10
+    (( filled < 0 )) && filled=0
+    printf -v fill '%*s' "$filled" ''
+    printf -v rest '%*s' "$(( 10 - filled ))" ''
+    REPLY="${color}${fill// /━}${C_DIM}${rest// /─}${C_R} ${pct_style:-$color}${pct}%${C_R}"
+}
+
+# Compact duration until a reset timestamp (epoch or date string): 3d4h, 2h15m, 45m.
 fmt_remaining() {
-    local target="$1"
+    local target="$1" target_epoch diff d h m
     [ -z "$target" ] && return
-    local target_epoch
     if [[ "$target" =~ ^[0-9]+$ ]]; then
         target_epoch="$target"
     else
         target_epoch=$(date -d "$target" +%s 2>/dev/null) || return
     fi
-    local now_epoch diff
-    now_epoch=$(date +%s)
-    diff=$(( target_epoch - now_epoch ))
-    [ "$diff" -le 0 ] && { printf '0m'; return; }
-    local d=$(( diff / 86400 ))
-    local h=$(( (diff % 86400) / 3600 ))
-    local m=$(( (diff % 3600) / 60 ))
-    if [ "$d" -gt 0 ]; then printf '%dd%dh' "$d" "$h"
-    elif [ "$h" -gt 0 ]; then printf '%dh%dm' "$h" "$m"
+    diff=$(( target_epoch - EPOCHSECONDS ))
+    (( diff <= 0 )) && { printf '0m'; return; }
+    d=$(( diff / 86400 )); h=$(( diff % 86400 / 3600 )); m=$(( diff % 3600 / 60 ))
+    if (( d > 0 )); then printf '%dd%dh' "$d" "$h"
+    elif (( h > 0 )); then printf '%dh%dm' "$h" "$m"
     else printf '%dm' "$m"
     fi
 }
 
-# Compact token count: 1234 -> 1.2k, 45678 -> 46k, 1234567 -> 1.2M
+# 1234 -> 1.2k, 45678 -> 46k, 1234567 -> 1.2M
 fmt_tokens() {
-    local n="$1"
-    [ -z "$n" ] && return
-    if [ "$n" -lt 1000 ]; then
-        printf '%d' "$n"
-    elif [ "$n" -lt 10000 ]; then
-        awk -v n="$n" 'BEGIN{printf "%.1fk", n/1000}'
-    elif [ "$n" -lt 1000000 ]; then
-        awk -v n="$n" 'BEGIN{printf "%.0fk", n/1000}'
-    else
-        awk -v n="$n" 'BEGIN{printf "%.1fM", n/1000000}'
+    local n="$1" t
+    if (( n < 1000 )); then printf '%d' "$n"
+    elif (( n < 9950 )); then t=$(( (n + 50) / 100 )); printf '%d.%dk' $(( t / 10 )) $(( t % 10 ))
+    elif (( n < 999500 )); then printf '%dk' $(( (n + 500) / 1000 ))
+    else t=$(( (n + 50000) / 100000 )); printf '%d.%dM' $(( t / 10 )) $(( t % 10 ))
     fi
 }
 
-# Context usage with bar + token count
-ctx_part=""
-if [ -n "$used_pct" ]; then
-    ctx_int=$(printf '%.0f' "$used_pct")
-    # Fall back to deriving used tokens from % and actual context window size
-    if [ -z "$used_tokens" ] && [ -n "$used_pct" ]; then
-        limit="${total_tokens:-200000}"
-        used_tokens=$(awk -v p="$used_pct" -v l="$limit" 'BEGIN{printf "%d", p*l/100}')
-    fi
-    tok_part=""
-    if [ -n "$used_tokens" ] && [ -n "$total_tokens" ]; then
-        tok_part=" ($(fmt_tokens "$used_tokens")/$(fmt_tokens "$total_tokens"))"
-    elif [ -n "$used_tokens" ]; then
-        tok_part=" ($(fmt_tokens "$used_tokens"))"
-    fi
-    ctx_part="ctx [$(make_bar "$ctx_int")] ${ctx_int}%${tok_part}"
+# Line 1
+line1="${C_MODEL}${I_MODEL} ${model}${C_R}"
+[ -n "$effort" ] && line1+=" ${C_DIM}${effort}${C_R}"
+line1+="${SEP}${C_USER}${prompt_username}${C_R}"
+[ -n "$short_cwd" ] && line1+=" ${C_DIR}${I_DIR} ${short_cwd}${C_R}"
+[ -n "$branch" ] && line1+=" ${C_BR}${I_BRANCH} ${branch}${C_R}"
+printf '%s' "$line1"
+
+# Line 2: context + rate limits (rate limits are absent until the first API response)
+segments=()
+if [ -n "$ctx_pct" ]; then
+    pct_color "$ctx_pct"; ctx_color="$REPLY"
+    meter "$ctx_pct" "$C_DIM"
+    seg="${C_DIM}ctx${C_R} ${REPLY} ${C_BOLD}${ctx_color}$(fmt_tokens "$ctx_used")${C_R}"
+    seg+="${C_DIM}/$(fmt_tokens "$ctx_size")${C_R}"
+    segments+=("$seg")
 fi
 
-# Rate limits (Claude.ai subscribers; absent until first API response)
-five_pct=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
-week_pct=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-five_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
-week_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
+limit_segment() {
+    local name="$1" pct="$2" reset="$3" seg rem
+    [ -z "$pct" ] && return
+    meter "$pct"
+    seg="${C_DIM}${name}${C_R} ${REPLY}"
+    rem=$(fmt_remaining "$reset")
+    [ -n "$rem" ] && seg+=" ${C_DIM}↻ ${rem}${C_R}"
+    segments+=("$seg")
+}
+limit_segment 5h "$five_pct" "$five_reset"
+limit_segment 7d "$week_pct" "$week_reset"
 
-limits_part=""
-if [ -n "$five_pct" ]; then
-    p=$(printf '%.0f' "$five_pct")
-    seg="5h [$(make_bar "$p")] ${p}%"
-    rem=$(fmt_remaining "$five_reset")
-    [ -n "$rem" ] && seg="${seg} (${rem})"
-    limits_part="${seg}"
-fi
-if [ -n "$week_pct" ]; then
-    p=$(printf '%.0f' "$week_pct")
-    seg="7d [$(make_bar "$p")] ${p}%"
-    rem=$(fmt_remaining "$week_reset")
-    [ -n "$rem" ] && seg="${seg} (${rem})"
-    [ -n "$limits_part" ] && limits_part="${limits_part} | "
-    limits_part="${limits_part}${seg}"
-fi
-
-# Effort level (shown beside model)
-effort=$(echo "$input" | jq -r '.effort.level // empty')
-effort_part=""
-[ -n "$effort" ] && effort_part=" [${effort}]"
-
-# Extras line (reserved for future things)
-extras_part=""
-
-# Colors
-C_USER='\033[0;32m'
-C_DIR='\033[1;34m'
-C_BR='\033[1;36m'
-C_MODEL='\033[0;33m'
-C_LIM='\033[0;35m'
-C_EXTRA='\033[0;36m'
-C_R='\033[0m'
-
-# Line 1: model [effort] | user ➜ cwd (branch)
-printf "${C_MODEL}%s%s${C_R} | ${C_USER}%s${C_R} ➜ ${C_DIR}%s${C_R} ${C_BR}%s${C_R}" \
-    "$model" "$effort_part" "$prompt_username" "$short_cwd" "$git_branch"
-
-# Line 2: ctx + rate limits (only if any present)
-line2=""
-[ -n "$ctx_part" ] && line2="${ctx_part}"
-if [ -n "$limits_part" ]; then
-    [ -n "$line2" ] && line2="${line2} | "
-    line2="${line2}${limits_part}"
-fi
-if [ -n "$line2" ]; then
-    printf "\n${C_LIM}%s${C_R}" "$line2"
+if [ "${#segments[@]}" -gt 0 ]; then
+    printf '\n'
+    for i in "${!segments[@]}"; do
+        (( i > 0 )) && printf '%s' "$SEP"
+        printf '%s' "${segments[$i]}"
+    done
 fi
