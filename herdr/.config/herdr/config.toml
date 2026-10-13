@@ -101,7 +101,7 @@ switch_workspace   = "prefix+ctrl+1..9"
 goto               = ["prefix+g", "prefix+shift+s"]   # tmux: bind S choose-session
 
 # --- worktrees (no tmux equivalent) -------------------------------------
-new_worktree = "prefix+shift+g"
+new_worktree = ""
 open_worktree = "prefix+ctrl+p"
 
 # --- agents (no tmux equivalent) ----------------------------------------
@@ -120,6 +120,14 @@ edit_scrollback = "prefix+e"
 open_notification_target = ""
 
 # --- popups (replacing tmux plugins) ------------------------------------
+# Replaces new_worktree so checkouts land beside the project -- see
+# herdr/README.md.
+[[keys.command]]
+key = "prefix+ctrl+n"
+type = "popup"
+command = "\"$HOME/dotfiles/bin/df-herdr-new-worktree\""
+description = "new worktree beside project"
+
 # Ctrl+W closes the current pane; when it is the tab's final pane, the helper
 # closes the tab and creates an empty replacement if it is the last tab.
 [[keys.command]]

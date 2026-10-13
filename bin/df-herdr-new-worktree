@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# Prompts for a branch and has Herdr create its worktree beside the primary
+# checkout -- see herdr/README.md.
+#   HERDR_BIN_PATH         herdr   binary that creates the worktree
+#   HERDR_ACTIVE_PANE_CWD  $PWD    checkout the worktree is created from
+
+set -euo pipefail
+
+pause_on_error() {
+    local status=$?
+    if [[ -t 0 ]]; then
+        read -r -p 'Press Enter to close.' _ || true
+    fi
+    exit "$status"
+}
+trap pause_on_error ERR
+
+herdr=${HERDR_BIN_PATH:-herdr}
+cwd=${HERDR_ACTIVE_PANE_CWD:-$PWD}
+
+read -r -p 'Branch: ' branch || exit 0
+[[ -n $branch ]] || exit 0
+# --branch also expands @{-N} shorthands to the real branch name.
+branch=$(git -C "$cwd" check-ref-format --branch "$branch")
+
+# Use the primary checkout so creation from a linked worktree stays beside it.
+{
+    IFS= read -r -d '' primary
+    IFS= read -r -d '' primary_kind
+} < <(git -C "$cwd" worktree list --porcelain -z)
+if [[ $primary_kind == bare ]]; then
+    printf 'df-herdr-new-worktree: bare repositories are not supported\n' >&2
+    false
+fi
+primary=${primary#worktree }
+destination="$(dirname "$primary")/$(basename "$primary").${branch//\//-}"
+
+"$herdr" worktree create \
+    --cwd "$cwd" \
+    --branch "$branch" \
+    --path "$destination" \
+    --focus
