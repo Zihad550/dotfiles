@@ -93,7 +93,6 @@ for i = 1, 5 do
 end
 
 -- Special workspaces (scratchpad)
-o.bind("SUPER + S",         "Toggle magic workspace", dotfiles_bin .. "/df-launch-special-workspace --toggle-only magic")
 o.bind("SUPER + SHIFT + S", "Move to magic workspace", hl.dsp.window.move({ workspace = "special:magic" }))
 -- o.bind("SUPER + SHIFT + O", "Move to note workspace",   hl.dsp.window.move({ workspace = "special:note" }))
 -- o.bind("SUPER + SHIFT + A", "Move to ai workspace",     hl.dsp.window.move({ workspace = "special:ai" }))

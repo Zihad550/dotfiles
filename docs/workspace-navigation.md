@@ -22,9 +22,5 @@ again hides the application workspace. Special return files are scoped to the
 session, monitor, and application workspace. They are ignored if the underlying
 numbered workspace changed.
 
-Super+S uses the launcher's `--toggle-only magic` mode. It toggles the magic
-workspace without selecting or launching an application and restores the
-previous special workspace on a second press.
-
 An empty previous special workspace is not reopened. Window movement shortcuts,
 Tab navigation, and mouse scrolling keep their existing behavior.

@@ -248,8 +248,8 @@ for _, binding in ipairs(bindings) do
 end
 assert(#recording == 3)
 assert(recording[1].keys == "SUPER + CTRL + X" and recording[1].command == "voxtype record toggle")
-assert(recording[2].keys == "F9" and recording[2].command == "voxtype record start" and not recording[2].options.release)
-assert(recording[3].keys == "F9" and recording[3].command == "voxtype record stop" and recording[3].options.release)
+assert(recording[2].keys == "SUPER + S" and recording[2].command == "voxtype record start" and not recording[2].options.release)
+assert(recording[3].keys == "SUPER + S" and recording[3].command == "voxtype record stop" and recording[3].options.release)
 bindings = {}
 os.remove(arg[3] .. "/voxtype")
 dofile(arg[1])
@@ -268,11 +268,11 @@ end
     assert.equal(result.status, 0, result.stderr);
 });
 
-test("Super+Space taps launch and holds dictate without opening the launcher", t => {
+test("Super+Space opens the launcher immediately with or without Voxtype", t => {
     const f = fixture(t);
-    const harness = path.join(f.dir, "launcher-hold.lua");
+    const harness = path.join(f.dir, "launcher.lua");
     fs.writeFileSync(harness, `
-local bindings, timers, actions = {}, {}, {}
+local bindings = {}
 local available = true
 o = {
     cmd_present = function() return available end,
@@ -285,62 +285,14 @@ o = {
 hl = {
     dsp = { global = function(name) return name end },
     on = function() end,
-    exec_cmd = function(command) table.insert(actions, command) end,
-    dispatch = function(command) table.insert(actions, command) end,
-    timer = function(callback, options)
-        assert(options.timeout == 300 and options.type == "oneshot")
-        local timer = { enabled = true }
-        function timer:set_enabled(enabled) self.enabled = enabled end
-        function timer:fire()
-            if self.enabled then
-                self.enabled = false
-                callback()
-            end
-        end
-        table.insert(timers, timer)
-        return timer
-    end,
 }
-dofile(arg[1])
-assert(#bindings == 2)
-assert(not bindings[1].options.release)
-assert(bindings[2].options.release and bindings[2].options.ignore_mods and bindings[2].options.non_consuming)
-assert(bindings[2].options.transparent)
-local press, release = bindings[1].command, bindings[2].command
-
--- Unmatched Space releases must not open the launcher.
-release()
-assert(#actions == 0)
-
-press()
-assert(#actions == 0)
-release()
-assert(#actions == 1 and actions[1] == "launcher:toggle")
-timers[1]:fire()
-assert(#actions == 1)
-
--- A previous tap's timer must not start a later hold early.
-press()
-timers[1]:fire()
-assert(#actions == 1)
-press()
-assert(#timers == 2)
-timers[2]:fire()
-assert(#actions == 2 and actions[2] == "voxtype record start")
-release()
-assert(#actions == 3 and actions[3] == "voxtype record stop")
-release()
-assert(#actions == 3)
-
-press()
-release()
-assert(#actions == 4 and actions[4] == "launcher:toggle")
-
-bindings = {}
-available = false
-dofile(arg[1])
-assert(#bindings == 1 and bindings[1].command == "launcher:toggle")
-assert(not bindings[1].options.release)
+for _, installed in ipairs({ true, false }) do
+    available = installed
+    bindings = {}
+    dofile(arg[1])
+    assert(#bindings == 1 and bindings[1].command == "launcher:toggle")
+    assert(not bindings[1].options.release)
+end
 `);
     const result = spawnSync("lua", [harness,
         path.join(ROOT, "hypr/.config/hypr/lua/bindings/system.lua")], {

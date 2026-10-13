@@ -72,4 +72,4 @@ if ! start_service; then
     start_service
 fi
 
-echo "Voxtype is ready. Reload Hyprland, then hold Super+Ctrl+Space or toggle with Super+Ctrl+X."
+echo "Voxtype is ready. Reload Hyprland, then hold Super+S or toggle with Super+Ctrl+X."

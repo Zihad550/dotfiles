@@ -24,33 +24,8 @@ o.bind("switch:off:Lid Switch", "Lid open",  dotfiles_bin .. "/df-hypr-clamshell
 
 -- Launchers
 --
--- The modifier-independent release must be non-consuming to preserve Space typing.
--- Keep it transparent so releasing Super first cannot shadow it; see docs/voxtype-spec.md.
-if o.cmd_present("voxtype") then
-    local hold_timer
-    local recording = false
-
-    o.bind("SUPER + SPACE", "Launcher / hold to dictate", function()
-        if hold_timer then return end
-        hold_timer = hl.timer(function()
-            recording = true
-            hl.exec_cmd("voxtype record start")
-        end, { timeout = 300, type = "oneshot" })
-    end)
-    o.bind("SUPER + SPACE", "Open launcher / stop dictation", function()
-        if not hold_timer then return end
-        hold_timer:set_enabled(false)
-        hold_timer = nil
-        if recording then
-            recording = false
-            hl.exec_cmd("voxtype record stop")
-        else
-            hl.dispatch(hl.dsp.global("launcher:toggle"))
-        end
-    end, { release = true, ignore_mods = true, non_consuming = true, transparent = true })
-else
-    o.bind("SUPER + SPACE", "Launcher", hl.dsp.global("launcher:toggle"))
-end
+-- Use the Lua dispatcher wrapper; see docs/voxtype-spec.md.
+o.bind("SUPER + SPACE", "Launcher", hl.dsp.global("launcher:toggle"))
 
 -- Screenshots
 o.bind("PRINT",         "Screenshot",        dotfiles_bin .. "/df-capture-screenshot smart copy")
