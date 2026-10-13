@@ -35,6 +35,7 @@ mouse-hide-while-typing = true
 mouse-scroll-multiplier = 0.95
 
 # Copy
+# Hold Ctrl+Alt+Shift while dragging for rectangular selection (avoids Herdr's sidebar).
 copy-on-select = clipboard
 
 # Fix general slowness on hyprland
