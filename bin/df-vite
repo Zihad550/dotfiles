@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+
+import argparse
+from dataclasses import dataclass
+import os
+from pathlib import Path
+import select
+import shutil
+import signal
+import subprocess
+import sys
+
+
+@dataclass(frozen=True)
+class Server:
+    pid: int
+    started: str
+    ports: tuple[int, ...]
+    directory: str
+
+    def row(self):
+        directory = "".join(c if c.isprintable() else "?" for c in self.directory)
+        return f"{self.pid:<8} {','.join(map(str, self.ports)):<15} {directory}"
+
+
+def is_vite_dev(arguments):
+    if not arguments:
+        return False
+    runtime = Path(arguments[0]).name
+    if runtime not in ("node", "nodejs", "bun", "vite"):
+        return False
+    index = 0 if runtime == "vite" else 1
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument in ("-e", "--eval", "-p", "--print"):
+            return False
+        if argument in ("-r", "--require", "--import", "--loader", "--experimental-loader"):
+            index += 2
+            continue
+        if argument.startswith("-") or (runtime == "bun" and argument == "run"):
+            index += 1
+            continue
+        if Path(argument).name not in ("vite", "vite.js", "vite.mjs"):
+            return False
+        # Vite's build and preview commands can also open listening sockets.
+        return not any(arg in ("build", "preview") for arg in arguments[index + 1:])
+    return False
+
+
+def process_started(process):
+    # comm may contain spaces or parentheses; fields after its closing ')' are stable.
+    return (process / "stat").read_text().rsplit(")", 1)[1].split()[19]
+
+
+def listening_ports(process):
+    sockets = set()
+    for descriptor in (process / "fd").iterdir():
+        try:
+            target = os.readlink(descriptor)
+        except OSError:
+            continue
+        if target.startswith("socket:["):
+            sockets.add(target[8:-1])
+    ports = set()
+    for protocol in ("tcp", "tcp6"):
+        try:
+            lines = (process / "net" / protocol).read_text().splitlines()[1:]
+        except FileNotFoundError:
+            continue
+        for line in lines:
+            fields = line.split()
+            if fields[3] == "0A" and fields[9] in sockets:
+                ports.add(int(fields[1].rsplit(":", 1)[1], 16))
+    return tuple(sorted(ports))
+
+
+def read_server(process):
+    if process.stat().st_uid != os.getuid():
+        return None
+    started = process_started(process)
+    arguments = (process / "cmdline").read_bytes().decode(errors="replace").rstrip("\0").split("\0")
+    if not is_vite_dev(arguments):
+        return None
+    ports = listening_ports(process)
+    if not ports:
+        return None
+    directory = os.readlink(process / "cwd")
+    if process_started(process) != started:
+        return None
+    return Server(int(process.name), started, ports, directory)
+
+
+def servers():
+    result = []
+    for process in Path("/proc").iterdir():
+        if not process.name.isdecimal():
+            continue
+        try:
+            server = read_server(process)
+        except (OSError, ValueError, IndexError):
+            continue
+        if server is not None:
+            result.append(server)
+    return sorted(result, key=lambda server: (server.directory, server.pid))
+
+
+def stop_server(server):
+    try:
+        # Pin the process before rechecking identity so PID reuse cannot kill another task.
+        descriptor = os.pidfd_open(server.pid)
+        try:
+            current = read_server(Path(f"/proc/{server.pid}"))
+            if current is None or current.started != server.started:
+                return "Server exited or changed; refreshed the list."
+            signal.pidfd_send_signal(descriptor, signal.SIGTERM)
+            if select.select([descriptor], [], [], 2)[0]:
+                return f"Stopped Vite PID {server.pid}."
+            return f"Sent SIGTERM to PID {server.pid}; it is still shutting down."
+        finally:
+            os.close(descriptor)
+    except ProcessLookupError:
+        return "Server already exited; refreshed the list."
+    except OSError as error:
+        return f"Could not stop PID {server.pid}: {error}"
+
+
+def main():
+    parser = argparse.ArgumentParser(description="List and stop your local Vite dev servers (Linux).")
+    parser.add_argument("--list", action="store_true", help="print running servers without opening the picker")
+    args = parser.parse_args()
+    if not Path("/proc/self").exists():
+        parser.error("Linux /proc is required")
+    if not args.list and not shutil.which("fzf"):
+        parser.error("fzf is required for the picker")
+    if not args.list and not sys.stdin.isatty():
+        parser.error("use an interactive terminal, or --list")
+    message = ""
+    while True:
+        running = servers()
+        if args.list:
+            if running:
+                print("PID      PORTS           PROJECT DIRECTORY")
+                print("\n".join(server.row() for server in running))
+            else:
+                print("No running Vite dev servers found for your user.")
+            return 0
+        header = "Vite dev servers · j/k/↑/↓ move · d stop · r refresh · q/Esc quit"
+        header += "\nPID      PORTS           PROJECT DIRECTORY"
+        if message:
+            header = message + "\n" + header
+        if not running:
+            header = "No running Vite dev servers found for your user.\n" + header
+        environment = {key: value for key, value in os.environ.items()
+                       if key not in ("FZF_DEFAULT_OPTS", "FZF_DEFAULT_OPTS_FILE")}
+        picked = subprocess.run(
+            ["fzf", "--layout=reverse", "--no-sort", "--no-multi", "--disabled",
+             "--bind=j:down,k:up,q:abort,enter:ignore", "--expect=d,r",
+             "--header=" + header, "--prompt=Select server> "],
+            input="\n".join(server.row() for server in running),
+            text=True, stdout=subprocess.PIPE, env=environment,
+        )
+        lines = picked.stdout.splitlines()
+        if picked.returncode == 130:
+            return 0
+        if picked.returncode == 1:
+            if lines and lines[0] in ("d", "r"):
+                message = ""
+                continue
+            return 0
+        if picked.returncode != 0:
+            return picked.returncode
+        message = ""
+        if len(lines) > 1 and lines[0] == "d":
+            selected = next((server for server in running if server.row() == lines[1]), None)
+            if selected is not None:
+                message = stop_server(selected)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

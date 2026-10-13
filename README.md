@@ -74,11 +74,21 @@ df-launch-app <cmd>                # launch GUI (guards missing bin)
 df-cmd-present <cmd>...            # exit 0 if all on PATH
 df-harness [codex|claude] [message...] # reply to arguments or stdin
 df-commit-message [codex|claude]   # generate a commit message from stdin
+df-vite [--list]                  # list local Vite servers; d stops the selected server
 df-work-branch-name-gen [codex|claude] <issues> # default: Codex gpt-6-luna, high reasoning
 df-system-update                   # full system update (pacman/yay/flatpak/mise)
 df-backup [directory]              # select home items and a drive to back up
 df-restore [directory]             # select a drive and home items to restore
 ```
+
+`df-vite` uses `fzf` with `j`/`k` or arrow keys to move, `d` to stop
+the selected server, `r` to refresh, and `q` or Escape to quit. It shows PIDs,
+listening ports, and project directories for Vite dev servers owned by your
+user on this Linux machine, including servers started through npm/pnpm/bun.
+Build and preview processes are excluded. Stopping sends SIGTERM to that one
+process and refreshes the list; it never force kills or signals a process group.
+`--list` prints the same servers without opening the picker. Requires Python 3
+and, for the picker, `fzf`.
 
 `df-backup` and `df-restore` use Gum to select multiple items and a mounted drive
 at or under `/run/media` or `/mnt`. Use X to select items and Enter to
