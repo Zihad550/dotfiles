@@ -223,7 +223,7 @@ test("an active daemon that never becomes ready fails within the polling bound",
     assert.equal(fs.readFileSync(f.env.STATUS_PROBES, "utf8"), "120");
 });
 
-test("Hyprland registers press, release, and toggle without claiming the clipboard shortcut", t => {
+test("Hyprland registers dictation toggles without claiming the clipboard shortcut", t => {
     const f = fixture(t);
     const script = `
 local bindings = {}
@@ -246,10 +246,12 @@ for _, binding in ipairs(bindings) do
         table.insert(recording, binding)
     end
 end
-assert(#recording == 3)
+assert(#recording == 2)
 assert(recording[1].keys == "SUPER + CTRL + X" and recording[1].command == "voxtype record toggle")
-assert(recording[2].keys == "SUPER + S" and recording[2].command == "voxtype record start" and not recording[2].options.release)
-assert(recording[3].keys == "SUPER + S" and recording[3].command == "voxtype record stop" and recording[3].options.release)
+assert(recording[2].keys == "SUPER + S" and recording[2].command == "voxtype record toggle")
+for _, binding in ipairs(recording) do
+    assert(not binding.options.release and not binding.options.repeating)
+end
 bindings = {}
 os.remove(arg[3] .. "/voxtype")
 dofile(arg[1])

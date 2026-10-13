@@ -9,7 +9,7 @@ Status: implemented in the repository. Live microphone and text-insertion checks
 - Each machine records from its own microphone and inserts text into its own graphical session. Remote microphone transport is outside this change.
 - Adapt the existing partial import using `resources/omarchy` at commit `65c0f330` as the reference.
 - Use Parakeet with `parakeet-tdt-0.6b-v2` as the initial engine and model. Retain `small.en` with English in the Whisper settings for switching engines.
-- Use Super+S press/release for push-to-talk and Super+Ctrl+X for recording toggle. Remove the obsolete Super+Shift+V stop binding.
+- Use Super+S to toggle recording: press once to start, then again to stop and transcribe. Super+Ctrl+X also toggles recording. Remove the obsolete Super+Shift+V stop binding.
 - Super+Space immediately toggles the launcher through `hl.dsp.global("launcher:toggle")`. The Lua configuration requires this dispatcher wrapper because it evaluates a bare dispatcher argument as Lua.
 - The existing bar indicator opens `voxtype configure` on left-click and the local config in an editor on right-click.
 - Store starter defaults in the repository. On first setup, seed a regular local config; subsequent setup runs preserve it. Machine-specific model and hardware choices must not modify repository defaults.
@@ -63,7 +63,7 @@ Do not run the entire profile installer just to add dictation. No remote microph
 
 ## Live verification
 
-1. Focus a text field, hold Super+S, say a short sentence, and release. Confirm the text appears and the recording/transcription indicator returns to idle.
+1. Focus a text field, press and release Super+S to start recording, say a short sentence, then press Super+S again to stop. Confirm the text appears and the recording/transcription indicator returns to idle.
 2. Press Super+Space and confirm the launcher opens immediately. Holding the shortcut must not start dictation.
 3. Start and stop another recording with Super+Ctrl+X. Confirm Super+Ctrl+V still opens clipboard history.
 4. Play media and record again. With the starter defaults, media keeps playing during recording and audible feedback is off.

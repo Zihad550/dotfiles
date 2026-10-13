@@ -32,6 +32,5 @@ end
 
 if o.cmd_present("voxtype") then
     o.bind("SUPER + CTRL + X", "Toggle dictation", "voxtype record toggle")
-    o.bind("SUPER + S", "Start dictation (push-to-talk)", "voxtype record start")
-    o.bind("SUPER + S", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
+    o.bind("SUPER + S", "Toggle dictation", "voxtype record toggle")
 end
