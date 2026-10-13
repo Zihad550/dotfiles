@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    printf 'Usage: df-usb-wakeup [USB_DEVICE]\n\n'
+    printf 'List USB devices, or enable persistent suspend wakeup for a device.\n'
+    printf 'Example: df-usb-wakeup 3-2\n'
+}
+
+if [[ ${1:-} == --help || ${1:-} == -h ]]; then
+    usage
+    exit 0
+fi
+
+if (( $# == 0 )); then
+    printf 'DEVICE\tID\tWAKEUP\tNAME\n'
+    for device in /sys/bus/usb/devices/*; do
+        [[ -f $device/idVendor ]] || continue
+        vendor=$(<"$device/idVendor")
+        product=$(<"$device/idProduct")
+        name=unknown
+        wakeup=unsupported
+        [[ ! -f $device/product ]] || name=$(<"$device/product")
+        [[ ! -f $device/power/wakeup ]] || wakeup=$(<"$device/power/wakeup")
+        printf '%s\t%s:%s\t%s\t%s\n' "${device##*/}" "$vendor" "$product" "${wakeup:-unsupported}" "$name"
+    done
+    exit 0
+fi
+
+if (( $# != 1 )) || [[ ! $1 =~ ^[0-9]+-[0-9]+(\.[0-9]+)*$ ]]; then
+    usage >&2
+    exit 2
+fi
+
+device=$(readlink -f -- "/sys/bus/usb/devices/$1")
+if [[ ! -f $device/idVendor || ! -f $device/power/wakeup ]]; then
+    printf 'USB device %s is missing or does not support wakeup.\n' "$1" >&2
+    exit 1
+fi
+wakeup=$(<"$device/power/wakeup")
+if [[ $wakeup != enabled && $wakeup != disabled ]]; then
+    printf 'USB device %s does not support wakeup.\n' "$1" >&2
+    exit 1
+fi
+
+vendor=$(<"$device/idVendor")
+product=$(<"$device/idProduct")
+rules_file=$(mktemp)
+trap 'rm -f -- "$rules_file"' EXIT
+wakeup_paths=()
+rules_destination="/etc/udev/rules.d/90-df-usb-wakeup-$vendor-$product.rules"
+
+while [[ $device == /sys/* ]]; do
+    if [[ -f $device/idVendor && -f $device/power/wakeup ]]; then
+        wakeup=$(<"$device/power/wakeup")
+        if [[ $wakeup == enabled || $wakeup == disabled ]]; then
+            vendor=$(<"$device/idVendor")
+            product=$(<"$device/idProduct")
+            if [[ ! $vendor =~ ^[[:xdigit:]]{4}$ || ! $product =~ ^[[:xdigit:]]{4}$ ]]; then
+                printf 'Invalid USB ID at %s.\n' "$device" >&2
+                exit 1
+            fi
+            match="ACTION==\"add\", SUBSYSTEM==\"usb\", ATTR{idVendor}==\"$vendor\", ATTR{idProduct}==\"$product\""
+            if [[ ${device##*/} == usb* ]]; then
+                # Root hub bus numbers can change; its controller serial is stable.
+                serial=$(<"$device/serial")
+                if [[ ! $serial =~ ^[a-zA-Z0-9:._-]+$ ]]; then
+                    printf 'Cannot identify the USB root hub controller at %s.\n' "$device" >&2
+                    exit 1
+                fi
+                match+=", ATTR{serial}==\"$serial\""
+            fi
+            printf '%s, TEST=="power/wakeup", ATTR{power/wakeup}="enabled"\n' "$match" >>"$rules_file"
+            wakeup_paths+=("$device/power/wakeup")
+        fi
+    fi
+    device=${device%/*}
+done
+
+sudo install -m 644 -- "$rules_file" "$rules_destination"
+sudo udevadm control --reload-rules
+for wakeup_path in "${wakeup_paths[@]}"; do
+    printf 'enabled\n' | sudo tee "$wakeup_path" >/dev/null
+done
+printf 'Wakeup enabled for %s and its USB hubs.\nRules: %s\n' "$1" "$rules_destination"

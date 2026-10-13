@@ -90,6 +90,15 @@ process and refreshes the list; it never force kills or signals a process group.
 `--list` prints the same servers without opening the picker. Requires Python 3
 and, for the picker, `fzf`.
 
+`df-usb-wakeup` lists USB devices and their suspend wakeup status. Run
+`df-usb-wakeup 3-2` with a device from that list to enable wakeup for it and its
+USB hubs now and after reboot or reconnection. It uses sudo to install a
+device-specific rule under `/etc/udev/rules.d/`, matched by USB IDs and the root
+hub controller's serial rather than the current USB bus number. Devices with
+the same vendor and product IDs share the rule. Click the mouse after suspending
+to test it. To undo persistence, remove the rule path printed by the command
+and run `sudo udevadm control --reload-rules`; reboot to reset the live settings.
+
 `df-backup` and `df-restore` use Gum to select multiple items and a mounted drive
 at or under `/run/media` or `/mnt`. Use X to select items and Enter to
 continue. The drive picker always asks, even with one drive mounted; pass an
