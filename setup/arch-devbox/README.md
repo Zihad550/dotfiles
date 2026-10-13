@@ -201,7 +201,7 @@ half of `pacman-base` plus the Hyprland steps.
 
 ### Dictation
 
-Setup enables Voxtype with the `small.en` English model. Hold Super+Ctrl+Space to dictate or
+Setup enables Voxtype with the `small.en` English model. Hold F9 or Super+Space (300ms) to dictate or
 toggle recording with Super+Ctrl+X. Dictation uses this machine's microphone
 and graphical session. Settings are local files, editable through
 `voxtype configure`. See [Voxtype integration](../../docs/voxtype-spec.md)

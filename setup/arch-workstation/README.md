@@ -109,7 +109,7 @@ See the [port provenance](../../quickshell/.config/quickshell/dotfiles/media/PRO
 
 ### Dictation
 
-Setup enables Voxtype with the `small.en` English model. Hold Super+Ctrl+Space to dictate or
+Setup enables Voxtype with the `small.en` English model. Hold F9 or Super+Space (300ms) to dictate or
 toggle recording with Super+Ctrl+X. Starter settings disable media pausing and
 audible feedback. Settings are local files, so `voxtype configure` does not
 modify the repository. See [Voxtype integration](../../docs/voxtype-spec.md)
