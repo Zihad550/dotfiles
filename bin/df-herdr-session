@@ -5,7 +5,7 @@
 # docs/adr/0007-super-u-follows-devcontainer-routing.md, and
 # docs/adr/0037-herdr-project-groups.md.
 #
-# Called by the Launcher's Herdr entry and by SUPER+U and SUPER+SHIFT+U --
+# Called by the Launcher's Herdr entry and by SUPER+U and SUPER+I --
 # neither hands in a routing decision, so this re-derives it itself. Args are
 # argv, never shell-words.
 name="${1:-}"

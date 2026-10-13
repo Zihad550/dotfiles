@@ -111,7 +111,7 @@ test("a configured host replaces the default, and a blank one falls back to it",
             "--remote-keybindings", "server"]);
 });
 
-test("SUPER+U and SUPER+SHIFT+U route like every other call site, passing no local override", () => {
+test("SUPER+U and SUPER+I route like every other call site, passing no local override", () => {
     const apps = fs.readFileSync(path.join(ROOT, "hypr/.config/hypr/lua/bindings/apps.lua"), "utf8");
     const script = fs.readFileSync(SESSION, "utf8");
 

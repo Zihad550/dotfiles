@@ -2,7 +2,7 @@
 
 [Issue #153](https://github.com/Zihad550/dotfiles/issues/153) replaces the
 dedicated generic Herdr shortcut with two Herdr Project Groups. `SUPER+U`
-opens session `work` from `~/dev`; `SUPER+SHIFT+U` opens session `personal`
+opens session `work` from `~/dev`; `SUPER+I` opens session `personal`
 from `~/dotfiles`. These are launch defaults. Users decide which repositories
 belong in each session. Neither directory is created by a shortcut.
 
@@ -34,7 +34,7 @@ and missing directories. They do not establish real Ghostty identities or
 Herdr session restoration.
 
 1. Confirm `~/dev` and `~/dotfiles` already exist. Reload the desktop bindings
-   with `hyprctl reload`. Press `SUPER+U` and `SUPER+SHIFT+U`. Expect separate
+   with `hyprctl reload`. Press `SUPER+U` and `SUPER+I`. Expect separate
    windows titled `Herdr (work)` and `Herdr (personal)`.
 2. Run this in another terminal. Expect one matching window per group on its
    matching Special Workspace, with no browser or ordinary terminal selected.
@@ -44,7 +44,7 @@ Herdr session restoration.
    ```
 
 3. Create distinct tabs in each session and run `sleep 600` in one pane in each.
-   Alternate `SUPER+U` and `SUPER+SHIFT+U`. Expect the intended group each
+   Alternate `SUPER+U` and `SUPER+I`. Expect the intended group each
    time and both commands to keep running. Press the visible group's shortcut
    again. Expect it to hide and return to the previous Special Workspace when
    applicable.

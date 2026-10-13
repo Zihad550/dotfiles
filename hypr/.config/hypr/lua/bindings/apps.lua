@@ -53,7 +53,7 @@ local function herdr_group(keys, title, name, directory)
         dotfiles_bin .. [[/df-launch-special-workspace "]] .. identity .. [[" "herdr-]] .. name .. [[" ghostty "--class=]] .. identity .. [[" "--title=]] .. title .. [[" -e "]] .. dotfiles_bin .. [[/df-herdr-session" ]] .. name .. [[ "]] .. directory .. [["]])
 end
 herdr_group("SUPER + U", "Herdr (work)", "work", home .. "/dev")
-herdr_group("SUPER + SHIFT + U", "Herdr (personal)", "personal", home .. "/dotfiles")
+herdr_group("SUPER + I", "Herdr (personal)", "personal", home .. "/dotfiles")
 
 -- doesn't work, executable not found, not on PATH
 -- o.bind("SUPER + SHIFT + R", "Timer",

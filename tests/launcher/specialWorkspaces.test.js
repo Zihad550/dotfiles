@@ -497,7 +497,7 @@ function herdrBinding(keys) {
 
 const HERDR_GROUPS = [
     { keys: "SUPER + U", name: "work", directory: "dev" },
-    { keys: "SUPER + SHIFT + U", name: "personal", directory: "dotfiles" }
+    { keys: "SUPER + I", name: "personal", directory: "dotfiles" }
 ].map(group => ({
     ...group,
     identity: `io.github.zihad550.dotfiles.herdr.${group.name}`,

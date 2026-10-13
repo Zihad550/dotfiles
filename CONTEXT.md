@@ -333,7 +333,7 @@ _Avoid_: Herdr profile, session group, local group, remote group
 
 **Devcontainer Routing**:
 The persisted, default-off switch that makes Herdr (`SUPER+U`,
-`SUPER+SHIFT+U`, and the Launcher's own Herdr chooser row) open a Mirrored
+`SUPER+I`, and the Launcher's own Herdr chooser row) open a Mirrored
 Directory on the devcontainer host instead of locally, and gates whether the
 Directories Provider's remote Directory Index exists at all. Every other
 Launcher action — opening or choosing an app for a local-provenance directory
