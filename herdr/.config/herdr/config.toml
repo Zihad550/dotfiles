@@ -43,12 +43,12 @@ prefix = "ctrl+space"
 # prefix = "ctrl+f"          # your old commented-out `set -g prefix ^F`
 
 # --- tabs (tmux windows) ------------------------------------------------
-new_tab       = "prefix+ctrl+t"
+new_tab       = "prefix+t"
 # Use the custom command below so closing the final tab leaves an empty tab.
 close_tab     = ""
 rename_tab    = "prefix+r"                   # tmux: bind r rename-window
-next_tab      = ["prefix+shift+l", "prefix+n"]   # tmux: bind L next-window
-previous_tab  = "prefix+shift+h"             # tmux: bind H previous-window
+next_tab      = ["prefix+shift+l", "prefix+n", "prefix+i"]   # tmux: bind L next-window
+previous_tab  = ["prefix+shift+h", "prefix+o"]             # tmux: bind H previous-window
 switch_tab    = "prefix+1..9"                # tmux: default prefix+<n> select-window
 
 # --- panes --------------------------------------------------------------
@@ -88,20 +88,21 @@ navigate_pane_up    = "k"
 navigate_pane_right = "l"
 
 # --- workspaces (tmux sessions) -----------------------------------------
-new_workspace      = "prefix+shift+n"
+new_workspace      = "prefix+ctrl+t"
 rename_workspace   = "prefix+shift+w"
-close_workspace    = "prefix+shift+d"        # closes only the current workspace
+close_workspace    = "prefix+ctrl+w"        # closes only the current workspace
 # prefix+ctrl+q is bound below (see [[keys.command]]) to actually kill the
 # session -- close_workspace alone leaves the client/window running with
 # zero workspaces. tmux: bind ^W kill-session.
-previous_workspace = "prefix+ctrl+p"
-next_workspace     = "prefix+ctrl+n"
+previous_workspace = "prefix+ctrl+o"
+next_workspace     = "prefix+ctrl+i"
 switch_workspace   = "prefix+ctrl+1..9"
-workspace_picker   = "prefix+w"              # tmux: bind w list-windows (closest picker)
+# workspace_picker   = ""              # tmux: bind w list-windows (closest picker)
 goto               = ["prefix+g", "prefix+shift+s"]   # tmux: bind S choose-session
 
 # --- worktrees (no tmux equivalent) -------------------------------------
 new_worktree = "prefix+shift+g"
+open_worktree = "prefix+ctrl+p"
 
 # --- agents (no tmux equivalent) ----------------------------------------
 focus_agent   = "prefix+alt+1..9"
@@ -116,13 +117,13 @@ help          = "prefix+?"                   # tmux: default prefix+? list-keys
 settings      = "prefix+ctrl+s"              # moved: prefix+s is now split-stacked
 toggle_sidebar = "prefix+b"
 edit_scrollback = "prefix+e"
-open_notification_target = "prefix+o"
+open_notification_target = ""
 
 # --- popups (replacing tmux plugins) ------------------------------------
 # Ctrl+W closes the current pane; when it is the tab's final pane, the helper
 # closes the tab and creates an empty replacement if it is the last tab.
 [[keys.command]]
-key = "prefix+ctrl+w"
+key = "prefix+w"
 type = "shell"
 command = "\"$HOME/dotfiles/bin/df-herdr-close-tab\""
 description = "close pane, or last tab while keeping workspace"
@@ -186,8 +187,7 @@ auto_switch = false
 mouse_capture = true
 copy_on_select = true
 
-# Close the current workspace immediately without a confirmation dialog.
-confirm_close = false
+confirm_close = true
 
 # Start with the sidebar collapsed (takes effect on next launch).
 sidebar_start_collapsed = false
