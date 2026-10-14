@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+setup_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../../common/pacman-lib
+source "$setup_dir/../../common/pacman-lib"
+
+if ! pacman-conf --repo-list | grep -qx multilib; then
+    echo "Enable [multilib] in /etc/pacman.conf and run sudo pacman -Syu first." >&2
+    exit 1
+fi
+
+# Select the Vulkan provider before Steam's dependency resolver does; see ../README.md.
+"$setup_dir/setup-gaming-gpu-lib32"
+pacman_install steam
+
+echo "Starting Steam; its first launch may take a while..."
+setsid uwsm-app -- gtk-launch steam >/dev/null 2>&1 &

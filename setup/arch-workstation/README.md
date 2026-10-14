@@ -92,6 +92,32 @@ supported by the Share action; save an image and use Send files instead.
 LocalSend's existing preferences are preserved. See the
 [port specification](../../docs/localsend-spec.md) for upstream provenance.
 
+### Steam (optional)
+
+From a workstation desktop session, enable `[multilib]` and its mirrorlist
+include in `/etc/pacman.conf`, run `sudo pacman -Syu`, then run:
+
+```sh
+bash ~/dotfiles/setup/arch-workstation/setup-packages/setup-steam
+```
+
+This ports Omarchy's `omarchy-install-gaming-steam` and
+`omarchy-install-gaming-gpu-lib32` using the dotfiles package helper. Steam
+is optional and is not installed by `init`. The installer starts Steam through
+UWSM after installation; its first launch can take a while.
+
+The GPU helper reads PCI sysfs IDs and installs the Intel/AMD 32-bit Vulkan
+drivers and NVIDIA's current or 580xx 32-bit driver. It follows Omarchy's
+NVIDIA device-ID split and expects the matching 64-bit graphics driver to
+already be configured. Older NVIDIA cards, mixed NVIDIA driver generations,
+and machines with no supported GPU require manual driver setup. The 580xx
+package requires the Omarchy repository configured by workstation setup.
+
+Drivers are installed before Steam because pacman's non-interactive resolver
+can otherwise select NVIDIA as the default provider of `lib32-vulkan-driver`
+even on Intel/AMD systems. The helper can also be run independently as
+`setup-packages/setup-gaming-gpu-lib32`.
+
 ### Media
 
 The workstation installs mpv and mpv-mpris and registers mpv for video files.

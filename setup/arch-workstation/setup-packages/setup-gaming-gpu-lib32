@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# DOTFILES_PCI_DEVICES_PATH defaults to /sys/bus/pci/devices (GPU inventory).
+# shellcheck source=../../common/pacman-lib
+source "$(dirname -- "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+
+pci_devices_path="${DOTFILES_PCI_DEVICES_PATH:-/sys/bus/pci/devices}"
+packages=()
+intel=false
+amd=false
+nvidia=false
+nvidia_legacy=false
+
+shopt -s nullglob
+for device in "$pci_devices_path"/*; do
+    [[ $(<"$device/class") == 0x03* ]] || continue
+    case "$(<"$device/vendor")" in
+        0x8086) intel=true ;;
+        0x1002) amd=true ;;
+        0x10de)
+            device_id=$(<"$device/device")
+            # Omarchy's GSP/580xx split; older NVIDIA cards need another driver.
+            if ((device_id >= 0x1e00)); then
+                nvidia=true
+            elif ((device_id >= 0x1340)); then
+                nvidia_legacy=true
+            else
+                echo "Unsupported NVIDIA GPU: $device_id. Configure its lib32 driver manually." >&2
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+if [[ "$nvidia" == true && "$nvidia_legacy" == true ]]; then
+    echo "Mixed NVIDIA driver generations require manual lib32 driver setup." >&2
+    exit 1
+fi
+
+[[ "$intel" == true ]] && packages+=(lib32-vulkan-intel)
+[[ "$amd" == true ]] && packages+=(lib32-vulkan-radeon)
+[[ "$nvidia" == true ]] && packages+=(lib32-nvidia-utils)
+[[ "$nvidia_legacy" == true ]] && packages+=(lib32-nvidia-580xx-utils)
+
+if ((${#packages[@]} == 0)); then
+    echo "No supported GPU detected; configure its lib32 Vulkan driver manually." >&2
+    exit 1
+fi
+
+pacman_install "${packages[@]}"
