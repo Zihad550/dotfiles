@@ -1,0 +1,109 @@
+#!/usr/bin/python3
+"""Set Full RGB on DP-1 of the machine's only i915 GPU."""
+
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import time
+
+DRM = Path("/sys/class/drm")
+DEV = Path("/dev/dri")
+DRIVER = "i915"
+PORT = "DP-1"
+READY_TIMEOUT = 15  # the unit's TimeoutStartSec must stay above this
+
+
+class Disconnected(Exception):
+    pass
+
+
+def find_device():
+    # proptest -M opens the first i915 device whatever -D says, so one card is the only safe case.
+    cards = [card for card in DRM.glob("card[0-9]*")
+             if card.name.isalnum() and (card / "device/driver").resolve().name == DRIVER]
+    if len(cards) != 1:
+        raise RuntimeError(f"expected one {DRIVER} card; found {len(cards)}")
+    card = cards[0]
+    status = (card.parent / f"{card.name}-{PORT}" / "status").read_text().strip()
+    if status == "disconnected":
+        raise Disconnected(f"{card.name} {PORT} is disconnected; nothing to do")
+    if status != "connected":
+        raise RuntimeError(f"{card.name} {PORT} status is {status}")
+    device = DEV / card.name
+    if not device.exists():
+        raise RuntimeError(f"{device} does not exist yet")
+    return device
+
+
+def proptest(*args):
+    result = subprocess.run(
+        ["/usr/bin/proptest", "-M", DRIVER, *map(str, args)],
+        capture_output=True, text=True, timeout=3,
+        env={**os.environ, "LC_ALL": "C"},
+    )
+    if result.returncode:
+        raise RuntimeError(
+            f"proptest exited {result.returncode}: "
+            f"{result.stderr.strip()} {result.stdout.strip()}; "
+            "EACCES/243 usually means a compositor still owns DRM master"
+        )
+    return result.stdout
+
+
+def broadcast_rgb(output):
+    connector_id = None
+    property_id = None
+    full_enum = False
+    for line in output.splitlines():
+        line = line.strip()
+        header = re.fullmatch(r"Connector (\d+) \(([^)]+)\)", line)
+        if header:
+            connector_id = int(header[1]) if header[2] == PORT else None
+            property_id = None
+        elif re.match(r"^(CRTC|Encoder|Plane)\b", line):
+            connector_id = None
+        elif connector_id is not None:
+            prop = re.fullmatch(r"(\d+) Broadcast RGB:", line)
+            if prop:
+                property_id = int(prop[1])
+                full_enum = False
+            elif re.match(r"\d+ .*:", line):
+                property_id = None
+            elif property_id is not None:
+                if line.startswith("enums:"):
+                    full_enum = "Full=1" in line.split()
+                value = re.fullmatch(r"value: (\d+)", line)
+                if value and full_enum:
+                    return connector_id, property_id, int(value[1])
+    raise RuntimeError(f"{PORT} Broadcast RGB property with Full=1 was not found")
+
+
+def apply():
+    deadline = time.monotonic() + READY_TIMEOUT
+    while True:
+        try:
+            device = find_device()
+            connector, prop, value = broadcast_rgb(proptest())
+            break
+        except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+            if time.monotonic() >= deadline:
+                raise RuntimeError(f"display not ready after {READY_TIMEOUT}s: {error}") from error
+            time.sleep(0.5)
+    if value != 1:
+        proptest(connector, "connector", prop, 1)
+    if broadcast_rgb(proptest()) != (connector, prop, 1):
+        raise RuntimeError(f"{device} {PORT} Broadcast RGB did not read back as Full=1")
+    print(f"intel-full-rgb: {device} {PORT}: Broadcast RGB Full=1 "
+          f"(connector {connector}, property {prop})")
+
+
+if __name__ == "__main__":
+    try:
+        apply()
+    except Disconnected as skipped:
+        print(f"intel-full-rgb: {skipped}")
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+        print(f"intel-full-rgb: {error}", file=sys.stderr)
+        sys.exit(1)

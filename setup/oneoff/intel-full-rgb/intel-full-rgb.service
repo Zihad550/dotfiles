@@ -1,0 +1,14 @@
+[Unit]
+Description=Full RGB for Intel DP-1
+Wants=plymouth-quit.service
+After=systemd-udev-trigger.service plymouth-quit.service
+Before=display-manager.service sddm.service getty@tty1.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/intel-full-rgb
+TimeoutStartSec=25
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical.target

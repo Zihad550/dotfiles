@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Install or --uninstall the boot-time Intel DP-1 Full RGB fix; see README.md.
+set -euo pipefail
+
+# shellcheck source=../../common/pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
+source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+backup_dir=/var/lib/dotfiles/intel-full-rgb
+helper=/usr/local/bin/intel-full-rgb
+rule=/etc/udev/rules.d/80-i915-full-rgb.rules
+unit=/etc/systemd/system/intel-full-rgb.service
+managed=("$helper" "$rule" "$unit")
+
+backup_of() {
+    echo "$backup_dir/$(basename "$1")"
+}
+
+case "${1:-}" in
+    --uninstall)
+        if ! sudo test -e "$backup_dir/installed"; then
+            echo "Full RGB fix is not installed by this setup; nothing removed."
+            exit 0
+        fi
+        sudo systemctl disable --now intel-full-rgb.service
+        for path in "${managed[@]}"; do
+            backup="$(backup_of "$path")"
+            sudo rm -f "$path"
+            if sudo test -e "$backup"; then
+                sudo cp -a "$backup" "$path"
+                sudo rm -f "$backup"
+            fi
+        done
+        sudo systemctl daemon-reload
+        sudo udevadm control --reload
+        sudo rm -f "$backup_dir/installed"
+        echo "Removed Full RGB fix; previous files restored if backed up. Reboot to reset RGB."
+        ;;
+    '')
+        pacman_install libdrm python
+        sudo mkdir -p "$backup_dir" /usr/local/bin /etc/systemd/system
+        # Save the first installation's files once, including any earlier udev attempt.
+        if ! sudo test -e "$backup_dir/installed"; then
+            for path in "${managed[@]}"; do
+                if sudo test -e "$path"; then
+                    echo "Found earlier $path; backing it up to $(backup_of "$path")."
+                    sudo cp -a "$path" "$(backup_of "$path")"
+                fi
+            done
+            sudo touch "$backup_dir/installed"
+        fi
+        sudo install -m 755 "$source_dir/intel-full-rgb" "$helper"
+        sudo install -m 644 "$source_dir/intel-full-rgb.service" "$unit"
+        sudo rm -f "$rule"
+        sudo udevadm control --reload
+        sudo systemctl daemon-reload
+        sudo systemctl enable intel-full-rgb.service
+        echo "Enabled for next boot. Reboot when ready; the running desktop was not restarted."
+        ;;
+    *) echo "Usage: $0 [--uninstall]" >&2; exit 2 ;;
+esac
