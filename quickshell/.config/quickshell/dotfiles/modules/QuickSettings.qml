@@ -179,6 +179,7 @@ PopupWindow {
             // The shared module never polls; opening is the deliberate
             // moment to pick up brightness changed while the panel was closed.
             BacklightService.refresh();
+            KanataService.refresh();
             Qt.callLater(() => root.focusCurrentSurface());
         }
     }
@@ -186,6 +187,13 @@ PopupWindow {
     Component.onDestruction: BarPanelCoordinator.release(root)
 
     onCurrentPageChanged: Qt.callLater(() => root.focusCurrentSurface())
+
+    Timer {
+        interval: 2000
+        repeat: true
+        running: root.shown
+        onTriggered: KanataService.refresh()
+    }
 
     Timer {
         interval: 500
@@ -461,6 +469,25 @@ PopupWindow {
                                 chevronVisible: false
 
                                 onClicked: StayAwakeState.toggle()
+                            }
+
+                            Tile {
+                                id: kanataTile
+
+                                visible: KanataService.installed
+                                width: tileGrid.tileWidth
+                                navigationContainer: tileGrid
+
+                                icon: "󰌌"
+                                label: "Kanata"
+                                active: KanataService.active
+                                busy: KanataService.busy
+
+                                onClicked: {
+                                    // System service authorization opens a polkit window below the panel.
+                                    root.dismiss();
+                                    KanataService.toggle();
+                                }
                             }
 
                             Tile {
