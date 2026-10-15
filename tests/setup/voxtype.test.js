@@ -50,7 +50,7 @@ test("fresh defaults are copied and subsequent local edits survive", t => {
     assert.equal(fs.lstatSync(f.config).isSymbolicLink(), false);
     const defaults = fs.readFileSync(f.config, "utf8");
     assert.match(defaults, /^engine = "parakeet"$/m);
-    assert.match(defaults, /\[parakeet\]\nmodel = "parakeet-tdt-0\.6b-v2"/);
+    assert.match(defaults, /\[parakeet\]\nmodel = "parakeet-tdt-0\.6b-v3"/);
     assert.match(defaults, /model = "small.en"/);
     assert.match(defaults, /pause_media = false/);
     assert.doesNotMatch(defaults, /audio.feedback/);
@@ -88,9 +88,20 @@ function installMocks(f, { existing = false } = {}) {
     executable(voxtype, `
 printf 'voxtype %s\\n' "$*" >> "$CALLS"
 case "$*" in
-    'setup --download --no-post-install')
+    'setup --download --model '*)
         [[ \${DOWNLOAD_FAIL:-0} != 1 ]] || exit 1
         [[ -e "$MODEL" ]] || printf downloaded > "$MODEL"
+        ;;
+    'setup onnx --status')
+        if [[ -f "$BACKEND" && $(cat "$BACKEND") == onnx* ]]; then
+            printf 'Active engine: Parakeet\\n  Backend: ONNX (%s)\\n' "$(cat "$BACKEND")"
+        else
+            printf 'Active engine: Whisper\\n'
+        fi
+        ;;
+    'setup onnx --enable')
+        [[ \${ONNX_ENABLE_FAIL:-0} != 1 ]] || exit 1
+        printf onnx > "$BACKEND"
         ;;
     'setup gpu --enable')
         printf gpu > "$BACKEND"
@@ -137,10 +148,59 @@ elif [[ $2 == is-active && -f "$STATUS_PROBES" && $(cat "$STATUS_PROBES") != 0 ]
 fi`);
     executable(path.join(f.bin, "sleep"), "exit 0");
     const bashEnv = path.join(f.dir, "bash-env");
-    fs.writeFileSync(bashEnv, 'compgen() { [[ \${VULKAN_AVAILABLE:-0} == 1 ]]; }\n');
+    fs.writeFileSync(bashEnv, `
+compgen() { [[ \${VULKAN_AVAILABLE:-0} == 1 ]]; }
+# Hide any host voxtype so a fresh install stays fresh until mocked pacman runs.
+command() {
+    if [[ "$*" == '-v voxtype' && ! -x "$MOCK_BIN/voxtype" ]]; then return 1; fi
+    builtin command "$@"
+}
+`);
     Object.assign(f.env, { MOCK_VOXTYPE: voxtype, MOCK_BIN: f.bin, BASH_ENV: bashEnv });
     if (existing) fs.copyFileSync(voxtype, path.join(f.bin, "voxtype"));
 }
+
+test("fresh setup downloads Parakeet and selects ONNX instead of Vulkan", t => {
+    const f = fixture(t);
+    installMocks(f);
+    f.env.VULKAN_AVAILABLE = "1";
+    const result = run(SETUP, f.env);
+    assert.equal(result.status, 0, result.stderr);
+    const calls = fs.readFileSync(f.env.CALLS, "utf8");
+    assert.match(calls, /sudo voxtype setup onnx --enable/);
+    assert.match(calls, /setup --download --model parakeet-tdt-0.6b-v3 --no-post-install/);
+    assert.doesNotMatch(calls, /setup gpu|--model small.en/);
+    assert.equal(fs.readFileSync(f.env.BACKEND, "utf8"), "onnx");
+});
+
+for (const engine of ["parakeet", "whisper"]) {
+    test(`existing ${engine} config controls the downloaded model without being rewritten`, t => {
+        const f = fixture(t);
+        installMocks(f, { existing: true });
+        assert.equal(run(SEED, f.env).status, 0);
+        const model = engine === "parakeet" ? "parakeet-tdt-0.6b-v3-int8" : "medium.en";
+        const config = `engine = "${engine}"\n[${engine}]\nmodel = "${model}"\n`;
+        fs.writeFileSync(f.config, config);
+        const result = run(SETUP, f.env);
+        assert.equal(result.status, 0, result.stderr);
+        const calls = fs.readFileSync(f.env.CALLS, "utf8");
+        assert.ok(calls.includes(`setup --download --model ${model} --no-post-install`));
+        assert.equal(calls.includes("setup onnx --enable"), engine === "parakeet");
+        assert.equal(fs.readFileSync(f.config, "utf8"), config);
+    });
+}
+
+test("an omitted Parakeet model falls back to the pinned default while preserving config", t => {
+    const f = fixture(t);
+    installMocks(f, { existing: true });
+    assert.equal(run(SEED, f.env).status, 0);
+    const config = 'engine = "parakeet"\n';
+    fs.writeFileSync(f.config, config);
+    const result = run(SETUP, f.env);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(fs.readFileSync(f.env.CALLS, "utf8"), /setup --download --model parakeet-tdt-0.6b-v3 --no-post-install/);
+    assert.equal(fs.readFileSync(f.config, "utf8"), config);
+});
 
 test("rerunning setup preserves the model, config, and selected backend", t => {
     const f = fixture(t);
@@ -161,7 +221,24 @@ test("rerunning setup preserves the model, config, and selected backend", t => {
     assert.match(calls, /systemctl --user is-active --quiet voxtype.service/);
 });
 
-for (const failure of ["PACKAGE_FAIL", "DOWNLOAD_FAIL", "SERVICE_FAIL"]) {
+test("rerunning Parakeet setup keeps the downloaded model and a non-default ONNX backend", t => {
+    const f = fixture(t);
+    installMocks(f, { existing: true });
+    assert.equal(run(SEED, f.env).status, 0);
+    const config = fs.readFileSync(f.config, "utf8");
+    fs.writeFileSync(f.env.MODEL, "already downloaded");
+    fs.writeFileSync(f.env.BACKEND, "onnx-cuda");
+    const result = run(SETUP, f.env);
+    assert.equal(result.status, 0, result.stderr);
+    const calls = fs.readFileSync(f.env.CALLS, "utf8");
+    assert.match(calls, /setup --download --model parakeet-tdt-0.6b-v3 --no-post-install/);
+    assert.doesNotMatch(calls, /setup onnx --enable|setup gpu/);
+    assert.equal(fs.readFileSync(f.env.BACKEND, "utf8"), "onnx-cuda");
+    assert.equal(fs.readFileSync(f.env.MODEL, "utf8"), "already downloaded");
+    assert.equal(fs.readFileSync(f.config, "utf8"), config);
+});
+
+for (const failure of ["PACKAGE_FAIL", "DOWNLOAD_FAIL", "ONNX_ENABLE_FAIL", "SERVICE_FAIL"]) {
     test(`setup reports ${failure} instead of announcing success`, t => {
         const f = fixture(t);
         installMocks(f);
@@ -176,6 +253,8 @@ for (const failure of ["GPU_ENABLE_FAIL", "GPU_START_FAIL", "GPU_LATE_FAIL"]) {
     test(`a new installation restores CPU after ${failure}`, t => {
         const f = fixture(t);
         installMocks(f);
+        assert.equal(run(SEED, f.env).status, 0);
+        fs.writeFileSync(f.config, 'engine = "whisper"\n[whisper]\nmodel = "small.en"\n');
         f.env.VULKAN_AVAILABLE = "1";
         f.env[failure] = "1";
         const result = run(SETUP, f.env);

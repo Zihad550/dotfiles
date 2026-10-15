@@ -8,13 +8,13 @@ Status: implemented in the repository. Live microphone and text-insertion checks
 - Setup reruns preserve downloaded models and user settings.
 - Each machine records from its own microphone and inserts text into its own graphical session. Remote microphone transport is outside this change.
 - Adapt the existing partial import using `resources/omarchy` at commit `65c0f330` as the reference.
-- Use Parakeet with `parakeet-tdt-0.6b-v2` as the initial engine and model. Retain `small.en` with English in the Whisper settings for switching engines.
+- Use Parakeet with `parakeet-tdt-0.6b-v3` as the initial engine and model. Retain `small.en` with English in the Whisper settings for switching engines.
 - Use Super+S to toggle recording: press once to start, then again to stop and transcribe. Super+Ctrl+X also toggles recording. Remove the obsolete Super+Shift+V stop binding.
 - Super+Space immediately toggles the launcher through `hl.dsp.global("launcher:toggle")`. The Lua configuration requires this dispatcher wrapper because it evaluates a bare dispatcher argument as Lua.
 - The existing bar indicator opens `voxtype configure` on left-click and the local config in an editor on right-click.
 - Store starter defaults in the repository. On first setup, seed a regular local config; subsequent setup runs preserve it. Machine-specific model and hardware choices must not modify repository defaults.
 - Disable media pausing and audible feedback. Waiting for media players to pause caused a 1–3 second recording-start delay. Do not add a settings migration for existing local configs.
-- Attempt Vulkan setup on a new installation with an installed Vulkan ICD. Preserve backend choices when Voxtype was already installed. Restore CPU operation if GPU setup or service startup fails.
+- Enable the ONNX backend for Parakeet, including existing installations using a Whisper binary. Keep an already-active ONNX backend, such as CUDA. Attempt Vulkan setup only for a new Whisper installation with an installed Vulkan ICD. Preserve existing Whisper backend choices. When Vulkan was enabled, restore CPU operation if GPU setup or service startup fails.
 - Package, model-download, and service failures fail the setup step so it can be retried.
 
 ## Configuration migration
@@ -31,11 +31,11 @@ The existing config selects `small.en`, English, and audible feedback. Omarchy s
 
 ## Implementation and provenance
 
-Both profile installers run `setup/common/setup-voxtype` after their package-repository setup. The Shared Setup Script installs `wtype`, `wl-clipboard`, `python`, and `voxtype-bin`, seeds configuration, downloads the configured Whisper model, and installs and restarts the user service. It explicitly checks that the service is enabled and active because upstream setup does not propagate every systemctl failure. After each restart it waits up to 30 seconds of polling for `voxtype status` to report `idle`; the service's `Type=simple` can report active before initialization finishes. Before restarting, it stops the service and removes the configured runtime state file so a stale `idle` from a crashed daemon cannot satisfy the check. Python's TOML parser resolves both `auto` and custom state paths without rewriting configuration. Disabled state reporting fails setup because the bar and recording controls require it. A failed startup or readiness timeout follows the same CPU recovery policy.
+Both profile installers run `setup/common/setup-voxtype` after their package-repository setup. The Shared Setup Script installs `wtype`, `wl-clipboard`, `python`, and `voxtype-bin`, seeds configuration, reads the selected engine and model from the local TOML config, downloads that model explicitly with `--model`, and installs and restarts the user service. It explicitly checks that the service is enabled and active because upstream setup does not propagate every systemctl failure. After each restart it waits up to 30 seconds of polling for `voxtype status` to report `idle`; the service's `Type=simple` can report active before initialization finishes. Before restarting, it stops the service and removes the configured runtime state file so a stale `idle` from a crashed daemon cannot satisfy the check. Python's TOML parser resolves both `auto` and custom state paths without rewriting configuration. Disabled state reporting fails setup because the bar and recording controls require it. A failed startup or readiness timeout follows the same CPU recovery policy.
 
-The integration adapts Omarchy's installer, recording bindings, configuration controls, and status follower at [commit 65c0f330](https://github.com/basecamp/omarchy/tree/65c0f330). It retains this repository's Quickshell bar module. Starter configuration now selects Parakeet with `parakeet-tdt-0.6b-v2`; existing regular local configs remain unchanged by setup. The status follower directly execs `setpriv --pdeathsig TERM voxtype status --follow --extended --format json`, and the bar reads the returned `class` field.
+The integration adapts Omarchy's installer, recording bindings, configuration controls, and status follower at [commit 65c0f330](https://github.com/basecamp/omarchy/tree/65c0f330). It retains this repository's Quickshell bar module. Starter configuration now selects Parakeet with `parakeet-tdt-0.6b-v3`; existing regular local configs remain unchanged by setup. The status follower directly execs `setpriv --pdeathsig TERM voxtype status --follow --extended --format json`, and the bar reads the returned `class` field.
 
-CLI behavior was checked against [Voxtype's setup source](https://github.com/peteonrails/voxtype/blob/6d2fc6ddbf791ac00d6a54dc002664010c16b100/src/setup/mod.rs) and [service setup](https://github.com/peteonrails/voxtype/blob/6d2fc6ddbf791ac00d6a54dc002664010c16b100/src/setup/systemd.rs). `--download --no-post-install` preserves an existing config and skips a valid downloaded Whisper model. This installer targets Whisper; switching to another transcription engine is outside its download contract.
+CLI behavior was checked against [Voxtype's setup source](https://github.com/peteonrails/voxtype/blob/6d2fc6ddbf791ac00d6a54dc002664010c16b100/src/setup/mod.rs) and [service setup](https://github.com/peteonrails/voxtype/blob/6d2fc6ddbf791ac00d6a54dc002664010c16b100/src/setup/systemd.rs). `--download --no-post-install` preserves an existing config and skips a valid downloaded Whisper model. The installer supports Whisper and Parakeet. Parakeet setup selects the packaged ONNX binary with `sudo voxtype setup onnx --enable` before downloading its model, unless `voxtype setup onnx --status` already reports an ONNX backend; it does not attempt Whisper Vulkan setup. A config without an engine keeps the upstream Whisper default. Other engines fail with an explicit unsupported-engine message. Local settings are never rewritten. The explicit model flag and ONNX switch were verified against the installed Voxtype 1.1.0 CLI.
 
 Vulkan ICD presence does not prove that transcription works on the GPU. Setup recovers from GPU-switch or service-start failures; failures during actual transcription still require the live check below and, if needed, manual CPU selection.
 
@@ -70,7 +70,7 @@ Do not run the entire profile installer just to add dictation. No remote microph
 5. While the indicator is visible, left-click it to open `voxtype configure`; right-click to edit the local config. Configuration is also always available from a terminal through `voxtype configure`.
 6. Rerun the standalone installer. Confirm local settings and downloaded models remain intact.
 
-For startup or transcription failures, inspect `journalctl --user -u voxtype.service -n 100 --no-pager`. To select CPU explicitly:
+For startup or transcription failures, inspect `journalctl --user -u voxtype.service -n 100 --no-pager`. For Whisper only, to select CPU explicitly:
 
 ```sh
 sudo voxtype setup gpu --disable
@@ -80,4 +80,4 @@ systemctl --user restart voxtype.service
 
 ## Automated verification
 
-`tests/setup/voxtype.test.js` exercises fresh configuration, both stow symlink layouts, preservation of local settings, setup reruns, package/download/service failures, GPU fallback, and actual Lua binding registration with and without Voxtype available. Run it with `node --test tests/setup/voxtype.test.js`.
+`tests/setup/voxtype.test.js` exercises fresh configuration, both stow symlink layouts, preservation of local settings, setup reruns, engine and model selection, ONNX enablement and preservation of an active ONNX backend, package/download/ONNX/service failures, Whisper GPU fallback, and actual Lua binding registration with and without Voxtype available. Run it with `node --test tests/setup/voxtype.test.js`.

@@ -135,7 +135,7 @@ See the [port provenance](../../quickshell/.config/quickshell/dotfiles/media/PRO
 
 ### Dictation
 
-Setup enables Voxtype with the `small.en` English model. Press Super+S or Super+Ctrl+X to start recording, then press the same shortcut
+New configs start Voxtype with the Parakeet `parakeet-tdt-0.6b-v3` model and its ONNX backend; existing local configs keep their engine and model. Press Super+S or Super+Ctrl+X to start recording, then press the same shortcut
 again to stop and transcribe. Starter settings disable media pausing and
 audible feedback. Settings are local files, so `voxtype configure` does not
 modify the repository. See [Voxtype integration](../../docs/voxtype-spec.md)

@@ -13,10 +13,32 @@ fi
 
 pacman_install wtype wl-clipboard python voxtype-bin
 "$DOTFILES_DIR/setup/common/voxtype/seed-config"
-voxtype setup --download --no-post-install
+config="${XDG_CONFIG_HOME:-$HOME/.config}/voxtype/config.toml"
+engine_and_model=$(python3 - "$config" <<'PYCONFIG'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as source:
+    config = tomllib.load(source)
+engine = config.get("engine", "whisper")
+defaults = {"whisper": "base.en", "parakeet": "parakeet-tdt-0.6b-v3"}
+if engine not in defaults:
+    sys.exit(f"Voxtype setup does not support engine: {engine}")
+print(engine)
+print(config.get(engine, {}).get("model", defaults[engine]))
+PYCONFIG
+)
+engine="${engine_and_model%%$'\n'*}"
+model="${engine_and_model#*$'\n'}"
+
+# Re-enabling would replace a user-selected ONNX variant such as CUDA.
+if [[ "$engine" == parakeet && "$(voxtype setup onnx --status 2>/dev/null || true)" != *"Backend: ONNX"* ]]; then
+    sudo voxtype setup onnx --enable
+fi
+voxtype setup --download --model "$model" --no-post-install
 
 gpu_enabled=false
-if [[ "$new_install" == true ]] && compgen -G '/usr/share/vulkan/icd.d/*.json' >/dev/null; then
+if [[ "$engine" == whisper && "$new_install" == true ]] && compgen -G '/usr/share/vulkan/icd.d/*.json' >/dev/null; then
     if sudo voxtype setup gpu --enable; then
         gpu_enabled=true
     else
@@ -33,7 +55,7 @@ systemctl --user is-enabled --quiet voxtype.service
 start_service() {
     systemctl --user stop voxtype.service || return 1
     # A crashed daemon can leave idle behind; only a new state write proves readiness.
-    python3 - "${XDG_CONFIG_HOME:-$HOME/.config}/voxtype/config.toml" <<'PY' || return 1
+    python3 - "$config" <<'PY' || return 1
 import os
 from pathlib import Path
 import sys

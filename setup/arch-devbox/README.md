@@ -201,7 +201,7 @@ half of `pacman-base` plus the Hyprland steps.
 
 ### Dictation
 
-Setup enables Voxtype with the `small.en` English model. Press Super+S or Super+Ctrl+X to start recording, then press the same shortcut
+New configs start Voxtype with the Parakeet `parakeet-tdt-0.6b-v3` model and its ONNX backend; existing local configs keep their engine and model. Press Super+S or Super+Ctrl+X to start recording, then press the same shortcut
 again to stop and transcribe. Dictation uses this machine's microphone
 and graphical session. Settings are local files, editable through
 `voxtype configure`. See [Voxtype integration](../../docs/voxtype-spec.md)
