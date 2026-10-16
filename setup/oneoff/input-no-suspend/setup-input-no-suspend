@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Pick ALSA inputs whose WirePlumber auto-suspend to disable; see README.md.
+set -euo pipefail
+
+conf_dir="${XDG_CONFIG_HOME:-$HOME/.config}/wireplumber/wireplumber.conf.d"
+conf="$conf_dir/51-dotfiles-input-no-suspend.conf"
+
+for cmd in gum pactl systemctl; do
+    command -v "$cmd" >/dev/null || { echo "Missing $cmd." >&2; exit 1; }
+done
+
+# One "Description [node.name]" line per ALSA input; the rule below only covers ALSA.
+# gum splits --selected on commas, so none may appear in an option.
+options=$(LC_ALL=C pactl list sources | awk -F': ' '
+    /^\tName: / { name = $2 }
+    /^\tDescription: / && name ~ /^alsa_input\./ { gsub(/, */, " - ", $2); print $2 " [" name "]" }')
+if [[ -z $options ]]; then
+    echo "No ALSA inputs found."
+    exit 0
+fi
+
+current=()
+if [[ -f $conf ]]; then
+    mapfile -t current < <(sed -n 's/.*node\.name = "\([^"]*\)".*/\1/p' "$conf")
+fi
+selected=()
+unlisted=()
+for kept in "${current[@]}"; do
+    option=$(grep -F -- "[$kept]" <<<"$options" || true)
+    if [[ -n $option ]]; then
+        selected+=("$option")
+    else
+        unlisted+=("$kept")
+    fi
+done
+
+choice=$(IFS=,; gum choose --no-limit \
+    --header "Keep these inputs awake (space toggles, enter applies):" \
+    --selected "${selected[*]}" <<<"$options") || { echo "Aborted; nothing changed."; exit 0; }
+
+# Unplugged inputs can't be shown, so their rules are kept as-is.
+names=("${unlisted[@]}")
+if ((${#unlisted[@]})); then
+    echo "Keeping rules for inputs not present now:"
+    printf '  %s\n' "${unlisted[@]}"
+fi
+while IFS= read -r option; do
+    [[ -z $option ]] && continue
+    name=${option##* [}
+    names+=("${name%]}")
+done <<<"$choice"
+
+if ((${#names[@]} == 0)); then
+    new=""
+else
+    new=$'monitor.alsa.rules = [\n  {\n    matches = [\n'
+    for name in "${names[@]}"; do
+        new+="      { node.name = \"$name\" }"$'\n'
+    done
+    new+=$'    ]\n    actions = { update-props = { session.suspend-timeout-seconds = 0 } }\n  }\n]\n'
+fi
+
+old=""
+[[ -f $conf ]] && old=$(<"$conf")$'\n'
+if [[ $new == "$old" ]]; then
+    echo "No change."
+    exit 0
+fi
+
+if [[ -z $new ]]; then
+    rm -f "$conf"
+    echo "Removed $conf; all inputs auto-suspend again."
+else
+    mkdir -p "$conf_dir"
+    printf '%s' "$new" >"$conf"
+    echo "Wrote $conf:"
+    printf '  %s\n' "${names[@]}"
+fi
+
+if gum confirm "Restart WirePlumber now? Audio drops for a moment."; then
+    systemctl --user restart wireplumber
+    echo "Restarted. Check with: pactl list sources short"
+else
+    echo "Applies after: systemctl --user restart wireplumber"
+fi
