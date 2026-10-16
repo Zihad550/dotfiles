@@ -12,6 +12,7 @@ test("Kanata tracks service state, serializes toggles and reports failures", { s
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kanata-toggle-"));
     t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
     fs.mkdirSync(path.join(directory, "bin"));
+    fs.mkdirSync(path.join(directory, "dotfiles/bin"), { recursive: true });
     fs.mkdirSync(path.join(directory, "runtime"), { mode: 0o700 });
     fs.copyFileSync(path.join(repo, "quickshell/.config/quickshell/dotfiles/KanataService.qml"),
         path.join(directory, "KanataService.qml"));
@@ -38,7 +39,7 @@ case "$1" in
     *) exit 2 ;;
 esac
 `, { mode: 0o755 });
-    fs.writeFileSync(path.join(directory, "bin/df-kanata-profile"),
+    fs.writeFileSync(path.join(directory, "dotfiles/bin/df-kanata-profile"),
         `#!/bin/sh
 if [ "$1" = current ]; then
     if [ -f "$HOME/bad-profile" ]; then echo 'Unknown active Kanata config' >&2; exit 1; fi
@@ -136,6 +137,25 @@ ShellRoot {
                 root.check(!KanataService.installed && !KanataService.active, "missing unit hidden");
                 KanataService.toggle();
                 root.check(!KanataService.busy, "missing unit cannot toggle");
+                root.writeState('echo active > "$HOME/state"; rm "$HOME/fail" "$HOME/bad-profile"; mv "$HOME/dotfiles/bin/df-kanata-profile" "$HOME/helper"');
+                break;
+            case 15:
+                KanataService.refresh();
+                break;
+            case 16:
+                root.check(KanataService.installed && KanataService.active, "missing helper keeps service state");
+                root.check(KanataService.profileError.length > 0, "missing helper is reported");
+                KanataService.toggle();
+                break;
+            case 17:
+                root.check(!KanataService.active, "missing helper does not block toggles");
+                root.writeState('mv "$HOME/helper" "$HOME/dotfiles/bin/df-kanata-profile"');
+                break;
+            case 18:
+                KanataService.refresh();
+                break;
+            case 19:
+                root.check(KanataService.profileError === "", "profile loading recovers");
                 console.log("KANATA_PASS");
                 Qt.quit();
             }
@@ -150,7 +170,7 @@ ShellRoot {
             QT_QPA_PLATFORM: "offscreen",
             HOME: directory,
             XDG_RUNTIME_DIR: path.join(directory, "runtime"),
-            PATH: `${path.join(directory, "bin")}:${process.env.PATH}`,
+            PATH: `${path.join(directory, "bin")}:/usr/bin:/bin`,
         },
     });
     const output = result.stdout + result.stderr;
@@ -158,7 +178,7 @@ ShellRoot {
     assert.doesNotMatch(output, /CHECK_FAILED|TypeError|ReferenceError/, output);
     assert.match(output, /KANATA_PASS/, output);
     assert.equal(fs.readFileSync(path.join(directory, "calls"), "utf8"),
-        "start kanata.service\nstop kanata.service\nstart kanata.service\n");
+        "start kanata.service\nstop kanata.service\nstart kanata.service\nstop kanata.service\n");
     const notifications = fs.readFileSync(path.join(directory, "notifications"), "utf8");
     assert.match(notifications, /Kanata Authorization denied/);
     assert.match(notifications, /Kanata Profile switch failed/);

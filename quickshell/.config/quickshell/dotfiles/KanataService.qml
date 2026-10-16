@@ -8,6 +8,7 @@ Singleton {
     id: root
 
     property string profile: "default"
+    readonly property string profileCommand: `${Quickshell.env("HOME")}/dotfiles/bin/df-kanata-profile`
     readonly property var profiles: [
         { id: "default", label: "Default", detail: "Original hold times", icon: "󰌌" },
         { id: "laptop", label: "Laptop", detail: "Hold times +10 ms", icon: "󰌢" }
@@ -43,14 +44,15 @@ Singleton {
         if (!root.profiles.some(item => item.id === profile))
             return;
         root.changing = true;
-        toggleProcess.command = ["df-kanata-profile", profile];
+        toggleProcess.command = ["bash", root.profileCommand, profile];
         toggleProcess.running = true;
     }
 
     Process {
         id: profileStatusProcess
 
-        command: ["df-kanata-profile", "current"]
+        // Bash reports a missing helper through onExited, releasing the busy state.
+        command: ["bash", root.profileCommand, "current"]
         stdout: StdioCollector {
             id: profileOutput
             waitForEnd: true
