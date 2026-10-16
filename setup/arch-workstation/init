@@ -116,7 +116,7 @@ else
     mark_done apparmor
 fi
 
-run_step "kanata" "$ARCH_WORKSTATION_DIR/setup-packages/setup-kanata"
+run_step "kanata" "$DOTFILES_DIR/setup/common/setup-kanata"
 
 run_step "voxtype" "$DOTFILES_DIR/setup/common/setup-voxtype"
 

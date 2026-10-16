@@ -38,6 +38,18 @@ case "$1" in
     *) exit 2 ;;
 esac
 `, { mode: 0o755 });
+    fs.writeFileSync(path.join(directory, "bin/df-kanata-profile"),
+        `#!/bin/sh
+if [ "$1" = current ]; then
+    if [ -f "$HOME/bad-profile" ]; then echo 'Unknown active Kanata config' >&2; exit 1; fi
+    if [ -f "$HOME/profile" ]; then cat "$HOME/profile"; else echo default; fi
+elif [ -f "$HOME/fail-profile" ]; then
+    echo 'Profile switch failed' >&2
+    exit 1
+else
+    echo "$1" > "$HOME/profile"
+fi
+`, { mode: 0o755 });
     fs.writeFileSync(path.join(directory, "bin/notify-send"),
         '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HOME/notifications"\n', { mode: 0o755 });
     fs.writeFileSync(path.join(directory, "shell.qml"), `import QtQuick
@@ -94,12 +106,33 @@ ShellRoot {
                 break;
             case 6:
                 root.check(KanataService.active, "external start is reflected");
-                root.writeState('echo missing > "$HOME/state"');
+                KanataService.selectProfile("laptop");
+                KanataService.selectProfile("default");
+                root.check(KanataService.busy, "profile switch is busy");
                 break;
             case 7:
-                KanataService.refresh();
+                root.check(KanataService.profile === "laptop", "profile switch confirmed");
+                root.writeState('touch "$HOME/fail-profile"');
                 break;
             case 8:
+                KanataService.selectProfile("default");
+                break;
+            case 9:
+                root.check(KanataService.profile === "laptop", "failed switch keeps profile");
+                root.writeState('touch "$HOME/bad-profile"');
+                break;
+            case 10:
+            case 11:
+                KanataService.refresh();
+                break;
+            case 12:
+                root.check(KanataService.profile === "laptop", "unreadable profile keeps last known");
+                root.writeState('echo missing > "$HOME/state"');
+                break;
+            case 13:
+                KanataService.refresh();
+                break;
+            case 14:
                 root.check(!KanataService.installed && !KanataService.active, "missing unit hidden");
                 KanataService.toggle();
                 root.check(!KanataService.busy, "missing unit cannot toggle");
@@ -126,5 +159,8 @@ ShellRoot {
     assert.match(output, /KANATA_PASS/, output);
     assert.equal(fs.readFileSync(path.join(directory, "calls"), "utf8"),
         "start kanata.service\nstop kanata.service\nstart kanata.service\n");
-    assert.match(fs.readFileSync(path.join(directory, "notifications"), "utf8"), /Kanata Authorization denied/);
+    const notifications = fs.readFileSync(path.join(directory, "notifications"), "utf8");
+    assert.match(notifications, /Kanata Authorization denied/);
+    assert.match(notifications, /Kanata Profile switch failed/);
+    assert.equal(notifications.match(/Kanata Unknown active Kanata config/g)?.length, 1, notifications);
 });

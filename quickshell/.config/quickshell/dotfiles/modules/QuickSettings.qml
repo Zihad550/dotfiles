@@ -18,7 +18,8 @@ PopupWindow {
         Bluetooth,
         Power,
         Devcontainer,
-        Tailscale
+        Tailscale,
+        Kanata
     }
 
     DevcontainerRoutingState {
@@ -95,7 +96,7 @@ PopupWindow {
     }
 
     // The surface of the current Page, or null on the primary surface.
-    readonly property var currentSurface: [wifiSurface, audioSurface, bluetoothSurface, powerSurface, devcontainerSurface, tailscaleSurface]
+    readonly property var currentSurface: [wifiSurface, audioSurface, bluetoothSurface, powerSurface, devcontainerSurface, tailscaleSurface, kanataSurface]
         .find(surface => surface.current && surface.available) ?? null
 
     readonly property real surfaceImplicitHeight: root.currentSurface
@@ -142,7 +143,7 @@ PopupWindow {
     function navigate(page: int, keyboardFocus: bool): void {
         if (page === QuickSettings.Bluetooth && !root.bluetoothAvailable)
             return;
-        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer && page !== QuickSettings.Tailscale) {
+        if (page !== QuickSettings.Primary && page !== QuickSettings.Wifi && page !== QuickSettings.Audio && page !== QuickSettings.Bluetooth && page !== QuickSettings.Power && page !== QuickSettings.Devcontainer && page !== QuickSettings.Tailscale && page !== QuickSettings.Kanata) {
             console.warn(`dotfiles: unavailable Quick Settings Page ${page}`);
             return;
         }
@@ -479,9 +480,11 @@ PopupWindow {
                                 navigationContainer: tileGrid
 
                                 icon: "󰌌"
-                                label: "Kanata"
+                                label: `Kanata · ${KanataService.profiles.find(item => item.id === KanataService.profile)?.label ?? KanataService.profile}`
                                 active: KanataService.active
                                 busy: KanataService.busy
+                                chevronVisible: true
+                                onChevronClicked: keyboard => root.navigate(QuickSettings.Kanata, keyboard)
 
                                 onClicked: {
                                     // System service authorization opens a polkit window below the panel.
@@ -649,6 +652,21 @@ PopupWindow {
                     routingState: devcontainerRouting
                     active: devcontainerSurface.pageActive
                     onBack: keyboard => root.showPrimary(keyboard)
+                }
+            }
+
+            QuickSettingsPageSurface {
+                id: kanataSurface
+
+                page: QuickSettings.Kanata
+                currentPage: root.currentPage
+                shown: root.shown
+                onPageLoaded: Qt.callLater(() => root.focusCurrentSurface())
+
+                sourceComponent: KanataPage {
+                    active: kanataSurface.pageActive
+                    onBack: keyboard => root.showPrimary(keyboard)
+                    onCloseRequested: root.dismiss()
                 }
             }
 

@@ -117,7 +117,7 @@ test("Arch workstation is a remote-development client", () => {
     assert.match(stow, /^stow zed$/m);
     assert.match(stow, /^stow kanata$/m);
     assert.match(stow, /^stow dotfiles$/m);
-    assert.match(init, /setup-packages\/setup-kanata/);
+    assert.match(init, /setup\/common\/setup-kanata/);
     assert.match(init, /setup-packages\/setup-syncthing/);
     assert.match(syncthing, /systemctl --user enable --now syncthing\.service/);
     assert.doesNotMatch(syncthing, /~\/dev|\.stignore_dev/);

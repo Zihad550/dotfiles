@@ -1,0 +1,12 @@
+(defvar
+  tap-time 160
+  hold-time 140
+  a-hold-time 155
+  j-hold-time 116
+  k-hold-time 103
+  f-hold-time 150
+  d-hold-time 103
+  built-in-hold-time 150
+)
+
+(include keymap.kbd)

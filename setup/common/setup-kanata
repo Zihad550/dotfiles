@@ -3,13 +3,15 @@ set -euo pipefail
 
 yay -S --noconfirm kanata-bin
 
-DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 UNIT_TEMPLATE="$DOTFILES_DIR/setup/systemd/root/kanata.service.in"
 
 [[ -f "$UNIT_TEMPLATE" ]] || { echo "missing unit template: $UNIT_TEMPLATE" >&2; exit 1; }
 
+"$DOTFILES_DIR/bin/df-kanata-profile" init
+
 # %h is no help for the config path: in a system unit it always expands to /root.
-sed "s|@CONFIG@|$HOME/.config/kanata/config.kbd|" "$UNIT_TEMPLATE" |
+sed "s|@CONFIG@|$HOME/.local/state/kanata/active.kbd|" "$UNIT_TEMPLATE" |
     sudo tee /etc/systemd/system/kanata.service >/dev/null
 
 sudo systemctl daemon-reload

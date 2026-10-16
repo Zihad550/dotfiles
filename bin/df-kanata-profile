@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# KANATA_SETTLE_SECONDS (default 1): how long Kanata must stay up after a
+# restart or start before the switch counts as successful.
+set -euo pipefail
+
+config_dir="$HOME/.config/kanata"
+state_dir="$HOME/.local/state/kanata"
+active_config="$state_dir/active.kbd"
+settle_seconds="${KANATA_SETTLE_SECONDS:-1}"
+
+profile_path() {
+    case "$1" in
+        default) printf '%s\n' "$config_dir/config.kbd" ;;
+        laptop) printf '%s\n' "$config_dir/laptop.kbd" ;;
+        *) echo "Unknown Kanata profile: $1" >&2; return 1 ;;
+    esac
+}
+
+current_profile() {
+    case "$(readlink "$active_config" || true)" in
+        "$config_dir/laptop.kbd") echo laptop ;;
+        "$config_dir/config.kbd"|"") echo default ;;
+        *) echo 'Unknown active Kanata config' >&2; return 1 ;;
+    esac
+}
+
+write_config() {
+    local target="$1" temporary
+    temporary=$(mktemp -d "$state_dir/.profile.XXXXXX")
+    if ln -s "$target" "$temporary/active.kbd" && mv -Tf "$temporary/active.kbd" "$active_config"; then
+        rmdir "$temporary"
+    else
+        rm -rf "$temporary"
+        return 1
+    fi
+}
+
+# The unit is Type=simple, so systemctl succeeds as soon as Kanata is forked.
+service_runs() {
+    systemctl "$1" kanata.service || return 1
+    sleep "$settle_seconds"
+    systemctl is-active --quiet kanata.service
+}
+
+lock() {
+    mkdir -p "$state_dir"
+    exec 9>"$state_dir/profile.lock"
+    flock -n 9 || { echo 'A Kanata profile change is already running.' >&2; exit 1; }
+}
+
+case "${1:-current}" in
+    current) current_profile; exit ;;
+    init)
+        lock
+        ln -sfn "$config_dir/keymap.kbd" "$state_dir/keymap.kbd"
+        if [[ ! -e "$active_config" && ! -L "$active_config" ]]; then
+            write_config "$(profile_path default)"
+        fi
+        exit
+        ;;
+    default|laptop) target=$(profile_path "$1") ;;
+    *) echo 'Usage: df-kanata-profile [current|default|laptop|init]' >&2; exit 1 ;;
+esac
+
+lock
+# Older installations must point the service at the saved selection first.
+if [[ "$(systemctl show kanata.service --property=ExecStart --value)" != *"$active_config"* ]]; then
+    echo 'Run setup/common/setup-kanata to enable profile switching.' >&2
+    exit 1
+fi
+kanata --check --cfg "$target" >&2
+previous=$(profile_path "$(current_profile)")
+[[ "$previous" != "$target" ]] || exit 0
+was_active=false
+if systemctl is-active --quiet kanata.service; then
+    was_active=true
+fi
+write_config "$target"
+if "$was_active" && ! service_runs restart; then
+    write_config "$previous"
+    # A cancelled authorization never restarted the service.
+    if systemctl is-active --quiet kanata.service; then
+        echo 'Could not switch Kanata; the previous profile is still running.' >&2
+    elif service_runs start; then
+        echo 'Could not switch Kanata; restored and started the previous profile.' >&2
+    else
+        echo 'Could not switch Kanata; restored the previous selection, but recovery also failed. Kanata may be stopped.' >&2
+    fi
+    exit 1
+fi
