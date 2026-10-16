@@ -101,6 +101,7 @@ run_step "yay" "$ARCH_DEVBOX_DIR/setup-yay"
 # The CLI toolkit, fonts, coreutils replacements, and gcc come from the devbox
 # package base. The client workstation no longer uses it.
 run_step "pacman base" "$DOTFILES_DIR/setup/common/packages/pacman-base"
+run_step "DNS" "$ARCH_DEVBOX_DIR/setup-dns"
 
 # The mise installs are the longest part of the run, so they overlap the
 # pacman/yay steps below. Starts after pacman base for git. Everything that

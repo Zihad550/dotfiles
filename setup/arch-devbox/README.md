@@ -99,7 +99,7 @@ so a fix there lands on both targets.
 | `setup-no-sleep` | masks the sleep targets so the box stays reachable (wrapper over [`../common/setup-no-sleep`](../common/setup-no-sleep)) |
 | `idle.json` | one-field Idle Ladder override — no Suspend Stage; shared Dim, Lock and Blank remain |
 | `setup-tuned` | desktop power management — the non-laptop half of `init`'s TLP branch (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
-| `setup-dns` | points this box at Cloudflare instead of a LAN-only resolver `setup-ufw`'s VLAN isolation would block (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
+| `setup-dns` | installs Cloudflare Family with strict DNS over TLS during `init` (wrapper over [`../common/setup-dns`](../common/setup-dns)); see [dns](#dns) |
 | `docker` | rootless docker via [`../common/setup-rootless-docker`](../common/setup-rootless-docker), called directly (no local wrapper) — an AI harness box shouldn't hand a compromised container a root-owned daemon |
 | `setup-ufw-base` | non-interactive deny-all baseline, run by `init` |
 | `setup-ufw-localsend` | LocalSend profile and LAN exceptions for saved trusted IPv4 peers |
@@ -237,12 +237,76 @@ Several CLIs need an interactive login on first run (`claude`, `opencode`,
 
 ## dns
 
+`init` runs [`setup-dns`](setup-dns) after the base packages. To apply only DNS:
+
+```bash
+setup/arch-devbox/setup-dns
+```
+
+The wrapper hands the tracked [`10-dns-override.conf`](10-dns-override.conf)
+to the shared script, which installs it as
+`/etc/systemd/resolved.conf.d/10-dns-override.conf`, root-owned and mode 0644,
+replacing the previous override in place. It enables systemd-resolved for boot
+and restarts it when the file changes. Re-running restores the same file.
+`DNS_SERVERS="9.9.9.9 149.112.112.112" setup/arch-devbox/setup-dns` installs a
+generated plain-DNS drop-in for another pair instead.
+
+The shared script then hands `/etc/resolv.conf` to resolved; see the
+[shared DNS documentation](../common/README.md#dns-and-magicdns) for the
+NetworkManager integration, the ordering, and the one-time tailscaled restart.
+This handoff makes the DNS step work on fresh Arch installations as well as
+already integrated hosts.
+
+Cloudflare Family (`1.1.1.3`, `1.0.0.3`) filters malware and adult content.
+`#family.cloudflare-dns.com` authenticates the TLS server certificate;
+`DNSOverTLS=yes` requires DoT and fails resolution if TLS is unavailable,
+without downgrading to UDP/TCP port 53. TCP port 853 must be reachable.
+`Domains=~.` routes ordinary internet names to these global servers.
+
+Tailscale owns its per-link DNS servers, search suffix and reverse routes.
+Its more-specific domains take precedence over the global root route. Tailscale
+explicitly sets `DNSOverTLS=no` on `tailscale0`, overriding the global setting
+for its local MagicDNS proxy. The installer does not set any per-link values,
+hardcode tailnet domains, or toggle `--accept-dns`. Current Tailscale restores
+its link configuration when resolved restarts; on a fresh install it registers
+that configuration when the later interactive `setup-tailscale` joins the tailnet.
+See [systemd's resolver settings](https://github.com/systemd/systemd/blob/main/man/resolved.conf.xml)
+and [Tailscale's resolved integration](https://github.com/tailscale/tailscale/blob/main/net/dns/resolved.go).
+
+Verify after installation, and again after reboot:
+
+```bash
+systemd-analyze cat-config systemd/resolved.conf
+resolvectl status
+resolvectl query --cache=no nudity.testcategory.com
+resolvectl query --cache=no malware.testcategory.com
+resolvectl query --cache=no devbox
+```
+
+Expect global DNS to list only the two Family servers with their TLS hostname,
+`+DNSOverTLS` and `~.`. Both filtering probes should return `0.0.0.0` and/or `::`
+and report local or encrypted transport. This flag alone does not prove DoT;
+check it together with the global configuration and query routing.
+`tailscale0` should retain `-DNSOverTLS`, `DefaultRoute=no`, MagicDNS servers,
+and the dynamically supplied domains. Test an existing tailnet device name;
+if `devbox` is not registered, use a name from `tailscale status`, including its
+full MagicDNS name if needed. Its answer must use `tailscale0`.
+
+Audit the merged configuration for additional active `DNS=`, `Domains=` or
+`DNSOverTLS=` assignments. DNS and domain lists accumulate across drop-ins;
+remove obsolete competing overrides at their source. The repository has no
+other resolved configuration. Also inspect `resolvectl status`: a per-link
+`~.` route can compete with the global route and bypass Family filtering,
+while intentional split-DNS domains should remain. The installer leaves these
+per-link NetworkManager and Tailscale settings under their existing owners.
+
+
 Two independent things can be wrong with name resolution on this box, and they
 have different fixes:
 
 | symptom | cause | fix |
 |---|---|---|
-| nothing resolves at all once `setup-ufw` has run | the LAN resolver isn't the gateway, and VLAN isolation drops it | [`setup-dns`](setup-dns) — opt-in, points this box at a public resolver |
+| nothing resolves at all once `setup-ufw` has run | the LAN resolver isn't the gateway, and VLAN isolation drops it | [`setup-dns`](setup-dns) — run by `init`, uses public Cloudflare Family DNS |
 | everything resolves, but `gpg --recv-keys` fails | dirmngr resolves with its own bundled resolver, and its TLS stalls on hkps | [`../common/setup-dirmngr`](../common/setup-dirmngr) — run by `init` |
 
 ### gpg key imports: two faults behind one message

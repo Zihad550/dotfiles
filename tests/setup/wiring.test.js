@@ -191,6 +191,11 @@ test("both Arch profiles install the shared power-button policy", () => {
 
 test("the machine profile is shared by UWSM and shell startup", t => {
     const configHome = fs.mkdtempSync(path.join(os.tmpdir(), "dotfiles-profile-"));
+test("Arch devbox installs DNS after the base packages", () => {
+    assert.match(source("setup/arch-devbox/init"),
+        /run_step "pacman base"[^\n]*\nrun_step "DNS" "\$ARCH_DEVBOX_DIR\/setup-dns"$/m);
+});
+
     t.after(() => fs.rmSync(configHome, { recursive: true, force: true }));
 
     const writer = path.join(repoRoot, "setup/common/set-dotfiles-profile");
