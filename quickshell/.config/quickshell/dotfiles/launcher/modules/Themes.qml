@@ -5,8 +5,8 @@ import "../lib/catalog.js" as Catalog
 import "../lib/matching.js" as Matching
 import "../lib/themes.js" as Thm
 
-// The themes Provider: every theme under ~/.config/themes, the active one
-// marked. Structurally this is Clipboard.qml with a scan in place of
+// The themes Provider: every installed theme, the active one marked, then
+// the theme pack's not-yet-installed ones (applying one downloads it). Structurally this is Clipboard.qml with a scan in place of
 // `cliphist list`: a Process feeding a listing string, a pure module turning
 // that into Entries, one Action. Provider interface: see docs/launcher-spec.md.
 //
@@ -33,8 +33,8 @@ NestableProvider {
     // List-plus-preview split, not the default single-column list.
     readonly property string layout: "preview"
 
-    // Never "not ready": an empty ~/.config/themes before the first stow is
-    // legitimate, not a fault.
+    // Never "not ready": an empty listing before setup has run is legitimate,
+    // not a fault.
     readonly property bool ready: true
 
     readonly property string home: Quickshell.env("HOME")
@@ -58,8 +58,10 @@ NestableProvider {
     readonly property var catalog: {
         if (!retention.retained)
             return Matching.emptyCatalog();
-        const built = Catalog.ownedCatalog(root.listing.names,
-            name => Thm.entryFor(name, root.listing.current, root.listing.previews[name], root),
+        const installed = root.listing.names;
+        const built = Catalog.ownedCatalog(installed.concat(root.listing.available),
+            name => Thm.entryFor(name, root.listing.current, root.listing.previews[name], root,
+                installed.indexOf(name) >= 0),
             name => Thm.textsFor(name));
         return {
             entries: built.entries,
@@ -91,8 +93,12 @@ NestableProvider {
     // Called on selection and after actions, same as Clipboard.qml's own
     // refresh -- a theme applied from a terminal, or the active marker
     // moving, should show correctly next time the Launcher opens.
+    //
+    // The index fetch is detached and not awaited: themes added upstream
+    // show up on the next refresh rather than holding this one.
     function refresh(): void {
         finder.request();
+        Quickshell.execDetached(Thm.fetchIndexArgv(root.home));
     }
 
     // QtObject has no default property to nest a child into.

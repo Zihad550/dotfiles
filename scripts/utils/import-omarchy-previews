@@ -2,7 +2,7 @@
 # Import theme preview images into ~/.config/theme-previews/<theme>.webp.
 # Sources, in order:
 #   1. resources/omarchy/themes/<theme>/preview.png (upstream omarchy themes)
-#   2. ~/.config/themes/<theme>/preview.{png,jpg,jpeg,webp} (user-installed)
+#   2. ~/.local/share/dotfiles/themes/<theme>/preview.{png,jpg,jpeg,webp} (user-installed)
 # Previews are stored as WebP (q88) to match the rest of the preview/background
 # set; an already-webp source is copied as-is to avoid a re-encode.
 # Consumed by the Launcher's Themes Provider (lib/themes.js).
@@ -12,7 +12,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
 OMARCHY_SRC="$REPO/resources/omarchy/themes"
-USER_SRC="$HOME/.config/themes"
+USER_SRC="$("$REPO/bin/df-theme-dir" --root user)"
 DEST="$HOME/.config/theme-previews"
 
 if ! command -v cwebp >/dev/null 2>&1; then
@@ -58,8 +58,6 @@ fi
 
 if [[ -d $USER_SRC ]]; then
     for theme_dir in "$USER_SRC"/*/; do
-        # Skip symlinked theme dirs (= built-ins, handled via the repo)
-        [[ -L "${theme_dir%/}" ]] && continue
         theme="$(basename "${theme_dir%/}")"
 
         for ext in png jpg jpeg webp; do

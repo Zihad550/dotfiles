@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# Manage the partial, sparse clone of dotfiles-themes (see themes/README.md).
+#   df-theme-fetch --sync [--if-idle]
+#                             clone the index if missing, otherwise fetch it
+#                             and fast-forward the checked-out themes;
+#                             --if-idle skips it while another fetch runs
+#   df-theme-fetch <name>     check out one theme from the pack
+#   df-theme-fetch --drop <n> remove one theme from the checkout
+#
+#   DF_THEME_PACK_DIR   clone location (default ~/dotfiles-themes)
+#   DF_THEME_PACK_URL   remote (default github.com/Zihad550/dotfiles-themes)
+
+set -e
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+THEME_DIR="$DOTFILES_DIR/bin/df-theme-dir"
+PACK_DIR="$("$THEME_DIR" --root pack)"
+PACK_URL="${DF_THEME_PACK_URL:-https://github.com/Zihad550/dotfiles-themes.git}"
+
+# Abort a stalled transfer instead of holding the lock indefinitely.
+export GIT_HTTP_LOW_SPEED_LIMIT=1000 GIT_HTTP_LOW_SPEED_TIME=20
+
+usage() {
+   echo "Usage: df-theme-fetch --sync [--if-idle] | --drop <theme-name> | <theme-name>" >&2
+   exit 1
+}
+
+# 9>&-: a detached git maintenance child would otherwise keep the lock.
+pack() {
+   git -C "$PACK_DIR" "$@" 9>&-
+}
+
+# The Launcher syncs on every refresh while a pick runs df-theme-set, so two
+# of these can meet on the same clone. Extra args go to flock.
+lock() {
+   exec 9>"${XDG_RUNTIME_DIR:-/tmp}/df-theme-fetch-$UID.lock"
+   flock "$@" 9
+}
+
+sync() {
+   if [[ -d $PACK_DIR/.git ]]; then
+      pack fetch --quiet origin
+      if ! pack merge --ff-only --quiet origin/HEAD; then
+         echo "warning: could not fast-forward $PACK_DIR; keeping its current checkout" >&2
+      fi
+   else
+      mkdir -p "$(dirname "$PACK_DIR")"
+      # Trees only: no theme file is downloaded until its folder is added.
+      git clone --quiet --filter=blob:none --sparse "$PACK_URL" "$PACK_DIR" 9>&-
+   fi
+}
+
+case "${1:-}" in
+   --sync)
+      # For the Launcher: a running sync covers this one, so don't queue.
+      if [[ ${2:-} == --if-idle ]]; then
+         lock -n || exit 0
+      else
+         lock
+      fi
+      sync
+      exit 0
+      ;;
+   --drop)
+      NAME="${2:-}"
+      "$THEME_DIR" --check "$NAME" || usage
+      lock
+      mapfile -t keep < <(pack sparse-checkout list | grep -vxF -- "$NAME")
+      pack sparse-checkout set -- "${keep[@]}"
+      # Generated files are ignored, so git leaves them behind.
+      rm -rf "${PACK_DIR:?}/$NAME"
+      exit 0
+      ;;
+   "" | -*) usage ;;
+esac
+
+NAME="$1"
+if ! "$THEME_DIR" --check "$NAME"; then
+   echo "Error: '$NAME' is not a valid theme name" >&2
+   exit 1
+fi
+
+lock
+sync
+
+if [[ -z $(pack ls-tree --name-only origin/HEAD -- "$NAME/colors.toml") ]]; then
+   echo "Error: theme '$NAME' is not in $PACK_URL" >&2
+   exit 1
+fi
+
+pack sparse-checkout add -- "$NAME"
+
+if [[ ! -f $PACK_DIR/$NAME/colors.toml ]]; then
+   echo "Error: '$NAME' was checked out but has no colors.toml" >&2
+   exit 1
+fi
+
+echo "Fetched: $NAME"

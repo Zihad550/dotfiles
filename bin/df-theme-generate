@@ -3,7 +3,6 @@
 set -e
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-THEMES_DIR="$HOME/.config/themes"
 TEMPLATE_DIR="$DOTFILES_DIR/themes/templates"
 
 usage() {
@@ -17,28 +16,13 @@ if [[ $# -ne 1 ]]; then
 fi
 
 THEME_NAME="$1"
-THEME_SOURCE="$HOME/.config/themes"
-COLORS_FILE="$THEME_SOURCE/$THEME_NAME/colors.toml"
-OUTPUT_DIR="$THEMES_DIR/$THEME_NAME"
-
-if [[ ! -f "$COLORS_FILE" ]]; then
+if ! OUTPUT_DIR=$("$DOTFILES_DIR/bin/df-theme-dir" "$THEME_NAME"); then
    echo "Error: colors.toml not found for theme '$THEME_NAME'"
    exit 1
 fi
+COLORS_FILE="$OUTPUT_DIR/colors.toml"
 
 echo "Generating theme: $THEME_NAME"
-
-mkdir -p "$OUTPUT_DIR"
-
-parse_colors() {
-   local colors_file="$1"
-   while IFS='= ' read -r key value; do
-      if [[ ! "$key" =~ ^\[ && "$key" =~ ^[a-z_]+$ ]]; then
-         value="${value//\"/}"
-         echo "$key=$value"
-      fi
-   done <"$colors_file"
-}
 
 declare -A COLORS
 while IFS='= ' read -r key value; do
@@ -47,6 +31,42 @@ while IFS='= ' read -r key value; do
       COLORS["$key"]="$value"
    fi
 done <"$COLORS_FILE"
+
+set_default() {
+   [[ -n ${COLORS[$1]:-} ]] || COLORS[$1]="$2"
+}
+
+# Omarchy themes name colours semantically (red, bright_blue, muted, ...); the
+# templates use the ANSI names. Same mapping as Omarchy's omarchy-theme-color.
+add_ansi_aliases() {
+   local -A semantic=(
+      [color0]=background [color1]=red [color2]=green [color3]=yellow
+      [color4]=blue [color5]=magenta [color6]=cyan [color7]=foreground
+      [color8]=muted [color9]=bright_red [color10]=bright_green
+      [color11]=bright_yellow [color12]=bright_blue [color13]=bright_magenta
+      [color14]=bright_cyan [color15]=bright_foreground
+   )
+   local key i
+
+   set_default magenta "${COLORS[purple]:-}"
+   set_default bright_magenta "${COLORS[bright_purple]:-}"
+   for key in "${!semantic[@]}"; do
+      set_default "$key" "${COLORS[${semantic[$key]}]:-}"
+   done
+   for i in 1 2 3 4 5 6; do
+      set_default "color$((i + 8))" "${COLORS[color$i]}"
+   done
+   set_default background "${COLORS[color0]}"
+   set_default foreground "${COLORS[color7]}"
+   set_default color8 "${COLORS[dark_foreground]:-${COLORS[color0]}}"
+   set_default color15 "${COLORS[foreground]}"
+   set_default accent "${COLORS[color4]}"
+   set_default cursor "${COLORS[bright_foreground]:-${COLORS[foreground]}}"
+   set_default selection_background "${COLORS[selection]:-${COLORS[color8]}}"
+   set_default selection_foreground "${COLORS[foreground]}"
+}
+
+add_ansi_aliases
 
 add_derived_colors() {
    local bg="${COLORS[background]}"
@@ -68,20 +88,6 @@ add_derived_colors() {
 }
 
 add_derived_colors
-
-safe_cp() {
-   local source="$1"
-   local dest="$2"
-   local resolved_source resolved_dest
-
-   if [[ -f "$source" ]]; then
-      resolved_source=$(readlink -f "$source")
-      resolved_dest=$(readlink -f "$dest")
-      if [[ "$resolved_source" != "$resolved_dest" ]]; then
-         cp "$source" "$dest"
-      fi
-   fi
-}
 
 process_template() {
    local template_file="$1"
@@ -107,24 +113,9 @@ for template in "$TEMPLATE_DIR"/*.tpl; do
    fi
 done
 
-if [[ -f "$THEME_SOURCE/$THEME_NAME/chromium.theme" ]]; then
-   safe_cp "$THEME_SOURCE/$THEME_NAME/chromium.theme" "$OUTPUT_DIR/chromium.theme"
-fi
-
-if [[ -f "$THEME_SOURCE/$THEME_NAME/light.mode" ]]; then
-   safe_cp "$THEME_SOURCE/$THEME_NAME/light.mode" "$OUTPUT_DIR/light.mode"
-fi
-
-if [[ -f "$THEME_SOURCE/$THEME_NAME/icons.theme" ]]; then
-   safe_cp "$THEME_SOURCE/$THEME_NAME/icons.theme" "$OUTPUT_DIR/icons.theme"
-fi
-
-if [[ -f "$THEME_SOURCE/$THEME_NAME/vscode.json" ]]; then
-   safe_cp "$THEME_SOURCE/$THEME_NAME/vscode.json" "$OUTPUT_DIR/vscode.json"
-fi
-
-if [[ -f "$THEME_SOURCE/$THEME_NAME/neovim.lua" ]]; then
-   safe_cp "$THEME_SOURCE/$THEME_NAME/neovim.lua" "$OUTPUT_DIR/neovim.lua"
-fi
+case "${COLORS[mode]:-}" in
+   light) touch "$OUTPUT_DIR/light.mode" ;;
+   dark) rm -f "$OUTPUT_DIR/light.mode" ;;
+esac
 
 echo "Done! Theme generated at: $OUTPUT_DIR"

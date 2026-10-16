@@ -7,7 +7,7 @@ import Quickshell.Io
 // Colors come from the dotfiles theme system.
 //
 // df-theme-generate renders themes/templates/quickshell.json.tpl into
-// ~/.config/themes/<name>/quickshell.json, and ~/.config/theme symlinks to the
+// each theme's own quickshell.json, and ~/.config/theme symlinks to the
 // active theme. FileView watches that path, so switching themes restyles the
 // bar live -- no service restart, unlike waybar.
 Singleton {

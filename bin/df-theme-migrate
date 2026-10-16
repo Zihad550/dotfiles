@@ -1,0 +1,100 @@
+#!/bin/bash
+
+# One-way move off the stowed ~/.config/themes layout (ADR 0039). Safe to run
+# on every theme switch: each step is a no-op once done.
+#   - moves third-party themes out of ~/.config/themes and out of the repo's
+#     old themes/.config/themes/ into the user root, then drops both
+#   - relinks ~/.config/theme when it dangled into the old layout
+
+set -e
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+THEME_DIR="$DOTFILES_DIR/bin/df-theme-dir"
+OLD_DIR="$DOTFILES_DIR/themes/.config/themes"
+OLD_LINK_DIR="$HOME/.config/themes"
+USER_DIR="$("$THEME_DIR" --root user)"
+
+shopt -s nullglob
+
+link="$HOME/.config/theme"
+if [[ ! -e $OLD_LINK_DIR && ! -L $OLD_LINK_DIR && ! -d $OLD_DIR ]] && [[ ! -L $link || -e $link ]]; then
+   exit 0
+fi
+
+# Names a moved theme must not shadow: pack (checked out or not) and built-in.
+# Built on the first move, after a sync, so a new pack name isn't missed.
+declare -A taken=()
+taken_state=""
+load_taken() {
+   local state name kind
+   [[ -z $taken_state ]] || return 0
+   if "$DOTFILES_DIR/bin/df-theme-fetch" --sync; then
+      taken_state=ok
+   else
+      taken_state=offline
+   fi
+   while IFS=$'\t' read -r state name _ kind; do
+      [[ $state == available || $kind != user ]] && taken[$name]=1
+   done < <("$DOTFILES_DIR/bin/df-theme-list")
+}
+
+move_to_user_root() {
+   local dir="$1" name="${1##*/}"
+
+   [[ -f $dir/colors.toml && ! -L $dir ]] || return 0
+   load_taken
+   if [[ $taken_state != ok ]]; then
+      echo "warning: theme pack unreachable; left '$name' in ${dir%/*} for now" >&2
+      return 0
+   fi
+   if ! "$THEME_DIR" --check "$name" || [[ -e $USER_DIR/$name || -n ${taken[$name]:-} ]]; then
+      echo "warning: left theme '$name' in ${dir%/*}; move it by hand" >&2
+      return 0
+   fi
+   mkdir -p "$USER_DIR"
+   mv "$dir" "$USER_DIR/$name"
+   echo "Moved third-party theme '$name' to $USER_DIR"
+}
+
+# ~/.config/themes was either one stow symlink into this repo, or (when it
+# already existed at stow time) a directory of per-theme symlinks plus clones.
+if [[ -L $OLD_LINK_DIR ]]; then
+   rm "$OLD_LINK_DIR"
+elif [[ -d $OLD_LINK_DIR ]]; then
+   # Not */: that glob skips links whose target the pull deleted.
+   for dir in "$OLD_LINK_DIR"/*; do
+      if [[ -L $dir ]]; then
+         rm "$dir"
+      else
+         move_to_user_root "$dir"
+      fi
+   done
+   rmdir "$OLD_LINK_DIR" 2>/dev/null || true
+fi
+
+if [[ -d $OLD_DIR ]]; then
+   # What git still tracks there is a pack theme a pull hasn't removed yet.
+   for dir in "$OLD_DIR"/*/; do
+      dir="${dir%/}"
+      if [[ -z $(git -C "$DOTFILES_DIR" ls-files -- "$dir") ]]; then
+         move_to_user_root "$dir"
+      fi
+   done
+
+   # Left behind: ignored `background` links of themes the pull removed.
+   leftover=("$OLD_DIR"/*/colors.toml)
+   if (( ${#leftover[@]} == 0 )) && [[ -z $(git -C "$DOTFILES_DIR" ls-files -- "$OLD_DIR") ]]; then
+      rm -rf "$DOTFILES_DIR/themes/.config"
+   fi
+fi
+
+# Keep the active theme rather than letting df-theme-set fall back to default.
+if [[ -L $link && ! -e $link ]]; then
+   name="$(basename "$(readlink "$link")")"
+   if dir="$("$THEME_DIR" "$name")" ||
+      { "$DOTFILES_DIR/bin/df-theme-fetch" "$name" >&2 && dir="$("$THEME_DIR" "$name")"; }; then
+      "$DOTFILES_DIR/bin/df-theme-generate" "$name" >/dev/null
+      ln -snf "$dir" "$link"
+      echo "Relinked active theme '$name' to $dir"
+   fi
+fi

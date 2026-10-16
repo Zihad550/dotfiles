@@ -4,7 +4,7 @@
 //
 //     node --test "tests/launcher/*.test.js"
 //
-// `find` and `readlink` themselves are not exercised here -- these tests
+// df-theme-list, `find` and `readlink` themselves are not exercised here -- these tests
 // check the script's *shape* and the parsing of its output, the same limit
 // directories.test.js has for its own refresh script.
 
@@ -27,13 +27,12 @@ const catalogOf = (names, current, previews, provider) => C.ownedCatalog(names,
     name => T.entryFor(name, current, previews[name], provider),
     name => T.textsFor(name));
 
-test("listScript reads the active symlink and scans for colors.toml, in that order", () => {
+test("listScript reads the active symlink, then runs df-theme-list by absolute path", () => {
     const script = T.listScript(HOME);
-    assert.ok(script.indexOf("CURRENT") < script.indexOf("find -L"),
-        "the CURRENT line must be printed before the scan, so parseListing's first-line assumption holds");
+    assert.ok(script.indexOf("CURRENT") < script.indexOf("df-theme-list"),
+        "the CURRENT line must be printed before the listing, so parseListing's first-line assumption holds");
     assert.ok(script.includes(`readlink '${T.themeLinkPath(HOME)}'`));
-    assert.ok(script.includes(`find -L '${T.themesDir(HOME)}'`));
-    assert.ok(script.includes("-name colors.toml"));
+    assert.ok(script.includes(`'${HOME}/dotfiles/bin/df-theme-list'`));
 });
 
 test("listCommand is a plain sh -c argv, safe for a Process", () => {
@@ -49,30 +48,37 @@ test("formatName title-cases each hyphen-separated word", () => {
     assert.strictEqual(T.formatName("osaka-jade"), "Osaka Jade");
 });
 
-test("parseThemeLine pulls the theme's own directory name out of a colors.toml path", () => {
-    assert.strictEqual(T.parseThemeLine(`${HOME}/.config/themes/rose-pine/colors.toml`), "rose-pine");
-    assert.strictEqual(T.parseThemeLine("not a path"), null);
+test("parseThemeLine reads df-theme-list's installed and available lines", () => {
+    assert.deepStrictEqual(T.parseThemeLine(`installed\trose-pine\t${HOME}/dotfiles-themes/rose-pine`),
+        { name: "rose-pine", installed: true });
+    assert.deepStrictEqual(T.parseThemeLine("available\tnord"), { name: "nord", installed: false });
+    assert.strictEqual(T.parseThemeLine("installed\t"), null);
+    assert.strictEqual(T.parseThemeLine("not a theme line"), null);
 });
 
 test("parseListing reads the CURRENT marker off the first line and the rest as theme names", () => {
     const text = "CURRENT\tkanagawa\n"
-        + `${HOME}/.config/themes/kanagawa/colors.toml\n`
-        + `${HOME}/.config/themes/rose-pine/colors.toml\n`;
+        + `installed\tkanagawa\t${HOME}/dotfiles/themes/builtin/kanagawa\n`
+        + `installed\trose-pine\t${HOME}/dotfiles-themes/rose-pine\n`
+        + "available\tnord\n";
     assert.deepStrictEqual(T.parseListing(text), {
         current: "kanagawa",
         names: ["kanagawa", "rose-pine"],
+        available: ["nord"],
         previews: {}
     });
 });
 
 test("parseListing reports no active theme as \"\", not a fault", () => {
-    const text = "CURRENT\t\n" + `${HOME}/.config/themes/kanagawa/colors.toml\n`;
-    assert.deepStrictEqual(T.parseListing(text), { current: "", names: ["kanagawa"], previews: {} });
+    const text = "CURRENT\t\n" + `installed\tkanagawa\t${HOME}/dotfiles/themes/builtin/kanagawa\n`;
+    assert.deepStrictEqual(T.parseListing(text),
+        { current: "", names: ["kanagawa"], available: [], previews: {} });
 });
 
 test("parseListing treats empty or malformed output as no themes at all", () => {
-    assert.deepStrictEqual(T.parseListing(""), { current: "", names: [], previews: {} });
-    assert.deepStrictEqual(T.parseListing(undefined), { current: "", names: [], previews: {} });
+    const empty = { current: "", names: [], available: [], previews: {} };
+    assert.deepStrictEqual(T.parseListing(""), empty);
+    assert.deepStrictEqual(T.parseListing(undefined), empty);
 });
 
 test("entryFor marks the active theme in its subtext, never in its name", () => {
@@ -88,6 +94,10 @@ test("entryFor marks the active theme in its subtext, never in its name", () => 
     const inactive = T.entryFor("rose-pine", "kanagawa", "", provider);
     assert.strictEqual(inactive.name, "Rose Pine", "the display name never carries the active marker");
     assert.strictEqual(inactive.subtext, "Theme");
+
+    const missing = T.entryFor("nord", "kanagawa", "", provider, false);
+    assert.strictEqual(missing.subtext, "Not installed");
+    assert.strictEqual(missing.target.name, "nord", "applying it is the same df-theme-set call");
 });
 
 test("textsFor scores the formatted name and the raw slug separately, deduplicated when they are the same", () => {
@@ -127,7 +137,7 @@ test("a theme is matchable by its raw slug even though the row displays the form
 test("listScript scans the preview directory too, after the themes themselves", () => {
     const script = T.listScript(HOME);
     assert.ok(script.includes(`find -L '${T.previewsDir(HOME)}'`));
-    assert.ok(script.indexOf(T.themesDir(HOME)) < script.indexOf(T.previewsDir(HOME)),
+    assert.ok(script.indexOf("df-theme-list") < script.indexOf(T.previewsDir(HOME)),
         "themes before previews, so a preview line can never be mistaken for the CURRENT line");
     for (const ext of T.PREVIEW_EXTENSIONS)
         assert.ok(script.includes(`-iname '*.${ext}'`), `${ext} previews should be found`);
@@ -136,19 +146,20 @@ test("listScript scans the preview directory too, after the themes themselves", 
 test("parsePreviewLine takes the theme name off the preview's own filename", () => {
     assert.deepStrictEqual(T.parsePreviewLine(`${HOME}/.config/theme-previews/rose-pine.png`),
         { name: "rose-pine", path: `${HOME}/.config/theme-previews/rose-pine.png` });
-    assert.strictEqual(T.parsePreviewLine(`${HOME}/.config/themes/rose-pine/colors.toml`), null,
+    assert.strictEqual(T.parsePreviewLine(`installed\trose-pine\t${HOME}/dotfiles-themes/rose-pine`), null,
         "a theme line is not a preview line");
     assert.strictEqual(T.parsePreviewLine("not a path"), null);
 });
 
 test("parseListing sorts theme lines and preview lines apart by shape, not by a marker", () => {
     const text = "CURRENT\tkanagawa\n"
-        + `${HOME}/.config/themes/kanagawa/colors.toml\n`
-        + `${HOME}/.config/themes/rose-pine/colors.toml\n`
+        + `installed\tkanagawa\t${HOME}/dotfiles/themes/builtin/kanagawa\n`
+        + "available\trose-pine\n"
         + `${HOME}/.config/theme-previews/rose-pine.png\n`;
     assert.deepStrictEqual(T.parseListing(text), {
         current: "kanagawa",
-        names: ["kanagawa", "rose-pine"],
+        names: ["kanagawa"],
+        available: ["rose-pine"],
         previews: { "rose-pine": `${HOME}/.config/theme-previews/rose-pine.png` }
     });
 });
@@ -169,4 +180,8 @@ test("a theme with no preview at all still builds an Entry", () => {
 
 test("applyArgv runs df-theme-set by absolute path, not the bare name", () => {
     assert.deepStrictEqual(T.applyArgv(HOME, "rose-pine"), [`${HOME}/dotfiles/bin/df-theme-set`, "rose-pine"]);
+});
+
+test("fetchIndexArgv refreshes the theme pack's index by absolute path", () => {
+    assert.deepStrictEqual(T.fetchIndexArgv(HOME), [`${HOME}/dotfiles/bin/df-theme-fetch`, "--sync", "--if-idle"]);
 });

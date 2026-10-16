@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Remove a user-installed theme.
-# Refuses to remove built-in themes (those whose dir is a symlink managed by
-# the dotfiles repo) and refuses to remove the currently active theme.
+# Remove a third-party theme, or drop a pack theme from the sparse checkout
+# (it stays available to fetch again). Refuses built-in themes and the active
+# theme.
 
 set -e
 
-THEMES_DIR="$HOME/.config/themes"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BG_DIR="$HOME/.config/backgrounds"
 PREVIEW_DIR="$HOME/.config/theme-previews"
 THEME_LINK="$HOME/.config/theme"
@@ -14,7 +14,7 @@ THEME_LINK="$HOME/.config/theme"
 usage() {
    echo "Usage: df-theme-remove [theme-name] [--force]"
    echo "  Prompts for confirmation unless --force is passed."
-   echo "  With no theme-name, lists removable (user-installed) themes."
+   echo "  With no theme-name, lists removable themes."
    exit 1
 }
 
@@ -34,20 +34,17 @@ for arg in "$@"; do
    esac
 done
 
-list_user_themes() {
-   for d in "$THEMES_DIR"/*/; do
-      [[ -d $d ]] || continue
-      # Skip symlinked dirs (= built-in / managed)
-      if [[ -L "${d%/}" ]]; then
-         continue
+list_removable() {
+   "$DOTFILES_DIR/bin/df-theme-list" --installed | while IFS=$'\t' read -r _ name _ kind; do
+      if [[ $kind != builtin ]]; then
+         echo "$name"
       fi
-      basename "${d%/}"
    done
 }
 
 if [[ -z $NAME ]]; then
-   echo "User-installed themes:"
-   themes="$(list_user_themes)"
+   echo "Removable themes:"
+   themes="$(list_removable)"
    if [[ -z $themes ]]; then
       echo "  (none — only built-in themes present)"
       exit 0
@@ -58,16 +55,22 @@ if [[ -z $NAME ]]; then
    exit 0
 fi
 
-THEME_PATH="$THEMES_DIR/$NAME"
+KIND=""
+while IFS=$'\t' read -r _ name dir kind; do
+   if [[ $name == "$NAME" ]]; then
+      THEME_PATH="$dir"
+      KIND="$kind"
+   fi
+done < <("$DOTFILES_DIR/bin/df-theme-list" --installed)
 
-if [[ ! -e $THEME_PATH ]]; then
-   echo "Error: theme '$NAME' not found at $THEME_PATH" >&2
+if [[ -z $KIND ]]; then
+   echo "Error: theme '$NAME' is not installed" >&2
    exit 1
 fi
 
-if [[ -L $THEME_PATH ]]; then
-   echo "Error: '$NAME' is a built-in theme (symlink managed by the dotfiles repo)." >&2
-   echo "       Edit themes/.config/themes/$NAME in the repo instead." >&2
+if [[ $KIND == builtin ]]; then
+   echo "Error: '$NAME' is a built-in theme." >&2
+   echo "       Edit themes/builtin/$NAME in the repo instead." >&2
    exit 1
 fi
 
@@ -82,16 +85,21 @@ if [[ -L $THEME_LINK ]]; then
 fi
 
 if (( !FORCE )); then
-   read -r -p "Remove user theme '$NAME'? [y/N] " ans
+   read -r -p "Remove theme '$NAME'? [y/N] " ans
    case "$ans" in
       y|Y|yes|YES) ;;
       *) echo "Aborted."; exit 0 ;;
    esac
 fi
 
-rm -rf "$THEME_PATH"
-# Primary background + numbered extras (<name>-1.png, etc.)
-rm -f "$BG_DIR/$NAME".* "$BG_DIR/$NAME"-*.* 2>/dev/null || true
-rm -f "$PREVIEW_DIR/$NAME".* 2>/dev/null || true
+if [[ $KIND == pack ]]; then
+   "$DOTFILES_DIR/bin/df-theme-fetch" --drop "$NAME"
+else
+   rm -rf "$THEME_PATH"
+   # Copied in by df-theme-install. A pack theme's images belong to the
+   # backgrounds repo instead.
+   rm -f "$BG_DIR/$NAME".* "$BG_DIR/$NAME"-*.* 2>/dev/null || true
+   rm -f "$PREVIEW_DIR/$NAME".* 2>/dev/null || true
+fi
 
 echo "Removed: $NAME"

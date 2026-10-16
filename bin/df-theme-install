@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # Install a theme from a git repository.
-# Clones into ~/.config/themes/<derived-name>/, validates colors.toml (auto-
-# derives from alacritty.toml if missing), copies preview + backgrounds into
-# their canonical dirs, and runs df-theme-generate. With --apply, also
-# switches to the new theme.
+# Clones into the user theme root (df-theme-dir --root user), validates
+# colors.toml (auto-derives from alacritty.toml if missing), copies preview +
+# backgrounds into their canonical dirs, and runs df-theme-generate. With --apply, also switches to the new theme.
 
 set -e
 
@@ -43,7 +42,8 @@ if ! df-cmd-present git; then
    exit 1
 fi
 
-THEMES_DIR="$HOME/.config/themes"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+THEMES_DIR="$("$DOTFILES_DIR/bin/df-theme-dir" --root user)"
 BG_DIR="$HOME/.config/backgrounds"
 PREVIEW_DIR="$HOME/.config/theme-previews"
 
@@ -53,18 +53,25 @@ REPO_PATH="$URL"
 
 NAME="$(basename "$REPO_PATH" .git | sed -E 's/^omarchy-//; s/^df-//; s/-theme$//' | tr '[:upper:]' '[:lower:]')"
 
-if [[ -z $NAME ]]; then
+if ! "$DOTFILES_DIR/bin/df-theme-dir" --check "$NAME"; then
    echo "Error: could not derive a theme name from URL '$URL'" >&2
    exit 1
 fi
 
 THEME_PATH="$THEMES_DIR/$NAME"
 
-if [[ -L $THEME_PATH ]]; then
-   echo "Error: '$NAME' collides with a built-in theme (symlink)." >&2
-   echo "       Choose a different name or remove the symlink first." >&2
+# A user theme would shadow the built-in or pack theme of the same name, so
+# the check needs a current pack index.
+if ! "$DOTFILES_DIR/bin/df-theme-fetch" --sync; then
+   echo "Error: could not sync the theme pack to check '$NAME' against it" >&2
    exit 1
 fi
+while IFS=$'\t' read -r _ existing _ kind; do
+   if [[ $existing == "$NAME" && $kind != user ]]; then
+      echo "Error: '$NAME' collides with a dotfiles theme. Choose a different name." >&2
+      exit 1
+   fi
+done < <("$DOTFILES_DIR/bin/df-theme-list")
 
 if [[ -d $THEME_PATH ]]; then
    if (( FORCE )); then
@@ -83,6 +90,16 @@ if ! git clone --depth 1 "$URL" "$THEME_PATH"; then
    echo "Error: git clone failed" >&2
    exit 1
 fi
+
+# A theme's Lua runs inside Neovim, and vscode.json names an extension
+# df-theme-set-vscode installs; symlinks could point the copies below at any
+# file. Templates regenerate hyprland.lua and the terminal configs.
+find "$THEME_PATH" -type l ! -path "$THEME_PATH/.git/*" -print -delete
+for unsafe in "$THEME_PATH"/*.lua "$THEME_PATH/vscode.json"; do
+   [[ -f $unsafe ]] || continue
+   rm -f "$unsafe"
+   echo "dropped: ${unsafe##*/}"
+done
 
 # Auto-derive colors.toml from alacritty.toml if missing
 if [[ ! -f "$THEME_PATH/colors.toml" && -f "$THEME_PATH/alacritty.toml" ]]; then

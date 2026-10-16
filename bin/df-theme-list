@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# List themes as tab-separated lines:
+#   installed<TAB><name><TAB><dir><TAB><user|pack|builtin>
+#   available<TAB><name>        (in dotfiles-themes, not checked out yet)
+# --installed or --available limits the output to one kind. Never touches the
+# network: "available" reads the pack's last fetch.
+
+set -e
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# shellcheck source=df-theme-dir
+source "$DOTFILES_DIR/bin/df-theme-dir"
+PACK_DIR="$(theme_root pack)"
+
+show_installed=1
+show_available=1
+case "${1:-}" in
+   "") ;;
+   --installed) show_available=0 ;;
+   --available) show_installed=0 ;;
+   *)
+      echo "Usage: df-theme-list [--installed | --available]" >&2
+      exit 1
+      ;;
+esac
+
+declare -A seen=()
+
+for kind in user pack builtin; do
+   root="$(theme_root "$kind")"
+   for dir in "$root"/*/; do
+      dir="${dir%/}"
+      name="${dir##*/}"
+      [[ -f "$dir/colors.toml" && -z ${seen[$name]:-} ]] && valid_theme_name "$name" || continue
+      seen[$name]=1
+      if (( show_installed )); then
+         printf 'installed\t%s\t%s\t%s\n' "$name" "$dir" "$kind"
+      fi
+   done
+done
+
+if (( show_available )) && [[ -d $PACK_DIR/.git ]]; then
+   # Only top-level folders holding a colors.toml are themes.
+   while IFS= read -r path; do
+      name="${path%/colors.toml}"
+      [[ -z ${seen[$name]:-} ]] && valid_theme_name "$name" || continue
+      printf 'available\t%s\n' "$name"
+   done < <(git -C "$PACK_DIR" ls-tree -r --name-only origin/HEAD 2>/dev/null | grep -E '^[^/]+/colors\.toml$')
+fi

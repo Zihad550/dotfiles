@@ -437,7 +437,7 @@ test("box timing data shares defaults and disables only devbox suspend", () => {
 test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
     const packages = source("setup/arch-workstation/setup-packages/setup-hyprland");
     const fontSet = source("bin/df-font-set");
-    const themes = fs.readdirSync(path.join(repoRoot, "themes/.config/themes"));
+    const themes = fs.readdirSync(path.join(repoRoot, "themes/builtin"));
 
     assert.doesNotMatch(packages, /^\s*hyprlock\b/m);
     assert.doesNotMatch(fontSet, /hyprlock/i,
@@ -448,7 +448,7 @@ test("nothing is left of hyprlock or the theming pipeline that fed it", () => {
     assert.ok(themes.length > 0, "the theme scan found nothing -- this assertion is asserting nothing");
     themes.forEach(theme => {
         assert.strictEqual(
-            fs.existsSync(path.join(repoRoot, "themes/.config/themes", theme, "hyprlock.conf")), false,
+            fs.existsSync(path.join(repoRoot, "themes/builtin", theme, "hyprlock.conf")), false,
             `${theme} still carries a generated lock config, so adding a theme still needs one`);
     });
 });

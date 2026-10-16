@@ -1,5 +1,6 @@
-// The themes Provider's pure half: scanning ~/.config/themes, telling which
-// theme is active, the display shape, and the argv the primary Action runs.
+// The themes Provider's pure half: listing installed and downloadable themes
+// (df-theme-list), telling which theme is active, the display shape, and the
+// argv the primary Action runs.
 //
 // Active detection is `readlink ~/.config/theme`, run in the same shell
 // script as the scan, not a second round trip: df-theme-set retargets that
@@ -9,8 +10,9 @@
 //
 // Free of QML types so it loads under a plain JS runtime too (tests/launcher/themes.test.js).
 
-function themesDir(home) {
-    return home + "/.config/themes";
+// Absolute paths: a launcher's PATH doesn't include ~/dotfiles/bin.
+function binPath(home, name) {
+    return home + "/dotfiles/bin/" + name;
 }
 
 function themeLinkPath(home) {
@@ -30,14 +32,11 @@ function shellEscape(value) {
 
 // One shell script: the active theme's name behind a "CURRENT\t" marker
 // (so "no theme active" is still one well-formed line, not a blank one
-// indistinguishable from output that hasn't arrived), then every theme
-// directory with a colors.toml, then every preview image -- one directory
-// listing rather than a find-per-theme, so it costs one popen total instead
-// of one per theme. The two sections need no marker: a theme line ends in
-// "/colors.toml", a preview line in an image extension, so parseListing
-// classifies by shape.
+// indistinguishable from output that hasn't arrived), then df-theme-list's
+// "installed"/"available" lines, then every preview image. A theme line
+// starts with its kind and a tab, a preview line is an image path, so
+// parseListing classifies by shape.
 function listScript(home) {
-    var dir = themesDir(home);
     var link = themeLinkPath(home);
     var previews = previewsDir(home);
 
@@ -46,7 +45,7 @@ function listScript(home) {
     }).join(" -o ");
 
     return "printf 'CURRENT\\t%s\\n' \"$(basename \"$(readlink " + shellEscape(link) + " 2>/dev/null)\" 2>/dev/null)\"; "
-        + "find -L " + shellEscape(dir) + " -mindepth 2 -maxdepth 2 -name colors.toml 2>/dev/null | sort; "
+        + shellEscape(binPath(home, "df-theme-list")) + " 2>/dev/null; "
         + "find -L " + shellEscape(previews) + " -maxdepth 1 -type f \\( " + nameArgs + " \\) 2>/dev/null | sort";
 }
 
@@ -61,11 +60,16 @@ function formatName(name) {
     });
 }
 
-// One `find` line -> the theme's raw name ("rose-pine" from
-// ".../themes/rose-pine/colors.toml"), or null.
+// One df-theme-list line -> { name, installed }, or null.
 function parseThemeLine(line) {
-    var match = line.match(/\/([^/]+)\/colors\.toml$/);
-    return match ? match[1] : null;
+    var parts = line.split("\t");
+    if (parts.length < 2 || parts[1] === "")
+        return null;
+    if (parts[0] === "installed")
+        return { name: parts[1], installed: true };
+    if (parts[0] === "available")
+        return { name: parts[1], installed: false };
+    return null;
 }
 
 // One preview line -> the theme it belongs to, or null if not an image. The
@@ -80,7 +84,8 @@ function parsePreviewLine(line) {
         : null;
 }
 
-// `{ current, names, previews }`. The first line is always the CURRENT
+// `{ current, names, available, previews }`: `names` are installed,
+// `available` can be downloaded from the theme pack. The first line is always the CURRENT
 // marker; every line after is a theme directory or a preview image, told
 // apart by shape and dropped if neither.
 //
@@ -89,7 +94,7 @@ function parsePreviewLine(line) {
 // preview.png is the ordinary case, not a fault.
 function parseListing(text) {
     if (typeof text !== "string" || text === "")
-        return { current: "", names: [], previews: {} };
+        return { current: "", names: [], available: [], previews: {} };
 
     var lines = text.split("\n");
     var first = lines[0] || "";
@@ -97,12 +102,13 @@ function parseListing(text) {
     var current = first.indexOf(marker) === 0 ? first.slice(marker.length) : "";
 
     var names = [];
+    var available = [];
     var previews = {};
 
     for (var i = 1; i < lines.length; i++) {
-        var name = parseThemeLine(lines[i]);
-        if (name !== null) {
-            names.push(name);
+        var theme = parseThemeLine(lines[i]);
+        if (theme !== null) {
+            (theme.installed ? names : available).push(theme.name);
             continue;
         }
         var preview = parsePreviewLine(lines[i]);
@@ -110,7 +116,7 @@ function parseListing(text) {
             previews[preview.name] = preview.path;
     }
 
-    return { current: current, names: names, previews: previews };
+    return { current: current, names: names, available: available, previews: previews };
 }
 
 // `key` is the theme's own name: stable across restarts, and applying a
@@ -120,10 +126,17 @@ function parseListing(text) {
 // preview: Launcher.qml's previewPane distinguishes exactly two states (an
 // image, or "No selection"), and an absent value would try to load one and
 // render neither.
-function entryFor(name, current, preview, provider) {
+//
+// A theme not yet installed applies the same way: df-theme-set downloads it.
+function entryFor(name, current, preview, provider, installed) {
+    var subtext = "Theme";
+    if (installed === false)
+        subtext = "Not installed";
+    else if (name === current)
+        subtext = "Active";
     return {
         name: formatName(name),
-        subtext: name === current ? "Active" : "Theme",
+        subtext: subtext,
         icon: "preferences-desktop-theme",
         key: "theme:" + name,
         provider: provider,
@@ -142,14 +155,19 @@ function textsFor(name) {
     return formatted.toLowerCase() !== name.toLowerCase() ? [formatted, name] : [name];
 }
 
-// Absolute path: a launcher's PATH doesn't include ~/dotfiles/bin.
 function applyArgv(home, name) {
-    return [home + "/dotfiles/bin/df-theme-set", name];
+    return [binPath(home, "df-theme-set"), name];
+}
+
+// Clones the theme pack's index if missing, otherwise fetches it and
+// fast-forwards installed pack themes, so the next listing sees upstream.
+function fetchIndexArgv(home) {
+    return [binPath(home, "df-theme-fetch"), "--sync", "--if-idle"];
 }
 
 if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = {
-        themesDir: themesDir,
+        binPath: binPath,
         themeLinkPath: themeLinkPath,
         previewsDir: previewsDir,
         PREVIEW_EXTENSIONS: PREVIEW_EXTENSIONS,
@@ -161,6 +179,7 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
         parseListing: parseListing,
         entryFor: entryFor,
         textsFor: textsFor,
-        applyArgv: applyArgv
+        applyArgv: applyArgv,
+        fetchIndexArgv: fetchIndexArgv
     };
 }

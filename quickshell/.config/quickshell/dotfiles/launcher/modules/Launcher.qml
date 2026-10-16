@@ -905,8 +905,8 @@ PanelWindow {
         //
         // Leaving a sub-view is checked before dismissing, and only here: a
         // Provider's own `back` Action is resolved off the highlighted Entry,
-        // but a Provider entered while empty (e.g. Themes with no
-        // ~/.config/themes) has no Entry to resolve against, so Escape would
+        // but a Provider entered while empty (e.g. Themes before any
+        // theme is installed) has no Entry to resolve against, so Escape would
         // otherwise fall through and dismiss the whole Launcher instead of
         // just leaving the sub-view. The typeof guard covers a nested
         // Provider with no leave() -- it stays dismissable rather than

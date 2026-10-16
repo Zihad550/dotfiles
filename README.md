@@ -40,10 +40,12 @@ git clone --depth 1 https://github.com/Zihad550/dotfiles ~/dotfiles
 ## common bins
 
 ```bash
-df-theme-set <name>                # switch theme; no args = show current + list
+df-theme-set <name>                # switch theme (downloads pack themes); no args = list
+df-theme-list                      # installed + downloadable themes
+df-theme-fetch --sync | <name>     # sync the theme pack index / check out one theme
 df-theme-install <git-url> [--apply] [--force]
-                                   # clone external theme into ~/.config/themes/
-df-theme-remove <name> [--force]   # remove a user-installed theme (refuses built-ins)
+                                   # clone a third-party (e.g. Omarchy) theme
+df-theme-remove <name> [--force]   # remove a pack or third-party theme (refuses built-ins)
 df-theme-refresh [--apply]         # regen all themes from current templates
 df-theme-colors-from-alacritty <theme-dir>
                                    # derive colors.toml from alacritty.toml
@@ -133,14 +135,15 @@ are not offered by the restore picker.
 
 | Path | Contents |
 |---|---|
-| `~/.config/themes/<name>/` | active theme source (`colors.toml`) + generated outputs |
-| `~/.config/theme` | symlink → active `~/.config/themes/<name>/` |
+| `~/.local/share/dotfiles/themes/<name>/` | third-party themes (`df-theme-install`) |
+| `~/dotfiles-themes/<name>/` | sparse clone of [dotfiles-themes](https://github.com/Zihad550/dotfiles-themes) |
+| `~/dotfiles/themes/builtin/<name>/` | built-in default (`kanagawa`) |
+| `~/.config/theme` | symlink → the active theme's directory |
 | `~/.config/backgrounds/<name>.<ext>` | per-theme background (primary + `<name>-1.<ext>` extras) |
 | `~/.config/theme-previews/<name>.<ext>` | thumbnail shown in the Launcher's Themes Provider |
 
-Built-in themes live in this repo at `themes/.config/themes/<name>/` and are
-stowed into `~/.config/themes/` as symlinks. `df-theme-remove` refuses to
-delete those — edit the repo instead. Backgrounds/previews directories are
+Each theme directory holds its `colors.toml` and generated outputs. Lookup,
+download and Omarchy compatibility: see `themes/README.md`. Backgrounds/previews directories are
 themselves stow-managed symlinks; writes through them land in the repo. The
 Arch setup skips their separate repository so a slow clone cannot block the
 main install. Before asking whether to restart, it offers to clone the optional

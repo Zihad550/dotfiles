@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Theme lookup, shared by every df-theme-* script. See themes/README.md.
+#   df-theme-dir <name>        directory of an installed theme (first root wins)
+#   df-theme-dir --roots       every root, in lookup order
+#   df-theme-dir --root <kind> one root: user, pack or builtin
+#   df-theme-dir --check <n>   exit 0 when <n> is a valid theme name
+# Sourcing it defines theme_root and valid_theme_name without running anything.
+#
+#   DF_THEME_USER_DIR   third-party installs (default ~/.local/share/dotfiles/themes)
+#   DF_THEME_PACK_DIR   sparse clone of dotfiles-themes (default ~/dotfiles-themes)
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+theme_root() {
+   local dir
+   case "$1" in
+      user) dir="${DF_THEME_USER_DIR:-$HOME/.local/share/dotfiles/themes}" ;;
+      pack) dir="${DF_THEME_PACK_DIR:-$HOME/dotfiles-themes}" ;;
+      builtin) dir="$DOTFILES_DIR/themes/builtin" ;;
+      *) return 1 ;;
+   esac
+   echo "${dir%/}"
+}
+
+# Names become path components and git pathspecs. A bracket range follows the
+# locale's collation, so the locale is pinned.
+valid_theme_name() {
+   (LC_ALL=C; [[ $1 =~ ^[a-z0-9_][a-z0-9._+-]*$ ]])
+}
+
+[[ ${BASH_SOURCE[0]} == "$0" ]] || return 0
+
+set -e
+
+case "${1:-}" in
+   "" | -h | --help)
+      echo "Usage: df-theme-dir <theme-name> | --roots | --root <kind> | --check <name>" >&2
+      exit 1
+      ;;
+   --roots)
+      theme_root user
+      theme_root pack
+      theme_root builtin
+      exit 0
+      ;;
+   --root)
+      theme_root "${2:-}"
+      exit
+      ;;
+   --check)
+      valid_theme_name "${2:-}"
+      exit
+      ;;
+esac
+
+valid_theme_name "$1" || exit 1
+
+for kind in user pack builtin; do
+   dir="$(theme_root "$kind")/$1"
+   if [[ -f $dir/colors.toml ]]; then
+      echo "$dir"
+      exit 0
+   fi
+done
+
+exit 1

@@ -15,7 +15,6 @@ mkdir -p ~/.local/share/zed/extensions
 ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions/index.json
 # stow gemini
 stow lazygit
-stow themes
 stow starship
 stow yazi
 DOTFILES_DIR="$DOTFILES" "$DOTFILES/setup/common/voxtype/seed-config"

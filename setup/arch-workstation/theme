@@ -16,5 +16,9 @@ if command -v brave &>/dev/null || command -v brave-origin &>/dev/null; then
    sudo chmod a+rw /etc/brave/policies/managed
 fi
 
+# Index only (a few KB); the default theme is built in, so a failed clone
+# just means the picker retries later.
+~/dotfiles/bin/df-theme-fetch --sync || echo "Theme pack not cloned; the theme picker will retry."
+
 # Use new theme system - generates configs from colors.toml + sets default theme
 ~/dotfiles/bin/df-theme-set default
