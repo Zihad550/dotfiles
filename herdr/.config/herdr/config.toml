@@ -14,7 +14,7 @@ onboarding = false
 # The docs only demonstrate prefix+<key>, prefix+shift+<key> and prefix+alt+<key>.
 # This file also uses prefix+ctrl+<key> (so tmux's ^C/^D/^W muscle memory ports
 # over) on: new_tab, detach, kill session (^W, see [[keys.command]]), settings,
-# resize_mode, last_pane, previous_workspace, next_workspace,
+# resize_mode, last_pane, previous_workspace,
 # swap_pane_left/up/right/down.
 # Also unattested: prefix = "ctrl+space", and theme.name = "terminal".
 # Check with:  herdr --default-config  then  herdr server reload-config  and
@@ -86,6 +86,8 @@ navigate_pane_left  = "h"
 navigate_pane_down  = "j"
 navigate_pane_up    = "k"
 navigate_pane_right = "l"
+navigate_workspace_up   = "shift+k"
+navigate_workspace_down = "shift+j"
 
 # --- workspaces (tmux sessions) -----------------------------------------
 new_workspace      = "prefix+ctrl+t"
@@ -94,8 +96,10 @@ close_workspace    = "prefix+ctrl+w"        # closes only the current workspace
 # prefix+ctrl+q is bound below (see [[keys.command]]) to actually kill the
 # session -- close_workspace alone leaves the client/window running with
 # zero workspaces. tmux: bind ^W kill-session.
-previous_workspace = "prefix+ctrl+o"
-next_workspace     = "prefix+ctrl+i"
+# J/K, not ctrl+i: without the kitty keyboard protocol ctrl+i is Tab, which
+# cycle_pane_next already owns.
+previous_workspace = ["prefix+shift+k", "prefix+ctrl+o"]
+next_workspace     = "prefix+shift+j"
 switch_workspace   = "prefix+ctrl+1..9"
 # workspace_picker   = ""              # tmux: bind w list-windows (closest picker)
 goto               = ["prefix+g", "prefix+shift+s"]   # tmux: bind S choose-session
