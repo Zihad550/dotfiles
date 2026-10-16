@@ -5,7 +5,7 @@ onboarding = false
 #   session -> workspace     window -> tab     pane -> pane
 #   herdr adds "agents" (recognised processes inside panes) with no tmux analog.
 #
-# Reload after editing:  herdr server reload-config   (or prefix+shift+r)
+# Reload after editing:  herdr server reload-config   (or prefix+alt+r)
 # Show live bindings:    prefix+?
 # Dump every default:    herdr --default-config
 #
@@ -89,7 +89,7 @@ navigate_pane_right = "l"
 
 # --- workspaces (tmux sessions) -----------------------------------------
 new_workspace      = "prefix+ctrl+t"
-rename_workspace   = "prefix+shift+w"
+rename_workspace   = "prefix+shift+r"          # pairs with rename_tab on prefix+r
 close_workspace    = "prefix+ctrl+w"        # closes only the current workspace
 # prefix+ctrl+q is bound below (see [[keys.command]]) to actually kill the
 # session -- close_workspace alone leaves the client/window running with
@@ -112,7 +112,7 @@ previous_agent = "prefix+alt+p"
 # --- misc ---------------------------------------------------------------
 copy_mode     = "prefix+["                   # same key as tmux
 detach        = ["prefix+ctrl+d", "prefix+d"]  # tmux: bind ^D detach (+ tmux default d)
-reload_config = "prefix+shift+r"             # tmux: bind R source-file ~/.tmux.conf
+reload_config = "prefix+alt+r"
 help          = "prefix+?"                   # tmux: default prefix+? list-keys
 settings      = "prefix+ctrl+s"              # moved: prefix+s is now split-stacked
 toggle_sidebar = "prefix+b"
