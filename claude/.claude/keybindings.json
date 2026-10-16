@@ -8,6 +8,13 @@
         "ctrl+t": "app:toggleTranscript",
         "ctrl+o": "app:toggleTodos"
       }
+    },
+    {
+      "context": "Chat",
+      "bindings": {
+        "enter": "chat:sendNow",
+        "ctrl+enter": "chat:submit"
+      }
     }
   ]
 }
