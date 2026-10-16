@@ -75,6 +75,6 @@ rm "$TRACE"
 PICK="" "$script" >/dev/null
 [[ ! -e $conf ]]
 [[ $(cat "$TRACE") == $'confirm\nsystemctl --user restart wireplumber' ]]
-PICK="" "$script" | grep -qx 'No change.'
+[[ $(PICK="" "$script") == 'Nothing ticked'* ]]
 
 echo "input-no-suspend tests passed"

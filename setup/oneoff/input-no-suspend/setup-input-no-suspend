@@ -35,7 +35,7 @@ for kept in "${current[@]}"; do
 done
 
 choice=$(IFS=,; gum choose --no-limit \
-    --header "Keep these inputs awake (space toggles, enter applies):" \
+    --header "Keep these inputs awake (x or space toggles, enter applies):" \
     --selected "${selected[*]}" <<<"$options") || { echo "Aborted; nothing changed."; exit 0; }
 
 # Unplugged inputs can't be shown, so their rules are kept as-is.
@@ -62,6 +62,10 @@ fi
 
 old=""
 [[ -f $conf ]] && old=$(<"$conf")$'\n'
+if [[ -z $choice && ! -f $conf ]]; then
+    echo "Nothing ticked; press x or space on an input before enter. Nothing changed."
+    exit 0
+fi
 if [[ $new == "$old" ]]; then
     echo "No change."
     exit 0
