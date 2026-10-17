@@ -16,7 +16,7 @@ USER_SRC="$("$REPO/bin/df-theme-dir" --root user)"
 DEST="$HOME/.config/theme-previews"
 
 if ! command -v cwebp >/dev/null 2>&1; then
-    echo "error: cwebp not found — install libwebp (pacman -S libwebp)" >&2
+    echo "error: cwebp not found — install libwebp-utils (pacman -S libwebp-utils)" >&2
     exit 1
 fi
 
