@@ -1,12 +1,11 @@
 [
-  // optional keybindings navigate docs with the same keys as ctrl+w + nav
   {
-    "context": "Dock",
+    "context": "Workspace",
     "bindings": {
-      "ctrl-w h": "workspace::ActivatePaneLeft",
-      "ctrl-w l": "workspace::ActivatePaneRight",
-      "ctrl-w k": "workspace::ActivatePaneUp",
-      "ctrl-w j": "workspace::ActivatePaneDown",
+      "ctrl-space h": "workspace::ActivatePaneLeft",
+      "ctrl-space l": "workspace::ActivatePaneRight",
+      "ctrl-space k": "workspace::ActivatePaneUp",
+      "ctrl-space j": "workspace::ActivatePaneDown",
     },
   },
 
@@ -134,7 +133,7 @@
   {
     "context": "",
     "bindings": {
-      "ctrl-j": "workspace::ToggleBottomDock",
+      "ctrl-enter": "workspace::ToggleBottomDock",
     },
   },
   {
