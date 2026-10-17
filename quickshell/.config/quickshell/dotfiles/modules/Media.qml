@@ -38,14 +38,14 @@ Item {
                 color: Style.normalFillFor(Color.foreground, Color.accent)
                 borderSpec: Border.controlSpec("normal", Color.foreground, Color.accent)
 
-                Image {
+                // Decoded at the drawn size rather than the player's full art.
+                SizedImage {
                     anchors.fill: parent
                     anchors.margins: Style.space(2)
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    source: root.activePlayer && root.activePlayer.trackArtUrl
+                    crop: true
+                    url: root.activePlayer && root.activePlayer.trackArtUrl
                         ? root.activePlayer.trackArtUrl : ""
-                    visible: source !== ""
+                    visible: url != ""
                 }
 
                 Text {

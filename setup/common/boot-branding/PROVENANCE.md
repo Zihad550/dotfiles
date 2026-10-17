@@ -8,7 +8,8 @@ The vendored Plymouth theme is copied from Omarchy `4.0.0.alpha` at commit
 - `default/plymouth/{bullet,entry,lock,logo,preview-unlock,progress_bar,progress_box}.png`
 - `default/plymouth/logos/oma.png`
 - `default/plymouth/omarchy.plymouth`
-- `default/plymouth/omarchy.script`
+- `default/plymouth/omarchy.script` (refreshed from commit
+  `8a787b6a8bec830b04543bf14c760ee0a10591f6`)
 - `etc/plymouth/plymouthd.conf`
 
 The theme is copied here so setup and recovery do not depend on the ignored

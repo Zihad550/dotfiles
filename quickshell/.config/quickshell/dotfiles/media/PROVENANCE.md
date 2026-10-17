@@ -14,6 +14,11 @@ different targeting for global play/pause and explicitly targeted popup
 buttons. These components are vendored so installation does not depend on
 the ignored resources checkout. Keep upstream logic intact when updating.
 
+Refreshed from commit `8a787b6a8bec830b04543bf14c760ee0a10591f6`: Ui adds the
+upstream SizedImage, used for track art in BarWidget and modules/Media.qml;
+Button's label fitting and Color's alias-cycle guard are upstream. Upstream's
+translations, reduced-motion durations, and volume-key handling are not taken.
+
 ## Local integration
 
 - Imports point to qs.media.Ui and qs.media.Commons.

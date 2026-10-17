@@ -113,6 +113,7 @@ Item {
             anchors.bottom: fieldFrame.top
             anchors.bottomMargin: theme.clockGap
 
+            textFormat: Text.PlainText
             text: Qt.formatDateTime(clockTick.now, "HH:mm")
             color: theme.foreground
             font.family: theme.fontFamily
@@ -179,6 +180,14 @@ Item {
                 // already-empty field is left unaccepted so it reaches the
                 // host, which is how the probe hands the keyboard back.
                 Keys.onPressed: event => {
+                    // A late wake-key release after DPMS would otherwise
+                    // repeat its character into the field (Omarchy 8a787b6).
+                    if (event.isAutoRepeat && event.text.length > 0
+                            && event.text.charCodeAt(0) >= 0x20 && event.text !== "\x7f") {
+                        event.accepted = true;
+                        return;
+                    }
+
                     const clearing = event.key === Qt.Key_Escape
                         || (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_U);
                     if (!clearing || field.readOnly || field.text.length === 0)
@@ -204,6 +213,7 @@ Item {
                 anchors.fill: field
                 visible: field.text.length === 0
 
+                textFormat: Text.PlainText
                 text: LockState.statusText(root.authState)
                 color: LockState.statusIsError(root.authState) ? theme.error : theme.placeholder
                 font.family: theme.fontFamily

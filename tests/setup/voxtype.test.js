@@ -156,7 +156,10 @@ command() {
     builtin command "$@"
 }
 `);
-    Object.assign(f.env, { MOCK_VOXTYPE: voxtype, MOCK_BIN: f.bin, BASH_ENV: bashEnv });
+    const libDir = path.join(f.dir, "voxtype-lib");
+    fs.mkdirSync(libDir);
+    executable(path.join(libDir, "voxtype-vulkan"), "exit 0");
+    Object.assign(f.env, { MOCK_VOXTYPE: voxtype, MOCK_BIN: f.bin, BASH_ENV: bashEnv, VOXTYPE_LIB_DIR: libDir });
     if (existing) fs.copyFileSync(voxtype, path.join(f.bin, "voxtype"));
 }
 
@@ -263,6 +266,18 @@ for (const failure of ["GPU_ENABLE_FAIL", "GPU_START_FAIL", "GPU_LATE_FAIL"]) {
         assert.match(fs.readFileSync(f.env.CALLS, "utf8"), /setup gpu --disable/);
     });
 }
+
+test("a new Whisper installation skips Vulkan when voxtype-bin lacks the backend", t => {
+    const f = fixture(t);
+    installMocks(f);
+    assert.equal(run(SEED, f.env).status, 0);
+    fs.writeFileSync(f.config, 'engine = "whisper"\n[whisper]\nmodel = "small.en"\n');
+    f.env.VULKAN_AVAILABLE = "1";
+    fs.rmSync(path.join(f.env.VOXTYPE_LIB_DIR, "voxtype-vulkan"));
+    const result = run(SETUP, f.env);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(fs.readFileSync(f.env.CALLS, "utf8"), /setup gpu/);
+});
 
 test("setup waits for initialization after systemd reports active", t => {
     const f = fixture(t);

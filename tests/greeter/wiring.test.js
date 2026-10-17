@@ -99,7 +99,7 @@ test("the pinned Omarchy Greeter is vendored instead of reading the ignored chec
 
 test("the vendored Greeter contains its pinned assets and local logo", () => {
     const assets = {
-        "hyprland.lua": "353fe59d7d46b21946cdc48000eef7b131e9e577c1d6117f07c3137cdbf0fe67",
+        "hyprland.lua": "3470e38cb71b6b147043592ce7456fb24791706c8e9ae32f7d4a0772fce808d4",
         "omarchy/Main.qml": "aa578ec8a6269079e2141842073821fa24940fa4495a13815fa0754652e6027f",
         "omarchy/bullet.png": "875ea8297db71415aeef2e03a5ccd67997a13c16f794d4e4929a9d669aaa7327",
         "omarchy/entry-failed.png": "f8f3ab148ea6c7e0580d918593fecfb6784d2c4859b9d1822c5f0ba7e8090e83",
@@ -321,7 +321,7 @@ test("the Plymouth theme contains its pinned assets and local logo", () => {
         "plymouth/lock.png": "36be04a15773170b656bdadfa129dc14695e296abed3ac62247e23dbf213d836",
         "plymouth/logo.png": localLogoHash,
         "plymouth/omarchy.plymouth": "e53f4c2f1258b85c6a070219eb335c2970bbb56e9b7a57d2f9913af69a35ffbc",
-        "plymouth/omarchy.script": "7f4c1e615759eb72b0787e15b20d06a6b90aa460063227394390f4832322a0fe",
+        "plymouth/omarchy.script": "908adf752b05afdb2f5b0fe08fa81bf76963baf88aa67860610e3b6391f5725d",
     };
 
     for (const [relativePath, expectedHash] of Object.entries(assets)) {

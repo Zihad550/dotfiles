@@ -8,7 +8,8 @@ The vendored Greeter is copied from Omarchy `4.0.0.alpha` at commit
 - `default/sddm/omarchy/Main.qml`
 - `default/sddm/omarchy/{bullet,entry,entry-failed,lock,lock-failed,logo}.png`
 - `default/sddm/omarchy/{metadata.desktop,theme.conf}`
-- `default/sddm/hyprland.lua`
+- `default/sddm/hyprland.lua` (refreshed from commit
+  `8a787b6a8bec830b04543bf14c760ee0a10591f6`)
 - `etc/sddm.conf.d/10-wayland.conf`
 - `etc/sddm.conf.d/10-theme.conf`
 

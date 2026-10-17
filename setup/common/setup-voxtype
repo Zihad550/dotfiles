@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# VOXTYPE_LIB_DIR (default /usr/lib/voxtype): where voxtype-bin installs its
+# backend binaries.
+
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 # shellcheck source=pacman-lib
 source "$DOTFILES_DIR/setup/common/pacman-lib"
@@ -38,7 +41,11 @@ fi
 voxtype setup --download --model "$model" --no-post-install
 
 gpu_enabled=false
-if [[ "$engine" == whisper && "$new_install" == true ]] && compgen -G '/usr/share/vulkan/icd.d/*.json' >/dev/null; then
+voxtype_lib_dir="${VOXTYPE_LIB_DIR:-/usr/lib/voxtype}"
+# A Vulkan ICD is not enough: a voxtype-bin build without the Vulkan backend
+# cannot switch to it.
+if [[ "$engine" == whisper && "$new_install" == true && -x "$voxtype_lib_dir/voxtype-vulkan" ]] \
+    && compgen -G '/usr/share/vulkan/icd.d/*.json' >/dev/null; then
     if sudo voxtype setup gpu --enable; then
         gpu_enabled=true
     else

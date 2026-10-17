@@ -25,7 +25,7 @@ hl.window_rule({
 if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
     hl.window_rule({
         name = "localsend",
-        match = { class = "localsend" },
+        match = { class = "(org\\.localsend\\.)?localsend(_app)?" },
         float = true,
         center = true,
         size = { 1100, 700 },
