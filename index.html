@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keyboard layers · Programmer &amp; Miryoku</title>
+<style>
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #10151e; color: #e8edf5; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1080px; margin: auto; padding: 48px 24px; }
+h1 { font-size: clamp(2rem, 5vw, 3.4rem); letter-spacing: -.05em; margin: 8px 0 16px; }
+p { color: #b6c1d1; line-height: 1.65; max-width: 78ch; }
+.eyebrow { color: #7dd3fc; text-transform: uppercase; letter-spacing: .16em; font-size: .75rem; font-weight: 700; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0; }
+button { font: inherit; color: inherit; background: #1a2433; border: 1px solid #3d4c62; padding: 10px 18px; border-radius: 10px; cursor: pointer; }
+button[aria-pressed="true"] { background: #7dd3fc; color: #102030; border-color: #7dd3fc; }
+button:focus-visible, a:focus-visible { outline: 3px solid #fbbf24; outline-offset: 4px; }
+section { background: #151e2b; border: 1px solid #334155; border-radius: 18px; padding: 24px; margin: 20px 0; break-inside: avoid; }
+h2 { margin: 0; font-size: 1.6rem; }
+.activation { color: #7dd3fc; font-weight: 600; }
+.scroll { overflow-x: auto; padding: 8px 0; }
+.keyboard { min-width: 650px; }
+.row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 7px; margin: 7px 0; }
+.row:nth-child(2) { margin-left: 18px;  }
+.row:nth-child(3) { margin-left: 36px; }
+.key { background: #243246; border: 1px solid #51617a; border-bottom: 4px solid #0d1420; border-radius: 9px; min-height: 78px; padding: 9px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+.key small { color: #b5c2d6; font-size: .7rem; }
+.key strong { overflow-wrap: anywhere; font-family: ui-monospace, monospace; font-size: 1.3rem; }
+.key em { color: #fbbf24; font-size: .68rem; font-style: normal; min-height: 1em; }
+.key.mapped { background: #173b4b; border-color: #38798d; }
+.key.inactive { background: #1a2534; opacity: .65; }
+ul { padding-left: 20px; color: #b6c1d1; line-height: 1.8; }
+kbd { font-family: ui-monospace, monospace; background: #243246; border-radius: 4px; padding: 2px 5px; }
+a { color: #7dd3fc; }
+footer { margin-top: 28px; border-top: 1px solid #334155; padding-top: 18px; }
+.page-links { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; }
+.page-links a { padding: 10px 15px; border: 1px solid #3d4c62; border-radius: 10px; text-decoration: none; }
+.page-links a[aria-current="page"] { background: #7dd3fc; color: #102030; }
+.miryoku .row { margin-left: 0; grid-template-columns: repeat(5, 1fr) 20px repeat(5, 1fr); }
+.miryoku .key:nth-child(6) { grid-column: 7; }
+.key.empty { visibility: hidden; }
+.extra-keys { display: flex; gap: 7px; margin-top: 14px; }
+.extra-keys .key { min-width: 95px; }
+.key.long strong { font-size: .85rem; }
+select { font: inherit; color: inherit; background: #243246; padding: 8px; border-radius: 6px; margin-left: 8px; }
+[hidden] { display: none !important; }
+@media (max-width: 600px) { main { padding: 24px 12px; } section { padding: 16px; } }
+@media print {
+:root { color-scheme: light; background: white; color: black; }
+main { padding: 0; } h1 { font-size: 28px; }
+p, ul, .activation, .eyebrow { color: #333; }
+.controls, .screen-only, .page-links, #alpha-control { display: none; }
+section[hidden] { display: block !important; }
+section { background: white; padding: 16px; }
+.keyboard { min-width: 0; } .scroll { overflow: visible; }
+.key, .key.mapped, .key.inactive { background: #f2f5f8; border-color: #aaa; color: black; opacity: 1; min-height: 65px; }
+.key small, .key em { color: #444; }
+}
+</style>
+</head>
+<body>
+<main>
+<nav class="page-links" aria-label="Layout pages">
+<a href="#original" data-page="original">Original programmer layout</a>
+<a href="#miryoku" data-page="miryoku">Miryoku</a>
+<a href="#space-nav" data-page="space-nav">Space → Navigation</a>
+</nav>
+<header>
+<div class="eyebrow" id="eyebrow"></div>
+<h1 id="page-title"></h1>
+<p id="page-description"></p>
+</header>
+<p id="alpha-control" hidden><label for="alphas">Miryoku base letters</label><select id="alphas"><option value="colemak">Colemak-DH (default)</option><option value="qwerty">QWERTY variant</option></select></p>
+<nav class="controls" aria-label="Show keyboard layers" id="layer-controls"></nav>
+<p class="screen-only" id="legend"></p>
+<div id="layers"></div>
+<noscript><p>Enable JavaScript to display the keyboard diagrams and switch layout pages.</p></noscript>
+<section>
+<h2>How to use it</h2>
+<ul id="instructions"></ul>
+<p id="learning-note"></p>
+</section>
+<footer>
+<p id="source-note"></p>
+<p>This reference works offline. Symbol outputs assume a US keyboard layout. It does not change your keyboard or describe your installed Kanata configuration.</p>
+</footer>
+</main>
+<script>
+'use strict';
+const physical = ['Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L',';','Z','X','C','V','B','N','M',',','.','/'];
+const mods = { A: 'Super', S: 'Alt', D: 'Ctrl', F: 'Shift', J: 'Shift', K: 'Ctrl', L: 'Alt', ';': 'Super' };
+const programmerLayers = [
+  { id: 'base', name: '01 / Base', activation: 'Default · no layer key held',
+    description: 'Keep your familiar letters. Gold labels show optional hold modifiers; they are independent of the layer keys.',
+    output: physical },
+  { id: 'navigation', name: '02 / Navigation', activation: 'Hold Caps Lock · tap Caps Lock for Escape',
+    description: 'H/J/K/L move the cursor in every app that accepts arrow keys. The upper row adds document navigation; the lower row adds editing keys.',
+    output: { U: 'Home', I: 'PgDn', O: 'PgUp', P: 'End', H: '←', J: '↓', K: '↑', L: '→', N: 'Delete', M: 'Bksp', ',': 'Enter' } },
+  { id: 'symbols', name: '03 / Symbols', activation: 'Hold Space · tap Space for Space',
+    description: 'Bracket pairs sit together on the upper row. Operators occupy the home row. Each mapped key produces the displayed symbol without needing Shift.',
+    output: ['!','@','#','$','%', '(',')','[',']','\\', '=', '+','-','_','*', '{','}','<','>','/', '`','~','&','|','^', "'",'"',':',';', '?'] },
+  { id: 'numbers', name: '04 / Numbers', activation: 'Hold Tab · tap Tab for Tab',
+    description: 'A right-hand numpad with 0 under N. Arithmetic operators are on the left so calculations stay on one layer.',
+    output: { W: '+', E: '-', R: '*', T: '/', D: '=', U: '7', I: '8', O: '9', J: '4', K: '5', L: '6', M: '1', ',': '2', '.': '3', N: '0', '/': '.' } }
+];
+const thumbTaps = ['Esc', 'Space', 'Tab', 'Enter', 'Bksp', 'Delete'];
+const thumbHolds = ['Media', 'Nav', 'Mouse', 'Sym', 'Num', 'Fun'];
+const colemak = ['Q','W','F','P','B','J','L','U','Y',"'",'A','R','S','T','G','M','N','E','I','O','Z','X','C','D','V','K','H',',','.','/'];
+const qwerty = physical.map(key => key === ';' ? "'" : key);
+const leftMods = ['','','','','','Super','Alt','Ctrl','Shift','','','AltGr','','',''];
+const rightMods = ['','','','','','','Shift','Ctrl','Alt','Super','','','','AltGr',''];
+const blankHand = Array(15).fill('—');
+function handLayer(id, name, trigger, side, keys, thumbs) {
+  const output = [];
+  const passive = side === 'right' ? leftMods : rightMods;
+  for (let row = 0; row < 3; row++) {
+    const activeRow = keys.slice(row * 5, row * 5 + 5);
+    const passiveRow = passive.slice(row * 5, row * 5 + 5).map(key => key || '—');
+    output.push(...(side === 'right' ? [...passiveRow, ...activeRow] : [...activeRow, ...passiveRow]));
+  }
+  return { id, name, activation: 'Hold ' + trigger, output, thumbs,
+    description: 'Actions on the ' + side + ' hand; direct modifiers on the opposite hand. A dash means no normal action. Gold thumb labels show base-layer hold actions.' };
+}
+function miryokuLayers() {
+  const base = document.getElementById('alphas').value === 'qwerty' ? qwerty : colemak;
+  const holds = { 10: 'Super', 11: 'Alt', 12: 'Ctrl', 13: 'Shift', 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 19: 'Super', 21: 'AltGr', 28: 'AltGr', 20: 'Button', 29: 'Button' };
+  return [
+    { id: 'base', name: 'Base', activation: 'Tap for letters · hold for modifiers or layers', output: base, holds,
+      description: '36-key ergonomic arrangement: five columns and three rows per hand, plus three thumb keys per hand. Position labels use row and column, not laptop key names.', thumbs: thumbTaps, thumbHolds },
+    handLayer('navigation', 'Navigation', 'Space · left home thumb', 'right',
+      ['Redo','Paste','Copy','Cut','Undo','CapsWord','←','↓','↑','→','Insert','Home','PgDn','PgUp','End'], ['—','held','—','Enter','Bksp','Delete']),
+    handLayer('mouse', 'Mouse', 'Tab · left inner thumb', 'right',
+      ['Redo','Paste','Copy','Cut','Undo','—','Mouse ←','Mouse ↓','Mouse ↑','Mouse →','—','Wheel ←','Wheel ↓','Wheel ↑','Wheel →'], ['—','—','held','Right click','Left click','Middle click']),
+    handLayer('media', 'Media', 'Escape · left outer thumb', 'right',
+      ['RGB on/off','RGB mode','RGB hue','RGB sat.','RGB value','Ext. power','Previous','Vol −','Vol +','Next','Output','BT 0','BT 1','BT 2','BT 3'], ['held','—','—','Stop','Play/pause','Mute']),
+    handLayer('numbers', 'Numbers', 'Backspace · right home thumb', 'left',
+      ['[','7','8','9',']',';','4','5','6','=','`','1','2','3','\\'], ['.','0','−','—','held','—']),
+    handLayer('symbols', 'Symbols', 'Enter · right inner thumb', 'left',
+      ['{','&','*','(','}',':','$','%','^','+','~','!','@','#','|'], ['(',')','_','held','—','—']),
+    handLayer('function', 'Function', 'Delete · right outer thumb', 'left',
+      ['F12','F7','F8','F9','PrtSc','F11','F4','F5','F6','ScrLk','F10','F1','F2','F3','Pause'], ['Menu','Space','Tab','—','—','held']),
+    { id: 'button', name: 'Mouse buttons', activation: 'Hold either bottom-row outer pinkie key (Z or /)',
+      description: 'Auxiliary Button layer: clipboard actions, direct modifiers, and mouse clicks for use with an external pointer.',
+      output: ['Undo','Cut','Copy','Paste','Redo','Redo','Paste','Copy','Cut','Undo','Super','Alt','Ctrl','Shift','—','—','Shift','Ctrl','Alt','Super','Undo','Cut','Copy','Paste','Redo','Redo','Paste','Copy','Cut','Undo'],
+      thumbs: ['Middle click','Left click','Right click','Right click','Left click','Middle click'] }
+  ];
+}
+const commonInstructions = [
+  'Layers are momentary: release the activation key to return to Base. Use one layer at a time.',
+  'Physical Shift, Ctrl, Alt, and Super remain available. Combine Shift with navigation to select text and Ctrl with arrows to move by words where supported.',
+  'Optional home row mods apply only on Base: A/S/D/F hold Super/Alt/Ctrl/Shift; J/K/L/; hold Shift/Ctrl/Alt/Super.',
+  'Unassigned keys pass through to Base. Keep physical number, arrow, function, Enter, and Backspace keys available.'
+];
+const pages = {
+  original: { title: 'Original programmer layout', eyebrow: 'Custom suggestion · US QWERTY',
+    description: 'The original four-layer proposal for a regular keyboard. Caps Lock opens Navigation; Space opens Symbols.',
+    instructions: ['Caps Lock: tap Escape, hold Navigation.', 'Space: tap Space, hold Symbols.', 'Tab: tap Tab, hold Numbers.', ...commonInstructions] },
+  'space-nav': { title: 'Space for navigation', eyebrow: 'Custom variant · US QWERTY',
+    description: 'The active custom programmer keymap: hold Space for Navigation, with U for Backspace and ; for Enter. Hold Caps Lock for Symbols and U for left-hand Numbers. The Original and Miryoku pages remain reference drafts.',
+    instructions: ['Space: tap Space, hold Navigation.', 'Caps Lock: tap Escape, hold Symbols.', 'U: tap u, hold Numbers. Tab has no layer hold action.', 'Hold U first, then Space for 0, Tab for decimal, or Caps Lock for minus. Hold Space first, then U for Backspace.', ...commonInstructions] },
+  miryoku: { title: 'Miryoku', eyebrow: 'Established layout · 36 keys · Main layers',
+    description: 'Miryoku’s main layers and six thumb keys, with default Colemak-DH letters or its QWERTY alternative. This is an ergonomic keyboard diagram, not a direct mapping onto a laptop keyboard.',
+    instructions: ['Left thumbs, outer → inner: Escape / Media, Space / Navigation, Tab / Mouse. Tap the key name; hold for the layer.',
+      'Right thumbs, inner → outer: Enter / Symbols, Backspace / Numbers, Delete / Function.',
+      'Hold a thumb on one hand to use the main actions on the opposite hand. On sublayers, the activating hand has direct modifiers.',
+      'Home row hold modifiers: Super, Alt, Ctrl, Shift on the left; Shift, Ctrl, Alt, Super on the right. Bottom-row keys also provide AltGr and the Button layer.',
+      'Clipboard shortcuts follow the implementation’s OS settings. Hardware controls depend on keyboard support.',
+      'This overview omits advanced bootloader, alternate-base switching, and layer-lock gestures. See the linked official reference for those details.'] }
+};
+let currentPage = 'original';
+let currentLayer = 'all';
+function addKey(row, positionText, output, holdText = '', inactive = false) {
+  const cell = document.createElement('div');
+  cell.className = 'key ' + (inactive ? 'inactive' : 'mapped') + (String(output).length > 5 ? ' long' : '');
+  const position = document.createElement('small');
+  position.textContent = positionText;
+  const label = document.createElement('strong');
+  label.textContent = output;
+  const hold = document.createElement('em');
+  hold.textContent = holdText;
+  cell.append(position, label, hold);
+  row.append(cell);
+}
+function renderLayer(layer, ergonomic) {
+  const section = document.createElement('section');
+  section.dataset.layer = layer.id;
+  const heading = document.createElement('h2');
+  heading.textContent = layer.name;
+  const activation = document.createElement('p');
+  activation.className = 'activation';
+  activation.textContent = layer.activation;
+  const description = document.createElement('p');
+  description.textContent = layer.description;
+  section.append(heading, activation, description);
+  const scroll = document.createElement('div');
+  scroll.className = 'scroll';
+  const keyboard = document.createElement('div');
+  keyboard.className = 'keyboard' + (ergonomic ? ' miryoku' : '');
+  for (let rowIndex = 0; rowIndex < 3; rowIndex++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    for (let col = 0; col < 10; col++) {
+      const index = rowIndex * 10 + col;
+      const key = physical[index];
+      const output = Array.isArray(layer.output) ? layer.output[index] : layer.output[key];
+      const position = ergonomic ? (col < 5 ? 'L' : 'R') + (rowIndex + 1) + '·' + (col % 5 + 1) : key;
+      const modifier = ergonomic ? layer.holds?.[index] : layer.id === 'base' ? layer.holds?.[key] ?? mods[key] : undefined;
+      addKey(row, position, output === undefined ? key : output, modifier ? 'hold ' + modifier : output === undefined ? 'base' : '', output === undefined || output === '—');
+    }
+    keyboard.append(row);
+  }
+  if (ergonomic) {
+    const thumbs = document.createElement('div');
+    thumbs.className = 'row';
+    for (let col = 0; col < 10; col++) {
+      if (col < 2 || col > 7) {
+        const empty = document.createElement('div');
+        empty.className = 'key empty';
+        thumbs.append(empty);
+      } else {
+        const index = col - 2;
+        addKey(thumbs, (index < 3 ? 'L' : 'R') + ' thumb · ' + thumbTaps[index], layer.thumbs[index], layer.thumbHolds ? 'hold ' + layer.thumbHolds[index] : '', layer.thumbs[index] === '—');
+      }
+    }
+    keyboard.append(thumbs);
+  }
+  if (layer.extraKeys) {
+    const extras = document.createElement('div');
+    extras.className = 'extra-keys';
+    for (const key of layer.extraKeys) addKey(extras, key.key, key.output);
+    keyboard.append(extras);
+  }
+  scroll.append(keyboard);
+  section.append(scroll);
+  return section;
+}
+function filterLayers() {
+  for (const button of document.querySelectorAll('[data-view]')) button.setAttribute('aria-pressed', String(button.dataset.view === currentLayer));
+  for (const section of document.querySelectorAll('[data-layer]')) section.hidden = currentLayer !== 'all' && section.dataset.layer !== currentLayer;
+}
+function render() {
+  const requestedPage = location.hash.slice(1);
+  currentPage = Object.hasOwn(pages, requestedPage) ? requestedPage : 'original';
+  const page = pages[currentPage];
+  const ergonomic = currentPage === 'miryoku';
+  document.getElementById('page-title').textContent = page.title;
+  document.title = page.title + ' · Keyboard layers';
+  document.getElementById('eyebrow').textContent = page.eyebrow;
+  document.getElementById('page-description').textContent = page.description;
+  for (const link of document.querySelectorAll('[data-page]')) {
+    if (link.dataset.page === currentPage) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+  document.getElementById('alpha-control').hidden = !ergonomic;
+  document.getElementById('legend').textContent = ergonomic
+    ? 'Each side has five columns. L/R labels identify hand, row, and column. The last row shows the six thumb keys. A dash means unused; “held” marks the layer key.'
+    : 'Small labels identify physical keys; large labels show outputs. Gold labels show optional hold modifiers. Scroll diagrams horizontally on narrow screens.';
+  const layers = ergonomic ? miryokuLayers() : programmerLayers.map(layer => {
+    if (currentPage !== 'space-nav') return layer;
+    if (layer.id === 'base') return { ...layer, holds: { U: 'Numbers' } };
+    if (layer.id === 'navigation') return {
+      ...layer,
+      activation: 'Hold Space · tap Space for Space',
+      description: 'H/J/K/L move the cursor. U deletes the previous character; ; presses Enter. I/O/P provide page and end navigation, with additional editing keys on the lower row.',
+      output: { ...layer.output, U: 'Bksp', ';': 'Enter' }
+    };
+    if (layer.id === 'symbols') return { ...layer, activation: 'Hold Caps Lock · tap Caps Lock for Escape' };
+    if (layer.id === 'numbers') return {
+      ...layer,
+      activation: 'Hold U · tap U for u',
+      description: 'Miryoku-style left-hand numpad: W/E/R = 7/8/9, S/D/F = 4/5/6, X/C/V = 1/2/3. Hold U first, then Space for 0, Tab for decimal, or Caps Lock for minus. These replace Miryoku’s three left thumb keys on a regular keyboard.',
+      output: { Q: '[', W: '7', E: '8', R: '9', T: ']', A: ';', S: '4', D: '5', F: '6', G: '=', Z: '`', X: '1', C: '2', V: '3', B: '\\', U: 'held' },
+      extraKeys: [{ key: 'Space', output: '0' }, { key: 'Tab', output: '.' }, { key: 'Caps Lock', output: '−' }]
+    };
+    return layer;
+  });
+  if (!layers.some(layer => layer.id === currentLayer)) currentLayer = 'all';
+  const controls = document.getElementById('layer-controls');
+  controls.replaceChildren();
+  for (const item of [{ id: 'all', name: 'All layers' }, ...layers]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.view = item.id;
+    button.textContent = item.name.replace(/^\d+ \/ /, '');
+    button.addEventListener('click', () => { currentLayer = item.id; filterLayers(); });
+    controls.append(button);
+  }
+  const print = document.createElement('button');
+  print.type = 'button';
+  print.textContent = 'Print this layout / Save PDF';
+  print.addEventListener('click', () => window.print());
+  controls.append(print);
+  document.getElementById('layers').replaceChildren(...layers.map(layer => renderLayer(layer, ergonomic)));
+  const instructions = document.getElementById('instructions');
+  instructions.replaceChildren(...page.instructions.map(text => {
+    const item = document.createElement('li');
+    item.textContent = text;
+    return item;
+  }));
+  document.getElementById('learning-note').textContent = ergonomic
+    ? 'Miryoku places arrows on the right-hand home positions (QWERTY J/K/L/quote positions), unlike the custom layout’s H/J/K/L arrows. On a regular keyboard, thumb-key placement requires a separate adaptation.'
+    : currentPage === 'space-nav'
+    ? 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior separately so Space and U remain reliable during normal typing; test the activation order of Space and U.'
+    : 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior separately so Space and Tab remain reliable during normal typing.';
+  const sourceNote = document.getElementById('source-note');
+  sourceNote.replaceChildren(document.createTextNode(ergonomic ? 'Main layer positions follow the official ' : 'Custom proposal inspired by '));
+  const source = document.createElement('a');
+  source.href = ergonomic ? 'https://github.com/manna-harbour/miryoku_babel#layer-tables' : 'https://github.com/manna-harbour/miryoku';
+  source.textContent = ergonomic ? 'Miryoku Babel layer tables' : 'Miryoku';
+  sourceNote.append(source, document.createTextNode('. '));
+  if (ergonomic) {
+    const reference = document.createElement('a');
+    reference.href = 'https://github.com/manna-harbour/miryoku/tree/master/docs/reference';
+    reference.textContent = 'Full Miryoku reference';
+    sourceNote.append(reference);
+  }
+  filterLayers();
+}
+window.addEventListener('hashchange', () => { currentLayer = 'all'; render(); });
+document.getElementById('alphas').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
