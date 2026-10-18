@@ -157,8 +157,8 @@ const pages = {
     description: 'The original four-layer proposal for a regular keyboard. Caps Lock opens Navigation; Space opens Symbols.',
     instructions: ['Caps Lock: tap Escape, hold Navigation.', 'Space: tap Space, hold Symbols.', 'Tab: tap Tab, hold Numbers.', ...commonInstructions] },
   'space-nav': { title: 'Space for navigation', eyebrow: 'Custom variant · US QWERTY',
-    description: 'The active custom programmer keymap: hold Space for Navigation, with U for Backspace and ; for Enter. Hold Caps Lock for Symbols and U for left-hand Numbers. The Original and Miryoku pages remain reference drafts.',
-    instructions: ['Space: tap Space, hold Navigation.', 'Caps Lock: tap Escape, hold Symbols.', 'U: tap u, hold Numbers. Tab has no layer hold action.', 'Hold U first, then Space for 0, Tab for decimal, or Caps Lock for minus. Hold Space first, then U for Backspace.', ...commonInstructions] },
+    description: 'The active custom programmer keymap: hold Space for Navigation, with U for Backspace and ; for Enter. Hold either I or E for Symbols and U for left-hand Numbers. The Original and Miryoku pages remain reference drafts.',
+    instructions: ['Space: tap Space, hold Navigation.', 'I or E: tap the letter, hold either key individually for Symbols. No I+E chord is required.', 'Caps Lock: tap Escape; it does not activate Symbols.', 'U: tap u, hold Numbers. Tab has no layer hold action.', 'Hold U first, then Space for 0, Tab for decimal, or Caps Lock for minus. Hold Space first, then U for Backspace.', ...commonInstructions] },
   miryoku: { title: 'Miryoku', eyebrow: 'Established layout · 36 keys · Main layers',
     description: 'Miryoku’s main layers and six thumb keys, with default Colemak-DH letters or its QWERTY alternative. This is an ergonomic keyboard diagram, not a direct mapping onto a laptop keyboard.',
     instructions: ['Left thumbs, outer → inner: Escape / Media, Space / Navigation, Tab / Mouse. Tap the key name; hold for the layer.',
@@ -258,14 +258,22 @@ function render() {
     : 'Small labels identify physical keys; large labels show outputs. Gold labels show optional hold modifiers. Scroll diagrams horizontally on narrow screens.';
   const layers = ergonomic ? miryokuLayers() : programmerLayers.map(layer => {
     if (currentPage !== 'space-nav') return layer;
-    if (layer.id === 'base') return { ...layer, holds: { U: 'Numbers' } };
+    if (layer.id === 'base') return {
+      ...layer,
+      description: 'Tap keys for their letters. Hold U for Numbers, or either I or E for Symbols. Gold home row labels show optional hold modifiers.',
+      holds: { U: 'Numbers', I: 'Symbols', E: 'Symbols' }
+    };
     if (layer.id === 'navigation') return {
       ...layer,
       activation: 'Hold Space · tap Space for Space',
       description: 'H/J/K/L move the cursor. U deletes the previous character; ; presses Enter. I/O/P provide page and end navigation, with additional editing keys on the lower row.',
       output: { ...layer.output, U: 'Bksp', ';': 'Enter' }
     };
-    if (layer.id === 'symbols') return { ...layer, activation: 'Hold Caps Lock · tap Caps Lock for Escape' };
+    if (layer.id === 'symbols') return {
+      ...layer,
+      activation: 'Hold I or E individually · tap for i or e',
+      description: 'Either trigger opens the same Symbols layer. Use I to type the symbol on E (#), or E to type the symbol on I ([). Release the trigger to return to Base. All symbol positions match the original draft.'
+    };
     if (layer.id === 'numbers') return {
       ...layer,
       activation: 'Hold U · tap U for u',
@@ -301,7 +309,7 @@ function render() {
   document.getElementById('learning-note').textContent = ergonomic
     ? 'Miryoku places arrows on the right-hand home positions (QWERTY J/K/L/quote positions), unlike the custom layout’s H/J/K/L arrows. On a regular keyboard, thumb-key placement requires a separate adaptation.'
     : currentPage === 'space-nav'
-    ? 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior separately so Space and U remain reliable during normal typing; test the activation order of Space and U.'
+    ? 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior so Space, U, I, and E remain reliable during normal typing; test the activation order of Space and U.'
     : 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior separately so Space and Tab remain reliable during normal typing.';
   const sourceNote = document.getElementById('source-note');
   sourceNote.replaceChildren(document.createTextNode(ergonomic ? 'Main layer positions follow the official ' : 'Custom proposal inspired by '));
