@@ -106,14 +106,14 @@ test("Space-first + I stays Page Down and Space-first + E is 8, never Symbols", 
 test("U is a plain letter: only Space, Caps Lock, R, I and E open layers", () => {
     assert.deepEqual(Object.keys(Layers.LAYERS).sort(), ["base", "navigation", "symbols"]);
     const keys = Object.fromEntries(Layers.guideRows("symbols").flat().map(key => [key.key, key]));
-    assert.equal(keys.u.output, ")");
+    assert.equal(keys.u.output, ">");
 });
 
 test("holding I or E opens the same Symbols layer with the custom page's positions", () => {
     const keys = Object.fromEntries(Layers.guideRows("symbols").flat().map(key => [key.key, key]));
     const row = list => list.map(key => keys[key].output).join(" ");
-    assert.equal(row(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]), "! @ # $ % ( ) [ ] \\");
-    assert.equal(row(["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"]), "= + - _ * { } < > /");
+    assert.equal(row(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]), "! @ # $ % < > [ ] \\");
+    assert.equal(row(["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"]), "= + - _ * ( ) { } /");
     assert.equal(row(["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"]), "` ~ & | ^ ' \" : ; ?");
     assert.ok(!keys.i.trigger && !keys.e.trigger, "I-held + E is #, E-held + I is [");
     assert.deepEqual([keys.spc.output, keys.spc.trigger, keys.caps.output, keys.caps.hold], ["Space", false, "Esc", ""]);

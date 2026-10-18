@@ -55,8 +55,8 @@
 
 ;; Symbols - hold I or E; US layout symbols without Shift
 (deflayer symbols
-  _   S-1 S-2   S-3 S-4 S-5   S-9 S-0 [   ]   \
-  esc =   S-=   -   S--   S-8 S-[ S-] S-, S-. /
+  _   S-1 S-2   S-3 S-4 S-5   S-, S-. [   ]   \
+  esc =   S-=   -   S--   S-8 S-9 S-0 S-[ S-] /
       grv S-grv S-7 S-\ S-6   '   S-' S-; ;   S-/
   spc
 )

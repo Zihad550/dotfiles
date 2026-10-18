@@ -278,7 +278,8 @@ function render() {
     if (layer.id === 'symbols') return {
       ...layer,
       activation: 'Hold I or E individually · tap for i or e',
-      description: 'Either trigger opens the same Symbols layer. Use I to type the symbol on E (#), or E to type the symbol on I ([). Release the trigger to return to Base. All symbol positions match the original draft.'
+      description: 'Either trigger opens the same Symbols layer. Use I to type the symbol on E (#), or E to type the symbol on I ([). Release the trigger to return to Base. Parentheses sit on H/J and braces on K/L; angle brackets move to Y/U.',
+      output: ['!','@','#','$','%', '<','>','[',']','\\', '=', '+','-','_','*', '(',')','{','}','/', '`','~','&','|','^', "'",'"',':',';', '?']
     };
     if (layer.id === 'numbers') return null;
     return layer;
