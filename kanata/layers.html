@@ -83,7 +83,7 @@ section { background: white; padding: 16px; }
 </section>
 <footer>
 <p id="source-note"></p>
-<p>This reference works offline. Symbol outputs assume a US keyboard layout. It does not change your keyboard or describe your installed Kanata configuration.</p>
+<p>This reference works offline. Symbol outputs assume a US keyboard layout. <span id="install-note"></span></p>
 </footer>
 </main>
 <script>
@@ -156,9 +156,12 @@ const pages = {
   original: { title: 'Original programmer layout', eyebrow: 'Custom suggestion · US QWERTY',
     description: 'The original four-layer proposal for a regular keyboard. Caps Lock opens Navigation; Space opens Symbols.',
     instructions: ['Caps Lock: tap Escape, hold Navigation.', 'Space: tap Space, hold Symbols.', 'Tab: tap Tab, hold Numbers.', ...commonInstructions] },
-  'space-nav': { title: 'Space for navigation', eyebrow: 'Custom variant · US QWERTY',
-    description: 'The active custom programmer keymap: hold Space for Navigation, with U for Backspace and ; for Enter. Hold either I or E for Symbols and U for left-hand Numbers. The Original and Miryoku pages remain reference drafts.',
-    instructions: ['Space: tap Space, hold Navigation.', 'I or E: tap the letter, hold either key individually for Symbols. No I+E chord is required.', 'Caps Lock: tap Escape; it does not activate Symbols.', 'U: tap u, hold Numbers. Tab has no layer hold action.', 'Hold U first, then Space for 0, Tab for decimal, or Caps Lock for minus. Hold Space first, then U for Backspace.', ...commonInstructions] },
+  'space-nav': { title: 'Space for navigation', eyebrow: 'Installed layout · US QWERTY',
+    description: 'The layout installed by this repo’s Kanata keymap: hold Space for Navigation, with arrows and editing on the right hand and a numpad on the left. Hold either I or E for Symbols. The Original and Miryoku pages remain reference drafts.',
+    instructions: ['Space: tap Space, hold Navigation. Caps Lock and R also hold Navigation.', 'I or E: tap the letter, hold either key individually for Symbols. No I+E chord is required.', 'Caps Lock: tap Escape, hold Navigation. It does not activate Symbols.', 'Numbers share the Navigation layer: hold Space, then use the left-hand numpad. G is 0, Tab is decimal, Caps Lock is minus. Holding A/S/D/F there still gives Super/Alt/Shift/Ctrl, so Space, hold D, then L selects text.', 'U and Tab are plain keys with no layer hold action.', 'The layer key held first decides the next key. Layers never stack.', 'While a layer is held, the desktop Bar names it and the Layer Guide shows each key’s output.',
+      ...commonInstructions.map(text => text.startsWith('Optional home row mods')
+        ? 'Home row mods apply on Base: A/S/D/F hold Super/Alt/Shift/Ctrl; J/K/L/; hold Ctrl/Shift/Alt/Super. Holding B gives Backspace.'
+        : text)] },
   miryoku: { title: 'Miryoku', eyebrow: 'Established layout · 36 keys · Main layers',
     description: 'Miryoku’s main layers and six thumb keys, with default Colemak-DH letters or its QWERTY alternative. This is an ergonomic keyboard diagram, not a direct mapping onto a laptop keyboard.',
     instructions: ['Left thumbs, outer → inner: Escape / Media, Space / Navigation, Tab / Mouse. Tap the key name; hold for the layer.',
@@ -205,7 +208,7 @@ function renderLayer(layer, ergonomic) {
       const key = physical[index];
       const output = Array.isArray(layer.output) ? layer.output[index] : layer.output[key];
       const position = ergonomic ? (col < 5 ? 'L' : 'R') + (rowIndex + 1) + '·' + (col % 5 + 1) : key;
-      const modifier = ergonomic ? layer.holds?.[index] : layer.id === 'base' ? layer.holds?.[key] ?? mods[key] : undefined;
+      const modifier = ergonomic ? layer.holds?.[index] : layer.id === 'base' ? layer.holds?.[key] ?? mods[key] : layer.holds?.[key];
       addKey(row, position, output === undefined ? key : output, modifier ? 'hold ' + modifier : output === undefined ? 'base' : '', output === undefined || output === '—');
     }
     keyboard.append(row);
@@ -260,29 +263,26 @@ function render() {
     if (currentPage !== 'space-nav') return layer;
     if (layer.id === 'base') return {
       ...layer,
-      description: 'Tap keys for their letters. Hold U for Numbers, or either I or E for Symbols. Gold home row labels show optional hold modifiers.',
-      holds: { U: 'Numbers', I: 'Symbols', E: 'Symbols' }
+      description: 'Tap keys for their letters. Hold Space for Navigation and numbers, or either I or E for Symbols. Gold labels show the installed hold actions.',
+      holds: { A: 'Super', S: 'Alt', D: 'Shift', F: 'Ctrl', J: 'Ctrl', K: 'Shift', L: 'Alt', ';': 'Super', B: 'Bksp', R: 'Nav', I: 'Symbols', E: 'Symbols' }
     };
     if (layer.id === 'navigation') return {
       ...layer,
-      activation: 'Hold Space · tap Space for Space',
-      description: 'H/J/K/L move the cursor. U deletes the previous character; ; presses Enter. I/O/P provide page and end navigation, with additional editing keys on the lower row.',
-      output: { ...layer.output, U: 'Bksp', ';': 'Enter' }
+      activation: 'Hold Space, Caps Lock or R · tap Space for Space',
+      description: 'Right hand: H/J/K/L move the cursor, U deletes the previous character, ; presses Enter, I/O page down and up, M/N go to Home and End, Y deletes forward, comma is Insert, and P is Print Screen. Left hand: a Miryoku-style numpad with W/E/R = 7/8/9, S/D/F = 4/5/6, X/C/V = 1/2/3 and G = 0. Holding A/S/D/F keeps the home row modifiers.',
+      holds: { A: 'Super', S: 'Alt', D: 'Shift', F: 'Ctrl' },
+      output: { H: '←', J: '↓', K: '↑', L: '→', U: 'Bksp', I: 'PgDn', O: 'PgUp', P: 'PrtSc', ';': 'Enter', Y: 'Delete', N: 'End', M: 'Home', ',': 'Insert',
+        Q: '[', W: '7', E: '8', R: '9', T: ']', A: ';', S: '4', D: '5', F: '6', G: '0', Z: '`', X: '1', C: '2', V: '3', B: '\\' },
+      extraKeys: [{ key: 'Space', output: 'held' }, { key: 'Tab', output: '.' }, { key: 'Caps Lock', output: '−' }]
     };
     if (layer.id === 'symbols') return {
       ...layer,
       activation: 'Hold I or E individually · tap for i or e',
       description: 'Either trigger opens the same Symbols layer. Use I to type the symbol on E (#), or E to type the symbol on I ([). Release the trigger to return to Base. All symbol positions match the original draft.'
     };
-    if (layer.id === 'numbers') return {
-      ...layer,
-      activation: 'Hold U · tap U for u',
-      description: 'Miryoku-style left-hand numpad: W/E/R = 7/8/9, S/D/F = 4/5/6, X/C/V = 1/2/3. Hold U first, then Space for 0, Tab for decimal, or Caps Lock for minus. These replace Miryoku’s three left thumb keys on a regular keyboard.',
-      output: { Q: '[', W: '7', E: '8', R: '9', T: ']', A: ';', S: '4', D: '5', F: '6', G: '=', Z: '`', X: '1', C: '2', V: '3', B: '\\', U: 'held' },
-      extraKeys: [{ key: 'Space', output: '0' }, { key: 'Tab', output: '.' }, { key: 'Caps Lock', output: '−' }]
-    };
+    if (layer.id === 'numbers') return null;
     return layer;
-  });
+  }).filter(Boolean);
   if (!layers.some(layer => layer.id === currentLayer)) currentLayer = 'all';
   const controls = document.getElementById('layer-controls');
   controls.replaceChildren();
@@ -306,10 +306,13 @@ function render() {
     item.textContent = text;
     return item;
   }));
+  document.getElementById('install-note').textContent = currentPage === 'space-nav'
+    ? 'This page matches the installed Kanata keymap.'
+    : 'It does not change your keyboard or describe your installed Kanata configuration.';
   document.getElementById('learning-note').textContent = ergonomic
     ? 'Miryoku places arrows on the right-hand home positions (QWERTY J/K/L/quote positions), unlike the custom layout’s H/J/K/L arrows. On a regular keyboard, thumb-key placement requires a separate adaptation.'
     : currentPage === 'space-nav'
-    ? 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior so Space, U, I, and E remain reliable during normal typing; test the activation order of Space and U.'
+    ? 'Both layers are installed. Space, I, and E wait longer than the home row mods before becoming holds; tune layer-hold-time if normal typing triggers a layer.'
     : 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior separately so Space and Tab remain reliable during normal typing.';
   const sourceNote = document.getElementById('source-note');
   sourceNote.replaceChildren(document.createTextNode(ergonomic ? 'Main layer positions follow the official ' : 'Custom proposal inspired by '));

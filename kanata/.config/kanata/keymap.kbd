@@ -3,13 +3,21 @@
 )
 
 (defsrc
-  caps a s d f r b h j k l ;
+  tab  q w e r t y u i o p
+  caps a s d f g h j k l ;
+       z x c v b n m , . /
+  spc
 )
 (defalias
   ;; CapsLock: tap for escape, hold for navigation layer
   escnav (tap-hold $tap-time $hold-time esc (layer-while-held navigation))
   ;; r: tap for r, hold for navigation layer
   rnav (tap-hold $tap-time $hold-time r (layer-while-held navigation))
+  ;; Space: tap for space, hold for navigation layer
+  spcnav (tap-hold $tap-time $layer-hold-time spc (layer-while-held navigation))
+  ;; e or i: tap for the letter, hold for symbols layer
+  esym (tap-hold $tap-time $layer-hold-time e (layer-while-held symbols))
+  isym (tap-hold $tap-time $layer-hold-time i (layer-while-held symbols))
   a (tap-hold $tap-time $a-hold-time a lmet)
   s (tap-hold $tap-time $hold-time s lalt)
   d (tap-hold $tap-time $d-hold-time d lsft)
@@ -19,13 +27,36 @@
   l (tap-hold $tap-time $hold-time l ralt)
   ; (tap-hold $tap-time $hold-time ; rmet)
   b (tap-hold $tap-time $hold-time b bspc)
+  ;; Navigation numpad keys keep the home row modifiers on hold
+  na (tap-hold $tap-time $a-hold-time ; lmet)
+  ns (tap-hold $tap-time $hold-time 4 lalt)
+  nd (tap-hold $tap-time $d-hold-time 5 lsft)
+  nf (tap-hold $tap-time $f-hold-time 6 lctl)
 )
 
 (deflayer base
-  @escnav @a @s @d @f @rnav @b h @j @k @l @;
+  tab     q  w  @esym @rnav t y u @isym o p
+  @escnav @a @s @d    @f    g h @j    @k    @l @;
+          z  x  c     v     @b n m  , . /
+  @spcnav
 )
 
-;; Navigation layer - hjkl become arrow keys
+;; Each layer pins the other layer's trigger keys to plain keys, so the layer
+;; held first decides the next key and layers never stack (issue #155).
+
+;; Navigation - hold Space, Caps Lock or R. Right hand: arrows and editing.
+;; Left hand: Miryoku-style numpad, 0 on G.
 (deflayer navigation
-  _       _  _  _  _  _ _ left down up right _
+  .   [   7 8 9 ] del  bspc pgdn pgup prnt
+  -   @na @ns @nd @nf 0 left down up   right ret
+      grv 1 2 3 \ end  home ins  _     _
+  _
+)
+
+;; Symbols - hold I or E; US layout symbols without Shift
+(deflayer symbols
+  _   S-1 S-2   S-3 S-4 S-5   S-9 S-0 [   ]   \
+  esc =   S-=   -   S--   S-8 S-[ S-] S-, S-. /
+      grv S-grv S-7 S-\ S-6   '   S-' S-; ;   S-/
+  spc
 )

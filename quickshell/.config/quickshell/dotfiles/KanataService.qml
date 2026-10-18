@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "modules/lib/kanataLayers.js" as Layers
 
 Singleton {
     id: root
@@ -20,6 +21,21 @@ Singleton {
     property bool changing: false
     property bool refreshing: false
     readonly property bool busy: root.changing || root.refreshing || root.loadingProfile
+
+    // Live layer state from Kanata's loopback TCP server; see kanata/README.md.
+    readonly property string layerCommand: `${Quickshell.env("HOME")}/dotfiles/bin/df-kanata-layers`
+    property var layerState: Layers.initialState()
+    readonly property var layerStatus: Layers.status(root.layerState)
+    property int reconnectDelay: 500
+
+    // Presence of the file turns the Layer Guide off; the indicator stays.
+    readonly property string guideTogglesDir: `${Quickshell.env("HOME")}/.local/state/dotfiles/toggles`
+    readonly property string guideTogglePath: `${root.guideTogglesDir}/kanata-guide-off`
+    property bool guideEnabled: true
+    readonly property bool guideBusy: guideToggleProcess.running
+    property string guideLayer: ""
+    readonly property var guideRows: root.guideLayer !== "" ? Layers.guideRows(root.guideLayer) : []
+    readonly property string guideActivation: Layers.LAYERS[root.guideLayer]?.activation ?? ""
 
     function refresh(): void {
         if (root.busy)
@@ -46,6 +62,99 @@ Singleton {
         root.changing = true;
         toggleProcess.command = ["bash", root.profileCommand, profile];
         toggleProcess.running = true;
+    }
+
+    function toggleGuide(): void {
+        if (root.guideBusy)
+            return;
+        guideToggleProcess.command = root.guideEnabled
+            ? ["bash", "-c", "mkdir -p \"$1\" && touch \"$2\"", "bash", root.guideTogglesDir, root.guideTogglePath]
+            : ["rm", "-f", root.guideTogglePath];
+        guideToggleProcess.running = true;
+    }
+
+    // Hides at once, but shows only after the layer has stayed active for a
+    // moment, so a quick tap or a fast transition never flashes the guide.
+    function syncGuide(): void {
+        const wanted = root.guideEnabled && root.layerStatus.guided ? root.layerStatus.id : "";
+        if (wanted !== root.guideLayer)
+            root.guideLayer = "";
+        if (wanted !== "" && wanted !== root.guideLayer)
+            guideDelay.restart();
+        else
+            guideDelay.stop();
+    }
+
+    function requestLayer(): void {
+        layerProcess.write('{"RequestCurrentLayerName":{}}\n');
+    }
+
+    function receiveLayer(line: string): void {
+        const message = Layers.parse(line);
+        const next = Layers.receive(root.layerState, message);
+        if (next.confirmed)
+            root.reconnectDelay = 500;
+        // A reload can change or reset the layer without a LayerChange.
+        if (message?.ConfigFileReload)
+            root.requestLayer();
+        root.layerState = next;
+    }
+
+    onLayerStatusChanged: root.syncGuide()
+    onGuideEnabledChanged: root.syncGuide()
+
+    Timer {
+        id: guideDelay
+
+        interval: 150
+        onTriggered: {
+            if (root.guideEnabled && root.layerStatus.guided)
+                root.guideLayer = root.layerStatus.id;
+        }
+    }
+
+    Process {
+        id: layerProcess
+
+        command: ["bash", root.layerCommand]
+        stdinEnabled: true
+        stdout: SplitParser {
+            onRead: line => root.receiveLayer(line)
+        }
+        stderr: StdioCollector {}
+        onStarted: root.requestLayer()
+        // Exit 3 means systemd reports kanata.service stopped; see bin/df-kanata-layers.
+        onExited: exitCode => {
+            root.layerState = Layers.disconnected(exitCode === 3);
+            reconnectTimer.start();
+        }
+    }
+
+    Timer {
+        id: reconnectTimer
+
+        interval: root.reconnectDelay
+        onTriggered: {
+            root.reconnectDelay = Math.min(root.reconnectDelay * 2, 15000);
+            layerProcess.running = true;
+        }
+    }
+
+    Process {
+        id: guideToggleProcess
+
+        onExited: guideToggleFile.reload()
+    }
+
+    FileView {
+        id: guideToggleFile
+
+        path: root.guideTogglePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.guideEnabled = false
+        onLoadFailed: root.guideEnabled = true
     }
 
     Process {
@@ -76,7 +185,10 @@ Singleton {
         }
     }
 
-    Component.onCompleted: root.refresh()
+    Component.onCompleted: {
+        root.refresh();
+        layerProcess.running = true;
+    }
 
     Process {
         id: statusProcess

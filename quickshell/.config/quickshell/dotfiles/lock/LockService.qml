@@ -14,6 +14,7 @@ Scope {
     id: root
 
     property var session: Session.initial()
+    readonly property bool locked: sessionLock.locked
 
     // What is already on disk and already told to logind. `session` changes on
     // transitions these two do not see -- taking the lock leaves the phase at

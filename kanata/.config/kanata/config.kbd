@@ -6,6 +6,8 @@
   k-hold-time 93
   f-hold-time 140
   d-hold-time 93
+  ;; Layer keys are frequent taps: a rolled letter or space must not become a hold
+  layer-hold-time 200
   built-in-hold-time 140
 )
 

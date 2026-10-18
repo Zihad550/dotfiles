@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Relays Kanata's loopback TCP server: stdin to Kanata, Kanata to stdout.
+# KANATA_PORT (default 5829) must match setup/systemd/root/kanata.service.in.
+# Exits 3 when it cannot connect and systemd reports kanata.service stopped,
+# 4 when it cannot connect for another reason, and 0 when the stream ends.
+set -euo pipefail
+
+if ! { exec 3<>"/dev/tcp/127.0.0.1/${KANATA_PORT:-5829}"; } 2>/dev/null; then
+    # A bus or permission error is not a confirmed stop.
+    case "$(systemctl is-active kanata.service 2>/dev/null || true)" in
+        inactive|failed|deactivating) exit 3 ;;
+        *) exit 4 ;;
+    esac
+fi
+# Background jobs read /dev/null unless stdin is redirected explicitly. The
+# writer ends when its stdin closes. The reader replaces this shell and dies
+# with its parent, so a Shared Shell exit cannot leave the connection open.
+cat <&0 >&3 &
+exec setpriv --pdeathsig KILL cat <&3

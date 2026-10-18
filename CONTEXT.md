@@ -203,6 +203,18 @@ failed, and reruns exactly that failed operation when activated. Never starts
 on its own and never repeats a password prompt without another activation.
 _Avoid_: retry button, error row, try again
 
+**Layer Indicator**:
+The Bar's text naming the Kanata layer Kanata has confirmed. Stopped Kanata and
+unavailable live state read differently from Base, never as a guess.
+_Avoid_: layer badge, mode indicator
+
+**Layer Guide**:
+The click-through keyboard panel under the Bar on the focused monitor, showing
+each physical key's output while a layer other than Base is held. It never
+takes focus. The Kanata Page turns it off without affecting the Layer
+Indicator. Distinct from a Kanata profile, which only changes timing.
+_Avoid_: cheat sheet, on-screen keyboard, overlay
+
 ## Media language
 
 **Media Controls**:

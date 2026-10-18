@@ -12,7 +12,9 @@ ShellRoot {
     id: root
     readonly property bool workstation: Quickshell.env("DOTFILES_PROFILE") === "arch-workstation"
 
-    LockConfig.LockService {}
+    LockConfig.LockService {
+        id: lockService
+    }
 
     LauncherConfig.LauncherService {
         id: launcherService
@@ -77,6 +79,11 @@ ShellRoot {
     // The swayosd-server replacement. State is in OsdService; this is only the
     // window, so it is instantiated once and follows the active monitor.
     Osd {}
+
+    // One Layer Guide, placed on the focused monitor.
+    KanataGuide {
+        locked: lockService.locked
+    }
 
     // `qs -c dotfiles ipc call osd <fn> <arg>`, called by the media keys in
     // hypr/.config/hypr/lua/bindings/media.lua where they used to call

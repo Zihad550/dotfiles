@@ -44,6 +44,7 @@ PanelWindow {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0
 
+        KanataLayer {}
         Voxtype {}
         StatusCluster {
             id: statusCluster

@@ -14,8 +14,11 @@ test("Kanata tracks service state, serializes toggles and reports failures", { s
     fs.mkdirSync(path.join(directory, "bin"));
     fs.mkdirSync(path.join(directory, "dotfiles/bin"), { recursive: true });
     fs.mkdirSync(path.join(directory, "runtime"), { mode: 0o700 });
+    fs.mkdirSync(path.join(directory, "modules/lib"), { recursive: true });
     fs.copyFileSync(path.join(repo, "quickshell/.config/quickshell/dotfiles/KanataService.qml"),
         path.join(directory, "KanataService.qml"));
+    fs.copyFileSync(path.join(repo, "quickshell/.config/quickshell/dotfiles/modules/lib/kanataLayers.js"),
+        path.join(directory, "modules/lib/kanataLayers.js"));
     fs.writeFileSync(path.join(directory, "state"), "inactive");
     fs.writeFileSync(path.join(directory, "bin/systemctl"), `#!/bin/sh
 case "$1" in
