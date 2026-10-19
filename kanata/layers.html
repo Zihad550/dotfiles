@@ -157,8 +157,8 @@ const pages = {
     description: 'The original four-layer proposal for a regular keyboard. Caps Lock opens Navigation; Space opens Symbols.',
     instructions: ['Caps Lock: tap Escape, hold Navigation.', 'Space: tap Space, hold Symbols.', 'Tab: tap Tab, hold Numbers.', ...commonInstructions] },
   'space-nav': { title: 'Space for navigation', eyebrow: 'Installed layout · US QWERTY',
-    description: 'The layout installed by this repo’s Kanata keymap: hold Space for Navigation, with arrows and editing on the right hand and a numpad on the left. Hold either I or E for Symbols. The Original and Miryoku pages remain reference drafts.',
-    instructions: ['Space: tap Space, hold Navigation. Caps Lock and R also hold Navigation.', 'I or E: tap the letter, hold either key individually for Symbols. No I+E chord is required.', 'Caps Lock: tap Escape, hold Navigation. It does not activate Symbols.', 'Numbers share the Navigation layer: hold Space, then use the left-hand numpad. G is 0, Tab is decimal, Caps Lock is minus. Holding A/S/D/F there still gives Super/Alt/Shift/Ctrl, so Space, hold D, then L selects text.', 'U and Tab are plain keys with no layer hold action.', 'The layer key held first decides the next key. Layers never stack.', 'The desktop Bar names the active layer. Click its layer button to browse each layer’s key outputs.',
+    description: 'The layout installed by this repo’s Kanata keymap: hold Space for Navigation, with arrows and editing on the right hand and a numpad on the left. Hold Enter for Symbols. The Original and Miryoku pages remain reference drafts.',
+    instructions: ['Space: tap Space, hold Navigation. Caps Lock and R also hold Navigation.', 'Enter: tap Enter, hold for Symbols. I and E are plain letters.', 'Caps Lock: tap Escape, hold Navigation. It does not activate Symbols.', 'Numbers share the Navigation layer: hold Space, then use the left-hand numpad. G is 0, Tab is decimal, Caps Lock is minus. Holding A/S/D/F there still gives Super/Alt/Shift/Ctrl, so Space, hold D, then L selects text.', 'Hold Escape for Miryoku Media: J/K/L/; are previous/volume down/volume up/next. Enter stops, Backspace plays/pauses, Delete mutes. Tap Escape for Escape; M stays a plain letter.', 'Hold Tab for Miryoku Mouse; tap Tab for Tab. J/K/L/; move the pointer, M/,/./ slash scroll; Enter/Backspace/Delete are right/left/middle click. U has no layer hold action.', 'The layer key held first decides the next key. Layers never stack.', 'The desktop Bar names the active layer. Click its layer button to browse each layer’s key outputs.',
       ...commonInstructions.map(text => text.startsWith('Optional home row mods')
         ? 'Home row mods apply on Base: A/S/D/F hold Super/Alt/Shift/Ctrl; J/K/L/; hold Ctrl/Shift/Alt/Super. Holding B gives Backspace.'
         : text)] },
@@ -263,8 +263,9 @@ function render() {
     if (currentPage !== 'space-nav') return layer;
     if (layer.id === 'base') return {
       ...layer,
-      description: 'Tap keys for their letters. Hold Space for Navigation and numbers, or either I or E for Symbols. Gold labels show the installed hold actions.',
-      holds: { A: 'Super', S: 'Alt', D: 'Shift', F: 'Ctrl', J: 'Ctrl', K: 'Shift', L: 'Alt', ';': 'Super', B: 'Bksp', R: 'Nav', I: 'Symbols', E: 'Symbols' }
+      description: 'Tap keys for their letters. Hold Space for Navigation and numbers, Enter for Symbols, Escape for Media, or Tab for Mouse. Gold labels show the installed hold actions.',
+      extraKeys: [{ key: 'Escape', output: 'Esc / hold Media' }, { key: 'Enter', output: 'Enter / hold Symbols' }],
+      holds: { A: 'Super', S: 'Alt', D: 'Shift', F: 'Ctrl', J: 'Ctrl', K: 'Shift', L: 'Alt', ';': 'Super', B: 'Bksp', R: 'Nav' }
     };
     if (layer.id === 'navigation') return {
       ...layer,
@@ -277,13 +278,29 @@ function render() {
     };
     if (layer.id === 'symbols') return {
       ...layer,
-      activation: 'Hold I or E individually · tap for i or e',
-      description: 'Either trigger opens the same Symbols layer. Use I to type the symbol on E (#), or E to type the symbol on I ([). Release the trigger to return to Base. Parentheses sit on H/J and braces on K/L; angle brackets move to Y/U.',
-      output: ['!','@','#','$','%', '<','>','[',']','\\', '=', '+','-','_','*', '(',')','{','}','/', '`','~','&','|','^', "'",'"',':',';', '?']
+      activation: 'Hold Enter · tap for Enter',
+      description: 'Miryoku symbols on the left hand; direct modifiers on the right home row. Enter is the held activation key; layers cannot stack.',
+      output: { Q: '{', W: '&', E: '*', R: '(', T: '}', A: ':', S: '$', D: '%', F: '^', G: '+', Z: '~', X: '!', C: '@', V: '#', B: '|',
+        Y: '—', U: '—', I: '—', O: '—', P: '—', H: '—', J: 'Shift', K: 'Ctrl', L: 'Alt', ';': 'Super', N: '—', M: '—', ',': '—', '.': '—', '/': '—' },
+      holds: {},
+      extraKeys: [{ key: 'Enter', output: 'held' }, { key: 'Escape', output: '(' }, { key: 'Caps Lock', output: '(' }, { key: 'Space', output: ')' }, { key: 'Tab', output: '_' }]
     };
     if (layer.id === 'numbers') return null;
     return layer;
   }).filter(Boolean);
+  if (currentPage === 'space-nav') layers.push({
+    id: 'media', name: '04 / Media', activation: 'Hold Escape · tap for Escape',
+    description: 'Miryoku Media: playback and volume on the right hand, direct left-hand modifiers. Firmware RGB, power, output and Bluetooth slots are unused.',
+    output: { Y: '—', U: '—', I: '—', O: '—', P: '—', H: '—', J: 'Prev', K: 'Vol−', L: 'Vol+', ';': 'Next', N: '—', M: 'm', ',': '—', '.': '—', '/': '—', A: 'Super', S: 'Alt', D: 'Ctrl', F: 'Shift', G: '—', R: 'r' },
+    holds: { B: 'Bksp' },
+    extraKeys: [{ key: 'Escape', output: 'held' }, { key: 'Enter', output: 'Stop' }, { key: 'Backspace', output: 'Play/pause' }, { key: 'Delete', output: 'Mute' }]
+  }, {
+    id: 'mouse', name: '05 / Mouse', activation: 'Hold Tab · tap for Tab',
+    description: 'Miryoku Mouse: clipboard, pointer and scroll rows on the right hand. Hold a mouse button and move to drag.',
+    output: { Y: 'Redo', U: 'Paste', I: 'Copy', O: 'Cut', P: 'Undo', H: '—', J: 'Mouse ←', K: 'Mouse ↓', L: 'Mouse ↑', ';': 'Mouse →', N: '—', M: 'Wheel ←', ',': 'Wheel ↓', '.': 'Wheel ↑', '/': 'Wheel →', A: 'Super', S: 'Alt', D: 'Ctrl', F: 'Shift', G: '—', R: 'r' },
+    holds: { B: 'Bksp' },
+    extraKeys: [{ key: 'Tab', output: 'held' }, { key: 'Enter', output: 'Right click' }, { key: 'Backspace', output: 'Left click' }, { key: 'Delete', output: 'Middle click' }]
+  });
   if (!layers.some(layer => layer.id === currentLayer)) currentLayer = 'all';
   const controls = document.getElementById('layer-controls');
   controls.replaceChildren();
@@ -313,7 +330,7 @@ function render() {
   document.getElementById('learning-note').textContent = ergonomic
     ? 'Miryoku places arrows on the right-hand home positions (QWERTY J/K/L/quote positions), unlike the custom layout’s H/J/K/L arrows. On a regular keyboard, thumb-key placement requires a separate adaptation.'
     : currentPage === 'space-nav'
-    ? 'Both layers are installed. Space, I, and E wait longer than the home row mods before becoming holds; tune layer-hold-time if normal typing triggers a layer.'
+    ? 'Navigation, Symbols, Media and Mouse are installed. Space, Enter, Escape and Tab wait longer than the home row mods before becoming holds; tune layer-hold-time if normal typing triggers a layer.'
     : 'Start with Navigation, add Symbols and Numbers, then try home row mods. Tune tap/hold behavior separately so Space and Tab remain reliable during normal typing.';
   const sourceNote = document.getElementById('source-note');
   sourceNote.replaceChildren(document.createTextNode(ergonomic ? 'Main layer positions follow the official ' : 'Custom proposal inspired by '));

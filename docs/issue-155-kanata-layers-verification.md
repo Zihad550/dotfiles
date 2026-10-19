@@ -44,7 +44,7 @@ bin/df-qs-restart dotfiles
 - [ ] In an editor, hold Caps Lock: the Bar shows `Nav` without opening a guide.
       H/J/K/L still move the cursor. Release: the Bar shows `Base`.
 - [ ] Click the layer button: a guide opens under that Bar. Select Base,
-      Navigation and Symbols to inspect their key outputs and hold labels.
+      Navigation, Symbols, Media and Mouse to inspect their key outputs and hold labels.
 - [ ] Holding or releasing a layer does not open the guide or change its
       selected tab. Quick taps and fast prose never flash a guide.
 - [ ] Click the button again, click outside, and press Escape: each closes it.
@@ -84,15 +84,14 @@ To roll back milestone 2 only, restore `kanata/.config/kanata/keymap.kbd`,
 `config.kbd`, `laptop.kbd`, and `modules/lib/kanataLayers.js` from the
 milestone 1 commit, then restart Kanata.
 
-## 5. Milestone 3: Symbols
+## 5. Miryoku Symbols
 
-- [ ] Tapping I and E types i and e; fast prose with many i and e loses no
-      letters and never opens the guide.
-- [ ] Hold I: the Bar shows `Sym` without opening the guide. E
-      gives `#`, A gives `=`, H/J give `(`/`)`. Release I: no `i` is typed.
-- [ ] Hold E: the same layer opens. I gives `[`. Release E: no `e` is typed.
+- [ ] I and E are plain letters. Tapping Enter sends Enter.
+- [ ] Hold Enter: the Bar shows Sym without opening the guide.
+- [ ] Q/W/E/R/T output `{ & * ( }`; A/S/D/F/G output `: $ % ^ +`;
+      Z/X/C/V/B output `~ ! @ # |`.
+- [ ] Caps Lock/Space/Tab output `(`/`)`/`_`; J/K/L/; are Shift/Ctrl/Alt/Super.
 - [ ] Hold Space, then I: Page Down (Navigation, not Symbols).
-- [ ] Caps Lock still taps Escape and holds Navigation.
 
 ## 6. Milestone 4: Numbers on the Space layer
 
@@ -103,3 +102,19 @@ milestone 1 commit, then restart Kanata.
 - [ ] Tapping U types u, holding U types repeated u, and Tab is a normal Tab.
 
 Record each result on issue #155.
+
+## 7. Miryoku Media and Mouse
+
+- [ ] Tap Escape/Tab: send Escape/Tab. Hold Escape/Tab: Media/Mouse indicator, no guide opens.
+- [ ] Media J/K/L/;: previous track, volume down, volume up, next track.
+- [ ] Media Enter/Backspace/Delete: stop, play-pause, mute.
+- [ ] Mouse J/K/L/;: pointer left/down/up/right; M/,/./ slash scroll likewise.
+- [ ] Mouse Enter/Backspace/Delete: right/left/middle buttons. Drag by holding
+      Backspace while using the pointer keys; releasing ends the drag.
+- [ ] Mouse Y/U/I/O/P: Redo/Paste/Copy/Cut/Undo.
+- [ ] Media/Mouse A/S/D/F: direct Super/Alt/Ctrl/Shift.
+- [ ] M remains a plain letter in Base; Escape never stacks another layer.
+- [ ] Release the activation key: Base returns, with no stuck button or modifier.
+- [ ] Layer trigger keys never stack layers. Navigation + M still sends Home.
+- [ ] Browse Symbols/Media/Mouse using the layer button; holds never open it.
+- [ ] Repeat with both Default and Laptop profiles.

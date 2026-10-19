@@ -7,24 +7,28 @@
 var LAYERS = {
     base: { id: "base", label: "Base", short: "Base" },
     navigation: { id: "navigation", label: "Navigation", short: "Nav", activation: "Hold Space, Caps Lock or R" },
-    symbols: { id: "symbols", label: "Symbols", short: "Sym", activation: "Hold I or E" }
+    symbols: { id: "symbols", label: "Symbols", short: "Sym", activation: "Hold Enter" },
+    media: { id: "media", label: "Media", short: "Media", activation: "Hold Escape" },
+    mouse: { id: "mouse", label: "Mouse", short: "Mouse", activation: "Hold Tab" }
 };
 
 var ROWS = [
     ["tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
     ["caps", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";"],
     ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"],
-    ["spc"]
+    ["esc", "spc", "ret", "bspc", "del"]
 ];
 
-var NAMES = { tab: "Tab", caps: "Caps", spc: "Space" };
+var NAMES = { esc: "Esc", tab: "Tab", caps: "Caps", spc: "Space", ret: "Enter", bspc: "Bksp", del: "Del" };
 
 var BASE = {
-    tab: { output: "Tab" },
+    tab: { output: "Tab", hold: "Mouse", layer: "mouse" },
+    ret: { output: "Enter", hold: "Symbols", layer: "symbols" },
+    bspc: { output: "Bksp" },
+    del: { output: "Del" },
     caps: { output: "Esc", hold: "Navigation", layer: "navigation" },
     spc: { output: "Space", hold: "Navigation", layer: "navigation" },
-    e: { hold: "Symbols", layer: "symbols" },
-    i: { hold: "Symbols", layer: "symbols" },
+    esc: { output: "Esc", hold: "Media", layer: "media" },
     a: { hold: "Super" },
     s: { hold: "Alt" },
     d: { hold: "Shift" },
@@ -40,7 +44,24 @@ var BASE = {
 // Keys a layer maps itself, including trigger keys it pins to plain output so
 // that layers never stack.
 var OUTPUTS = {
+    media: {
+        tab: "Tab", r: "r", i: "—", caps: "Esc", spc: "Space",
+        a: "Super", s: "Alt", d: "Ctrl", f: "Shift", g: "—",
+        y: "—", u: "—", o: "—", p: "—", h: "—",
+        j: "Prev", k: "Vol−", l: "Vol+", ";": "Next",
+        n: "—", ",": "—", ".": "—", "/": "—",
+        ret: "Stop", bspc: "Play/Pause", del: "Mute"
+    },
+    mouse: {
+        esc: "Esc", r: "r", caps: "Esc", spc: "Space",
+        a: "Super", s: "Alt", d: "Ctrl", f: "Shift", g: "—",
+        y: "Redo", u: "Paste", i: "Copy", o: "Cut", p: "Undo", h: "—",
+        j: "Mouse ←", k: "Mouse ↓", l: "Mouse ↑", ";": "Mouse →",
+        n: "—", m: "Wheel ←", ",": "Wheel ↓", ".": "Wheel ↑", "/": "Wheel →",
+        ret: "Right click", bspc: "Left click", del: "Middle click"
+    },
     navigation: {
+        esc: "Esc", ret: "Enter",
         h: "←", j: "↓", k: "↑", l: "→", ";": "Enter",
         u: "Bksp", i: "PgDn", o: "PgUp", p: "PrtSc", y: "Del",
         n: "End", m: "Home", ",": "Ins",
@@ -49,10 +70,13 @@ var OUTPUTS = {
         z: "`", x: "1", c: "2", v: "3", b: "\\"
     },
     symbols: {
-        q: "!", w: "@", e: "#", r: "$", t: "%", y: "<", u: ">", i: "[", o: "]", p: "\\",
-        caps: "Esc", a: "=", s: "+", d: "-", f: "_", g: "*", h: "(", j: ")", k: "{", l: "}", ";": "/",
-        z: "`", x: "~", c: "&", v: "|", b: "^", n: "'", m: "\"", ",": ":", ".": ";", "/": "?",
-        spc: "Space"
+        esc: "(", tab: "_", caps: "(", spc: ")", bspc: "Bksp", del: "Del",
+        q: "{", w: "&", e: "*", r: "(", t: "}",
+        a: ":", s: "$", d: "%", f: "^", g: "+",
+        z: "~", x: "!", c: "@", v: "#", b: "|",
+        y: "—", u: "—", i: "—", o: "—", p: "—", h: "—",
+        j: "Shift", k: "Ctrl", l: "Alt", ";": "Super",
+        n: "—", m: "—", ",": "—", ".": "—", "/": "—"
     }
 };
 

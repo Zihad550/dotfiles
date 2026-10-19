@@ -197,13 +197,19 @@ ShellRoot {
     ipc("toggleGuide");
     await until(state => state.guide === "base", "click opens Base guide");
     ipc("selectLayer", "symbols");
-    await until(state => state.guide === "symbols" && state.title === "Symbols · Hold I or E" && state.h === "(", "browse Symbols");
+    await until(state => state.guide === "symbols" && state.title === "Symbols · Hold Enter" && state.h === "—", "browse Symbols");
     server.send({ LayerChange: { new: "base" } });
     await until(state => state.id === "base" && state.guide === "symbols", "layer release preserves selected guide");
     ipc("selectLayer", "navigation");
     await until(state => state.guide === "navigation" && state.h === "←", "browse Navigation");
+    ipc("selectLayer", "media");
+    await until(state => state.guide === "media" && state.title === "Media · Hold Escape", "browse Media");
+    ipc("selectLayer", "mouse");
+    await until(state => state.guide === "mouse" && state.title === "Mouse · Hold Tab", "browse Mouse");
     ipc("toggleGuide");
     await until(state => state.guide === "", "second click closes guide");
+    server.send({ LayerChange: { new: "media" } });
+    await until(state => state.id === "media" && state.indicator === "󰌌 Media" && state.guide === "", "held Media updates indicator without opening guide");
 
     fs.writeFileSync(path.join(directory, "state"), "inactive");
     await server.close();

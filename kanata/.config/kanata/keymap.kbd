@@ -2,11 +2,13 @@
   process-unmapped-keys yes
 )
 
+(deflocalkeys-linux mstp 166)
+
 (defsrc
   tab  q w e r t y u i o p
   caps a s d f g h j k l ;
        z x c v b n m , . /
-  spc
+  esc spc ret bspc del
 )
 (defalias
   ;; CapsLock: tap for escape, hold for navigation layer
@@ -15,9 +17,17 @@
   rnav (tap-hold $tap-time $hold-time r (layer-while-held navigation))
   ;; Space: tap for space, hold for navigation layer
   spcnav (tap-hold $tap-time $layer-hold-time spc (layer-while-held navigation))
-  ;; e or i: tap for the letter, hold for symbols layer
-  esym (tap-hold $tap-time $layer-hold-time e (layer-while-held symbols))
-  isym (tap-hold $tap-time $layer-hold-time i (layer-while-held symbols))
+  entsym (tap-hold $tap-time $layer-hold-time ret (layer-while-held symbols))
+  escmedia (tap-hold $tap-time $layer-hold-time esc (layer-while-held media))
+  tabmouse (tap-hold $tap-time $layer-hold-time tab (layer-while-held mouse))
+  mouseleft (movemouse-accel-left 10 1000 1 15)
+  mousedown (movemouse-accel-down 10 1000 1 15)
+  mouseup (movemouse-accel-up 10 1000 1 15)
+  mouseright (movemouse-accel-right 10 1000 1 15)
+  wheelleft (mwheel-left 50 120)
+  wheeldown (mwheel-down 50 120)
+  wheelup (mwheel-up 50 120)
+  wheelright (mwheel-right 50 120)
   a (tap-hold $tap-time $a-hold-time a lmet)
   s (tap-hold $tap-time $hold-time s lalt)
   d (tap-hold $tap-time $d-hold-time d lsft)
@@ -35,13 +45,13 @@
 )
 
 (deflayer base
-  tab     q  w  @esym @rnav t y u @isym o p
+  @tabmouse q  w  e @rnav t y u i o p
   @escnav @a @s @d    @f    g h @j    @k    @l @;
-          z  x  c     v     @b n m  , . /
-  @spcnav
+          z  x  c     v     @b n m , . /
+  @escmedia @spcnav @entsym bspc del
 )
 
-;; Each layer pins the other layer's trigger keys to plain keys, so the layer
+;; Each layer pins the other layers' trigger keys to plain keys, so the layer
 ;; held first decides the next key and layers never stack (issue #155).
 
 ;; Navigation - hold Space, Caps Lock or R. Right hand: arrows and editing.
@@ -50,13 +60,29 @@
   .   [   7 8 9 ] del  bspc pgdn pgup prnt
   -   @na @ns @nd @nf 0 left down up   right ret
       grv 1 2 3 \ end  home ins  _     _
-  _
+  esc _ ret _ _
 )
 
-;; Symbols - hold I or E; US layout symbols without Shift
+;; Miryoku Symbols on the left hand, with direct right-hand modifiers.
 (deflayer symbols
-  _   S-1 S-2   S-3 S-4 S-5   S-, S-. [   ]   \
-  esc =   S-=   -   S--   S-8 S-9 S-0 S-[ S-] /
-      grv S-grv S-7 S-\ S-6   '   S-' S-; ;   S-/
-  spc
+  S-- S-[ S-7 S-8 S-9 S-] XX XX XX XX XX
+  S-9 S-; S-4 S-5 S-6 S-= XX rsft rctl ralt rmet
+      S-grv S-1 S-2 S-3 S-\ XX XX XX XX XX
+  S-9 S-0 _ bspc del
+)
+
+;; Miryoku Media: keyboard-firmware RGB, power and Bluetooth slots are unused.
+(deflayer media
+  tab _ _ _ r _ XX XX XX XX XX
+  esc lmet lalt lctl lsft XX XX prev vold volu next
+      _ _ _ _ _ XX _ XX XX XX
+  _ spc mstp pp mute
+)
+
+;; Miryoku Mouse: clipboard row, pointer row, wheel row, then button thumbs.
+(deflayer mouse
+  _ _ _ _ r _ C-S-z C-v C-c C-x C-z
+  esc lmet lalt lctl lsft XX XX @mouseleft @mousedown @mouseup @mouseright
+      _ _ _ _ _ XX @wheelleft @wheeldown @wheelup @wheelright
+  esc spc mrgt mlft mmid
 )

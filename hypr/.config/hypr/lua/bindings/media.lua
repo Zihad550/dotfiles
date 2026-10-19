@@ -17,6 +17,8 @@ o.bind("ALT + XF86AudioLowerVolume", "Volume down precise",   osd .. " volumeLow
 o.bind("ALT + XF86MonBrightnessUp",  "Brightness up precise", osd .. " brightnessRaise 1", { locked = true, repeating = true })
 o.bind("ALT + XF86MonBrightnessDown","Brightness down precise", osd .. " brightnessLower 1", { locked = true, repeating = true })
 
+o.bind("XF86AudioStop", "Stop playback", "playerctl stop", { locked = true })
+
 o.bind("XF86AudioNext",  "Next track",     osd .. " player next",       { locked = true })
 o.bind("XF86AudioPause", "Pause",          osd .. " player play-pause", { locked = true })
 o.bind("XF86AudioPlay",  "Play",           osd .. " player play-pause", { locked = true })
