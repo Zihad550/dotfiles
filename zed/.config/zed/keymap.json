@@ -133,7 +133,7 @@
   {
     "context": "",
     "bindings": {
-      "ctrl-enter": "workspace::ToggleBottomDock",
+      "ctrl-j": "workspace::ToggleBottomDock",
     },
   },
   {
