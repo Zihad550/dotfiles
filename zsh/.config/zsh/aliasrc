@@ -279,7 +279,9 @@ alias_if_command docker d docker
 alias_if_command zeditor zed zeditor
 alias_if_command zeditor z zeditor
 alias_if_command claude cl claude
+alias_if_command claude clr claude -r
 alias_if_command codex cx codex
+alias_if_command codex cxr codex resume
 alias_if_command herdr hr herdr
 alias_if_command tailscale ts tailscale
 alias_if_command ssh s ssh
