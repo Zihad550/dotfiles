@@ -11,10 +11,6 @@
   esc spc ret bspc del
 )
 (defalias
-  ;; CapsLock: tap for escape, hold for navigation layer
-  escnav (tap-hold $tap-time $hold-time esc (layer-while-held navigation))
-  ;; r: tap for r, hold for navigation layer
-  rnav (tap-hold $tap-time $hold-time r (layer-while-held navigation))
   ;; Space: tap for space, hold for navigation layer
   spcnav (tap-hold $tap-time $layer-hold-time spc (layer-while-held navigation))
   entsym (tap-hold $tap-time $layer-hold-time ret (layer-while-held symbols))
@@ -45,8 +41,8 @@
 )
 
 (deflayer base
-  @tabmouse q  w  e @rnav t y u i o p
-  @escnav @a @s @d    @f    g h @j    @k    @l @;
+  @tabmouse q  w  e r t y u i o p
+  esc @a @s @d    @f    g h @j    @k    @l @;
           z  x  c     v     @b n m , . /
   @escmedia @spcnav @entsym bspc del
 )
@@ -54,7 +50,7 @@
 ;; Each layer pins the other layers' trigger keys to plain keys, so the layer
 ;; held first decides the next key and layers never stack (issue #155).
 
-;; Navigation - hold Space, Caps Lock or R. Right hand: arrows and editing.
+;; Navigation - hold Space. Right hand: arrows and editing.
 ;; Left hand: Miryoku-style numpad, 0 on G.
 (deflayer navigation
   .   [   7 8 9 ] del  bspc pgdn pgup prnt

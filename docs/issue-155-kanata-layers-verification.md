@@ -1,7 +1,7 @@
 # Kanata layers host verification: milestones 1 to 4
 
 Milestone 1 of issue #155 adds the Layer Indicator and Layer Guide for the
-existing Caps Lock / R Navigation layer. Mappings are unchanged. Run these
+Navigation layer. These checks follow the current Space-only trigger. Run these
 steps inside the Hyprland session. Automated tests cannot prove real key
 timing, Wayland focus, or that Kanata 1.12.0 reports momentary layers.
 
@@ -24,12 +24,12 @@ or `*`, and the check reports no errors.
 
 ```bash
 printf '{"RequestCurrentLayerName":{}}\n' | timeout 15 bin/df-kanata-layers
-# Within 15 s: hold Caps Lock for a second, release; hold R for a second, release.
+# Within 15 s: hold Space for a second, then release.
 ```
 
 Pass: the output starts with `{"CurrentLayerName":{"name":"base"}}`, possibly
 after a `{"LayerChange":{"new":"base"}}` line that Kanata sends on connect.
-Each hold then prints `{"LayerChange":{"new":"navigation"}}`, followed by one
+The hold then prints `{"LayerChange":{"new":"navigation"}}`, followed by one
 with `"base"` on release. If holds print no `LayerChange` lines, the indicator
 cannot work; report that result.
 
@@ -41,7 +41,7 @@ bin/df-qs-restart dotfiles
 ```
 
 - [ ] The Bar shows `󰌌 Base` to the left of the Status Cluster.
-- [ ] In an editor, hold Caps Lock: the Bar shows `Nav` without opening a guide.
+- [ ] In an editor, hold Space: the Bar shows `Nav` without opening a guide.
       H/J/K/L still move the cursor. Release: the Bar shows `Base`.
 - [ ] Click the layer button: a guide opens under that Bar. Select Base,
       Navigation, Symbols, Media and Mouse to inspect their key outputs and hold labels.
@@ -56,8 +56,8 @@ bin/df-qs-restart dotfiles
       Start it again: the indicator returns to `Base`.
 - [ ] Lock the session while holding nothing, unlock: the indicator is
       correct, and no guide is visible while locked.
-- [ ] `bin/df-qs-restart dotfiles` while holding Caps Lock: after the restart,
-      the indicator shows `Nav` while Caps Lock is still held.
+- [ ] `bin/df-qs-restart dotfiles` while holding Space: after the restart,
+      the indicator shows `Nav` while Space is still held.
 
 ## 4. Milestone 2: Space → Navigation
 
@@ -74,7 +74,8 @@ sudo systemctl restart kanata.service
       line, Y deletes forward, P sends Print Screen (your screenshot binding
       runs), and comma toggles insert/overwrite where the editor supports it.
 - [ ] Outside Space, home row mods and B-hold Backspace still work.
-- [ ] Caps Lock and R still hold Navigation, and Caps Lock still taps Escape.
+- [ ] R types normally on tap and hold. Caps Lock sends Escape on tap and hold;
+      neither activates Navigation.
 - [ ] Release Space: the Bar shows `Base`, with no stuck modifier. An open
       guide stays on its selected tab.
 - [ ] Both Kanata profiles: repeat the Space tap and hold checks after

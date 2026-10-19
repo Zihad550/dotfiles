@@ -100,7 +100,7 @@ test("Space-held Navigation has arrows and editing on the right and a numpad wit
     assert.equal(keys.g.hold, "");
     assert.equal(row(["z", "x", "c", "v", "b"]), "` 1 2 3 \\");
     assert.ok(keys.spc.trigger);
-    assert.equal(Layers.LAYERS.navigation.activation, "Hold Space, Caps Lock or R");
+    assert.equal(Layers.LAYERS.navigation.activation, "Hold Space");
 });
 
 test("Space-first + I stays Page Down and Space-first + E is 8, never Symbols", () => {

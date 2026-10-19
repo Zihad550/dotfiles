@@ -63,7 +63,8 @@ enabled only after the previous one passes its host check:
    Navigation. H/J/K/L are arrows, U is Backspace, ; is Enter, I/O are
    PgDn/PgUp, M/N are Home/End, Y is Delete, P is Print Screen and comma is
    Insert. Y, P, N, M and comma differ from issue #155's table by user
-   decision. Caps Lock and R still hold Navigation.
+   decision. Space is the only Navigation trigger; R is a plain letter and
+   Caps Lock sends Escape on tap and hold.
 3. **Symbols** (enabled): hold Enter for Miryoku’s left-hand symbols.
    Tapping Enter still sends Enter; I and E are plain letters. The right home row supplies direct modifiers.
 4. **Numbers** (enabled, by user decision on the Navigation layer instead of

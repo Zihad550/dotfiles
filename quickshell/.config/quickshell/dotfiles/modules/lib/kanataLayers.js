@@ -6,7 +6,7 @@
 // Bar must not claim to know its mappings.
 var LAYERS = {
     base: { id: "base", label: "Base", short: "Base" },
-    navigation: { id: "navigation", label: "Navigation", short: "Nav", activation: "Hold Space, Caps Lock or R" },
+    navigation: { id: "navigation", label: "Navigation", short: "Nav", activation: "Hold Space" },
     symbols: { id: "symbols", label: "Symbols", short: "Sym", activation: "Hold Enter" },
     media: { id: "media", label: "Media", short: "Media", activation: "Hold Escape" },
     mouse: { id: "mouse", label: "Mouse", short: "Mouse", activation: "Hold Tab" }
@@ -26,14 +26,13 @@ var BASE = {
     ret: { output: "Enter", hold: "Symbols", layer: "symbols" },
     bspc: { output: "Bksp" },
     del: { output: "Del" },
-    caps: { output: "Esc", hold: "Navigation", layer: "navigation" },
+    caps: { output: "Esc" },
     spc: { output: "Space", hold: "Navigation", layer: "navigation" },
     esc: { output: "Esc", hold: "Media", layer: "media" },
     a: { hold: "Super" },
     s: { hold: "Alt" },
     d: { hold: "Shift" },
     f: { hold: "Ctrl" },
-    r: { hold: "Navigation", layer: "navigation" },
     b: { hold: "Bksp" },
     j: { hold: "Ctrl" },
     k: { hold: "Shift" },
