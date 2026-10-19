@@ -1,18 +1,20 @@
 import QtQuick
 import qs
+import "lib/kanataLayers.js" as Layers
 
 // The Layer Guide's keyboard: one key per physical position, showing what it
-// produces on the held layer. KanataGuide.qml owns the window around it.
+// produces on the selected layer. KanataGuide.qml owns the window around it.
 Rectangle {
     id: root
 
+    property string selectedLayer: "base"
     property int keySize: 44
     readonly property int gap: 5
     readonly property int step: root.keySize + root.gap
     // Row stagger of a US keyboard, in key widths. Rows 0 and 1 start at Tab and
     // Caps Lock; row 3 is the Space bar.
     readonly property var offsets: [0, 0.25, 1.75, 3.75]
-    readonly property string title: `${KanataService.layerStatus.label} · ${KanataService.guideActivation}`
+    readonly property string title: `${Layers.LAYERS[root.selectedLayer].label} · ${Layers.LAYERS[root.selectedLayer].activation ?? "Default layer"}`
     readonly property int rowCount: rows.count
 
     width: content.width + 2 * Theme.notificationPadding
@@ -41,7 +43,7 @@ Rectangle {
         Repeater {
             id: rows
 
-            model: KanataService.guideRows
+            model: Layers.guideRows(root.selectedLayer)
 
             delegate: Row {
                 required property var modelData

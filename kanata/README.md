@@ -35,10 +35,11 @@ are keyboard presets, independent of the `DOTFILES_PROFILE` setup target.
 
 The Bar shows the layer Kanata has confirmed: `Base`, `Nav`, `Off` when
 `kanata.service` is stopped, `No state` when live state is unavailable, and
-`Layer?` for a layer the guide does not describe. While a layer other than Base
-stays held, a click-through Layer Guide under the Bar on the focused monitor
-shows what each physical key produces. Turn the guide off with the **Layer
-Guide** Row on the Kanata Page; the indicator stays.
+`Layer?` for a layer the guide does not describe. Click the layer button on the
+Bar to open the Layer Guide, then select Base, Navigation or Symbols to see
+what each physical key produces. Layer holds only update the indicator; they
+do not open or change the guide. Click the button again, click outside, or
+press Escape to close it.
 
 Kanata serves this state on `127.0.0.1:5829` (see
 `docs/adr/0040-kanata-layer-state-over-loopback-tcp.md`). Rerun

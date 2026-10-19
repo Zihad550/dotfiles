@@ -29,14 +29,4 @@ QuickSettingsPage {
             }
         }
     }
-
-    PageRow {
-        width: root.width
-        icon: "󰋖"
-        label: "Layer Guide"
-        detail: KanataService.guideBusy ? "Updating…" : (KanataService.guideEnabled ? "On" : "Off")
-        enabled: !KanataService.guideBusy
-
-        onClicked: KanataService.toggleGuide()
-    }
 }

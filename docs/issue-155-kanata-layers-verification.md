@@ -41,23 +41,17 @@ bin/df-qs-restart dotfiles
 ```
 
 - [ ] The Bar shows `󰌌 Base` to the left of the Status Cluster.
-- [ ] In an editor, hold Caps Lock: the Bar shows `Nav`, and after a short
-      moment a keyboard guide appears under the Bar on this monitor. H/J/K/L
-      show arrows, Caps Lock and R are marked `held`, and A/S/D/F, J/K/L/;
-      and B show their existing hold labels.
-- [ ] While held, H/J/K/L move the cursor in the editor. The editor keeps
-      focus, and clicking where the guide is reaches the window under it.
-- [ ] Release: the Bar shows `Base` and the guide disappears.
-- [ ] Tap Caps Lock: Escape is sent, and the guide does not flash. Type fast
-      prose containing r: no guide flashes and no `r` is lost.
-- [ ] Rapid hold and release cycles leave no guide on screen and no stuck
-      modifier.
-- [ ] Hold R: same guide and indicator as Caps Lock.
-- [ ] Focus another monitor and hold Caps Lock: the guide opens there only.
-- [ ] Quick Settings → Kanata chevron → **Layer Guide**: switch Off. Holding
-      Caps Lock now changes the indicator only. Switch it back On.
+- [ ] In an editor, hold Caps Lock: the Bar shows `Nav` without opening a guide.
+      H/J/K/L still move the cursor. Release: the Bar shows `Base`.
+- [ ] Click the layer button: a guide opens under that Bar. Select Base,
+      Navigation and Symbols to inspect their key outputs and hold labels.
+- [ ] Holding or releasing a layer does not open the guide or change its
+      selected tab. Quick taps and fast prose never flash a guide.
+- [ ] Click the button again, click outside, and press Escape: each closes it.
+- [ ] On another monitor, click its layer button: the guide opens there only.
+      Opening Quick Settings closes the guide, and vice versa.
 - [ ] Switch the Kanata profile to Laptop and back: the indicator returns to
-      `Base`, and holding still shows the guide.
+      `Base`, and holds still leave the guide closed.
 - [ ] Stop Kanata with the Kanata Tile: the Bar shows `Off` within 15 s.
       Start it again: the indicator returns to `Base`.
 - [ ] Lock the session while holding nothing, unlock: the indicator is
@@ -73,15 +67,16 @@ sudo systemctl restart kanata.service
 
 - [ ] A Space tap inserts exactly one space. Fast prose and code typing never
       opens the guide, never moves the cursor, and never drops a space.
-- [ ] Hold Space: the Bar shows `Nav` and the guide shows Space as `held`.
+- [ ] Hold Space: the Bar shows `Nav` without opening the guide. In the
+      guide’s Navigation tab, Space is marked `held`.
 - [ ] While holding Space: H/J/K/L move the cursor, U deletes backward, ;
       inserts a newline, I/O pages down/up, M/N go to the start/end of the
       line, Y deletes forward, P sends Print Screen (your screenshot binding
       runs), and comma toggles insert/overwrite where the editor supports it.
 - [ ] Outside Space, home row mods and B-hold Backspace still work.
 - [ ] Caps Lock and R still hold Navigation, and Caps Lock still taps Escape.
-- [ ] Release Space: the Bar shows `Base` and the guide disappears, with no
-      stuck modifier.
+- [ ] Release Space: the Bar shows `Base`, with no stuck modifier. An open
+      guide stays on its selected tab.
 - [ ] Both Kanata profiles: repeat the Space tap and hold checks after
       switching to Laptop, then switch back.
 
@@ -93,8 +88,8 @@ milestone 1 commit, then restart Kanata.
 
 - [ ] Tapping I and E types i and e; fast prose with many i and e loses no
       letters and never opens the guide.
-- [ ] Hold I: the Bar shows `Sym` and the guide shows the symbol layer. E
-      gives `#`, A gives `=`, H/J give `{`/`}`. Release I: no `i` is typed.
+- [ ] Hold I: the Bar shows `Sym` without opening the guide. E
+      gives `#`, A gives `=`, H/J give `(`/`)`. Release I: no `i` is typed.
 - [ ] Hold E: the same layer opens. I gives `[`. Release E: no `e` is typed.
 - [ ] Hold Space, then I: Page Down (Navigation, not Symbols).
 - [ ] Caps Lock still taps Escape and holds Navigation.

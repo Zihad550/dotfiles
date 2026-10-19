@@ -37,11 +37,18 @@ Item {
 
         anchors.fill: parent
         hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: guide.toggle()
+    }
+
+    KanataGuide {
+        id: guide
+        target: root
     }
 
     Tooltip {
         target: root
         text: `Kanata layer: ${root.status.label}`
-        shown: mouse.containsMouse
+        shown: mouse.containsMouse && !guide.shown
     }
 }

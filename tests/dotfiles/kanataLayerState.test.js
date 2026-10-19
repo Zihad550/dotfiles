@@ -40,7 +40,7 @@ function kanataServer() {
     return fixture;
 }
 
-test("Layer indicator and Layer Guide follow confirmed Kanata layer state and recover from losing it", { skip: !hasQuickshell, timeout: 30000 }, async t => {
+test("Layer indicator follows Kanata while the guide opens only on request", { skip: !hasQuickshell, timeout: 30000 }, async t => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kanata-layers-"));
     const server = kanataServer();
     t.after(async () => {
@@ -69,21 +69,22 @@ import Quickshell
 import Quickshell.Io
 import qs
 import qs.modules
+import "modules/lib/kanataLayers.js" as Layers
 
 ShellRoot {
     id: root
     property string last: ""
     function report(): void {
-        const rows = KanataService.guideRows;
+        const rows = Layers.guideRows(guide.selectedLayer);
         const state = JSON.stringify({
             id: KanataService.layerStatus.id,
             short: KanataService.layerStatus.short,
             indicator: indicator.text,
             title: panel.rowCount ? panel.title : "",
             rendered: panel.rowCount,
-            guide: KanataService.guideLayer,
+            guide: guide.shown ? guide.selectedLayer : "",
             h: rows.length ? rows[1][6].output : "",
-            enabled: KanataService.guideEnabled
+            shown: guide.shown
         });
         if (state !== root.last) {
             root.last = state;
@@ -93,8 +94,6 @@ ShellRoot {
     Connections {
         target: KanataService
         function onLayerStatusChanged() { root.report(); }
-        function onGuideLayerChanged() { root.report(); }
-        function onGuideEnabledChanged() { root.report(); }
     }
     Component.onCompleted: root.report()
     FloatingWindow {
@@ -102,12 +101,19 @@ ShellRoot {
         implicitHeight: 300
         Column {
             KanataLayer { id: indicator; onTextChanged: root.report() }
-            KanataGuidePanel { id: panel; onRowCountChanged: root.report() }
+            KanataGuidePanel { id: panel; selectedLayer: guide.selectedLayer; onRowCountChanged: root.report() }
         }
+    }
+    KanataGuide {
+        id: guide
+        target: indicator
+        onShownChanged: root.report()
+        onSelectedLayerChanged: Qt.callLater(root.report)
     }
     IpcHandler {
         target: "test"
-        function toggleGuide(): void { KanataService.toggleGuide(); }
+        function toggleGuide(): void { guide.toggle(); }
+        function selectLayer(layer: string): void { guide.selectedLayer = layer; }
     }
 }
 `);
@@ -152,16 +158,16 @@ ShellRoot {
     });
     const settle = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
-    await until(state => state.id === "navigation" && state.guide === "navigation", "confirmed Navigation with guide");
-    assert.equal(states.at(-1).h, "←");
+    await until(state => state.id === "navigation" && state.guide === "", "confirmed Navigation without opening guide");
+    assert.equal(states.at(-1).h, "h");
     assert.ok(!states.some(state => state.id === "base"), "pre-snapshot LayerChange is not shown as confirmed");
     assert.equal(states.at(-1).short, "Nav");
-    await until(state => state.indicator === "󰌌 Nav" && state.rendered === 4 && state.title === "Navigation · Hold Space, Caps Lock or R", "indicator and guide panel render Navigation");
+    await until(state => state.indicator === "󰌌 Nav" && state.rendered === 4 && state.title === "Base · Default layer", "indicator renders Navigation while guide stays on Base");
 
     server.send({ LayerChange: { new: "base" } });
-    await until(state => state.id === "base" && state.guide === "" && state.indicator === "󰌌 Base" && state.rendered === 0, "release to Base");
+    await until(state => state.id === "base" && state.guide === "" && state.indicator === "󰌌 Base", "release to Base");
 
-    let mark = states.length;
+    const mark = states.length;
     server.send({ LayerChange: { new: "navigation" } }, { LayerChange: { new: "base" } });
     await settle(500);
     assert.ok(!states.slice(mark).some(state => state.guide !== ""), "a quick press never shows the guide");
@@ -172,7 +178,7 @@ ShellRoot {
     await until(state => state.id === "unknown" && state.guide === "", "unknown layer without guide");
 
     server.send({ LayerChange: { new: "navigation" } });
-    await until(state => state.guide === "navigation", "guide for Navigation");
+    await until(state => state.id === "navigation" && state.guide === "", "held layer leaves guide closed");
     server.current = "base";
     server.drop();
     await until(state => state.id === "unavailable" && state.guide === "", "lost connection hides guide");
@@ -184,13 +190,20 @@ ShellRoot {
     await until(state => state.id === "navigation", "reload re-reads current layer");
     assert.equal(server.requests, requests + 1);
 
-    mark = states.length;
-    const ipc = spawnSync("quickshell", ["-p", directory, "ipc", "call", "test", "toggleGuide"], { env, encoding: "utf8" });
-    assert.equal(ipc.status, 0, ipc.stdout + ipc.stderr);
-    await until(state => !state.enabled && state.guide === "" && state.id === "navigation", "guide off keeps indicator");
-    assert.ok(fs.existsSync(path.join(directory, ".local/state/dotfiles/toggles/kanata-guide-off")), "guide setting persists");
-    spawnSync("quickshell", ["-p", directory, "ipc", "call", "test", "toggleGuide"], { env });
-    await until(state => state.enabled && state.guide === "navigation", "guide back on");
+    const ipc = (...args) => {
+        const result = spawnSync("quickshell", ["-p", directory, "ipc", "call", "test", ...args], { env, encoding: "utf8" });
+        assert.equal(result.status, 0, result.stdout + result.stderr);
+    };
+    ipc("toggleGuide");
+    await until(state => state.guide === "base", "click opens Base guide");
+    ipc("selectLayer", "symbols");
+    await until(state => state.guide === "symbols" && state.title === "Symbols · Hold I or E" && state.h === "(", "browse Symbols");
+    server.send({ LayerChange: { new: "base" } });
+    await until(state => state.id === "base" && state.guide === "symbols", "layer release preserves selected guide");
+    ipc("selectLayer", "navigation");
+    await until(state => state.guide === "navigation" && state.h === "←", "browse Navigation");
+    ipc("toggleGuide");
+    await until(state => state.guide === "", "second click closes guide");
 
     fs.writeFileSync(path.join(directory, "state"), "inactive");
     await server.close();

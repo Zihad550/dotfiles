@@ -28,15 +28,6 @@ Singleton {
     readonly property var layerStatus: Layers.status(root.layerState)
     property int reconnectDelay: 500
 
-    // Presence of the file turns the Layer Guide off; the indicator stays.
-    readonly property string guideTogglesDir: `${Quickshell.env("HOME")}/.local/state/dotfiles/toggles`
-    readonly property string guideTogglePath: `${root.guideTogglesDir}/kanata-guide-off`
-    property bool guideEnabled: true
-    readonly property bool guideBusy: guideToggleProcess.running
-    property string guideLayer: ""
-    readonly property var guideRows: root.guideLayer !== "" ? Layers.guideRows(root.guideLayer) : []
-    readonly property string guideActivation: Layers.LAYERS[root.guideLayer]?.activation ?? ""
-
     function refresh(): void {
         if (root.busy)
             return;
@@ -64,27 +55,6 @@ Singleton {
         toggleProcess.running = true;
     }
 
-    function toggleGuide(): void {
-        if (root.guideBusy)
-            return;
-        guideToggleProcess.command = root.guideEnabled
-            ? ["bash", "-c", "mkdir -p \"$1\" && touch \"$2\"", "bash", root.guideTogglesDir, root.guideTogglePath]
-            : ["rm", "-f", root.guideTogglePath];
-        guideToggleProcess.running = true;
-    }
-
-    // Hides at once, but shows only after the layer has stayed active for a
-    // moment, so a quick tap or a fast transition never flashes the guide.
-    function syncGuide(): void {
-        const wanted = root.guideEnabled && root.layerStatus.guided ? root.layerStatus.id : "";
-        if (wanted !== root.guideLayer)
-            root.guideLayer = "";
-        if (wanted !== "" && wanted !== root.guideLayer)
-            guideDelay.restart();
-        else
-            guideDelay.stop();
-    }
-
     function requestLayer(): void {
         layerProcess.write('{"RequestCurrentLayerName":{}}\n');
     }
@@ -98,19 +68,6 @@ Singleton {
         if (message?.ConfigFileReload)
             root.requestLayer();
         root.layerState = next;
-    }
-
-    onLayerStatusChanged: root.syncGuide()
-    onGuideEnabledChanged: root.syncGuide()
-
-    Timer {
-        id: guideDelay
-
-        interval: 150
-        onTriggered: {
-            if (root.guideEnabled && root.layerStatus.guided)
-                root.guideLayer = root.layerStatus.id;
-        }
     }
 
     Process {
@@ -138,23 +95,6 @@ Singleton {
             root.reconnectDelay = Math.min(root.reconnectDelay * 2, 15000);
             layerProcess.running = true;
         }
-    }
-
-    Process {
-        id: guideToggleProcess
-
-        onExited: guideToggleFile.reload()
-    }
-
-    FileView {
-        id: guideToggleFile
-
-        path: root.guideTogglePath
-        watchChanges: true
-        printErrors: false
-        onFileChanged: reload()
-        onLoaded: root.guideEnabled = false
-        onLoadFailed: root.guideEnabled = true
     }
 
     Process {
