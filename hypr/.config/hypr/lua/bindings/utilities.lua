@@ -33,4 +33,9 @@ end
 if o.cmd_present("voxtype") then
     o.bind("SUPER + CTRL + X", "Toggle dictation", "voxtype record toggle")
     o.bind("SUPER + S", "Toggle dictation", "voxtype record toggle")
+    -- Voxtype's output hooks enter this while typing so a still-held SUPER
+    -- can't turn typed text into compositor binds -- see docs/voxtype-spec.md.
+    hl.define_submap("voxtype_suppress", function()
+        o.bind("F12", "Exit dictation output mode", hl.dsp.submap("reset"))
+    end)
 end

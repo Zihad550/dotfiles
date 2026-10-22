@@ -61,9 +61,15 @@ bash setup/common/setup-voxtype
 
 Do not run the entire profile installer just to add dictation. No remote microphone transport is configured.
 
+## Modifier suppression during output
+
+Super+S stops recording on key press, so Super can still be held when Voxtype starts typing. Hyprland merges modifiers across keyboards, so a typed `h` would fire the SUPER+H bind and move focus out of the text field. The seed config's `pre_output_command` enters the `voxtype_suppress` submap, which has no Super binds, and `post_output_command` resets it. Press F12 to leave the submap if Voxtype dies mid-output. In Lua-config mode `hyprctl dispatch` evaluates Lua, so the hooks dispatch `hl.dsp.submap(...)`. The upstream `voxtype setup compositor hyprland` integration is not used: it writes hyprlang config and a recording submap that would swallow the Super+S stop key.
+
+Existing local configs are not rewritten. Add both hook lines under `[output]` by hand.
+
 ## Live verification
 
-1. Focus a text field, press and release Super+S to start recording, say a short sentence, then press Super+S again to stop. Confirm the text appears and the recording/transcription indicator returns to idle.
+1. Focus a text field, press and release Super+S to start recording, say a short sentence, then press Super+S again to stop. Confirm the text appears and the recording/transcription indicator returns to idle. Repeat in a browser text field while holding Super after the stop press; the field must keep focus and `hyprctl submap` must report `default` afterwards.
 2. Press Super+Space and confirm the launcher opens immediately. Holding the shortcut must not start dictation.
 3. Start and stop another recording with Super+Ctrl+X. Confirm Super+Ctrl+V still opens clipboard history.
 4. Play media and record again. With the starter defaults, media keeps playing during recording and audible feedback is off.

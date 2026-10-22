@@ -330,9 +330,21 @@ dofile(arg[2])
 o.bind = function(keys, description, command, options)
     table.insert(bindings, { keys = keys, command = command, options = options or {} })
 end
-hl = { dsp = { global = function(name) return name end } }
+local submaps = {}
+hl = {
+    dsp = { global = function(name) return name end, submap = function(name) return "submap:" .. name end },
+    define_submap = function(name, fn)
+        local outer = bindings
+        bindings = {}
+        fn()
+        submaps[name] = bindings
+        bindings = outer
+    end,
+}
 os.execute = function() error("Hyprland cannot reliably retrieve subprocess exit status") end
 dofile(arg[1])
+local suppress = submaps.voxtype_suppress
+assert(#suppress == 1 and suppress[1].keys == "F12" and suppress[1].command == "submap:reset")
 local recording = {}
 for _, binding in ipairs(bindings) do
     assert(binding.keys ~= "SUPER + CTRL + V")

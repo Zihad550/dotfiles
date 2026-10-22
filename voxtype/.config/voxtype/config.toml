@@ -19,6 +19,8 @@ translate = false
 mode = "type"
 fallback_to_clipboard = true
 type_delay_ms = 1
+pre_output_command = "hyprctl dispatch 'hl.dsp.submap(\"voxtype_suppress\")'"
+post_output_command = "hyprctl dispatch 'hl.dsp.submap(\"reset\")'"
 
 [output.notification]
 on_recording_start = false
