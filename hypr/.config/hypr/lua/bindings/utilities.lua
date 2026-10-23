@@ -28,7 +28,7 @@ o.bind("SUPER + CTRL + SHIFT + D", "Arrange displays", hl.dsp.global("display:ar
 o.bind("SUPER + SHIFT + R", "Rename workspace", hl.dsp.global("launcher:rename-workspace"))
 
 o.bind("SUPER + CTRL + I", "Toggle LG input: VGA / HDMI 1",
-    os.getenv("HOME") .. "/dotfiles/bin/df-monitor input toggle --notify")
+    os.getenv("HOME") .. "/dotfiles/bin/df-monitor input toggle --notify", { locked = true })
 
 if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
     o.bind("SUPER + ALT + S", "Share", hl.dsp.global("launcher:share"))
