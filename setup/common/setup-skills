@@ -32,7 +32,7 @@ skills add https://github.com/cursor/plugins --full-depth --skill unslop deslop 
 skills add Zihad550/skills \
   --skill codex-handoff convex-clerk-project-setup draft-tea-command-for-issue-create gh-get-issue grill-visual-hierarchy mise quick-question \
           ralph-loop ralph-loop-implement reflect ship-skill simplify summarize tea-create-issue tea-get-issue tea-plan-issue template-skill \
-          work-backend-qa work-branch-name-gen work-draft-reply work-pr-info work-start work-wrap-up \
+          work-backend-qa work-branch-name-gen work-draft-reply work-pr-info work-ship work-start work-wrap-up \
   -g --agent "${AGENTS[@]}" -y
 
 ######## dormant — tried before, not currently installed. Uncomment to reinstate.
