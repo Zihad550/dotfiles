@@ -51,7 +51,8 @@ test("both setup profiles stow the registry and assert declared roles", () => {
     assert.match(workstation, /set browser zen/);
     assert.match(devbox, /set browser helium/);
     // The default must be a browser the devbox actually installs.
-    assert.match(source("setup/arch-devbox/packages/yay-packages"), /^yay -S [^\n]*\bhelium-browser-bin\b/m);
+    assert.match(source("setup/arch-devbox/packages/pacman-apps"), /^\s*helium-browser-bin \\/m);
+    assert.doesNotMatch(source("setup/arch-devbox/packages/yay-packages"), /helium-browser-bin/);
 });
 
 test("the workstation installs Yazi for its declared Preferred File Manager", () => {

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Helium comes from the AUR, so makepkg's build tools are the one development
-# dependency exception on this client.
+# AUR packages need makepkg's build tools on this client.
 
 # shellcheck source=../../common/pacman-lib
 . "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"

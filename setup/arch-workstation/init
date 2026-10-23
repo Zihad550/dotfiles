@@ -81,8 +81,8 @@ run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
 
 # packages
 # The workstation base is deliberately separate from the devbox toolkit.
-# Editors and remote clients live here. Helium's AUR build dependencies are the
-# only compiler exception.
+# Editors and remote clients live here. AUR build tools are the only compiler
+# exception.
 run_step "pacman base" "$ARCH_WORKSTATION_DIR/packages/pacman-base"
 run_step "pacman apps" "$ARCH_WORKSTATION_DIR/packages/pacman-apps"
 run_step "yay packages" "$ARCH_WORKSTATION_DIR/packages/yay-packages"

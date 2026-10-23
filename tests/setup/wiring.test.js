@@ -107,7 +107,8 @@ test("Arch workstation is a remote-development client", () => {
     assert.match(packages, /systemctl enable --now tailscaled\.service/);
     assert.match(apps, /^\s*zed \\/m);
     assert.match(apps, /^\s*neovim \\/m);
-    assert.match(yayPackages, /helium-browser-bin/);
+    assert.match(apps, /^\s*helium-browser-bin \\/m);
+    assert.doesNotMatch(yayPackages, /helium-browser-bin/);
     assert.doesNotMatch(yayPackages, /dragon-drop/);
     assert.match(apps, /^\s*yazi resvg \\/m);
     assert.doesNotMatch(`${init}\n${packages}\n${apps}\n${yayPackages}\n${flatpaks}`,

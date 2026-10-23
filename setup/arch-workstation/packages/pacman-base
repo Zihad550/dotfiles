@@ -2,8 +2,8 @@
 
 # Local desktop and remote-access tools. Development runtimes, container
 # engines, source-control frontends, and coding agents belong on the devbox.
-# Helium's AUR build dependencies and Zed's package dependencies are declared
-# separately with those client applications.
+# AUR build tools and Zed's package dependencies are declared separately
+# with those client applications.
 
 # shellcheck source=../../common/pacman-lib
 . "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"

@@ -29,6 +29,7 @@ pacman_install \
 #   they are quickshell's runtime dependencies (calculator, clipboard provider,
 #   wl-copy) and arch-devbox needs the same set.
 pacman_install \
+    helium-browser-bin \
     zed \
     neovim \
     yazi resvg \
