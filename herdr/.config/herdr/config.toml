@@ -156,6 +156,8 @@ description = "kill session (exits herdr entirely)"
 
 # Herdr has no notification toggle action, so the helper flips [ui.toast]
 # delivery and [ui.sound] enabled in this file and reloads the server.
+# Only works for local sessions; under --remote use SUPER+ALT+COMMA -- see
+# docs/adr/0038-herdr-notification-toggle-runs-on-the-client.md.
 # Plain comma, not ctrl+comma: Ghostty keeps ctrl+, for open_config, and herdr
 # never enables the kitty keyboard protocol that would encode it anyway.
 [[keys.command]]
