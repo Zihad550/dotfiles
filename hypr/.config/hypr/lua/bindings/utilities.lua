@@ -26,6 +26,9 @@ o.bind("SUPER + CTRL + D", "Display", hl.dsp.global("display:toggle"))
 -- no fork and no exec, because the Launcher is already running.
 o.bind("SUPER + SHIFT + R", "Rename workspace", hl.dsp.global("launcher:rename-workspace"))
 
+o.bind("SUPER + CTRL + I", "Toggle LG input: VGA / HDMI 1",
+    os.getenv("HOME") .. "/dotfiles/bin/df-monitor input toggle --notify")
+
 if os.getenv("DOTFILES_PROFILE") == "arch-workstation" then
     o.bind("SUPER + ALT + S", "Share", hl.dsp.global("launcher:share"))
 end

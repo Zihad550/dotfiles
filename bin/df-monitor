@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+"""Monitor colors and input selection; see docs/monitor-colors.md and docs/monitor-inputs.md."""
+
+import argparse
+import fcntl
+import json
+import os
+import re
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+
+RGB_CODES = ("16", "18", "1A")
+# This LG exposes the tested HDMI connection as DVI-2; see docs/monitor-inputs.md.
+LG_INPUT_CODES = {"vga": 0x01, "hdmi1": 0x04}
+ROOT = Path(__file__).resolve().parents[1]
+COMMAND_ERRORS = (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired)
+
+
+class ColorRestoreError(RuntimeError):
+    pass
+
+
+def run(*args):
+    result = subprocess.run(args, text=True, capture_output=True, timeout=30)
+    if result.returncode:
+        raise RuntimeError(f"{' '.join(args)}: {result.stderr.strip() or result.stdout.strip()}")
+    return result.stdout.strip()
+
+
+def load_presets():
+    config = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    default = config / "hypr/monitor-presets.json"
+    if not default.exists():
+        default = ROOT / "hypr/.config/hypr/monitor-presets.json"
+    path = Path(os.environ.get("DF_MONITOR_PRESETS", default))
+    presets = json.loads(path.read_text())
+    for preset in presets:
+        if not all(isinstance(preset.get(key), str) and preset[key] for key in ("make", "model", "serial")):
+            raise ValueError("Each monitor preset needs a make, model and serial")
+        for mode in ("day", "night"):
+            color = preset[mode]
+            if not isinstance(color, dict) or type(color.get("preset")) is not int or not 0 <= color["preset"] <= 255:
+                raise ValueError(f"{preset['serial']}: {mode} needs a color preset code from 0 to 255")
+            if "rgb" in color:
+                values = color["rgb"]
+                if color["preset"] != 11 or not isinstance(values, list) or len(values) != 3 or any(type(v) is not int or not 0 <= v <= 100 for v in values):
+                    raise ValueError(f"{preset['serial']}: RGB needs Custom preset 11 and three values from 0 to 100")
+    return presets
+
+
+def detect(presets):
+    connected = json.loads(run("hyprctl", "monitors", "all", "-j"))
+    monitors = connected
+    monitors = [m for m in monitors if not m.get("disabled", False)]
+    if not monitors:
+        raise RuntimeError("No active displays found")
+    matches = []
+    for monitor in monitors:
+        matching = [p for p in presets if all(p[key] == monitor.get(key) for key in ("make", "model", "serial"))]
+        if len(matching) > 1:
+            raise ValueError(f"Duplicate presets for {monitor['name']}")
+        matches.append((monitor, matching[0] if matching else None))
+    for _, preset in matches:
+        if preset and sum(m.get("serial") == preset["serial"] for m in connected) > 1:
+            raise RuntimeError("Duplicate display serials cannot be addressed safely")
+    return matches
+
+
+def ddc(preset, *args):
+    return run("ddcutil", "--sn", preset["serial"], *args)
+
+
+def switch_input(source, serial=None):
+    output = run("env", "LC_ALL=C", "ddcutil", "detect", "--brief")
+    displays = []
+    current = None
+    for line in output.splitlines():
+        header = re.fullmatch(r"Display (\d+)", line.strip())
+        if header:
+            current = {"display": header[1]}
+            displays.append(current)
+        elif line and not line[0].isspace():
+            current = None
+        elif current is not None and ":" in line:
+            key, value = line.strip().split(":", 1)
+            if key == "Monitor":
+                identity = value.strip().split(":", 2)
+                if len(identity) == 3:
+                    current["mfg"], current["model"], current["serial"] = identity
+    matches = [d for d in displays if d.get("mfg") == "GSM"
+               and (serial is None or d.get("serial") == serial)]
+    if len(matches) != 1:
+        raise RuntimeError("Expected one DDC-capable LG monitor; run 'ddcutil detect' "
+                           "and use 'df-monitor input <source> --serial <serial>' if needed")
+    if source == "toggle":
+        fields = run("ddcutil", "--display", matches[0]["display"], "--terse", "getvcp", "60").split()
+        if len(fields) != 4 or fields[:3] != ["VCP", "60", "SNC"]:
+            raise RuntimeError("Cannot read the LG input; use an explicit input command")
+        current_input = int(fields[3].removeprefix("x"), 16)
+        if current_input not in LG_INPUT_CODES.values():
+            raise RuntimeError("LG input is neither VGA nor HDMI 1; use an explicit input command")
+        source = "hdmi1" if current_input == LG_INPUT_CODES["vga"] else "vga"
+    value = f"0x{LG_INPUT_CODES[source]:02x}"
+    run("ddcutil", "--display", matches[0]["display"], "setvcp", "60", value)
+    print(f"LG input switch requested: {source}")
+
+
+def notify_error(error):
+    try:
+        run("notify-send", "--urgency=critical", "--", "Monitor input switch failed", str(error))
+    except COMMAND_ERRORS:
+        pass
+
+
+def read_color(preset):
+    color_mode = ddc(preset, "--terse", "getvcp", "14").split()
+    if len(color_mode) != 4 or color_mode[:3] != ["VCP", "14", "SNC"]:
+        raise RuntimeError(f"{preset['serial']}: unsupported color preset response")
+    mode = int(color_mode[3].removeprefix("x"), 16)
+    values = []
+    for code in RGB_CODES:
+        fields = ddc(preset, "--terse", "getvcp", code).split()
+        if len(fields) != 5 or fields[:3] != ["VCP", code, "C"]:
+            raise RuntimeError(f"{preset['serial']}: unsupported RGB control {code}")
+        values.append(int(fields[3]))
+    return {"preset": mode, "rgb": values}
+
+
+def write_color(preset, color):
+    if "rgb" in color:
+        ddc(preset, "setvcp", "14", "11")
+        for code, value in zip(RGB_CODES, color["rgb"]):
+            ddc(preset, "setvcp", code, str(value))
+    if "rgb" not in color or color["preset"] != 11:
+        ddc(preset, "setvcp", "14", str(color["preset"]))
+
+
+def set_colors(snapshots, mode):
+    try:
+        for preset, _ in snapshots:
+            write_color(preset, preset[mode])
+    except COMMAND_ERRORS as original:
+        restore_errors = []
+        for preset, color in snapshots:
+            try:
+                write_color(preset, color)
+            except COMMAND_ERRORS as error:
+                restore_errors.append(str(error))
+        if restore_errors:
+            raise ColorRestoreError("Color restoration failed; software warmth was not started: " + "; ".join(restore_errors)) from original
+        raise
+
+
+def sunset(*args):
+    return run("hyprctl", "hyprsunset", *args)
+
+
+def start_sunset():
+    run("systemctl", "--user", "start", "hyprsunset.service")
+    for attempt in range(20):
+        try:
+            sunset("gamma", "100")
+            return
+        except RuntimeError:
+            if attempt == 19:
+                raise
+            time.sleep(0.1)
+
+
+def apply(matches, mode):
+    known = [p for _, p in matches if p]
+    snapshots = [(p, read_color(p)) for p in known]
+    hardware = len(known) == len(matches)
+    if hardware:
+        # Stop scheduled software profiles before applying hardware warmth.
+        service_state = run("systemctl", "--user", "show", "hyprsunset.service", "--property=ActiveState", "--value")
+        service_active = service_state == "active"
+        if service_active:
+            sunset("identity")
+            sunset("gamma", "100")
+        run("systemctl", "--user", "stop", "hyprsunset.service")
+        try:
+            sunset("profile")
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError("hyprsunset is still running outside its user service; stop it before using hardware presets")
+        try:
+            set_colors(snapshots, mode)
+        except ColorRestoreError:
+            raise
+        except COMMAND_ERRORS:
+            if service_active:
+                run("systemctl", "--user", "start", "hyprsunset.service")
+            raise
+    else:
+        # Hyprsunset filters every output, so remove hardware warmth first.
+        set_colors(snapshots, "day")
+        start_sunset()
+        if mode == "day":
+            sunset("identity")
+        else:
+            sunset("temperature", "4000")
+    print(f"{mode}: {'monitor presets' if hardware else 'hyprsunset (all active displays)'}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for command in ("status", "day", "night"):
+        commands.add_parser(command)
+    input_parser = commands.add_parser("input", help="Switch the LG monitor's physical input")
+    input_parser.add_argument("source", choices=("vga", "hdmi1", "toggle"))
+    input_parser.add_argument("--serial", help="Disambiguate multiple LG monitors using the DDC serial")
+    input_parser.add_argument("--notify", action="store_true", help="Notify on failure for shortcuts")
+    args = parser.parse_args()
+    runtime = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+    with (runtime / "df-monitor.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if args.command == "input":
+            try:
+                switch_input(args.source, args.serial)
+            except COMMAND_ERRORS as error:
+                if args.notify:
+                    notify_error(error)
+                raise
+            return
+        matches = detect(load_presets())
+        if args.command == "status":
+            for monitor, preset in matches:
+                if preset:
+                    color = read_color(preset)
+                    detail = f"preset 0x{color['preset']:02X}, RGB {color['rgb']}"
+                else:
+                    detail = "hyprsunset fallback"
+                print(f"{monitor['name']}: {monitor.get('make', '')} {monitor.get('model', '')} {monitor.get('serial', '')}: {detail}")
+            backend = "monitor presets" if all(p for _, p in matches) else "hyprsunset (all active displays)"
+            print(f"Selected backend: {backend}")
+        else:
+            apply(matches, args.command)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired) as error:
+        print(f"df-monitor: {error}", file=sys.stderr)
+        sys.exit(1)

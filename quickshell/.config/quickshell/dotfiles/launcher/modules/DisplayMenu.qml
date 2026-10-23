@@ -5,9 +5,7 @@
 // Every command starts with `~`, which argvOf in lib/menus.js expands
 // explicitly (nothing else here runs these through a shell).
 //
-// All four are `scoped: false`: each calls hyprctl and exits, so a systemd
-// scope around it would be a fork, exec and D-Bus round trip for a process
-// that's already gone.
+// Commands manage their own lifetime without a systemd scope.
 Menu {
     label: "display"
     description: "Brightness, night light, monitors"
@@ -40,6 +38,27 @@ Menu {
             keywords: ["layout", "restore", "apply", "saved", "monitor", "displays"],
             icon: "video-display",
             command: ["~/dotfiles/bin/df-hypr-display-layout", "apply"],
+            scoped: false
+        },
+        {
+            name: "LG input: Toggle VGA / HDMI 1",
+            keywords: ["input", "source", "toggle", "vga", "hdmi", "lg", "monitor"],
+            icon: "video-display",
+            command: ["~/dotfiles/bin/df-monitor", "input", "toggle", "--notify"],
+            scoped: false
+        },
+        {
+            name: "LG input: VGA",
+            keywords: ["input", "source", "vga", "lg", "monitor"],
+            icon: "video-display",
+            command: ["~/dotfiles/bin/df-monitor", "input", "vga", "--notify"],
+            scoped: false
+        },
+        {
+            name: "LG input: HDMI 1",
+            keywords: ["input", "source", "hdmi", "lg", "monitor"],
+            icon: "video-display",
+            command: ["~/dotfiles/bin/df-monitor", "input", "hdmi1", "--notify"],
             scoped: false
         }
     ]

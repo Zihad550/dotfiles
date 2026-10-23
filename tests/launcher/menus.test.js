@@ -273,6 +273,27 @@ const audit = [
         argv: ["/home/jehad/dotfiles/bin/df-hypr-display-layout", "apply"]
     },
     {
+        file: "DisplayMenu.qml",
+        menu: "display",
+        elephant: "",
+        entry: { name: "LG input: Toggle VGA / HDMI 1", icon: "video-display", command: ["~/dotfiles/bin/df-monitor", "input", "toggle", "--notify"], scoped: false },
+        argv: ["/home/jehad/dotfiles/bin/df-monitor", "input", "toggle", "--notify"]
+    },
+    {
+        file: "DisplayMenu.qml",
+        menu: "display",
+        elephant: "",
+        entry: { name: "LG input: VGA", icon: "video-display", command: ["~/dotfiles/bin/df-monitor", "input", "vga", "--notify"], scoped: false },
+        argv: ["/home/jehad/dotfiles/bin/df-monitor", "input", "vga", "--notify"]
+    },
+    {
+        file: "DisplayMenu.qml",
+        menu: "display",
+        elephant: "",
+        entry: { name: "LG input: HDMI 1", icon: "video-display", command: ["~/dotfiles/bin/df-monitor", "input", "hdmi1", "--notify"], scoped: false },
+        argv: ["/home/jehad/dotfiles/bin/df-monitor", "input", "hdmi1", "--notify"]
+    },
+    {
         file: "OtherMenu.qml",
         menu: "other",
         // Already named uwsm-app itself, because elephant's `sh -c` gave it no
@@ -322,7 +343,7 @@ for (const row of audit) {
     });
 }
 
-test("audit: every one of the fifteen entries renders an icon", () => {
+test("audit: every entry renders an icon", () => {
     for (const row of audit) {
         const built = Menus.catalogOf({
             name: row.menu,
@@ -389,5 +410,16 @@ test("audit: the four menus declare exactly the entries the table covers", () =>
         const declared = (source.match(/^\s+name: "/gm) || []).length;
         const covered = audit.filter(row => row.file === file).length;
         assert.strictEqual(declared, covered, `${file} declares ${declared} entries, the audit covers ${covered}`);
+    }
+});
+
+
+test("LG input actions are available regardless of machine profile", () => {
+    const source = fs.readFileSync(path.join(MODULES, "DisplayMenu.qml"), "utf8");
+    const expression = source.slice(source.indexOf("entries:") + "entries:".length, source.lastIndexOf("}"));
+    for (const profile of ["arch-workstation", "arch-devbox", "ubuntu-lxc-devbox", ""]) {
+        const entries = new Function("Quickshell", `return (${expression});`)({ env: () => profile });
+        const inputs = entries.filter(entry => entry.command.includes("input"));
+        assert.strictEqual(inputs.length, 3);
     }
 });
