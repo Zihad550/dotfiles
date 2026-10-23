@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
 
-# Herdr has no runtime notification switch, so the toggle rewrites config.toml
-# and reloads the running server.
+# Rewrites config.toml and reloads every server this machine's clients are
+# attached to, local or `--remote` over ssh. Clients decide popups and sounds
+# from their own config, so run this on the client's machine -- see
+# docs/adr/0038-herdr-notification-toggle-runs-on-the-client.md.
 #   HERDR_CONFIG_PATH     ~/.config/herdr/config.toml   file rewritten
-#   HERDR_BIN_PATH        herdr                         binary that reloads it
+#   HERDR_BIN_PATH        herdr on PATH, then installs  binary that reloads it
 #   HERDR_TOAST_DELIVERY  system                        delivery restored when on
 
 set -euo pipefail
 
-herdr=${HERDR_BIN_PATH:-herdr}
+# Hyprland's exec PATH lacks ~/.local/bin; candidates match bin/df-herdr-session.
+herdr=${HERDR_BIN_PATH:-$(command -v herdr || true)}
+if [[ -z $herdr ]]; then
+    for candidate in \
+        "$HOME/.local/bin/herdr" \
+        "$HOME/.local/share/mise/installs/github-herdrdev-herdr/latest/herdr"
+    do
+        [[ -x $candidate ]] && herdr=$candidate && break
+    done
+fi
 config=${HERDR_CONFIG_PATH:-${XDG_CONFIG_HOME:-$HOME/.config}/herdr/config.toml}
 delivery_on=${HERDR_TOAST_DELIVERY:-system}
 
@@ -32,8 +43,41 @@ read_toast_delivery() {
     ' "$config"
 }
 
+# One socket path per running local session, default included.
+running_sockets() {
+    local list
+    list=$("$herdr" session list) || return 1
+    awk 'NR > 1 && $2 == "running" { print $NF }' <<<"$list"
+}
+
+# "<ssh target> <session or empty>" per `herdr --remote` client on this machine.
+remote_attachments() {
+    pgrep -a -x -u "$(id -u)" herdr | awk '{
+        target = ""; session = ""
+        for (i = 2; i <= NF; i++) {
+            if ($i == "--remote") target = $(++i)
+            else if ($i ~ /^--remote=/) target = substr($i, 10)
+            else if ($i == "--session") session = $(++i)
+            else if ($i ~ /^--session=/) session = substr($i, 11)
+        }
+        if (target != "") print target, session
+    }' | sort -u
+}
+
+reload_local() {
+    local socket
+    for socket in "${sockets[@]}"; do
+        HERDR_SOCKET_PATH=$socket "$herdr" server reload-config >/dev/null 2>&1 || return 1
+    done
+}
+
 current=$(read_toast_delivery)
 [[ -n $current ]] || fail "$config has no [ui.toast] delivery setting to toggle"
+
+[[ -n $herdr ]] || fail "herdr not found on PATH or in known install locations"
+listed=$(running_sockets) || fail "could not list Herdr sessions with $herdr"
+mapfile -t sockets <<<"$listed"
+[[ -n $listed ]] || sockets=()
 
 if [[ $current == off ]]; then
     state=on delivery=$delivery_on sound=true
@@ -62,9 +106,27 @@ awk -v delivery="$delivery" -v sound="$sound" '
 # Written through the symlink stow created, so the target file keeps its place.
 cat "$tmp" >"$config" || fail "could not write $config"
 
-if ! "$herdr" server reload-config >/dev/null 2>&1; then
+if ! reload_local; then
     cat "$backup" >"$config"
+    reload_local || true
     fail "Herdr rejected the reload; notifications are still $current"
+fi
+
+unreached=()
+while read -r target session; do
+    # shellcheck disable=SC2016 # expands on the remote host
+    remote_cmd='PATH="$HOME/.local/bin:$PATH" herdr'
+    [[ -n $session ]] && remote_cmd+=" --session $(printf '%q' "$session")"
+    remote_cmd+=' server reload-config'
+    ssh -n -o BatchMode=yes -o ConnectTimeout=5 "$target" "$remote_cmd" >/dev/null 2>&1 \
+        || unreached+=("$target${session:+ ($session)}")
+done < <(remote_attachments)
+
+if ((${#unreached[@]})); then
+    message="${unreached[*]} didn't reload; press prefix+alt+r there"
+    printf 'df-herdr-toggle-notifications: %s\n' "$message" >&2
+    notify-send --urgency=critical "Herdr notifications $state, partly" "$message" >/dev/null 2>&1 || true
+    exit 1
 fi
 
 notify-send "Herdr notifications $state" >/dev/null 2>&1 || true

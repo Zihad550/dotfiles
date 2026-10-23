@@ -7,6 +7,10 @@ o.bind("SUPER + SHIFT + COMMA","Dismiss all notifications", "qs -c dotfiles ipc 
 -- deliberately lets through do-not-disturb.
 o.bind("SUPER + CTRL + COMMA", "Toggle silencing notifications",
     "qs -c dotfiles ipc call notifications toggleDnd")
+-- Runs here, not as a Herdr key: under `herdr --remote` Herdr's own command
+-- keys run on the server, but the client decides popups -- see docs/adr/0038.
+o.bind("SUPER + ALT + COMMA", "Toggle Herdr notifications",
+    os.getenv("HOME") .. "/dotfiles/bin/df-herdr-toggle-notifications")
 
 -- Quick Settings
 -- Windows' Quick Settings shortcut is SUPER+A, but that combo already opens
