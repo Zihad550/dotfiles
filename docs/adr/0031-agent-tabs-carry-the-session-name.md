@@ -45,7 +45,9 @@ up.
 Other agents usually put a usable summary in the terminal title, which Herdr
 already reports. Claude Code can leave that title at `Claude Code`, so the
 plugin falls back to the latest human prompt in the session transcript under
-`~/.claude/projects`.
+`~/.claude/projects`. It reads the text of prompts that carry an image. It
+skips prompts under four words, such as "yes" or "commit and push", while a
+longer one exists. Haiku invented summaries for those short replies.
 
 **Haiku compresses the source text.** The raw session name or prompt can be a
 sentence, so the event command passes it to the same non-interactive,

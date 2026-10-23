@@ -28,6 +28,7 @@ function fixture(t, options = {}) {
     const index = path.join(home, "session_index.jsonl");
     const codexSessions = path.join(home, ".codex", "sessions");
     const generatorCalls = path.join(home, "generator-calls");
+    const generatorPrompt = path.join(home, "generator-prompt");
     const claudeProjects = path.join(home, ".claude", "projects");
 
     fs.writeFileSync(pane, JSON.stringify({ result: { pane: options.pane ?? {} } }));
@@ -68,6 +69,7 @@ esac
     function setGenerated(generated) {
         fs.writeFileSync(path.join(bin, "claude"), `#!/usr/bin/env bash
 printf x >> "${generatorCalls}"
+cat > "${generatorPrompt}"
 printf '%s\\n' '${generated}'
 `);
         fs.chmodSync(path.join(bin, "claude"), 0o755);
@@ -109,12 +111,17 @@ printf '%s\\n' '${generated}'
         return fs.existsSync(generatorCalls) ? fs.readFileSync(generatorCalls, "utf8").length : 0;
     }
 
+    function work() {
+        return fs.existsSync(generatorPrompt)
+            ? fs.readFileSync(generatorPrompt, "utf8").split("\nWork: ")[1]?.replace(/\n$/, "") : undefined;
+    }
+
     function errors() {
         const log = path.join(home, "state", "errors.log");
         return fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "";
     }
 
-    return { fire, setPane, setTabs, setGenerated, label, calls, errors };
+    return { home, fire, setPane, setTabs, setGenerated, label, calls, work, errors };
 }
 
 const codexPane = (overrides = {}) => ({
@@ -215,6 +222,69 @@ test("Claude's generic terminal title falls back to its latest prompt", (t) => {
     });
     herdr.fire();
     assert.strictEqual(herdr.label(), "1:add default app picker");
+});
+
+test("a short Claude reply keeps the earlier prompt as the source", (t) => {
+    const transcript = (...prompts) => prompts.map((content) => ({ type: "user", message: { content } }));
+    const claudePane = {
+        agent: "claude",
+        agent_session: { value: "claude-thread" },
+        tab_id: TAB,
+        cwd: "/home/dev/project",
+        terminal_title_stripped: "Claude Code"
+    };
+    const herdr = fixture(t, {
+        pane: claudePane,
+        claudeTranscript: transcript("Build a monitor arrange overlay", "yes", "commit and push",
+            "Fix\tthe\ttab\ttitles\nand explain why")
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.work(), "Fix\tthe\ttab\ttitles");
+
+    herdr.setPane({ ...claudePane });
+    fs.appendFileSync(path.join(herdr.home, ".claude", "projects", "claude-thread.jsonl"),
+        "\n" + JSON.stringify({ type: "user", message: { content: "yes" } }));
+    herdr.fire();
+    assert.strictEqual(herdr.work(), "Fix\tthe\ttab\ttitles");
+    assert.strictEqual(herdr.label(), "1:add default app picker");
+});
+
+test("a Claude session of only short prompts still uses its latest one", (t) => {
+    const herdr = fixture(t, {
+        pane: {
+            agent: "claude",
+            agent_session: { value: "claude-thread" },
+            tab_id: TAB,
+            cwd: "/home/dev/project",
+            terminal_title_stripped: "Claude Code"
+        },
+        claudeTranscript: [{ type: "user", message: { content: "fix login bug" } }]
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.work(), "fix login bug");
+});
+
+test("a Claude prompt with an attached image is still read", (t) => {
+    const herdr = fixture(t, {
+        pane: {
+            agent: "claude",
+            agent_session: { value: "claude-thread" },
+            tab_id: TAB,
+            cwd: "/home/dev/project",
+            terminal_title_stripped: "Claude Code"
+        },
+        claudeTranscript: [
+            { type: "user", message: { content: "Build a monitor arrange overlay" } },
+            { type: "user", message: { content: [
+                { type: "image", source: { type: "base64", data: "" } },
+                { type: "text", text: "the tab namer picked the wrong name here" },
+                { type: "text", text: "second block\nwith more lines" }
+            ] } },
+            { type: "user", message: { content: [{ type: "tool_result", content: "ok" }] } }
+        ]
+    });
+    herdr.fire();
+    assert.strictEqual(herdr.work(), "the tab namer picked the wrong name here");
 });
 
 test("an explicit issue number is appended without asking Haiku to infer it", (t) => {

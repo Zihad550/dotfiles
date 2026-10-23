@@ -91,18 +91,26 @@ claude_transcript_label() {
     jq -s -r '
         def first_line:
             gsub("^<bash-(input|stdout|stderr)>"; "")
-            | gsub("\\r"; "")
-            | split("\\n")
+            | gsub("\r"; "")
+            | split("\n")
             | map(select(length > 0) | select(test("^\\(eval\\):") | not))
             | .[0] // "";
+        # A prompt with an attached image is an array of blocks; tool results
+        # are arrays too, but carry no text blocks.
         map(select(.type == "user" and (.isMeta != true))
             | .message.content
+            | if type == "array" then [.[] | select(.type? == "text") | .text] | join("\n")
+              else . end
             | select(type == "string")
             | {wrapped: test("^<(bash-input|bash-stdout|bash-stderr|local-command|command-)"),
                text: first_line})
         | map(select(.text | length > 0)) as $all
         | [$all[] | select(.wrapped | not) | .text] as $direct
-        | if ($direct | length) > 0 then $direct[-1]
+        # Replies like "yes" or "commit and push" say nothing about the work,
+        # and Haiku invents a summary for them.
+        | [$direct[] | select([splits("[[:space:]]+") | select(length > 0)] | length >= 4)] as $substantive
+        | if ($substantive | length) > 0 then $substantive[-1]
+          elif ($direct | length) > 0 then $direct[-1]
           else ($all[-1].text // empty)
           end
     ' "$transcript" 2>/dev/null
