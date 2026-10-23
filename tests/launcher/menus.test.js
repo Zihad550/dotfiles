@@ -276,6 +276,13 @@ const audit = [
         file: "DisplayMenu.qml",
         menu: "display",
         elephant: "",
+        entry: { name: "Layout: Arrange displays", icon: "video-display", command: ["qs", "-c", "dotfiles", "ipc", "call", "displayArrange", "toggle"], scoped: false },
+        argv: ["qs", "-c", "dotfiles", "ipc", "call", "displayArrange", "toggle"]
+    },
+    {
+        file: "DisplayMenu.qml",
+        menu: "display",
+        elephant: "",
         entry: { name: "LG input: Toggle VGA / HDMI 1", icon: "video-display", command: ["~/dotfiles/bin/df-monitor", "input", "toggle", "--notify"], scoped: false },
         argv: ["/home/jehad/dotfiles/bin/df-monitor", "input", "toggle", "--notify"]
     },

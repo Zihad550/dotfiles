@@ -41,6 +41,13 @@ Menu {
             scoped: false
         },
         {
+            name: "Layout: Arrange displays",
+            keywords: ["layout", "arrange", "position", "drag", "edge", "monitor", "displays"],
+            icon: "video-display",
+            command: ["qs", "-c", "dotfiles", "ipc", "call", "displayArrange", "toggle"],
+            scoped: false
+        },
+        {
             name: "LG input: Toggle VGA / HDMI 1",
             keywords: ["input", "source", "toggle", "vga", "hdmi", "lg", "monitor"],
             icon: "video-display",

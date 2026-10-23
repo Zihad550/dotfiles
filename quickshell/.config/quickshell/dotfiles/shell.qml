@@ -203,4 +203,14 @@ ShellRoot {
 
         onPressed: DisplayArrangeState.toggle()
     }
+
+    // `qs -c dotfiles ipc call displayArrange toggle`, the Launcher display
+    // menu's "Layout: Arrange displays" entry (launcher/modules/DisplayMenu.qml).
+    IpcHandler {
+        target: "displayArrange"
+
+        function toggle(): void {
+            DisplayArrangeState.toggle();
+        }
+    }
 }

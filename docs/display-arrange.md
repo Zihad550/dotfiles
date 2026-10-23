@@ -7,8 +7,9 @@ arrangement to Hyprland in one `hyprctl eval`, and **Save** writes it to
 `~/.config/hypr/display-layouts.json` so `df-hypr-display-layout apply` restores
 it at login.
 
-Open it from the Display panel (SUPER+CTRL+D, then **Arrange…**) or with
-SUPER+CTRL+SHIFT+D. Esc closes without applying anything.
+Open it from the Display panel (SUPER+CTRL+D, then **Arrange…**), the
+Launcher's display menu (**Layout: Arrange displays**, which toggles it), or
+with SUPER+CTRL+SHIFT+D. Esc closes without applying anything.
 
 ## Apply and Save
 

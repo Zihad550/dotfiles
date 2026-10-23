@@ -279,6 +279,16 @@ test("SUPER+CTRL+SHIFT+D opens the Arrange overlay", () => {
     assert.strictEqual((shell.match(/\bDisplayArrange\s*\{\s*\}/g) || []).length, 1);
 });
 
+test("the Launcher display menu toggles the Arrange overlay over IPC", () => {
+    const menu = source("quickshell/.config/quickshell/dotfiles/launcher/modules/DisplayMenu.qml");
+    const shell = source("quickshell/.config/quickshell/dotfiles/shell.qml");
+
+    assert.match(menu,
+        /name: "Layout: Arrange displays"[\s\S]*?command: \["qs", "-c", "dotfiles", "ipc", "call", "displayArrange", "toggle"\]/);
+    assert.match(shell,
+        /target: "displayArrange"[\s\S]*?function toggle\(\): void \{\s*DisplayArrangeState\.toggle\(\);/);
+});
+
 test("the Display panel exposes an Arrange row that opens the overlay", () => {
     const panel = source("quickshell/.config/quickshell/dotfiles/modules/DisplayPanel.qml");
 
