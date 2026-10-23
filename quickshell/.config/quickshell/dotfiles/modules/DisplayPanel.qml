@@ -44,17 +44,24 @@ PopupWindow {
     }
 
     function moveSelection(delta: int): void {
-        if (root.displays.length === 0)
-            return;
         root.selectedIndex = Math.max(0,
-            Math.min(root.displays.length - 1, root.selectedIndex + delta));
+            Math.min(root.displays.length, root.selectedIndex + delta));
     }
 
     function activateSelected(): void {
+        if (root.selectedIndex === root.displays.length) {
+            root.openArrange();
+            return;
+        }
         if (root.selectedIndex < 0 || root.selectedIndex >= root.displays.length)
             return;
         const display = root.displays[root.selectedIndex];
         root.toggleDisplay(display.name, display.enabled);
+    }
+
+    function openArrange(): void {
+        root.dismiss();
+        DisplayArrangeState.open();
     }
 
     function toggleDisplay(name: string, enabled: bool): void {
@@ -116,7 +123,7 @@ PopupWindow {
         onExited: {
             root.displays = DisplayPanelModel.parseDisplays(listingOutput.text);
             root.selectedIndex = Math.max(0,
-                Math.min(root.selectedIndex, root.displays.length - 1));
+                Math.min(root.selectedIndex, root.displays.length));
         }
     }
 
@@ -256,6 +263,52 @@ PopupWindow {
                                     root.toggleDisplay(displayRow.modelData.name, displayRow.modelData.enabled);
                             }
                         }
+                    }
+                }
+
+                Rectangle {
+                    id: arrangeRow
+
+                    readonly property bool selected: root.selectedIndex === root.displays.length
+
+                    width: content.width
+                    height: Theme.menuRowHeight
+                    radius: 4
+                    color: arrangeRow.selected ? Theme.accent : "transparent"
+
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        spacing: 8
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "󰍺"
+                            color: arrangeRow.selected ? Theme.background : Theme.foreground
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize + 1
+                            textFormat: Text.PlainText
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - 54
+                            text: "Arrange…"
+                            color: arrangeRow.selected ? Theme.background : Theme.foreground
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize
+                            elide: Text.ElideRight
+                            textFormat: Text.PlainText
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: root.selectedIndex = root.displays.length
+                        onClicked: root.openArrange()
                     }
                 }
             }

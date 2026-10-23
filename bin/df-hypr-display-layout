@@ -86,6 +86,10 @@ Usage: df-hypr-display-layout <command> [args]
         applying anything. Lets other scripts (df-hypr-display-rotate) tell
         `apply` what orientation the user actually chose.
 
+  current
+        Print the variant `apply` would use for the connected displays, or
+        nothing when no layout is saved for them.
+
   list                 Show every saved display set and its variants.
   show [variant] [--raw]
         Print the hyprctl eval chunk for a variant; --raw omits the heading.
@@ -145,7 +149,9 @@ read_layouts() { read_json "$LAYOUTS_FILE" '{"version":1,"layouts":{}}'; }
 read_state() { read_json "$STATE_FILE" '{}'; }
 
 state_get() {
-    jq -r --arg sig "$1" '.[$sig] // empty' <<<"$(read_state)"
+    local state
+    state=$(read_state) || return 1
+    jq -r --arg sig "$1" '.[$sig] // empty' <<<"$state"
 }
 
 state_set() {
@@ -243,13 +249,14 @@ resolve_variant() {
         return 0
     fi
 
-    variant=$(state_get "$sig")
+    variant=$(state_get "$sig") || return 1
     if [[ -n "$variant" ]] && variant_exists "$layouts" "$sig" "$variant"; then
         printf '%s' "$variant"
         return 0
     fi
 
-    variant=$(jq -r --arg sig "$sig" '.layouts[$sig].default // empty' <<<"$layouts")
+    variant=$(jq -r --arg sig "$sig" '.layouts[$sig].default // empty' <<<"$layouts") \
+        || return 1
     if [[ -n "$variant" ]] && variant_exists "$layouts" "$sig" "$variant"; then
         printf '%s' "$variant"
         return 0
@@ -367,6 +374,17 @@ cmd_remember() {
     state_set "$sig" "$variant"
 }
 
+cmd_current() {
+    local mons sig layouts variant
+    mons=$(monitors_json) || return 1
+    sig=$(signature_of "$mons") || return 1
+    [[ -n "$sig" ]] || return 0
+    layouts=$(read_layouts) || return 1
+    variant=$(resolve_variant "$layouts" "$sig" "") || return 1
+    [[ -n "$variant" ]] || return 0
+    printf '%s\n' "$variant"
+}
+
 cmd_list() {
     local layouts sig
     layouts=$(read_layouts)
@@ -466,6 +484,9 @@ save)
 remember)
     shift
     cmd_remember "$@"
+    ;;
+current)
+    cmd_current
     ;;
 list)
     cmd_list

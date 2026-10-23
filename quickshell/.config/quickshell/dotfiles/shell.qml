@@ -80,6 +80,9 @@ ShellRoot {
     // window, so it is instantiated once and follows the active monitor.
     Osd {}
 
+    // Display arrangement overlay -- see docs/display-arrange.md.
+    DisplayArrange {}
+
     // `qs -c dotfiles ipc call osd <fn> <arg>`, called by the media keys in
     // hypr/.config/hypr/lua/bindings/media.lua where they used to call
     // swayosd-client. Steps arrive as signed strings ("+5", "-1") so the coarse
@@ -192,5 +195,12 @@ ShellRoot {
 
             panel.toggle();
         }
+    }
+
+    GlobalShortcut {
+        appid: "display"
+        name: "arrange"
+
+        onPressed: DisplayArrangeState.toggle()
     }
 }

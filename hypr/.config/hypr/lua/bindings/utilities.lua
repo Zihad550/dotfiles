@@ -17,6 +17,7 @@ o.bind("SUPER + CTRL + COMMA", "Toggle silencing notifications",
 -- quickshell/.config/quickshell/dotfiles/shell.qml.
 o.bind("SUPER + CTRL + A", "Quick Settings", hl.dsp.global("quicksettings:toggle"))
 o.bind("SUPER + CTRL + D", "Display", hl.dsp.global("display:toggle"))
+o.bind("SUPER + CTRL + SHIFT + D", "Arrange displays", hl.dsp.global("display:arrange"))
 
 -- Workspaces
 -- Dispatches straight into the running Launcher process, which opens as a
