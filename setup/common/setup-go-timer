@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ $(uname -s) != Linux || $(uname -m) != x86_64 ]]; then
+    echo "go-timer releases only support Linux x86_64." >&2
+    exit 1
+fi
+
+version=v0.1.2
+checksum=63ad177fe7ceaeb693ff3709e4e3e9561d83809ceeaef96db645e9bb3a4dafc0
+archive=go-timer_linux_amd64.tar.gz
+work_dir=$(mktemp -d)
+trap 'rm -rf "$work_dir"' EXIT
+
+curl -fL --retry 3 "https://github.com/Zihad550/go-timer/releases/download/$version/$archive" \
+    -o "$work_dir/$archive"
+printf '%s  %s\n' "$checksum" "$work_dir/$archive" | sha256sum --check --status
+tar -xzf "$work_dir/$archive" -C "$work_dir" go-timer
+install -Dm755 "$work_dir/go-timer" "$HOME/.local/bin/go-timer"
+
+# The former Go install directory precedes ~/.local/bin on PATH.
+rm -f "${XDG_DATA_HOME:-$HOME/.local/share}/go/bin/go-timer" "$HOME/go/bin/go-timer"

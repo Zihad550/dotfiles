@@ -22,6 +22,7 @@ here when the explanation does not belong beside the command it protects.
 | [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override and hands `/etc/resolv.conf` to resolved without breaking MagicDNS. | Arch devbox |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Workstation, Arch devbox |
 | [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Workstation, Arch devbox |
+| [`setup-go-timer`](setup-go-timer) | Installs the pinned go-timer GitHub release without Go or mise. | Arch Workstation, Arch devbox |
 | [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Workstation, Arch devbox |
 | [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu server, Alpine |
 | [`setup-herdr-integrations`](setup-herdr-integrations) | Installs or refreshes Herdr integrations for the agents present. | `setup-herdr`, `df-update-daily` |
@@ -52,9 +53,18 @@ here when the explanation does not belong beside the command it protects.
   | --- | --- | --- |
   | [`pacman-base`](packages/pacman-base) | The development CLI toolkit, fonts, coreutils replacements and gcc. | Arch devbox |
   | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Workstation (Arch devbox keeps it off) |
-  | [`go-packages`](packages/go-packages) | Go tools installed with `go install`. | Arch devbox |
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Workstation, Arch devbox |
   | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
+
+## go-timer
+
+Both Arch profiles run `setup-go-timer` to install the Linux x86-64 binary from
+[go-timer v0.1.2](https://github.com/Zihad550/go-timer/releases/tag/v0.1.2) into
+`~/.local/bin/go-timer`. The shell exposes it as `timer`. No Go toolchain is
+needed. The installer verifies the pinned SHA-256 before extracting and removes
+the old Go-installed copies that would shadow it. To update, change both the
+version and checksum in the installer. Existing machines can run
+`setup/common/setup-go-timer` directly.
 
 ## Machine profile
 

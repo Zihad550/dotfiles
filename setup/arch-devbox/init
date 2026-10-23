@@ -110,7 +110,7 @@ run_step "DNS" "$ARCH_DEVBOX_DIR/setup-dns"
 tools_lane() {
     run_step "mise packages" "$DOTFILES_DIR/setup/common/packages/mise-dev-packages"
     run_step "skills" "$DOTFILES_DIR/setup/common/setup-skills"
-    run_step "go packages" "$DOTFILES_DIR/setup/common/packages/go-packages"
+    run_step "go-timer" "$DOTFILES_DIR/setup/common/setup-go-timer"
 }
 start_lane tools tools_lane
 

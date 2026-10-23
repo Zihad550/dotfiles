@@ -53,7 +53,7 @@ all, just the default-deny policy.
 
 ## background lane
 
-The mise installs (`mise-dev-packages`), `setup-skills`, and `go-packages` run
+The mise installs (`mise-dev-packages`), `setup-skills`, and `setup-go-timer` run
 in a background lane (`start_lane tools` in `init`) while the main side carries
 on with the pacman and yay steps. The mise installs took about 18 of the run's
 minutes when they were a normal step, so running them in parallel with the
@@ -65,7 +65,7 @@ What a lane step may do is narrow, and adding one means checking all of it:
 - **No pacman or yay.** pacman holds a database lock, so a second one fails at
   once with "unable to lock database". A tool the lane needs from pacman must be
   installed before `start_lane` — that is why the lane starts after
-  `pacman base`, which brings git for `skills add` and `go install`.
+  `pacman base`, which brings git for `skills add` and curl for release downloads.
 - **It owns `mise use -g` and `skills add` until `join_lane`.** Both rewrite
   shared files (`~/.config/mise/config.toml`, the agents' skill directories),
   and two concurrent writers can drop each other's changes. `setup-herdr` does
@@ -114,12 +114,14 @@ Borrowed unchanged from `../arch-workstation`: `utils/*`, `preflight`, `theme`,
 shared. Mise is another exception: Arch workstation no longer installs it, so
 this profile owns `setup-mise`.
 The shared package lists this box runs live in
-[`../common/packages`](../common/packages): `pacman-base`, `go-packages`, and
+[`../common/packages`](../common/packages): `pacman-base` and
 `quickshell-packages`. The devbox has a local
 `packages/yay-packages` file for opt-in GUI code editors. `flatpak-packages` is
 there too but this box leaves it off (see [flatpak](#flatpak-is-off-by-default)).
 Docker comes from [`../common/setup-rootless-docker`](../common/setup-rootless-docker)
 directly on the devbox, not from `setup-packages/`.
+The timer comes from [`../common/setup-go-timer`](../common/setup-go-timer),
+which installs a GitHub release binary on both Arch profiles without Go.
 
 Hardware detection is the exception: it used to be `../arch-workstation/utils/hw-detect`
 and now lives in [`../common/hw-detect`](../common/hw-detect), sourced by all
