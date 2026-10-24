@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 
 const DisplayArrange = require("../../quickshell/.config/quickshell/dotfiles/modules/lib/displayArrange.js");
 
@@ -331,4 +332,90 @@ test("df-hypr-display-layout current propagates read and resolution failures", (
     assert.match(body[1], /mons=\$\(monitors_json\) \|\| return 1/);
     assert.match(body[1], /layouts=\$\(read_layouts\) \|\| return 1/);
     assert.match(body[1], /variant=\$\(resolve_variant "\$layouts" "\$sig" ""\) \|\| return 1/);
+});
+
+function arrangeHandler(id, context) {
+    const overlay = source("quickshell/.config/quickshell/dotfiles/modules/DisplayArrange.qml");
+    const process = overlay.slice(overlay.indexOf(`        id: ${id}\n`));
+    const handler = process.match(/onExited: exitCode => \{([\s\S]*?)\n        \}/);
+    assert.ok(handler, `${id} has an exit handler`);
+    return vm.runInNewContext(`(exitCode => {${handler[1]}\n})`, context);
+}
+
+function arrangeSession() {
+    const overlay = source("quickshell/.config/quickshell/dotfiles/modules/DisplayArrange.qml");
+    const root = {
+        monitors: [{ name: "DP-1", x: 0, y: 0 }],
+        applied: [],
+        layoutScript: "/dotfiles/bin/df-hypr-display-layout",
+        saving: false,
+        needsSave: false,
+        refreshAfterApply() {},
+        flushRefresh() {}
+    };
+    const context = {
+        root,
+        ArrangeModel: DisplayArrange,
+        applyOutput: { text: "ok" },
+        applyError: { text: "" },
+        currentVariantOutput: { text: "horizontal" },
+        currentVariantError: { text: "" },
+        currentVariantProcess: {},
+        saveProcess: {},
+        saveError: { text: "" },
+        console: { warn() {} }
+    };
+    const save = overlay.match(/function saveLayout\(\): void \{([\s\S]*?)\n    \}/);
+    root.saveLayout = vm.runInNewContext(`(() => {${save[1]}\n})`, context);
+    return context;
+}
+
+test("Apply automatically saves the accepted arrangement without a Save action", () => {
+    const context = arrangeSession();
+    const { root } = context;
+    arrangeHandler("applyProcess", context)(0);
+    assert.strictEqual(root.saving, true);
+    assert.strictEqual(root.needsSave, true);
+    assert.deepStrictEqual(Array.from(context.currentVariantProcess.command),
+        [root.layoutScript, "current"]);
+    arrangeHandler("currentVariantProcess", context)(0);
+    assert.deepStrictEqual(Array.from(context.saveProcess.command),
+        [root.layoutScript, "save", "horizontal"]);
+    arrangeHandler("saveProcess", context)(0);
+    assert.strictEqual(root.needsSave, false);
+    assert.strictEqual(root.saving, false);
+    assert.strictEqual(root.status, "Applied and saved as horizontal");
+
+    const overlay = source("quickshell/.config/quickshell/dotfiles/modules/DisplayArrange.qml");
+    assert.doesNotMatch(overlay, /label: "Save"|case "save"|action === "save"/);
+});
+
+test("a rejected Apply does not save a layout", () => {
+    for (const [exitCode, output] of [[1, "ok"], [0, "invalid rule"]]) {
+        const context = arrangeSession();
+        context.applyOutput.text = output;
+        arrangeHandler("applyProcess", context)(exitCode);
+        assert.strictEqual(context.currentVariantProcess.running, undefined);
+        assert.strictEqual(context.saveProcess.running, undefined);
+        assert.strictEqual(context.root.saving, false);
+    }
+});
+
+test("save failures leave Apply available for retry and do not claim success", () => {
+    const overlay = source("quickshell/.config/quickshell/dotfiles/modules/DisplayArrange.qml");
+    const canApply = overlay.match(/readonly property bool canApply: ([\s\S]*?)\n    readonly property/)[1];
+    for (const failedProcess of ["currentVariantProcess", "saveProcess"]) {
+        const context = arrangeSession();
+        arrangeHandler("applyProcess", context)(0);
+        if (failedProcess === "saveProcess")
+            arrangeHandler("currentVariantProcess", context)(0);
+        arrangeHandler(failedProcess, context)(1);
+        assert.strictEqual(context.root.saving, false);
+        assert.strictEqual(context.root.needsSave, true);
+        assert.match(context.root.status, /^Could not save layout:/);
+        Object.assign(context.root, { canEdit: true, draggingName: "", hasChanges: false });
+        assert.strictEqual(vm.runInNewContext(canApply, context), true);
+        arrangeHandler("applyProcess", context)(0);
+        assert.strictEqual(context.root.saving, true);
+    }
 });

@@ -45,9 +45,7 @@ PanelWindow {
         || currentVariantProcess.running || saveProcess.running || root.saving
     readonly property bool canEdit: !root.busy && root.monitors.length >= 2
     readonly property bool canApply: root.canEdit && root.draggingName === ""
-        && root.hasChanges
-    readonly property bool canSave: root.appliedOnce && root.canEdit
-        && root.draggingName === "" && !root.hasChanges
+        && (root.hasChanges || root.needsSave)
     readonly property var targetScreen: {
         const focused = Hyprland.focusedMonitor;
         const name = root.openMonitor !== ""
@@ -80,7 +78,7 @@ PanelWindow {
 
     property var monitors: []
     property var applied: []
-    property bool appliedOnce: false
+    property bool needsSave: false
     property bool keepApplied: false
     property bool saving: false
     property string status: ""
@@ -190,7 +188,7 @@ PanelWindow {
 
     function refresh(): void {
         root.keepApplied = false;
-        root.appliedOnce = false;
+        root.needsSave = false;
         root.queueRefresh("refresh");
     }
 
@@ -283,7 +281,7 @@ PanelWindow {
     }
 
     function saveLayout(): void {
-        if (!root.canSave || root.saving)
+        if (root.saving)
             return;
         root.saving = true;
         root.status = "Saving…";
@@ -295,8 +293,6 @@ PanelWindow {
         switch (action) {
         case "apply":
             return root.canApply;
-        case "save":
-            return root.canSave;
         case "reset":
             return !root.busy;
         default:
@@ -311,8 +307,6 @@ PanelWindow {
             DisplayArrangeState.close();
         else if (action === "apply")
             root.applyLayout();
-        else if (action === "save")
-            root.saveLayout();
     }
 
     Process {
@@ -334,7 +328,7 @@ PanelWindow {
             root.monitors = parsed;
             root.applied = parsed.map(ArrangeModel.cloneMonitor);
             if (!root.keepApplied)
-                root.appliedOnce = false;
+                root.needsSave = false;
             root.keepApplied = false;
             root.flushRefresh();
         }
@@ -357,9 +351,8 @@ PanelWindow {
                 return;
             }
             root.applied = root.monitors.map(ArrangeModel.cloneMonitor);
-            root.appliedOnce = true;
-            root.status = "Applied";
-            root.refreshAfterApply();
+            root.needsSave = true;
+            root.saveLayout();
         }
     }
 
@@ -374,9 +367,9 @@ PanelWindow {
                 root.saving = false;
                 const message = currentVariantError.text.trim()
                     || "Could not resolve the layout variant";
-                root.status = message;
+                root.status = `Could not save layout: ${message}`;
                 console.warn(`display: arrange variant lookup failed: ${message}`);
-                root.flushRefresh();
+                root.refreshAfterApply();
                 return;
             }
             root.pendingVariant = currentVariantOutput.text.trim() || "arranged";
@@ -395,13 +388,14 @@ PanelWindow {
             root.saving = false;
             if (exitCode !== 0) {
                 const message = saveError.text.trim() || "Could not save the layout";
-                root.status = message;
+                root.status = `Could not save layout: ${message}`;
                 console.warn(`display: arrange save failed: ${message}`);
-                root.flushRefresh();
+                root.refreshAfterApply();
                 return;
             }
-            root.status = `Saved as ${root.pendingVariant}`;
-            root.flushRefresh();
+            root.needsSave = false;
+            root.status = `Applied and saved as ${root.pendingVariant}`;
+            root.refreshAfterApply();
         }
     }
 
@@ -439,7 +433,7 @@ PanelWindow {
                 id: hintText
 
                 width: parent.width
-                text: "Drag a display flush against another, then Apply. Save records the layout for login."
+                text: "Drag a display flush against another, then Apply to save the layout for login."
                 color: Theme.foreground
                 opacity: 0.7
                 wrapMode: Text.Wrap
@@ -615,8 +609,7 @@ PanelWindow {
                         model: [
                             { label: "Reset", action: "reset" },
                             { label: "Close", action: "close" },
-                            { label: "Apply", action: "apply" },
-                            { label: "Save", action: "save" }
+                            { label: "Apply", action: "apply" }
                         ]
 
                         Rectangle {
