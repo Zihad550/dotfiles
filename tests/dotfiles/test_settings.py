@@ -250,6 +250,21 @@ class SettingsTests(unittest.TestCase):
             patcher, _ = self.pkexec(code)
             with patcher, self.assertRaisesRegex(ValueError, "cancelled"):
                 settings.add_tailscale_domain("work.example")
+    def test_tailscale_domain_removal_only_offers_saved_domains(self):
+        saved = self.config / "tailscale-dns-domains"
+        saved.write_text("work.example\n")
+        with patch.object(settings, "TAILSCALE_DOMAINS", saved):
+            patcher, calls = self.pkexec(stdout="Removed\n")
+            with patcher:
+                with self.assertRaisesRegex(ValueError, "not a saved"):
+                    settings.remove_tailscale_domain("other.example")
+                self.assertEqual(calls, [])
+                self.assertEqual(settings.remove_tailscale_domain("work.example"), "Removed")
+            self.assertEqual(calls, [["pkexec", str(settings.REMOVE_TAILSCALE_DOMAIN), "work.example"]])
+            patcher, _ = self.pkexec(126)
+            with patcher, self.assertRaisesRegex(ValueError, "not removed"):
+                settings.remove_tailscale_domain("work.example")
+
 
 if __name__ == "__main__":
     unittest.main()

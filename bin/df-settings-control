@@ -19,6 +19,7 @@ STATE = DIRECTORY / "settings.json"
 OVERRIDES = DIRECTORY / "hypr-settings.lua"
 TAILSCALE_DOMAINS = Path("/etc/dotfiles/tailscale-dns-domains")
 ADD_TAILSCALE_DOMAIN = ROOT / "setup/common/add-tailscale-dns-domain"
+REMOVE_TAILSCALE_DOMAIN = ROOT / "setup/common/remove-tailscale-dns-domain"
 
 # key: (default, minimum, maximum); booleans and strings have no numeric range.
 SCHEMA = {
@@ -203,15 +204,25 @@ def tailscale_domains():
         return []
 
 
+def elevated(script, domain, cancelled):
+    result = subprocess.run(["pkexec", str(script), domain], text=True, capture_output=True, timeout=180)
+    if result.returncode in (126, 127):
+        raise ValueError(cancelled)
+    if result.returncode:
+        raise ValueError(result.stderr.strip() or result.stdout.strip() or f"{script.name} failed")
+    return result.stdout.strip()
+
+
 def add_tailscale_domain(domain):
     # Validate unprivileged, so a typo never costs a password prompt.
     domain = run([str(ADD_TAILSCALE_DOMAIN), "--check", domain])
-    result = subprocess.run(["pkexec", str(ADD_TAILSCALE_DOMAIN), domain], text=True, capture_output=True, timeout=180)
-    if result.returncode in (126, 127):
-        raise ValueError("Authorization was cancelled; the domain was not added")
-    if result.returncode:
-        raise ValueError(result.stderr.strip() or result.stdout.strip() or "Could not add the domain")
-    return result.stdout.strip()
+    return elevated(ADD_TAILSCALE_DOMAIN, domain, "Authorization was cancelled; the domain was not added")
+
+
+def remove_tailscale_domain(domain):
+    if domain not in tailscale_domains():
+        raise ValueError(f"{domain} is not a saved Tailscale DNS domain")
+    return elevated(REMOVE_TAILSCALE_DOMAIN, domain, "Authorization was cancelled; the domain was not removed")
 
 
 def snapshot():
@@ -269,8 +280,10 @@ def main():
         print(run([str(ROOT / "bin/df-default-app"), "set", *args[1:]]))
     elif len(args) == 2 and args[0] == "tailscale-dns-add":
         print(add_tailscale_domain(args[1]))
+    elif len(args) == 2 and args[0] == "tailscale-dns-remove":
+        print(remove_tailscale_domain(args[1]))
     else:
-        raise ValueError("Usage: df-settings-control snapshot | set KEY JSON | reset KEY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN")
+        raise ValueError("Usage: df-settings-control snapshot | set KEY JSON | reset KEY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN | tailscale-dns-remove DOMAIN")
 
 
 if __name__ == "__main__":

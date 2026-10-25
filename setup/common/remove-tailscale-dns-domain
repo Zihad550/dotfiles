@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Called by the Settings app. Removes one saved domain; see docs/dns.md.
+set -euo pipefail
+
+if (( $# != 1 )); then
+    echo "Usage: $0 domain" >&2
+    exit 2
+fi
+domain="$1"
+config=/etc/dotfiles/tailscale-dns-domains
+# grep -F reads a newline as a second pattern, so one argument must be one line.
+if [[ -z "$domain" || "$domain" == *$'\n'* || ! -f "$config" ]]; then
+    echo "$domain is not a saved Tailscale DNS domain." >&2
+    exit 1
+fi
+
+if [[ "$(id -u)" != 0 ]]; then
+    exec sudo "$0" "$domain"
+fi
+exec 9>/etc/dotfiles/.tailscale-dns.lock
+flock -x 9
+if ! grep -qxF -- "$domain" "$config"; then
+    echo "$domain is not a saved Tailscale DNS domain." >&2
+    exit 1
+fi
+pending="$(mktemp /etc/dotfiles/.tailscale-dns-domains.XXXXXX)"
+trap 'rm -f "$pending"' EXIT
+# grep -v exits 1 when it removes the last domain.
+grep -vxF -- "$domain" "$config" >"$pending" || (( $? == 1 ))
+chmod 644 "$pending"
+mv -f "$pending" "$config"
+systemctl restart dotfiles-tailscale-dns.service
+printf 'Removed %s; your default DNS answers it again.\n' "$domain"

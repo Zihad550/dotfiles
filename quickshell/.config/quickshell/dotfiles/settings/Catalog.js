@@ -66,7 +66,7 @@ function sections(page, data) {
                 row("tailscale.add", "Domain", "The domain and its subdomains resolve through Tailscale DNS. Adding one asks for your password.", "domain-add")
             ] },
             { title: "Answered by Tailscale", rows: (data.tailscaleDomains || []).map(function(domain) {
-                return row("tailscale.domain." + domain, domain, "Including subdomains, through 100.100.100.100.", "info");
+                return row("tailscale.domain." + domain, domain, "Including subdomains, through 100.100.100.100.", "tailscale-domain");
             }), empty: "No domains yet. Your default DNS answers every lookup." }
         ];
     case "panels":

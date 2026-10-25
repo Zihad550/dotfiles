@@ -68,7 +68,6 @@ Rectangle {
 
         Loader {
             id: control
-            visible: root.entry.kind !== "info"
             Layout.preferredWidth: {
                 switch (root.entry.kind) {
                 case "toggle": return 54;
@@ -89,6 +88,7 @@ Rectangle {
                 case "text": return textControl;
                 case "action": return actionControl;
                 case "domain-add": return domainControl;
+                case "tailscale-domain": return removeDomainControl;
                 }
                 return null;
             }
@@ -207,6 +207,15 @@ Rectangle {
                 enabled: domainField.text.trim().length > 0
                 onClicked: root.app.apply(["tailscale-dns-add", domainField.text.trim()])
             }
+        }
+    }
+
+    Component {
+        id: removeDomainControl
+        Button {
+            text: "Remove"
+            Accessible.name: "Stop forwarding " + root.entry.title + " through Tailscale"
+            onClicked: root.app.apply(["tailscale-dns-remove", root.entry.title])
         }
     }
 

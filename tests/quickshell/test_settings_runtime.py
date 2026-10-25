@@ -78,6 +78,11 @@ ShellRoot {
                 if (step - 5 < pages.length) {
                     app.open(pages[step - 5]);
                     step++;
+                } else if (step - 5 === pages.length) {
+                    // No real domains exist here; inject one so its Remove row is built.
+                    app.snapshot = Object.assign({}, app.snapshot, { tailscaleDomains: ["work.example"] });
+                    app.page = "tailscale";
+                    step++;
                 } else {
                     DesktopPreferences.values = { "panels.barHeight": 0 };
                     if (Theme.barHeight === 26)

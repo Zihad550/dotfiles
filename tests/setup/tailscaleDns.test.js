@@ -115,3 +115,49 @@ test("Gum input reaches the installer, while cancellation and empty input do not
         if (installs) assert.match(fs.readFileSync(log, "utf8"), /add-tailscale-dns-domain work.example\n$/);
     }
 });
+
+function domainRemover(t, saved) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dotfiles-dns-remove-"));
+    t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+    const log = path.join(dir, "commands");
+    fs.mkdirSync(path.join(dir, "root/etc/dotfiles"), { recursive: true });
+    const config = path.join(dir, "root/etc/dotfiles/tailscale-dns-domains");
+    if (saved !== null) fs.writeFileSync(config, saved);
+    const remover = path.join(dir, "remove-domain");
+    fs.writeFileSync(remover, fs.readFileSync(path.join(repo, "setup/common/remove-tailscale-dns-domain"), "utf8")
+        .replaceAll("/etc/", `${dir}/root/etc/`), { mode: 0o755 });
+    for (const [name, code] of Object.entries({ id: "echo 0", systemctl: 'echo "$*" >> "$LOG"' })) {
+        fs.writeFileSync(path.join(dir, name), `#!/usr/bin/env bash\n${code}\n`, { mode: 0o755 });
+    }
+    return {
+        saved: () => fs.existsSync(config) ? fs.readFileSync(config, "utf8") : null,
+        log: () => fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "",
+        run: domain => spawnSync(remover, [domain], {
+            encoding: "utf8", env: { ...process.env, PATH: `${dir}:/usr/bin:/bin`, LOG: log },
+        }),
+    };
+}
+
+test("removing a domain keeps the others and reapplies forwarding", t => {
+    const h = domainRemover(t, "other.example\nwork.example\n");
+    let result = h.run("work.example");
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(h.saved(), "other.example\n");
+    result = h.run("other.example");
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(h.saved(), "");
+    assert.equal(h.log(), "restart dotfiles-tailscale-dns.service\nrestart dotfiles-tailscale-dns.service\n");
+});
+
+test("removing an unsaved domain changes nothing", t => {
+    for (const saved of [null, "work.example\n", "other.example\nwork.example\n"]) {
+        const h = domainRemover(t, saved);
+        for (const domain of ["", "unsaved.example", "work", "-v", ".*", "work.example\nother.example"]) {
+            const result = h.run(domain);
+            assert.equal(result.status, 1, domain);
+            assert.match(result.stderr, /not a saved Tailscale DNS domain/);
+        }
+        assert.equal(h.saved(), saved);
+        assert.equal(h.log(), "");
+    }
+});
