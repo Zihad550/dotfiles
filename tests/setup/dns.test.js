@@ -30,6 +30,28 @@ function harness(t, splitResolver = false) {
         [[ "$*" != "\${DNS_TEST_FAIL:-}" ]]
     `);
     shim("tailscale", '[[ "$*" != "${DNS_TEST_FAIL:-}" ]]');
+    shim("resolvectl", `
+        case "$1" in
+            dns)
+                if [[ -n "\${2:-}" ]]; then
+                    [[ "$2" != "\${DNS_TEST_GONE:-}" ]] || exit 1
+                    printf '%b' "\${DNS_TEST_LINK_DNS:-}" | grep -F "($2)" || true
+                else
+                    printf '%b' "\${DNS_TEST_LINK_DNS:-}"
+                fi
+                ;;
+            domain) printf '%b' "\${DNS_TEST_DOMAINS:-}" ;;
+        esac
+    `);
+    // Like nmcli -g, escape ':' and '\\' unless --escape no is given.
+    shim("nmcli", `
+        name="\${DNS_TEST_NM_CONNECTION:-}"
+        if [[ "$1 $2" != "--escape no" ]]; then
+            name="\${name//\\\\/\\\\\\\\}"
+            name="\${name//:/\\\\:}"
+        fi
+        printf '%s\\n' "$name"
+    `);
     shim("sudo", `
         printf 'sudo %s\\n' "$*" >> "$DNS_TEST_LOG"
         command="$1"
@@ -139,7 +161,6 @@ test("DNS_SERVERS overrides the tracked drop-in and reruns idempotently", t => {
         const dropin = fs.readFileSync(h.destination, "utf8");
         assert.match(dropin, /^DNS=9\.9\.9\.9 149\.112\.112\.112$/m);
         assert.match(dropin, /^Domains=~\.$/m);
-        assert.match(dropin, /^# setup-ufw blocks a LAN-only resolver/m);
         assert.equal(h.count(/^systemctl restart systemd-resolved$/gm), 1);
     }
 });
@@ -265,4 +286,42 @@ test("every saved domain becomes a routing-only suffix", t => {
     const result = runApply(t, { domains: "work.example\n\nother.example\n" });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.log, /^resolvectl domain tailscale0 ~work.example ~other.example$/m);
+});
+
+test("links that also route ~. to their own servers are reported", t => {
+    const h = harness(t);
+    const result = h.run({
+        DNS_TEST_LINK_DNS: "Global: 1.0.0.3#family.cloudflare-dns.com\nLink 2 (eno1): 1.1.1.3 1.0.0.3\nLink 3 (tailscale0): 100.100.100.100\nLink 4 (wlan0): 9.9.9.9\nLink 5 (lan1):\n",
+        DNS_TEST_DOMAINS: "Global: ~.\nLink 2 (eno1): home.example ~.\nLink 3 (tailscale0): ~work.example\nLink 4 (wlan0): corp.example\nLink 5 (lan1): ~.\n",
+        DNS_TEST_NM_CONNECTION: "Office: wired",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /warning: eno1 routes every lookup \(~\.\) to its own DNS servers \(1\.1\.1\.3 1\.0\.0\.3\)/);
+    assert.match(result.stderr, /sudo nmcli connection modify Office:\\ wired ipv4\.dns ''/);
+    assert.match(result.stderr, /sudo nmcli device reapply eno1/);
+    assert.doesNotMatch(result.stderr, /tailscale0|wlan0|lan1/);
+});
+
+test("default-route links without ~. and links without global DNS are not reported", t => {
+    const h = harness(t);
+    const plain = h.run({
+        DNS_TEST_LINK_DNS: "Global: 1.0.0.3#family.cloudflare-dns.com\nLink 2 (eno1): 1.1.1.3\n",
+        DNS_TEST_DOMAINS: "Global: ~.\nLink 2 (eno1):\n",
+    });
+    assert.equal(plain.status, 0, plain.stderr);
+    assert.doesNotMatch(plain.stderr, /warning/);
+    const vanished = h.run({
+        DNS_TEST_LINK_DNS: "Global: 1.0.0.3#family.cloudflare-dns.com\nLink 2 (eno1): 1.1.1.3\n",
+        DNS_TEST_DOMAINS: "Global: ~.\nLink 2 (eno1): ~.\n",
+        DNS_TEST_GONE: "eno1",
+    });
+    assert.equal(vanished.status, 0, vanished.stderr);
+    assert.match(vanished.stdout, /verify with:/);
+    assert.doesNotMatch(vanished.stderr, /warning/);
+    const router = h.run({
+        DNS_TEST_LINK_DNS: "Global:\nLink 2 (wlp1s0): 192.168.1.1\n",
+        DNS_TEST_DOMAINS: "Global:\nLink 2 (wlp1s0): ~.\n",
+    });
+    assert.equal(router.status, 0, router.stderr);
+    assert.doesNotMatch(router.stderr, /warning/);
 });

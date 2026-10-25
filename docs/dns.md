@@ -104,6 +104,14 @@ Repeat the queries after resolver restart, Tailscale reconnect, uplink reconnect
 and reboot. On systems without device events allow up to 30 seconds for a new
 interface. Repository tests cannot verify actual network routing.
 
+The global `Domains=~.` outranks links that are only the default route, so their
+DNS servers (e.g. from DHCP) are not used for ordinary lookups. A link that also
+routes `~.` receives every lookup in parallel with the global DNS; when global
+DNS is set (devbox), `setup-dns` warns about such links and prints the `nmcli`
+commands to clear them, without changing the connection itself. The
+`-- link:` label in `resolvectl query` names the interface the reply arrived on,
+not which server answered.
+
 Audit other resolved drop-ins and per-link domains: more-specific domains from
 other VPNs or DHCP, or another `~.` route, can select other upstreams. Browser
 DoH and application-specific resolvers can bypass system DNS policy. Direct

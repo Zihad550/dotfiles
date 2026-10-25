@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 
-# Point systemd-resolved at explicit upstream DNS servers via a drop-in, and
-# hand /etc/resolv.conf to resolved so MagicDNS keeps working. Box Wrappers set
-# one of the first two variables below and execute this Shared Setup Script.
+# Install this box's default DNS as a systemd-resolved drop-in, disable
+# Tailscale's DNS takeover, and hand /etc/resolv.conf to resolved. Box Wrappers
+# set one of these variables and execute this Shared Setup Script.
 #
 #   DNS_CONFIG_FILE=<path>          install this tracked drop-in verbatim
-#   DNS_SERVERS=<space-separated>   generate a drop-in instead; wins when set
-#   DNS_DOMAINS=<value>             domains routed through DNS_SERVERS;
-#                                    default "~." (every lookup)
-#   DNS_DROPIN_NAME=<name>          optional; default "10-dns-override".
-#                                    Becomes /etc/systemd/resolved.conf.d/<name>.conf
-#   DNS_REASON=<text>               generated drop-in header comment; default empty
+#   DNS_SERVERS=<space-separated>   generate a plain-DNS drop-in routing every
+#                                    lookup to these servers instead; wins when set
 #
-# See README.md "DNS and MagicDNS" for the drop-in, handoff and ordering.
+# See docs/dns.md for the policy, ordering and domain forwarding.
 
 set -euo pipefail
 
@@ -23,12 +19,9 @@ if [[ -z "$CONFIG_FILE" && -z "$DNS_SERVERS" ]]; then
     echo "error: set DNS_CONFIG_FILE or DNS_SERVERS (see the per-box wrapper)" >&2
     exit 1
 fi
-DOMAINS="${DNS_DOMAINS:-~.}"
-DROPIN_NAME="${DNS_DROPIN_NAME:-10-dns-override}"
-REASON="${DNS_REASON:-}"
 
 STUB=/run/systemd/resolve/stub-resolv.conf
-DROPIN="/etc/systemd/resolved.conf.d/$DROPIN_NAME.conf"
+DROPIN=/etc/systemd/resolved.conf.d/10-dns-override.conf
 NM_CONF=/etc/NetworkManager/conf.d/dns.conf
 
 if ! systemctl cat systemd-resolved.service &>/dev/null; then
@@ -43,10 +36,9 @@ if [[ -n "$DNS_SERVERS" ]]; then
     trap 'rm -f "$dropin_source"' EXIT
     {
         echo "# Written by setup/common/setup-dns."
-        [[ -n "$REASON" ]] && echo "# $REASON"
         echo "[Resolve]"
         echo "DNS=$DNS_SERVERS"
-        echo "Domains=$DOMAINS"
+        echo "Domains=~."
     } >"$dropin_source"
 fi
 
@@ -62,6 +54,31 @@ install_and_activate() {
         echo "         $*" >&2
         exit 1
     fi
+}
+
+# Global Domains=~. wins over plain default-route links; only a link that also
+# routes ~. competes, getting every lookup in parallel (man systemd-resolved).
+warn_competing_links() {
+    local line link servers connection
+    [[ -n "$(resolvectl dns 2>/dev/null | sed -n 's/^Global: *//p')" ]] || return 0
+    while IFS= read -r line; do
+        [[ "$line" =~ ^Link\ [0-9]+\ \(([^\)]+)\):(.*\ )?~\.(\ .*)?$ ]] || continue
+        link="${BASH_REMATCH[1]}"
+        # The link can vanish between the two queries.
+        servers="$(resolvectl dns "$link" 2>/dev/null | sed -n 's/^Link [0-9]* ([^)]*): *//p')" || continue
+        [[ -n "$servers" ]] || continue
+        echo >&2
+        echo "warning: $link routes every lookup (~.) to its own DNS servers ($servers)," >&2
+        echo "         in parallel with the global DNS." >&2
+        connection="$(nmcli --escape no -g GENERAL.CONNECTION device show "$link" 2>/dev/null || true)"
+        if [[ -n "$connection" ]]; then
+            echo "         To clear them (reapply briefly reconfigures the link):" >&2
+            echo "           sudo nmcli connection modify $(printf '%q' "$connection") ipv4.dns '' ipv6.dns '' ipv4.ignore-auto-dns yes ipv6.ignore-auto-dns yes" >&2
+            echo "           sudo nmcli device reapply $link" >&2
+        else
+            echo "         Remove them where this link's network configuration sets them." >&2
+        fi
+    done < <(resolvectl domain 2>/dev/null)
 }
 
 if command -v tailscale >/dev/null && systemctl is-active tailscaled.service &>/dev/null; then
@@ -87,6 +104,7 @@ fi
 
 echo
 echo "DNS configuration: $DROPIN"
+warn_competing_links
 echo
 echo "verify with:  resolvectl status"
 echo "Add a Tailscale DNS domain with: df-tailscale-dns"

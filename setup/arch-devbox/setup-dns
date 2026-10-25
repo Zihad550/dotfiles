@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Install Cloudflare Family DoT. See README.md "dns" for routing and verification.
+# Install Cloudflare Family DoT (1.0.0.3). See docs/dns.md for verification.
 #
 #   DNS_SERVERS="9.9.9.9 149.112.112.112" ./setup-dns   # plain DNS to any other pair
 
@@ -8,6 +8,5 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DNS_CONFIG_FILE="$SCRIPT_DIR/10-dns-override.conf"
-export DNS_REASON="setup-ufw blocks a LAN-only resolver (e.g. pi-hole); this is a public one its egress rules don't touch."
 
 exec "$SCRIPT_DIR/../common/setup-dns" "$@"
