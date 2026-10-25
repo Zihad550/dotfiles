@@ -8,9 +8,12 @@ if (( $# != 1 )); then
     exit 2
 fi
 domain="${1,,}"
+# Pasted input often carries surrounding whitespace.
+domain="${domain#"${domain%%[![:space:]]*}"}"
+domain="${domain%"${domain##*[![:space:]]}"}"
 domain="${domain%.}"
 if [[ ${#domain} -gt 253 || "$domain" != *.* || "$domain" =~ [^a-z0-9.-] ]]; then
-    echo "Enter a DNS domain, without a URL, port or wildcard." >&2
+    echo "Not a DNS domain: '$1'. Enter a plain domain, without a URL, port or wildcard." >&2
     exit 2
 fi
 IFS=. read -r -a labels <<<"$domain"

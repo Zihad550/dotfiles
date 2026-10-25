@@ -49,7 +49,7 @@ function domainInstaller(t) {
 
 test("adding domains preserves earlier choices and deduplicates normalized input", t => {
     const h = domainInstaller(t);
-    for (const domain of ["Work.Example.", "other.example", "work.example"]) {
+    for (const domain of ["Work.Example.", " other.example\t", "work.example\n"]) {
         const result = h.run(domain);
         assert.equal(result.status, 0, result.stderr);
     }
