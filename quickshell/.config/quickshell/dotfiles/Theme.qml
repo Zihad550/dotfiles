@@ -23,7 +23,7 @@ Singleton {
     // Matches waybar/style.css: Fira Code 14px, 26px bar.
     readonly property string fontFamily: "Fira Code"
     readonly property int fontSize: 14
-    readonly property int barHeight: 26
+    readonly property int barHeight: DesktopPreferences.value("panels.barHeight", 26, 24, 56)
 
     // Horizontal padding of the left/right module groups (.modules-left/right).
     readonly property int edgeMargin: 8

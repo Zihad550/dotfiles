@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -euo pipefail
+
+case "${1:-}" in
+    "") exec qs -c dotfiles ipc call settings open ;;
+    appearance|windows|input|displays|defaults|panels)
+        exec qs -c dotfiles ipc call settings show "$1" ;;
+    *) echo "Usage: df-settings [appearance|windows|input|displays|defaults|panels]" >&2; exit 2 ;;
+esac

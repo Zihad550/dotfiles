@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""Read and apply the Settings app's persistent desktop preferences."""
+
+import fcntl
+import json
+import math
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+
+ROOT = Path(__file__).resolve().parent.parent
+STATE_HOME = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
+DIRECTORY = STATE_HOME / "dotfiles"
+STATE = DIRECTORY / "settings.json"
+OVERRIDES = DIRECTORY / "hypr-settings.lua"
+
+# key: (default, minimum, maximum); booleans and strings have no numeric range.
+SCHEMA = {
+    "general.gaps_in": (0, 0, 40),
+    "general.gaps_out": (0, 0, 80),
+    "general.border_size": (2, 0, 10),
+    "decoration.rounding": (4, 0, 30),
+    "decoration.blur.enabled": (False, None, None),
+    "decoration.shadow.enabled": (False, None, None),
+    "decoration.dim_inactive": (True, None, None),
+    "animations.enabled": (True, None, None),
+    "input.kb_layout": ("us", None, None),
+    "input.sensitivity": (1.0, -1.0, 1.0),
+    "input.follow_mouse": (1, 0, 2),
+    "input.touchpad.natural_scroll": (False, None, None),
+    "panels.barHeight": (26, 24, 56),
+    "panels.workspaces": (True, None, None),
+    "panels.clock": (True, None, None),
+    "panels.clock24h": (False, None, None),
+    "panels.kanata": (True, None, None),
+    "panels.voxtype": (True, None, None),
+}
+
+
+def validate(key, value):
+    if key not in SCHEMA:
+        raise ValueError(f"Unknown preference: {key}")
+    default, minimum, maximum = SCHEMA[key]
+    if type(default) is bool:
+        valid = type(value) is bool
+    elif type(default) is str:
+        valid = isinstance(value, str) and re.fullmatch(r"[a-zA-Z0-9_+-]+(?:,[a-zA-Z0-9_+-]+)*", value)
+    else:
+        valid = type(value) in (int, float) and math.isfinite(value) and minimum <= value <= maximum
+        if type(default) is int:
+            valid = valid and int(value) == value
+    if not valid:
+        raise ValueError(f"Invalid value for {key}: {value!r}")
+    return value
+
+
+def read_state():
+    if not STATE.exists():
+        return {}
+    state = json.loads(STATE.read_text())
+    if not isinstance(state, dict):
+        raise ValueError("settings.json must contain an object")
+    for key, value in state.items():
+        validate(key, value)
+    return state
+
+
+def read_valid_state():
+    """Return the valid preferences and the names of entries a snapshot must ignore."""
+    if not STATE.exists():
+        return {}, []
+    try:
+        state = json.loads(STATE.read_text())
+    except ValueError:
+        state = None
+    if not isinstance(state, dict):
+        return {}, ["settings.json"]
+    valid, ignored = {}, []
+    for key, value in state.items():
+        try:
+            valid[key] = validate(key, value)
+        except ValueError:
+            ignored.append(key)
+    return valid, ignored
+
+
+def run(argv, timeout=30):
+    result = subprocess.run(argv, text=True, capture_output=True, timeout=timeout)
+    if result.returncode:
+        raise ValueError(result.stderr.strip() or result.stdout.strip() or f"{argv[0]} failed")
+    return result.stdout.strip()
+
+
+def optional(argv, fallback=""):
+    try:
+        return run(argv)
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return fallback
+
+
+def lua_config(state):
+    tree = {}
+    for key, value in sorted(state.items()):
+        if key.startswith("panels."):
+            continue
+        node = tree
+        parts = key.split(".")
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node[parts[-1]] = value
+
+    def encode(value):
+        if isinstance(value, dict):
+            return "{ " + ", ".join(f"{key} = {encode(item)}" for key, item in value.items()) + " }"
+        return json.dumps(value)
+
+    return f"hl.config({encode(tree)})\n"
+
+
+def atomic_write(path, text):
+    with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as file:
+        temporary = Path(file.name)
+        try:
+            file.write(text)
+            file.flush()
+            os.fsync(file.fileno())
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def update_state(key, value, live_command):
+    """Store or, when value is None, remove one preference and apply it live."""
+    DIRECTORY.mkdir(parents=True, exist_ok=True)
+    with (DIRECTORY / ".settings.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        previous = read_state()
+        updated = {name: item for name, item in previous.items() if name != key}
+        if value is not None:
+            updated[key] = value
+        previous_overrides = OVERRIDES.read_text() if OVERRIDES.exists() else None
+        # Persist the override before the JSON notification triggers a shell refresh.
+        atomic_write(OVERRIDES, lua_config(updated))
+        applied = False
+        try:
+            if not key.startswith("panels."):
+                reply = run(live_command)
+                if reply.lower() != "ok":
+                    raise ValueError(reply or "Hyprland did not acknowledge the change")
+                applied = True
+            atomic_write(STATE, json.dumps(updated, indent=2) + "\n")
+        except Exception:
+            if previous_overrides is None:
+                OVERRIDES.unlink(missing_ok=True)
+            else:
+                atomic_write(OVERRIDES, previous_overrides)
+            if applied:
+                # Reloading re-reads the restored override, undoing the live change.
+                optional(["hyprctl", "reload"])
+            raise
+
+
+def set_preference(key, value):
+    validate(key, value)
+    update_state(key, value, ["hyprctl", "eval", lua_config({key: value})])
+
+
+def reset_preference(key):
+    if key not in SCHEMA:
+        raise ValueError(f"Unknown preference: {key}")
+    # Hyprland can't report the hand-maintained value; a reload restores it.
+    update_state(key, None, ["hyprctl", "reload"])
+
+
+def live_value(key, option):
+    """Convert one `hyprctl getoption` reply into the type SCHEMA expects."""
+    default = SCHEMA[key][0]
+    if type(default) is bool:
+        return option["bool"] if "bool" in option else bool(option["int"])
+    if key in ("general.gaps_in", "general.gaps_out") and "css" in option:
+        # The CSS value lists all four edges; the first is the top edge.
+        match = re.match(r"\s*(-?\d+(?:\.\d+)?)", option["css"])
+        if not match:
+            raise ValueError(f"Unreadable gap value: {option['css']!r}")
+        return round(float(match.group(1)))
+    if type(default) is str:
+        return option["str"]
+    if type(default) is float:
+        return option["float"]
+    return option["int"]
+
+
+def snapshot():
+    persisted, ignored = read_valid_state()
+    values = {key: spec[0] for key, spec in SCHEMA.items()}
+    values.update(persisted)
+    connected = bool(optional(["hyprctl", "-j", "monitors"]))
+    if connected:
+        for key in SCHEMA:
+            if key.startswith("panels."):
+                continue
+            raw = optional(["hyprctl", "-j", "getoption", key.replace(".", ":")])
+            try:
+                values[key] = validate(key, live_value(key, json.loads(raw)))
+            except (ValueError, KeyError, TypeError):
+                pass
+    themes = []
+    for line in optional([str(ROOT / "bin/df-theme-list")]).splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            themes.append({"value": parts[1], "label": parts[1] + (" · download" if parts[0] == "available" else "")})
+    defaults = optional([str(ROOT / "bin/df-default-app"), "list"], '{"roles": []}')
+    theme = Path.home() / ".config/theme"
+    return {
+        "values": values,
+        "overrides": sorted(persisted),
+        "ignored": ignored,
+        "hyprland": connected,
+        "themes": themes,
+        "theme": theme.resolve().name if theme.exists() else "",
+        "wallpaper": str((theme / "background").resolve()) if (theme / "background").exists() else "",
+        "defaults": json.loads(defaults),
+        "profile": os.environ.get("DOTFILES_PROFILE", "unset"),
+    }
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ["snapshot"]:
+        print(json.dumps(snapshot()))
+    elif len(args) == 3 and args[0] == "set":
+        set_preference(args[1], json.loads(args[2]))
+    elif len(args) == 2 and args[0] == "reset":
+        reset_preference(args[1])
+    elif len(args) == 2 and args[0] == "theme":
+        run([str(ROOT / "bin/df-theme-dir"), "--check", args[1]])
+        print(run([str(ROOT / "bin/df-theme-set"), args[1]], timeout=180))
+    elif len(args) == 2 and args[0] == "wallpaper":
+        image = Path(args[1]).expanduser().resolve()
+        if not image.is_file():
+            raise ValueError("Choose an existing image file")
+        print(run([str(ROOT / "bin/df-theme-bg-set"), str(image)]))
+    elif len(args) == 3 and args[0] == "default-app":
+        print(run([str(ROOT / "bin/df-default-app"), "set", *args[1:]]))
+    else:
+        raise ValueError("Usage: df-settings-control snapshot | set KEY JSON | reset KEY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+        print(f"Settings: {error}", file=sys.stderr)
+        sys.exit(1)

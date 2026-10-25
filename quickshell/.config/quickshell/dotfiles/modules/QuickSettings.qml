@@ -384,6 +384,16 @@ PopupWindow {
                                     spacing: 6
 
                                     HeaderAction {
+                                        icon: ""
+                                        tooltipText: "Settings"
+
+                                        onClicked: {
+                                            Quickshell.execDetached([Quickshell.env("HOME") + "/dotfiles/bin/df-settings"]);
+                                            root.dismiss();
+                                        }
+                                    }
+
+                                    HeaderAction {
                                         id: lockAction
 
                                         icon: ""

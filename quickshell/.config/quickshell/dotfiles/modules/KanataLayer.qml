@@ -9,7 +9,7 @@ Item {
     readonly property var status: KanataService.layerStatus
     readonly property string text: `󰌌 ${root.status.short}`
 
-    visible: KanataService.installed
+    visible: KanataService.installed && DesktopPreferences.value("panels.kanata", true)
     implicitWidth: label.implicitWidth + 16
     implicitHeight: Theme.barHeight
 

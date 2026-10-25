@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+Comment=Manage desktop style, setup, and panels
+Exec=qs -c dotfiles ipc call settings open
+Icon=preferences-system
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=Hyprland;Quickshell;Appearance;Themes;Panels;Dotfiles;

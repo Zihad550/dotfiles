@@ -21,3 +21,14 @@ require("lua.bindings.utilities")
 require("lua.theme")
 
 hl.config({ ecosystem = { no_update_news = true } })
+
+local state_home = os.getenv("XDG_STATE_HOME")
+if not state_home or state_home == "" then
+    state_home = os.getenv("HOME") .. "/.local/state"
+end
+local preferences = state_home .. "/dotfiles/hypr-settings.lua"
+local settings_file = io.open(preferences, "r")
+if settings_file then
+    settings_file:close()
+    dofile(preferences)
+end

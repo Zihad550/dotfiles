@@ -21,6 +21,7 @@ BarItem {
 
     text: icons[statusClass] ?? ""
     tooltipText: tip
+    visible: text !== "" && DesktopPreferences.value("panels.voxtype", true)
 
     onClicked: Quickshell.execDetached(["df-voxtype-config"])
     onRightClicked: Quickshell.execDetached(["df-voxtype-edit"])

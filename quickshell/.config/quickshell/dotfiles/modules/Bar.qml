@@ -27,6 +27,7 @@ PanelWindow {
     color: Theme.background
 
     Workspaces {
+        visible: DesktopPreferences.value("panels.workspaces", true)
         anchors.left: parent.left
         anchors.leftMargin: Theme.edgeMargin
         anchors.verticalCenter: parent.verticalCenter
@@ -34,6 +35,7 @@ PanelWindow {
     }
 
     Clock {
+        visible: DesktopPreferences.value("panels.clock", true)
         anchors.centerIn: parent
         mediaService: bar.mediaService
     }

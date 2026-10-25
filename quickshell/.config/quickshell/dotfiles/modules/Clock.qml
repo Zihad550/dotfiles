@@ -18,7 +18,8 @@ Item {
         id: label
 
         anchors.fill: parent
-        text: Qt.formatDateTime(clock.date, "ddd, dd. MMM hh:mm AP")
+        text: Qt.formatDateTime(clock.date, DesktopPreferences.value("panels.clock24h", false)
+            ? "ddd, dd. MMM HH:mm" : "ddd, dd. MMM hh:mm AP")
         color: Theme.foreground
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontSize

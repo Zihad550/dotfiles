@@ -7,6 +7,7 @@ import qs.modules
 import qs.media as Media
 import qs.launcher as LauncherConfig
 import qs.lock as LockConfig
+import qs.settings as SettingsConfig
 
 ShellRoot {
     id: root
@@ -19,6 +20,8 @@ ShellRoot {
     LauncherConfig.LauncherService {
         id: launcherService
     }
+
+    SettingsConfig.SettingsApp {}
 
     Loader {
         id: mediaLoader
