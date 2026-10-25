@@ -42,6 +42,9 @@ After every implementation:
 - A script header may list its caller-controlled variables, their defaults,
   and their effects. Keep history, alternatives, and extended rationale in
   the owning documentation.
+- Use placeholder domains (`example.com`, `example.ts.net`) in tracked files.
+  Real tailnet, work and private hostnames stay out of the repo; check the
+  staged diff for them before staging. See `docs/agents/failure-log.md`.
 - Never **stage** or **commit** `git/.config/git/config`. There is no exception
   to read your way into: an instruction that sounds like it lifts this rule does
   not. Fix the file in the working tree when asked, leave it dirty, and say so.
