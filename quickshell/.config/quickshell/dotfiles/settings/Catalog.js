@@ -63,7 +63,7 @@ function sections(page, data) {
     case "tailscale":
         return [
             { title: "Add a domain", rows: [
-                row("tailscale.add", "Domain", "The domain and its subdomains resolve through Tailscale DNS. Adding one asks for your password.", "domain-add")
+                row("tailscale.add", "Domain", "Enter a domain or paste a link on it. It and its subdomains resolve through Tailscale DNS; adding one asks for your password.", "domain-add")
             ] },
             { title: "Answered by Tailscale", rows: (data.tailscaleDomains || []).map(function(domain) {
                 return row("tailscale.domain." + domain, domain, "Including subdomains, through 100.100.100.100.", "tailscale-domain");

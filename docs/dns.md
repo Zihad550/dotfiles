@@ -47,8 +47,10 @@ configuration and audit `NetworkManager --print-config` for competing plugins.
 df-tailscale-dns
 ```
 
-This Gum command prompts for a domain, for example `example.ts.net`. Enter a
-plain domain without a scheme, port or wildcard. Cancel or leave it blank to
+This Gum command prompts for a domain, for example `example.ts.net`. Enter a domain,
+or paste a URL on it: the scheme, user, port and path are dropped, so
+`https://git.example.ts.net/org/repo` adds `git.example.ts.net`. Wildcards, IP
+addresses and backslashes are rejected; enter non-ASCII names in punycode. Cancel or leave it blank to
 make no changes. Gum must be installed and the checkout's `bin` commands on
 PATH; alternatively run `~/dotfiles/bin/df-tailscale-dns`.
 

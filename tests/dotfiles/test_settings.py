@@ -240,9 +240,9 @@ class SettingsTests(unittest.TestCase):
         patcher, calls = self.pkexec(stdout="Saved\n")
         with patcher:
             with self.assertRaisesRegex(ValueError, "Not a DNS domain"):
-                settings.add_tailscale_domain("https://work.example")
+                settings.add_tailscale_domain("*.work.example")
             self.assertEqual(calls, [])
-            self.assertEqual(settings.add_tailscale_domain(" Work.Example. "), "Saved")
+            self.assertEqual(settings.add_tailscale_domain(" https://Work.Example/repo "), "Saved")
         self.assertEqual(calls, [["pkexec", str(settings.ADD_TAILSCALE_DOMAIN), "work.example"]])
 
     def test_cancelled_tailscale_authorization_is_reported(self):

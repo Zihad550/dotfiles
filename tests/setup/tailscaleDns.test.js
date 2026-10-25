@@ -63,7 +63,7 @@ test("adding domains preserves earlier choices and deduplicates normalized input
 
 test("invalid domains cannot change the saved list or activate services", t => {
     const h = domainInstaller(t);
-    for (const domain of ["", ".", "~.", "localhost", "100.100.100.100", "https://work.example", "*.work.example", "work..example", "-work.example", "work.example:53", "work.example\nother.example", "a".repeat(64) + ".example"]) {
+    for (const domain of ["", ".", "~.", "localhost", "100.100.100.100", "https://100.100.100.100/", "https://", "https://[fd7a::1]/", "*.work.example", "work..example", "-work.example", "work.example:http", "work.example\nother.example", "https://user\n@work.example/", "https://work.example/\nother.example", "work.example/\tx", "https://work.example\\@other.example/path", "ssh://work.example\\@other.example/repo", "https://100.100.100.0x64/", "work.0x", "1.2.3.4", "a".repeat(64) + ".example"]) {
         const result = h.run(domain);
         assert.equal(result.status, 2, domain);
     }
@@ -75,9 +75,27 @@ test("--check prints the normalized domain without root", () => {
     const valid = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", " Work.Example. "], { encoding: "utf8" });
     assert.equal(valid.status, 0, valid.stderr);
     assert.equal(valid.stdout, "work.example\n");
-    const invalid = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", "https://work.example"], { encoding: "utf8" });
+    for (const url of ["https://Work.Example/org/repo.git?tab=1#top", "ssh://git@work.example:2222/repo", "http://user:pw@work.example:8080", "work.example:53"]) {
+        const result = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", url], { encoding: "utf8" });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.stdout, "work.example\n", url);
+    }
+    // A "://" later in a scheme-less URL is not a scheme.
+    for (const url of ["work.example?next=https://other.example", "work.example/redirect/https://other.example"]) {
+        const result = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", url], { encoding: "utf8" });
+        assert.equal(result.stdout, "work.example\n", url);
+    }
+    // Bash lowercasing maps some non-ASCII letters onto ASCII in a UTF-8 locale.
+    for (const name of ["https://\u0130.example/path", "\u0130.example", "caf\u00e9.example"]) {
+        const result = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", name], {
+            encoding: "utf8", env: { ...process.env, LC_ALL: "C.UTF-8" },
+        });
+        assert.equal(result.status, 2, name);
+        assert.match(result.stderr, /punycode/);
+    }
+    const invalid = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", "*.work.example"], { encoding: "utf8" });
     assert.equal(invalid.status, 2);
-    assert.match(invalid.stderr, /'https:\/\/work\.example'/);
+    assert.match(invalid.stderr, /'\*\.work\.example'/);
 });
 
 test("adding a domain requires the base resolver setup first", t => {
@@ -103,7 +121,8 @@ test("Gum input reaches the installer, while cancellation and empty input do not
         ["Work.Example.", "0", 0, true],
         ["", "0", 0, false],
         ["work.example", "130", 130, false],
-        ["https://work.example", "0", 2, false],
+        ["https://work.example/path", "0", 0, true],
+        ["*.work.example", "0", 2, false],
     ]) {
         fs.rmSync(log, { force: true });
         const result = spawnSync(path.join(repo, "bin/df-tailscale-dns"), [], {

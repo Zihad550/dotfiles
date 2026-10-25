@@ -14,13 +14,36 @@ if (( $# != 1 )); then
     exit 2
 fi
 raw="$1"
+# Lowercasing can turn non-ASCII letters into ASCII ones (İ → i); use punycode.
+if [[ "$raw" == *[![:ascii:]]* ]]; then
+    echo "Not a DNS domain: '$raw'. Enter non-ASCII names in punycode (xn--...)." >&2
+    exit 2
+fi
 domain="${raw,,}"
 # Pasted input often carries surrounding whitespace.
 domain="${domain#"${domain%%[![:space:]]*}"}"
 domain="${domain%"${domain##*[![:space:]]}"}"
+if [[ "$domain" =~ [[:space:][:cntrl:]] ]]; then
+    echo "Not a DNS domain: '$raw'. Enter one domain or URL on a single line." >&2
+    exit 2
+fi
+# Schemes disagree on whether "\" ends the host, so refuse to guess.
+if [[ "$domain" == *\\* ]]; then
+    echo "Not a DNS domain: '$raw'. Remove the backslash from the URL." >&2
+    exit 2
+fi
+# Accept a pasted URL: keep only its host.
+if [[ "$domain" =~ ^[a-z][a-z0-9+.-]*:// ]]; then
+    domain="${domain#*://}"
+fi
+domain="${domain%%[/?#]*}"
+domain="${domain##*@}"
+if [[ "$domain" =~ ^(.*):[0-9]+$ ]]; then
+    domain="${BASH_REMATCH[1]}"
+fi
 domain="${domain%.}"
 if [[ ${#domain} -gt 253 || "$domain" != *.* || "$domain" =~ [^a-z0-9.-] ]]; then
-    echo "Not a DNS domain: '$raw'. Enter a plain domain, without a URL, port or wildcard." >&2
+    echo "Not a DNS domain: '$raw'. Enter a domain such as example.ts.net, or a URL on it; wildcards are not supported." >&2
     exit 2
 fi
 IFS=. read -r -a labels <<<"$domain"
@@ -30,7 +53,8 @@ for label in "${labels[@]}"; do
         exit 2
     fi
 done
-if [[ ! "${labels[-1]}" =~ [a-z] || "$domain" == *. ]]; then
+# Browsers read a numeric or hex last label (100, 0x64) as IPv4.
+if [[ "${labels[-1]}" =~ ^([0-9]+|0x[0-9a-f]*)$ || "$domain" == *. ]]; then
     echo "Enter a domain name rather than an IP address." >&2
     exit 2
 fi
