@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Installed as /usr/local/libexec/dotfiles-apply-tailscale-dns.
+# See docs/dns.md for the locally owned domain list and service lifecycle.
+set -euo pipefail
+
+if ! command -v tailscale >/dev/null || ! systemctl is-active --quiet tailscaled.service; then
+    exit 0
+fi
+
+# This remains local policy even if the tailnet administrator changes DNS.
+tailscale set --accept-dns=false
+if ! ip link show dev tailscale0 >/dev/null 2>&1; then
+    exit 0
+fi
+
+domains=()
+if [[ -f /etc/dotfiles/tailscale-dns-domains ]]; then
+    while IFS= read -r domain || [[ -n "$domain" ]]; do
+        [[ -z "$domain" ]] || domains+=("~$domain")
+    done </etc/dotfiles/tailscale-dns-domains
+fi
+if (( ${#domains[@]} == 0 )); then
+    resolvectl revert tailscale0
+    exit 0
+fi
+
+resolvectl default-route tailscale0 no
+resolvectl dnsovertls tailscale0 no
+resolvectl domain tailscale0 "${domains[@]}"
+resolvectl dns tailscale0 100.100.100.100

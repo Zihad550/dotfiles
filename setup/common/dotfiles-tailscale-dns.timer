@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Tailscale split DNS after interface or resolver changes
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=30s
+Unit=dotfiles-tailscale-dns.service
+
+[Install]
+WantedBy=timers.target

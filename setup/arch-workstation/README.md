@@ -26,7 +26,7 @@ tunnel.
 After setup, join the tailnet and add the server to `~/.ssh/config`:
 
 ```sh
-sudo tailscale up --operator="$USER"
+sudo tailscale up --operator="$USER" --accept-dns=false
 ssh devbox
 herdr --remote devbox
 ```
@@ -153,3 +153,10 @@ TIMELINE_LIMIT_MONTHLY=1
 NUMBER_LIMIT=5
 NUMBER_LIMIT_IMPORTANT=2
 ```
+
+### DNS
+
+`init` runs `setup-dns`, preserving DNS supplied by the router/DHCP and disabling
+Tailscale DNS takeover. To migrate an existing box, run
+`setup/arch-workstation/setup-dns`. Run `df-tailscale-dns` to add a forwarding
+domain through Gum. See [DNS setup and verification](../../docs/dns.md).

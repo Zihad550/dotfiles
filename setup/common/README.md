@@ -19,7 +19,7 @@ here when the explanation does not belong beside the command it protects.
 | [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Workstation, Arch devbox, Ubuntu devbox |
 | [`set-dotfiles-profile`](set-dotfiles-profile) | Persists the setup target for desktop and shell consumers. | Arch Workstation, Arch devbox |
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
-| [`setup-dns`](setup-dns) | Writes a systemd-resolved DNS override and hands `/etc/resolv.conf` to resolved without breaking MagicDNS. | Arch devbox |
+| [`setup-dns`](setup-dns) | Configures default DNS and disables Tailscale DNS takeover. | Arch devbox, Arch Workstation, Ubuntu LXC devbox |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Workstation, Arch devbox |
 | [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Workstation, Arch devbox |
 | [`setup-go-timer`](setup-go-timer) | Installs the pinned go-timer GitHub release without Go or mise. | Arch Workstation, Arch devbox |
@@ -205,55 +205,14 @@ tailnet traffic and never reads `sshd_config`.
 
 ## DNS and MagicDNS
 
-`setup-dns` installs a wrapper-supplied `DNS_CONFIG_FILE` verbatim, or generates
-a drop-in from `DNS_SERVERS` and `DNS_DOMAINS`, rather than editing
-`resolved.conf`. The file can be removed cleanly, package updates cannot
-overwrite it, and each setup concern keeps its own configuration file. Both
-paths restart systemd-resolved only when the installed drop-in changes.
+`setup-dns` configures systemd-resolved as the default resolver and disables
+Tailscale's automatic DNS configuration. Arch devbox uses `1.0.0.3` with strict
+DNS over TLS; Arch workstation preserves router/DHCP DNS. The Ubuntu LXC
+wrapper uses the devbox default as a separate manual step.
 
-Two independent paths decide which resolver answers a lookup:
-
-- glibc follows the `hosts:` line in `/etc/nsswitch.conf`. With `resolve`
-  present, it calls systemd-resolved over D-Bus and does not read
-  `/etc/resolv.conf`.
-- Go binaries, containers, and Tailscale's resolver probe read
-  `/etc/resolv.conf`.
-
-The dangerous state is `resolve` in NSS while another service owns
-`/etc/resolv.conf`. Tailscale then selects direct DNS mode, overwrites
-`/etc/resolv.conf` with `100.100.100.100`, and registers nothing with
-systemd-resolved. The override's `Domains=~.` sends `*.ts.net` to the upstream
-servers, which cannot answer it. Tailnet IPs continue to work while MagicDNS
-names fail without an obvious error.
-
-`setup-dns` removes that split state instead of refusing it. In order:
-
-1. It enables systemd-resolved, installs the drop-in and restarts resolved only
-   if the drop-in changed.
-2. Where NetworkManager exists, it installs
-   [`networkmanager-dns.conf`](networkmanager-dns.conf) as
-   `/etc/NetworkManager/conf.d/dns.conf` and reloads (not restarts) an active
-   NetworkManager only if that file changed, so connections stay up.
-
-   Each restart or reload runs straight after its own install. A retry would
-   see the file unchanged and skip it, so a failed restart or reload stops the
-   run with the command to finish by hand.
-3. Only then does it point `/etc/resolv.conf` at resolved's stub, so the stub
-   never answers before resolved has its upstream servers.
-4. If that link was new and tailscaled is running, it restarts tailscaled
-   immediately, with nothing fallible in between. tailscaled only re-probes on
-   start, so this moves it from direct mode to resolved. Tailnet connections may
-   briefly reconnect. Reruns with the stub in place skip the restart; if the
-   restart fails, the script exits with the manual command.
-
-With the stub in place, Tailscale registers `100.100.100.100` on `tailscale0`.
-systemd-resolved chooses the most-specific route, so the tailnet suffix beats
-`~.` and both DNS sources work. Tailscale watches resolved's D-Bus owner and
-restores its own per-link settings after a resolved restart, so the script
-never touches Tailscale's DNS preferences or per-link DoT setting.
-
-Arch devbox installs its tracked Cloudflare Family DoT configuration during
-`init`; see its [DNS configuration and verification](../arch-devbox/README.md#dns).
+Setup adds no domain forwarding. Run `df-tailscale-dns` to enter a domain
+through Gum; this saves the choice and installs persistent forwarding through
+Tailscale DNS. See [DNS setup, domain forwarding and undo](../../docs/dns.md).
 
 ## Tailscale and sshd
 

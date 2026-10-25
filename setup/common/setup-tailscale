@@ -55,7 +55,15 @@ fi
 # bar's Tailscale toggle (quickshell/.../scripts/tailscale-toggle.sh) depends on
 # it: there is no terminal behind that menu row to type a sudo password into, so
 # without --operator every toggle falls through to a pkexec prompt.
+# The installer cannot update the parent shell that invokes this next step.
+profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/uwsm/env.d/10-dotfiles-profile"
+if [[ -f "$profile_file" ]]; then
+    DOTFILES_PROFILE="$(sed -n 's/^export DOTFILES_PROFILE=//p' "$profile_file")"
+fi
 up_args=(--hostname "$TS_HOSTNAME")
+case "${DOTFILES_PROFILE:-}" in
+    arch-devbox|arch-workstation|ubuntu-lxc-devbox) up_args+=(--accept-dns=false) ;;
+esac
 [ "$TS_SSH" = "1" ] && up_args+=(--ssh)
 [ -n "$TS_AUTHKEY" ] && up_args+=(--authkey "$TS_AUTHKEY")
 

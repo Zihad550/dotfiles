@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+# Called by df-tailscale-dns. See docs/dns.md for persistent domain ownership.
+set -euo pipefail
+
+if (( $# != 1 )); then
+    echo "Usage: $0 domain" >&2
+    exit 2
+fi
+domain="${1,,}"
+domain="${domain%.}"
+if [[ ${#domain} -gt 253 || "$domain" != *.* || "$domain" =~ [^a-z0-9.-] ]]; then
+    echo "Enter a DNS domain, without a URL, port or wildcard." >&2
+    exit 2
+fi
+IFS=. read -r -a labels <<<"$domain"
+for label in "${labels[@]}"; do
+    if [[ ! "$label" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
+        echo "Invalid domain: $domain" >&2
+        exit 2
+    fi
+done
+if [[ ! "${labels[-1]}" =~ [a-z] || "$domain" == *. ]]; then
+    echo "Enter a domain name rather than an IP address." >&2
+    exit 2
+fi
+
+if [[ "$(id -u)" != 0 ]]; then
+    exec sudo "$0" "$domain"
+fi
+if ! systemctl is-active --quiet systemd-resolved.service; then
+    echo "Run this machine's setup-dns before adding a domain." >&2
+    exit 1
+fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+install -d -m755 /etc/dotfiles
+exec 9>/etc/dotfiles/.tailscale-dns.lock
+flock -x 9
+config=/etc/dotfiles/tailscale-dns-domains
+pending="$(mktemp /etc/dotfiles/.tailscale-dns-domains.XXXXXX)"
+trap 'rm -f "$pending"' EXIT
+{
+    if [[ -f "$config" ]]; then cat "$config"; fi
+    printf '%s\n' "$domain"
+} | sort -u >"$pending"
+chmod 644 "$pending"
+mv -f "$pending" "$config"
+install -Dm755 -o root -g root "$SCRIPT_DIR/apply-tailscale-dns" \
+    /usr/local/libexec/dotfiles-apply-tailscale-dns
+for unit in dotfiles-tailscale-dns.service dotfiles-tailscale-dns.timer; do
+    install -Dm644 -o root -g root "$SCRIPT_DIR/$unit" "/etc/systemd/system/$unit"
+done
+systemctl daemon-reload
+systemctl enable dotfiles-tailscale-dns.service
+systemctl enable --now dotfiles-tailscale-dns.timer
+systemctl restart dotfiles-tailscale-dns.service
+printf 'Saved forwarding for %s and its subdomains through Tailscale DNS.\n' "$domain"

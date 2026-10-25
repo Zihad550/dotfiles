@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if ! command -v gum >/dev/null; then
+    echo "gum is required to enter a DNS domain." >&2
+    exit 1
+fi
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+domain="$(gum input --header "Forward a domain through Tailscale DNS" \
+    --placeholder "example.ts.net" --prompt "Domain> ")" || exit $?
+[[ -n "$domain" ]] || exit 0
+exec "$SCRIPT_DIR/../setup/common/add-tailscale-dns-domain" "$domain"

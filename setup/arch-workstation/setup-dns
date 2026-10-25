@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export DNS_CONFIG_FILE="$SCRIPT_DIR/dns.conf"
+exec "$SCRIPT_DIR/../common/setup-dns" "$@"

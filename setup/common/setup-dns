@@ -64,10 +64,13 @@ install_and_activate() {
     fi
 }
 
+if command -v tailscale >/dev/null && systemctl is-active tailscaled.service &>/dev/null; then
+    sudo tailscale set --accept-dns=false
+fi
+
 # Configuration first, resolv.conf last: the stub must never answer before
 # resolved has its upstream servers.
 sudo systemctl enable --now systemd-resolved
-# Tailscale watches resolved's D-Bus owner and restores its own link settings.
 install_and_activate "$dropin_source" "$DROPIN" sudo systemctl restart systemd-resolved
 
 if systemctl cat NetworkManager.service &>/dev/null; then
@@ -80,20 +83,10 @@ fi
 
 if [[ "$(readlink -f /etc/resolv.conf 2>/dev/null || true)" != "$STUB" ]]; then
     sudo ln -sfn "$STUB" /etc/resolv.conf
-    # tailscaled picked direct mode against the old resolv.conf and only
-    # re-probes on start. Nothing fallible may run between the link and this.
-    if systemctl is-active tailscaled.service &>/dev/null; then
-        if ! sudo systemctl restart tailscaled; then
-            echo "error: /etc/resolv.conf now points at resolved, but tailscaled" >&2
-            echo "       did not restart and stays in direct DNS mode. Run:" >&2
-            echo "         sudo systemctl restart tailscaled" >&2
-            exit 1
-        fi
-    fi
 fi
 
 echo
 echo "DNS configuration: $DROPIN"
 echo
 echo "verify with:  resolvectl status"
-echo "              resolvectl status tailscale0   # 100.100.100.100, if on a tailnet"
+echo "Add a Tailscale DNS domain with: df-tailscale-dns"

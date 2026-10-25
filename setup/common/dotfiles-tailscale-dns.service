@@ -1,0 +1,15 @@
+[Unit]
+Description=Apply locally managed Tailscale split DNS
+Requires=systemd-resolved.service
+After=systemd-resolved.service tailscaled.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/dotfiles-apply-tailscale-dns
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=30s
+
+[Install]
+WantedBy=systemd-resolved.service tailscaled.service sys-subsystem-net-devices-tailscale0.device

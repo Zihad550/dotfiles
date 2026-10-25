@@ -84,6 +84,7 @@ run_step "yay" "$ARCH_WORKSTATION_DIR/setup-packages/setup-yay"
 # Editors and remote clients live here. AUR build tools are the only compiler
 # exception.
 run_step "pacman base" "$ARCH_WORKSTATION_DIR/packages/pacman-base"
+run_step "DNS" "$ARCH_WORKSTATION_DIR/setup-dns"
 run_step "pacman apps" "$ARCH_WORKSTATION_DIR/packages/pacman-apps"
 run_step "go-timer" "$DOTFILES_DIR/setup/common/setup-go-timer"
 run_step "yay packages" "$ARCH_WORKSTATION_DIR/packages/yay-packages"
@@ -173,7 +174,7 @@ ui_done "arch-workstation setup completed"
 if [[ "$first_install" == true ]]; then
     echo
     echo "Remote access:"
-    echo "  • Join Tailscale: sudo tailscale up --operator=$USER"
+    echo "  • Join Tailscale: sudo tailscale up --operator=$USER --accept-dns=false"
     echo "  • Put the devbox hostname in ~/.ssh/config; Zed and Herdr use SSH."
     echo "  • After 'gh auth login', run:"
     echo "      $ARCH_WORKSTATION_DIR/setup-packages/setup-github-cli"
