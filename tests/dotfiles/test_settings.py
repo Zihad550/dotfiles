@@ -216,6 +216,40 @@ class SettingsTests(unittest.TestCase):
                         settings.main()
         self.assertEqual(applied, ["example.theme", "example+theme", "_example"])
 
+    def test_tailscale_domains_list_the_saved_file(self):
+        saved = self.config / "tailscale-dns-domains"
+        with patch.object(settings, "TAILSCALE_DOMAINS", saved):
+            self.assertEqual(settings.tailscale_domains(), [])
+            saved.write_text("other.example\n\nwork.example\n")
+            self.assertEqual(settings.tailscale_domains(), ["other.example", "work.example"])
+
+    def pkexec(self, code=0, stdout=""):
+        """Fake only the elevated call; validation runs the real --check."""
+        calls = []
+        real = subprocess.run
+
+        def run(argv, **kwargs):
+            if argv[0] != "pkexec":
+                return real(argv, **kwargs)
+            calls.append(argv)
+            return subprocess.CompletedProcess(argv, code, stdout, "")
+
+        return patch.object(settings.subprocess, "run", side_effect=run), calls
+
+    def test_tailscale_domain_is_validated_before_the_pkexec_prompt(self):
+        patcher, calls = self.pkexec(stdout="Saved\n")
+        with patcher:
+            with self.assertRaisesRegex(ValueError, "Not a DNS domain"):
+                settings.add_tailscale_domain("https://work.example")
+            self.assertEqual(calls, [])
+            self.assertEqual(settings.add_tailscale_domain(" Work.Example. "), "Saved")
+        self.assertEqual(calls, [["pkexec", str(settings.ADD_TAILSCALE_DOMAIN), "work.example"]])
+
+    def test_cancelled_tailscale_authorization_is_reported(self):
+        for code in (126, 127):
+            patcher, _ = self.pkexec(code)
+            with patcher, self.assertRaisesRegex(ValueError, "cancelled"):
+                settings.add_tailscale_domain("work.example")
 
 if __name__ == "__main__":
     unittest.main()

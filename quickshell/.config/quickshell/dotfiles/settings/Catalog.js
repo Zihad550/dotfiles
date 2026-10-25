@@ -4,6 +4,7 @@ var pages = [
     { id: "input", group: "Setup", title: "Keyboard & Mouse", icon: "⌨", description: "Choose how you move through your desktop.", keywords: "keyboard layout mouse pointer sensitivity touchpad scroll focus" },
     { id: "displays", group: "Setup", title: "Displays", icon: "▤", description: "Give every screen its place.", keywords: "monitor arrangement layout brightness" },
     { id: "defaults", group: "Setup", title: "Default Apps", icon: "▦", description: "The right app for every task.", keywords: "browser terminal editor files roles applications" },
+    { id: "tailscale", group: "Setup", title: "Tailscale DNS", icon: "⇄", description: "Choose which domains Tailscale answers.", keywords: "tailscale dns domain magicdns tailnet split resolver" },
     { id: "panels", group: "Panels", title: "Bar & Panels", icon: "☷", description: "Keep the things you need within reach.", keywords: "bar height clock time workspaces kanata voice network bluetooth audio power" }
 ];
 
@@ -59,6 +60,15 @@ function sections(page, data) {
                     return { label: candidate.name, value: candidate.key };
                 }), selected: role.resolved });
         }) }];
+    case "tailscale":
+        return [
+            { title: "Add a domain", rows: [
+                row("tailscale.add", "Domain", "The domain and its subdomains resolve through Tailscale DNS. Adding one asks for your password.", "domain-add")
+            ] },
+            { title: "Answered by Tailscale", rows: (data.tailscaleDomains || []).map(function(domain) {
+                return row("tailscale.domain." + domain, domain, "Including subdomains, through 100.100.100.100.", "info");
+            }), empty: "No domains yet. Your default DNS answers every lookup." }
+        ];
     case "panels":
         return [
             { title: "Top bar", rows: [

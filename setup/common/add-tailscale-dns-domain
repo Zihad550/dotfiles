@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
 
-# Called by df-tailscale-dns. See docs/dns.md for persistent domain ownership.
+# Called by df-tailscale-dns and the Settings app. --check validates and prints
+# the normalized domain without changing anything. See docs/dns.md.
 set -euo pipefail
 
+check=0
+if [[ "${1:-}" == --check ]]; then
+    check=1
+    shift
+fi
 if (( $# != 1 )); then
-    echo "Usage: $0 domain" >&2
+    echo "Usage: $0 [--check] domain" >&2
     exit 2
 fi
-domain="${1,,}"
+raw="$1"
+domain="${raw,,}"
 # Pasted input often carries surrounding whitespace.
 domain="${domain#"${domain%%[![:space:]]*}"}"
 domain="${domain%"${domain##*[![:space:]]}"}"
 domain="${domain%.}"
 if [[ ${#domain} -gt 253 || "$domain" != *.* || "$domain" =~ [^a-z0-9.-] ]]; then
-    echo "Not a DNS domain: '$1'. Enter a plain domain, without a URL, port or wildcard." >&2
+    echo "Not a DNS domain: '$raw'. Enter a plain domain, without a URL, port or wildcard." >&2
     exit 2
 fi
 IFS=. read -r -a labels <<<"$domain"
@@ -28,6 +35,10 @@ if [[ ! "${labels[-1]}" =~ [a-z] || "$domain" == *. ]]; then
     exit 2
 fi
 
+if (( check )); then
+    printf '%s\n' "$domain"
+    exit 0
+fi
 if [[ "$(id -u)" != 0 ]]; then
     exec sudo "$0" "$domain"
 fi

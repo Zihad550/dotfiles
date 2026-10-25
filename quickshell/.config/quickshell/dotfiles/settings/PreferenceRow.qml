@@ -68,7 +68,14 @@ Rectangle {
 
         Loader {
             id: control
-            Layout.preferredWidth: root.entry.kind === "toggle" ? 54 : 206
+            visible: root.entry.kind !== "info"
+            Layout.preferredWidth: {
+                switch (root.entry.kind) {
+                case "toggle": return 54;
+                case "domain-add": return 320;
+                }
+                return 206;
+            }
             Layout.alignment: Qt.AlignVCenter
             sourceComponent: {
                 switch (root.entry.kind) {
@@ -81,6 +88,7 @@ Rectangle {
                 case "wallpaper": return wallpaperControl;
                 case "text": return textControl;
                 case "action": return actionControl;
+                case "domain-add": return domainControl;
                 }
                 return null;
             }
@@ -176,6 +184,28 @@ Rectangle {
             onEditingFinished: {
                 if (text !== root.value)
                     root.app.setValue(root.entry.key, text);
+            }
+        }
+    }
+
+    Component {
+        id: domainControl
+        RowLayout {
+            spacing: 8
+            TextField {
+                id: domainField
+                Layout.fillWidth: true
+                text: root.app.tailscaleDraft
+                placeholderText: "example.ts.net"
+                Accessible.name: "Domain to forward through Tailscale"
+                onTextEdited: root.app.tailscaleDraft = text
+                onAccepted: addButton.clicked()
+            }
+            Button {
+                id: addButton
+                text: "Add"
+                enabled: domainField.text.trim().length > 0
+                onClicked: root.app.apply(["tailscale-dns-add", domainField.text.trim()])
             }
         }
     }

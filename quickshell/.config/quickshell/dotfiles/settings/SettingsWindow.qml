@@ -295,7 +295,7 @@ FloatingWindow {
                                     }
                                     Label {
                                         visible: modelData.rows.length === 0
-                                        text: root.app.busy ? "Loading…" : "No installed applications are available."
+                                        text: root.app.busy ? "Loading…" : modelData.empty || "No installed applications are available."
                                         opacity: 0.6
                                         Layout.margins: 18
                                     }

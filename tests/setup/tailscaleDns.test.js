@@ -71,6 +71,15 @@ test("invalid domains cannot change the saved list or activate services", t => {
     assert.equal(h.log(), "");
 });
 
+test("--check prints the normalized domain without root", () => {
+    const valid = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", " Work.Example. "], { encoding: "utf8" });
+    assert.equal(valid.status, 0, valid.stderr);
+    assert.equal(valid.stdout, "work.example\n");
+    const invalid = spawnSync(path.join(repo, "setup/common/add-tailscale-dns-domain"), ["--check", "https://work.example"], { encoding: "utf8" });
+    assert.equal(invalid.status, 2);
+    assert.match(invalid.stderr, /'https:\/\/work\.example'/);
+});
+
 test("adding a domain requires the base resolver setup first", t => {
     const h = domainInstaller(t);
     const result = h.run("work.example", { RESOLVED: "0" });

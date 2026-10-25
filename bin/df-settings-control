@@ -17,6 +17,8 @@ STATE_HOME = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/stat
 DIRECTORY = STATE_HOME / "dotfiles"
 STATE = DIRECTORY / "settings.json"
 OVERRIDES = DIRECTORY / "hypr-settings.lua"
+TAILSCALE_DOMAINS = Path("/etc/dotfiles/tailscale-dns-domains")
+ADD_TAILSCALE_DOMAIN = ROOT / "setup/common/add-tailscale-dns-domain"
 
 # key: (default, minimum, maximum); booleans and strings have no numeric range.
 SCHEMA = {
@@ -194,6 +196,24 @@ def live_value(key, option):
     return option["int"]
 
 
+def tailscale_domains():
+    try:
+        return [line.strip() for line in TAILSCALE_DOMAINS.read_text().splitlines() if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
+def add_tailscale_domain(domain):
+    # Validate unprivileged, so a typo never costs a password prompt.
+    domain = run([str(ADD_TAILSCALE_DOMAIN), "--check", domain])
+    result = subprocess.run(["pkexec", str(ADD_TAILSCALE_DOMAIN), domain], text=True, capture_output=True, timeout=180)
+    if result.returncode in (126, 127):
+        raise ValueError("Authorization was cancelled; the domain was not added")
+    if result.returncode:
+        raise ValueError(result.stderr.strip() or result.stdout.strip() or "Could not add the domain")
+    return result.stdout.strip()
+
+
 def snapshot():
     persisted, ignored = read_valid_state()
     values = {key: spec[0] for key, spec in SCHEMA.items()}
@@ -224,6 +244,7 @@ def snapshot():
         "theme": theme.resolve().name if theme.exists() else "",
         "wallpaper": str((theme / "background").resolve()) if (theme / "background").exists() else "",
         "defaults": json.loads(defaults),
+        "tailscaleDomains": tailscale_domains(),
         "profile": os.environ.get("DOTFILES_PROFILE", "unset"),
     }
 
@@ -246,8 +267,10 @@ def main():
         print(run([str(ROOT / "bin/df-theme-bg-set"), str(image)]))
     elif len(args) == 3 and args[0] == "default-app":
         print(run([str(ROOT / "bin/df-default-app"), "set", *args[1:]]))
+    elif len(args) == 2 and args[0] == "tailscale-dns-add":
+        print(add_tailscale_domain(args[1]))
     else:
-        raise ValueError("Usage: df-settings-control snapshot | set KEY JSON | reset KEY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE")
+        raise ValueError("Usage: df-settings-control snapshot | set KEY JSON | reset KEY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN")
 
 
 if __name__ == "__main__":

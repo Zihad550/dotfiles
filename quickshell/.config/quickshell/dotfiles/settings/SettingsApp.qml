@@ -15,6 +15,8 @@ Scope {
     property string message: ""
     property bool failed: false
     property bool loaded: false
+    // Survives the row rebuild after a refresh, so a rejected domain stays editable.
+    property string tailscaleDraft: ""
     readonly property bool busy: reader.running || operation.running
     readonly property string backend: `${Quickshell.env("HOME")}/dotfiles/bin/df-settings-control`
     readonly property string windowTitle: "Dotfiles Settings"
@@ -114,6 +116,8 @@ Scope {
         onExited: (code, status) => {
             root.failed = code !== 0;
             root.message = code === 0 ? "Changes saved" : operationError.text.trim() || "Could not apply this change.";
+            if (code === 0 && operation.command[1] === "tailscale-dns-add")
+                root.tailscaleDraft = "";
             // The compositor can close the window mid-change, hiding the status line.
             if (root.failed && !root.shown)
                 Quickshell.execDetached(["notify-send", "-u", "critical", "Settings", root.message]);

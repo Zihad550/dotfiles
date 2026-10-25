@@ -54,7 +54,9 @@ PATH; alternatively run `~/dotfiles/bin/df-tailscale-dns`.
 
 The command validates and normalizes the domain before requesting sudo, saves
 it in `/etc/dotfiles/tailscale-dns-domains`, and applies forwarding to
-`100.100.100.100`. Repeat the command to add more domains. Earlier choices are
+`100.100.100.100`. Repeat the command to add more domains. The Settings app's **Tailscale DNS** page
+(`df-settings tailscale`) lists the saved domains and adds one through the same
+installer, asking for your password through polkit. Earlier choices are
 preserved, duplicates are ignored, and concurrent additions are serialized.
 
 Only this command installs the forwarding helper, systemd service and refresh

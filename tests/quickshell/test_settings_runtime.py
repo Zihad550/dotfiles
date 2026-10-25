@@ -74,7 +74,7 @@ ShellRoot {
                 && !("panels.workspaces" in DesktopPreferences.values)) {
                 step = 5;
             } else if (step >= 5) {
-                const pages = ["windows", "input", "displays", "defaults", "appearance", "panels"];
+                const pages = ["windows", "input", "displays", "defaults", "tailscale", "appearance", "panels"];
                 if (step - 5 < pages.length) {
                     app.open(pages[step - 5]);
                     step++;
