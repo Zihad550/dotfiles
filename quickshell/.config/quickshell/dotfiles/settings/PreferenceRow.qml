@@ -9,6 +9,8 @@ Rectangle {
     required property var entry
     required property var app
     readonly property var value: {
+        if (entry.kind === "font")
+            return app.snapshot.font;
         if (entry.kind === "theme")
             return app.snapshot.theme;
         if (entry.kind === "wallpaper")
@@ -81,6 +83,7 @@ Rectangle {
                 case "toggle": return toggleControl;
                 case "number": return numberControl;
                 case "speed": return speedControl;
+                case "font":
                 case "theme":
                 case "choice":
                 case "default-app": return choiceControl;
@@ -166,7 +169,9 @@ Rectangle {
             Accessible.name: root.entry.title
             onActivated: {
                 const value = root.choices[currentIndex].value;
-                if (root.entry.kind === "theme")
+                if (root.entry.kind === "font")
+                    root.app.apply(["font", value]);
+                else if (root.entry.kind === "theme")
                     root.app.apply(["theme", value]);
                 else if (root.entry.kind === "default-app")
                     root.app.apply(["default-app", root.entry.key, value]);

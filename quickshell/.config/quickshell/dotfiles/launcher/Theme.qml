@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs as Desktop
 
 // Launcher metrics are separate from the bar; colors share the theme file.
 Singleton {
@@ -30,7 +31,8 @@ Singleton {
     // where a fixed grey wouldn't.
     readonly property color muted: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.45)
 
-    readonly property string fontFamily: "Fira Code"
+    readonly property string defaultFontFamily: "Fira Code"
+    readonly property string fontFamily: Desktop.DesktopPreferences.value("appearance.fontFamily", "") || defaultFontFamily
 
     readonly property int queryFontSize: 22
     readonly property int entryFontSize: 15

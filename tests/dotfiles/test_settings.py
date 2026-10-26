@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -108,6 +109,84 @@ class SettingsTests(unittest.TestCase):
         })
         self.assertNotIn("panels", self.lua.read_text())
 
+    def test_font_is_local_persists_and_resets_without_hyprland(self):
+        with patch.object(settings, "run") as run:
+            settings.set_preference("appearance.fontFamily", "Noto Sans")
+            self.assertEqual(settings.read_state(), {"appearance.fontFamily": "Noto Sans"})
+            self.assertNotIn("appearance", self.lua.read_text())
+            with patch.object(settings, "optional", side_effect=lambda argv, fallback="": fallback):
+                self.assertEqual(settings.snapshot()["values"]["appearance.fontFamily"], "Noto Sans")
+            settings.reset_preference("appearance.fontFamily")
+            self.assertEqual(settings.read_state(), {})
+        run.assert_not_called()
+
+    def test_font_command_preserves_live_preference_bindings(self):
+        home = self.config / "home"
+        repo = home / "dotfiles"
+        shell = repo / "quickshell/.config/quickshell"
+        for sub in ("dotfiles", "dotfiles/launcher", "dotfiles/lock"):
+            target = shell / sub
+            target.mkdir(parents=True)
+            shutil.copy(ROOT / "quickshell/.config/quickshell" / sub / "Theme.qml", target)
+        (repo / "bin").mkdir()
+        shutil.copy2(ROOT / "bin/df-settings-control", repo / "bin/df-settings-control")
+        ghostty = repo / "ghostty/.config/ghostty"
+        ghostty.mkdir(parents=True)
+        (ghostty / "config").write_text('font-family = "Fira Code"\n')
+        zed = repo / "zed/.config/zed/settings.json"
+        zed.parent.mkdir(parents=True)
+        zed.write_text('{"buffer_font_family": "Fira Code"}\n')
+        fake_bin = home / "bin"
+        fake_bin.mkdir()
+        for name, code in (("df-cmd-present", 1), ("df-qs-restart", 0)):
+            command = fake_bin / name
+            command.write_text(f"#!/bin/sh\nexit {code}\n")
+            command.chmod(0o755)
+        restart = fake_bin / "df-qs-restart"
+        restart.write_text(f"#!/bin/sh\ntouch '{home / 'restarted'}'\n")
+        result = subprocess.run([str(ROOT / "bin/df-font-set"), "--no-shell-restart", "Noto & 等幅"],
+                                env={**os.environ, "HOME": str(home), "XDG_STATE_HOME": str(home / "state"), "PATH": str(fake_bin) + os.pathsep + os.environ["PATH"]},
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        current = subprocess.run([str(ROOT / "bin/df-font-current")], env={**os.environ, "HOME": str(home)},
+                                 capture_output=True, text=True, timeout=10)
+        self.assertEqual(current.stdout.strip(), "Noto & 等幅")
+        self.assertFalse((home / "restarted").exists())
+        self.assertIn('font-family = "Noto & 等幅"', (ghostty / "config").read_text())
+        self.assertEqual(json.loads(zed.read_text())["buffer_font_family"], "Noto & 等幅")
+        self.assertEqual(json.loads((home / "state/dotfiles/settings.json").read_text()),
+                         {"appearance.fontFamily": "Noto & 等幅"})
+        for theme in shell.glob("**/Theme.qml"):
+            source = theme.read_text()
+            self.assertIn('defaultFontFamily: "Noto & 等幅"', source)
+            self.assertIn('value("appearance.fontFamily", "") || defaultFontFamily', source)
+
+        files = [ghostty / "config", zed, *shell.glob("**/Theme.qml")]
+        before = {file: file.read_bytes() for file in files}
+        (home / "state/dotfiles/settings.json").write_text('{"panels.clock": "invalid"}')
+        rejected = subprocess.run([str(ROOT / "bin/df-font-set"), "--no-shell-restart", "Other Mono"],
+                                  env={**os.environ, "HOME": str(home), "XDG_STATE_HOME": str(home / "state"),
+                                       "PATH": str(fake_bin) + os.pathsep + os.environ["PATH"]},
+                                  capture_output=True, text=True, timeout=10)
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("Invalid value", rejected.stderr)
+        self.assertEqual({file: file.read_bytes() for file in files}, before)
+
+    def test_font_selection_uses_exact_installed_family_and_keeps_shell_open(self):
+        def output(argv, **kwargs):
+            if argv[0].endswith("df-font-list"):
+                return "Noto Sans Mono\nFira Code"
+            return "Font set"
+
+        with patch.object(settings, "run", side_effect=output) as run, patch("builtins.print"):
+            with patch.object(settings.sys, "argv", ["df-settings-control", "font", "Noto Sans Mono"]):
+                settings.main()
+            self.assertEqual(run.call_args.args[0], [str(ROOT / "bin/df-font-set"), "--no-shell-restart", "Noto Sans Mono"])
+            for family in ("Noto", "--help", "Noto Sans Mono\n"):
+                with patch.object(settings.sys, "argv", ["df-settings-control", "font", family]):
+                    with self.assertRaisesRegex(ValueError, "installed monospace"):
+                        settings.main()
+
     def test_invalid_values_never_write_or_execute(self):
         cases = [
             ("general.gaps_in", -1), ("general.border_size", 2.5),
@@ -115,6 +194,9 @@ class SettingsTests(unittest.TestCase):
             ("animations.enabled", 1), ("input.sensitivity", float("nan")),
             ("input.kb_layout", 'us"}); os.execute("bad")'),
             ("input.kb_layout", "us\n"), ("unknown.setting", True),
+            ("appearance.fontFamily", None), ("appearance.fontFamily", 12),
+            ("appearance.fontFamily", " Font"), ("appearance.fontFamily", "Font\n"),
+            ("appearance.fontFamily", "Font\x00Name"), ("appearance.fontFamily", "x" * 201),
         ]
         with patch.object(settings, "run") as run:
             for key, value in cases:
@@ -173,7 +255,7 @@ class SettingsTests(unittest.TestCase):
     def test_generated_lua_reloads_without_a_compositor(self):
         state = {key: item[0] for key, item in settings.SCHEMA.items()}
         self.lua.write_text(settings.lua_config(state))
-        result = subprocess.run(["lua", "-e", "hl = { config = function(c) assert(c.input.kb_layout == 'us'); assert(c.panels == nil); assert(c.decoration.blur.enabled == false) end }", str(self.lua)], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        result = subprocess.run(["lua", "-e", "hl = { config = function(c) assert(c.input.kb_layout == 'us'); assert(c.panels == nil); assert(c.appearance == nil); assert(c.decoration.blur.enabled == false) end }", str(self.lua)], capture_output=True, text=True, stdin=subprocess.DEVNULL)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_cli_rejects_invalid_arguments(self):

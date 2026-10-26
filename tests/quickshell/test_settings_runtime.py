@@ -37,9 +37,13 @@ import Quickshell
 import Quickshell.Io
 import qs
 import qs.settings
+import qs.launcher as Launcher
+import qs.lock as Lock
 
 ShellRoot {
     property int step: 0
+    property string testFont: Qt.fontFamilies().find(family => family !== Theme.defaultFontFamily)
+    Lock.Theme { id: lockTheme }
     SettingsApp {
         id: app
         Component.onCompleted: open("panels")
@@ -72,20 +76,31 @@ ShellRoot {
                 step = 4;
             } else if (step === 4 && !app.snapshot.overrides.includes("panels.workspaces")
                 && !("panels.workspaces" in DesktopPreferences.values)) {
+                app.page = "appearance";
+                app.setValue("appearance.fontFamily", testFont);
                 step = 5;
-            } else if (step >= 5) {
+            } else if (step === 5 && Theme.fontFamily === testFont
+                && Launcher.Theme.fontFamily === testFont && lockTheme.fontFamily === testFont
+                && app.snapshot.values["appearance.fontFamily"] === testFont) {
+                app.apply(["reset", "appearance.fontFamily"]);
+                step = 6;
+            } else if (step === 6 && Theme.fontFamily === Theme.defaultFontFamily
+                && Launcher.Theme.fontFamily === Launcher.Theme.defaultFontFamily
+                && lockTheme.fontFamily === lockTheme.defaultFontFamily) {
+                step = 7;
+            } else if (step >= 7) {
                 const pages = ["windows", "input", "displays", "defaults", "tailscale", "appearance", "panels"];
-                if (step - 5 < pages.length) {
-                    app.open(pages[step - 5]);
+                if (step - 7 < pages.length) {
+                    app.open(pages[step - 7]);
                     step++;
-                } else if (step - 5 === pages.length) {
+                } else if (step - 7 === pages.length) {
                     // No real domains exist here; inject one so its Remove row is built.
                     app.snapshot = Object.assign({}, app.snapshot, { tailscaleDomains: ["work.example"] });
                     app.page = "tailscale";
                     step++;
                 } else {
-                    DesktopPreferences.values = { "panels.barHeight": 0 };
-                    if (Theme.barHeight === 26)
+                    DesktopPreferences.values = { "panels.barHeight": 0, "appearance.fontFamily": " Invalid" };
+                    if (Theme.barHeight === 26 && Theme.fontFamily === Theme.defaultFontFamily)
                         console.log("SETTINGS RUNTIME PASS");
                     Qt.quit();
                 }

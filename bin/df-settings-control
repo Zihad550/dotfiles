@@ -23,6 +23,7 @@ REMOVE_TAILSCALE_DOMAIN = ROOT / "setup/common/remove-tailscale-dns-domain"
 
 # key: (default, minimum, maximum); booleans and strings have no numeric range.
 SCHEMA = {
+    "appearance.fontFamily": ("", None, None),
     "general.gaps_in": (0, 0, 40),
     "general.gaps_out": (0, 0, 80),
     "general.border_size": (2, 0, 10),
@@ -50,6 +51,9 @@ def validate(key, value):
     default, minimum, maximum = SCHEMA[key]
     if type(default) is bool:
         valid = type(value) is bool
+    elif key == "appearance.fontFamily":
+        valid = (isinstance(value, str) and len(value) <= 200
+                 and value == value.strip() and not any(ord(char) < 32 or ord(char) == 127 for char in value))
     elif type(default) is str:
         valid = isinstance(value, str) and re.fullmatch(r"[a-zA-Z0-9_+-]+(?:,[a-zA-Z0-9_+-]+)*", value)
     else:
@@ -108,7 +112,7 @@ def optional(argv, fallback=""):
 def lua_config(state):
     tree = {}
     for key, value in sorted(state.items()):
-        if key.startswith("panels."):
+        if key.startswith(("panels.", "appearance.")):
             continue
         node = tree
         parts = key.split(".")
@@ -150,7 +154,7 @@ def update_state(key, value, live_command):
         atomic_write(OVERRIDES, lua_config(updated))
         applied = False
         try:
-            if not key.startswith("panels."):
+            if not key.startswith(("panels.", "appearance.")):
                 reply = run(live_command)
                 if reply.lower() != "ok":
                     raise ValueError(reply or "Hyprland did not acknowledge the change")
@@ -232,7 +236,7 @@ def snapshot():
     connected = bool(optional(["hyprctl", "-j", "monitors"]))
     if connected:
         for key in SCHEMA:
-            if key.startswith("panels."):
+            if key.startswith(("panels.", "appearance.")):
                 continue
             raw = optional(["hyprctl", "-j", "getoption", key.replace(".", ":")])
             try:
@@ -251,6 +255,8 @@ def snapshot():
         "overrides": sorted(persisted),
         "ignored": ignored,
         "hyprland": connected,
+        "fonts": [{"label": family, "value": family} for family in optional([str(ROOT / "bin/df-font-list")]).splitlines()],
+        "font": optional([str(ROOT / "bin/df-font-current")]),
         "themes": themes,
         "theme": theme.resolve().name if theme.exists() else "",
         "wallpaper": str((theme / "background").resolve()) if (theme / "background").exists() else "",
@@ -264,10 +270,17 @@ def main():
     args = sys.argv[1:]
     if args == ["snapshot"]:
         print(json.dumps(snapshot()))
+    elif len(args) == 3 and args[0] == "check":
+        validate(args[1], json.loads(args[2]))
+        read_state()
     elif len(args) == 3 and args[0] == "set":
         set_preference(args[1], json.loads(args[2]))
     elif len(args) == 2 and args[0] == "reset":
         reset_preference(args[1])
+    elif len(args) == 2 and args[0] == "font":
+        if args[1] not in run([str(ROOT / "bin/df-font-list")]).splitlines():
+            raise ValueError("Choose an installed monospace font family")
+        print(run([str(ROOT / "bin/df-font-set"), "--no-shell-restart", args[1]]))
     elif len(args) == 2 and args[0] == "theme":
         run([str(ROOT / "bin/df-theme-dir"), "--check", args[1]])
         print(run([str(ROOT / "bin/df-theme-set"), args[1]], timeout=180))
@@ -283,7 +296,7 @@ def main():
     elif len(args) == 2 and args[0] == "tailscale-dns-remove":
         print(remove_tailscale_domain(args[1]))
     else:
-        raise ValueError("Usage: df-settings-control snapshot | set KEY JSON | reset KEY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN | tailscale-dns-remove DOMAIN")
+        raise ValueError("Usage: df-settings-control snapshot | check KEY JSON | set KEY JSON | reset KEY | font FAMILY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN | tailscale-dns-remove DOMAIN")
 
 
 if __name__ == "__main__":

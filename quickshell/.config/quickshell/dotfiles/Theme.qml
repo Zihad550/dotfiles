@@ -20,8 +20,9 @@ Singleton {
     readonly property color error: colors.error
     readonly property color warn: colors.warn
 
-    // Matches waybar/style.css: Fira Code 14px, 26px bar.
-    readonly property string fontFamily: "Fira Code"
+    // Defaults match waybar/style.css.
+    readonly property string defaultFontFamily: "Fira Code"
+    readonly property string fontFamily: DesktopPreferences.value("appearance.fontFamily", "") || defaultFontFamily
     readonly property int fontSize: 14
     readonly property int barHeight: DesktopPreferences.value("panels.barHeight", 26, 24, 56)
 

@@ -16,6 +16,8 @@ Singleton {
             return fallback;
         if (typeof stored === "number" && (!Number.isInteger(stored) || stored < minimum || stored > maximum))
             return fallback;
+        if (key === "appearance.fontFamily" && (stored.length > 200 || stored !== stored.trim() || /[\x00-\x1f\x7f]/.test(stored)))
+            return fallback;
         return stored;
     }
 

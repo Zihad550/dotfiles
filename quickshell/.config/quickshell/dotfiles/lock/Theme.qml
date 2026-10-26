@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs as Desktop
 
 // The Session Lock's colors and metrics, read from the active theme's
 // Quickshell data -- the same ~/.config/theme/quickshell.json the bar and the
@@ -31,9 +32,9 @@ QtObject {
     readonly property color placeholder: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.45)
     readonly property color selection: Qt.rgba(accent.r, accent.g, accent.b, 0.35)
 
-    // df-font-set rewrites this line, anchored on the property name, in every
-    // Quickshell config's Theme.qml.
-    readonly property string fontFamily: "Fira Code"
+    // df-font-set updates the fallback; the Settings override stays machine-local.
+    readonly property string defaultFontFamily: "Fira Code"
+    readonly property string fontFamily: Desktop.DesktopPreferences.value("appearance.fontFamily", "") || defaultFontFamily
 
     // The field is read from across a desk at a glance, so it is sized well
     // above the Launcher's query line. Proportions follow the hyprlock

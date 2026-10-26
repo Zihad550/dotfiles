@@ -1,5 +1,5 @@
 var pages = [
-    { id: "appearance", group: "Style", title: "Appearance", icon: "◐", description: "Make this desktop yours.", keywords: "theme wallpaper background colors" },
+    { id: "appearance", group: "Style", title: "Appearance", icon: "◐", description: "Make this desktop yours.", keywords: "theme wallpaper background colors font family typography" },
     { id: "windows", group: "Style", title: "Windows", icon: "▣", description: "Space, shape, and motion.", keywords: "hyprland gaps borders rounding animations blur shadows" },
     { id: "input", group: "Setup", title: "Keyboard & Mouse", icon: "⌨", description: "Choose how you move through your desktop.", keywords: "keyboard layout mouse pointer sensitivity touchpad scroll focus" },
     { id: "displays", group: "Setup", title: "Displays", icon: "▤", description: "Give every screen its place.", keywords: "monitor arrangement layout brightness" },
@@ -17,7 +17,8 @@ function sections(page, data) {
     case "appearance":
         return [{ title: "Personalization", rows: [
             row("theme", "Desktop theme", "Colors update across your desktop and supported apps.", "theme", { choices: data.themes || [] }),
-            row("wallpaper", "Wallpaper", "Choose an image from your computer.", "wallpaper")
+            row("wallpaper", "Wallpaper", "Choose an image from your computer.", "wallpaper"),
+            row("font", "Font family", "Monospace font for Quickshell, Ghostty, and Zed.", "font", { choices: data.fonts || [] })
         ] }];
     case "windows":
         return [

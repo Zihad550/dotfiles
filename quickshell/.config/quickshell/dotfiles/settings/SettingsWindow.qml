@@ -52,7 +52,7 @@ FloatingWindow {
     Pane {
         anchors.fill: parent
         padding: 0
-        font.family: "sans-serif"
+        font.family: DesktopPreferences.value("appearance.fontFamily", "") || "sans-serif"
         font.pixelSize: 14
         palette {
             window: Theme.background
