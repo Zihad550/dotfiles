@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import qs
 
 // The overlay swayosd-server used to draw: a pill near the bottom of the
@@ -16,6 +17,9 @@ Scope {
         active: OsdService.shown
 
         PanelWindow {
+            // Keep media-key feedback visible over fullscreen applications.
+            WlrLayershell.layer: WlrLayer.Overlay
+
             anchors.bottom: true
             margins.bottom: Theme.osdMargin
 
