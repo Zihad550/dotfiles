@@ -5,10 +5,7 @@ setup_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../../common/pacman-lib
 source "$setup_dir/../../common/pacman-lib"
 
-if ! pacman-conf --repo-list | grep -qx multilib; then
-    echo "Enable [multilib] in /etc/pacman.conf and run sudo pacman -Syu first." >&2
-    exit 1
-fi
+"$setup_dir/setup-multilib"
 
 # Select the Vulkan provider before Steam's dependency resolver does; see ../README.md.
 "$setup_dir/setup-gaming-gpu-lib32"

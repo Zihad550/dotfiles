@@ -94,11 +94,23 @@ LocalSend's existing preferences are preserved. See the
 
 ### Steam (optional)
 
-From a workstation desktop session, enable `[multilib]` and its mirrorlist
-include in `/etc/pacman.conf`, run `sudo pacman -Syu`, then run:
+From a workstation desktop session, run:
 
 ```sh
 bash ~/dotfiles/setup/arch-workstation/setup-packages/setup-steam
+```
+
+The installer first calls `setup-packages/setup-multilib`. This helper checks
+the repositories with `pacman-conf`, backs up `/etc/pacman.conf` to
+`/etc/pacman.conf.multilib.bak` when multilib is disabled, and appends the
+stable `[multilib]` mirrorlist block. Existing configuration, including
+`[multilib-testing]`, is preserved. It then runs `pacman -Syu --noconfirm`,
+including on reruns, so package installation follows a full system upgrade.
+A failed upgrade stops Steam setup and can be retried with the same command.
+To enable multilib independently, run:
+
+```sh
+bash ~/dotfiles/setup/arch-workstation/setup-packages/setup-multilib
 ```
 
 This ports Omarchy's `omarchy-install-gaming-steam` and
