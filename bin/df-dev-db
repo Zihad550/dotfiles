@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+dotfiles_dir=$(cd "$script_dir/.." && pwd)
+compose_file="$dotfiles_dir/scripts/containers/dev-databases/compose.yml"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/dev-databases"
+env_file="$state_dir/env"
+databases=(postgres mysql mariadb redis mongo mssql)
+
+usage() {
+    cat <<'EOF'
+Usage:
+  df-dev-db list
+  df-dev-db up [postgres|mysql|mariadb|redis|mongo|mssql]
+  df-dev-db stop <database>
+  df-dev-db status [database]
+  df-dev-db logs <database>
+  df-dev-db env-file
+EOF
+}
+
+valid_database() {
+    local candidate=$1 database
+    for database in "${databases[@]}"; do
+        [[ $candidate == "$database" ]] && return 0
+    done
+    return 1
+}
+
+choose_database() {
+    if [[ -n ${1:-} ]]; then
+        valid_database "$1" || { echo "Unknown database: $1" >&2; exit 2; }
+        printf '%s\n' "$1"
+    elif command -v gum >/dev/null && [[ -t 0 ]]; then
+        printf '%s\n' "${databases[@]}" | gum choose --header "Development database"
+    else
+        usage >&2
+        exit 2
+    fi
+}
+
+secret() {
+    openssl rand -hex 24
+}
+
+ensure_env() {
+    [[ -f $env_file ]] && return
+    mkdir -p "$state_dir"
+    umask 077
+    local lock_fd
+    exec {lock_fd}>"$state_dir/credentials.lock"
+    flock "$lock_fd"
+    if [[ -f $env_file ]]; then
+        exec {lock_fd}>&-
+        return
+    fi
+    local temporary="$state_dir/.env.$$"
+    local key value generation_failed=false
+    for key in POSTGRES_PASSWORD MYSQL_ROOT_PASSWORD MYSQL_PASSWORD \
+        MARIADB_ROOT_PASSWORD MARIADB_PASSWORD REDIS_PASSWORD MONGO_PASSWORD MSSQL_PASSWORD
+    do
+        if ! value=$(secret); then
+            generation_failed=true
+            break
+        fi
+        [[ $key != MSSQL_PASSWORD ]] || value="Df!9$value"
+        printf '%s=%s\n' "$key" "$value"
+    done >"$temporary"
+    if [[ $generation_failed == true ]]; then
+        rm -f "$temporary"
+        return 1
+    fi
+    mv "$temporary" "$env_file"
+    exec {lock_fd}>&-
+}
+
+compose() {
+    ensure_env
+    docker compose --project-name dotfiles-dev-db --env-file "$env_file" -f "$compose_file" "$@"
+}
+
+case "${1:-}" in
+    list)
+        printf '%s\n' "${databases[@]}"
+        ;;
+    up)
+        database=$(choose_database "${2:-}")
+        compose --profile "$database" up -d "$database"
+        echo "$database is available on loopback; credentials: $env_file"
+        ;;
+    stop)
+        database=$(choose_database "${2:-}")
+        compose --profile "$database" stop "$database"
+        ;;
+    status)
+        if [[ -n ${2:-} ]]; then
+            database=$(choose_database "$2")
+            compose --profile "$database" ps "$database"
+        else
+            compose ps --all
+        fi
+        ;;
+    logs)
+        database=$(choose_database "${2:-}")
+        compose --profile "$database" logs -f "$database"
+        ;;
+    env-file)
+        ensure_env
+        printf '%s\n' "$env_file"
+        ;;
+    -h|--help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac
