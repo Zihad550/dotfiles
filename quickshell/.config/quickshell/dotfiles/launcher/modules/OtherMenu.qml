@@ -3,13 +3,11 @@
 // Data only -- see lib/menus.js for what a declaration may contain, and
 // Menu.qml for the Provider that runs them.
 //
-// Three shapes of entry here:
-// - Zen: a plain `command` -- must not name `uwsm-app` itself, since Menu.qml
+// Two shapes of entry here:
+// - Zen and Helium: a plain `command` -- must not name `uwsm-app` itself, since Menu.qml
 //   already applies the launch prefix.
 // - Compass: a `shell` declaration, since it substitutes a command
 //   (`$(pass env/mongodb_uri)`) -- the only entry across these menus that needs one.
-// - Special Workspace entries: exact identity, workspace, then launch argv;
-//   unscoped because Hyprland spawns the surviving process.
 Menu {
     label: "other"
     description: "Everything that fits nowhere else"
@@ -42,8 +40,7 @@ Menu {
         {
             name: "Helium - work profile",
             keywords: ["helium", "helium work"],
-            command: ["~/dotfiles/bin/df-launch-special-workspace", "helium", "work", "helium-browser", "--profile-directory=Profile 2"],
-            scoped: false
+            command: ["helium-browser", "--profile-directory=Profile 2", "--new-window", "--ozone-platform=wayland", "--ozone-platform-hint=wayland"]
         }
     ]
 }

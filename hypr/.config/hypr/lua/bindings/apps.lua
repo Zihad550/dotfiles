@@ -4,8 +4,6 @@ local dotfiles_bin    = home .. "/dotfiles/bin"
 local role_launcher   = dotfiles_bin .. "/df-launch-role"
 local terminal        = "setsid uwsm-app -- xdg-terminal-exec"
 
-local work_browser    =
-"uwsm-app -- helium-browser --profile-directory='Profile 2' --new-window --ozone-platform=wayland --ozone-platform-hint=wayland"
 local dev_browser     =
 "uwsm-app -- helium-browser --profile-directory=Default --ozone-platform=wayland --ozone-platform-hint=wayland"
 -- local webapp = browser .. " --app"
@@ -32,8 +30,6 @@ o.bind("SUPER + E", "Zed", terminal .. [[ -e zsh -i -c "zed_open_dir"]])
 -- with a live client, don't assume the bare binary name — see issue #81).
 o.bind("SUPER + O", "Obsidian",
     dotfiles_bin .. [[/df-launch-special-workspace "md.obsidian.Obsidian" "note" obsidian -disable-gpu --enable-wayland-ime]])
-o.bind("SUPER + SHIFT + W", "Helium (work)",
-    dotfiles_bin .. [[/df-launch-special-workspace "helium" "work" --workspace-owned helium-browser --profile-directory='Profile 2']])
 o.bind("SUPER + D", "Helium (development)",
     dotfiles_bin .. [[/df-launch-special-workspace "helium" "development" --workspace-owned helium-browser --profile-directory=Default]])
 

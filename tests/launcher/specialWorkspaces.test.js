@@ -16,12 +16,6 @@ const NATIVE_APPLICATIONS = [
         launch: "obsidian -disable-gpu --enable-wayland-ime"
     },
     {
-        keys: "SUPER + SHIFT + W",
-        initialClass: "helium",
-        workspace: "work",
-        launch: "helium-browser --profile-directory='Profile 2'"
-    },
-    {
         keys: "SUPER + D",
         initialClass: "helium",
         workspace: "development",

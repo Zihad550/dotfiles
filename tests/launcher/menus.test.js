@@ -337,10 +337,9 @@ const audit = [
         elephant: "~/dotfiles/bin/df-launch-special-app 'helium-work' 'helium-browser --profile-directory=\"Profile 2\"' 'work'",
         entry: {
             name: "Helium - work profile",
-            command: ["~/dotfiles/bin/df-launch-special-workspace", "helium", "work", "helium-browser", "--profile-directory=Profile 2"],
-            scoped: false
+            command: ["helium-browser", "--profile-directory=Profile 2", "--new-window", "--ozone-platform=wayland", "--ozone-platform-hint=wayland"]
         },
-        argv: ["/home/jehad/dotfiles/bin/df-launch-special-workspace", "helium", "work", "helium-browser", "--profile-directory=Profile 2"]
+        argv: ["uwsm-app", "--", "helium-browser", "--profile-directory=Profile 2", "--new-window", "--ozone-platform=wayland", "--ozone-platform-hint=wayland"]
     }
 ];
 
