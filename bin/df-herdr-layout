@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+herdr_bin=${HERDR_BIN_PATH:-herdr}
+script_path=$(readlink -f "$0")
+
+usage() {
+    cat <<'EOF'
+Usage:
+  df-herdr-layout dev [agent command...]
+  df-herdr-layout square [agent command...]
+  df-herdr-layout projects [agent command...]
+  df-herdr-layout swarm <pane-count> <command...>
+EOF
+}
+
+[[ ${HERDR_ENV:-} == 1 && -n ${HERDR_PANE_ID:-} && -n ${HERDR_TAB_ID:-} ]] || {
+    echo "df-herdr-layout must run inside a Herdr pane" >&2
+    exit 1
+}
+
+ratio() {
+    awk -v numerator="$1" -v denominator="$2" 'BEGIN { printf "%.4f", numerator / denominator }'
+}
+
+split_pane() {
+    "$herdr_bin" pane split "$1" --direction "$2" --ratio "$3" --cwd "$PWD" --no-focus |
+        jq -er '.result.pane.pane_id'
+}
+
+shell_join() {
+    printf '%q ' "$@"
+}
+
+run_in_pane() {
+    local pane=$1
+    shift
+    "$herdr_bin" pane run "$pane" "$(shell_join "$@")" >/dev/null
+}
+
+agent_command() {
+    if (( $# )); then
+        printf '%s\0' "$@"
+    else
+        printf 'opencode\0'
+    fi
+}
+
+layout_dev() {
+    local terminal_pane agent_pane
+    local -a agent
+    mapfile -d '' -t agent < <(agent_command "$@")
+
+    "$herdr_bin" tab rename "$HERDR_TAB_ID" "$(basename "$PWD")" >/dev/null
+    terminal_pane=$(split_pane "$HERDR_PANE_ID" down 0.85)
+    agent_pane=$(split_pane "$HERDR_PANE_ID" right 0.70)
+    run_in_pane "$agent_pane" "${agent[@]}"
+
+    : "$terminal_pane"
+    exec "${EDITOR:-nvim}" .
+}
+
+layout_square() {
+    local terminal_pane diff_pane agent_pane
+    local -a agent
+    mapfile -d '' -t agent < <(agent_command "$@")
+
+    "$herdr_bin" tab rename "$HERDR_TAB_ID" "$(basename "$PWD")" >/dev/null
+    terminal_pane=$(split_pane "$HERDR_PANE_ID" down 0.50)
+    diff_pane=$(split_pane "$HERDR_PANE_ID" right 0.50)
+    agent_pane=$(split_pane "$terminal_pane" right 0.50)
+    run_in_pane "$diff_pane" hunk diff --watch
+    run_in_pane "$agent_pane" "${agent[@]}"
+
+    exec "${EDITOR:-nvim}" .
+}
+
+layout_projects() {
+    local directory response pane
+    local found=false
+    local -a agent=("$@")
+
+    for directory in "$PWD"/*/; do
+        [[ -d $directory ]] || continue
+        found=true
+        directory=${directory%/}
+        response=$("$herdr_bin" tab create --workspace "$HERDR_WORKSPACE_ID" \
+            --cwd "$directory" --label "$(basename "$directory")" --no-focus)
+        pane=$(jq -er '.result.root_pane.pane_id' <<<"$response")
+        run_in_pane "$pane" "$script_path" dev "${agent[@]}"
+    done
+
+    $found || {
+        echo "No child project directories found in $PWD" >&2
+        exit 1
+    }
+}
+
+layout_swarm() {
+    local count=$1
+    shift
+    [[ $count =~ ^[1-9][0-9]*$ && $count -le 16 && $# -gt 0 ]] || {
+        usage >&2
+        exit 2
+    }
+
+    local columns_count=1 column_index row_index rows last pane
+    local -a columns=("$HERDR_PANE_ID") panes=("$HERDR_PANE_ID") command=("$@")
+
+    while ((columns_count * columns_count < count)); do ((columns_count += 1)); done
+
+    for ((column_index = 1; column_index < columns_count; column_index++)); do
+        columns+=("$(split_pane "${columns[-1]}" right "$(ratio 1 $((columns_count - column_index + 1)))")")
+    done
+
+    panes=()
+    for ((column_index = 0; column_index < columns_count; column_index++)); do
+        pane=${columns[column_index]}
+        rows=$((count / columns_count))
+        ((column_index < count % columns_count)) && ((rows += 1))
+        panes+=("$pane")
+        last=$pane
+        for ((row_index = 1; row_index < rows; row_index++)); do
+            last=$(split_pane "$last" down "$(ratio 1 $((rows - row_index + 1)))")
+            panes+=("$last")
+        done
+    done
+
+    for pane in "${panes[@]:1}"; do
+        run_in_pane "$pane" "${command[@]}"
+    done
+    exec "${command[@]}"
+}
+
+case "${1:-}" in
+    dev) shift; layout_dev "$@" ;;
+    square) shift; layout_square "$@" ;;
+    projects) shift; layout_projects "$@" ;;
+    swarm)
+        (($# >= 3)) || { usage >&2; exit 2; }
+        shift
+        layout_swarm "$@"
+        ;;
+    -h|--help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac
