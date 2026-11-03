@@ -126,7 +126,7 @@ test("an AI web candidate uses the special web-app launcher", t => {
 });
 
 test("Claude Web App uses the special web-app launcher", t => {
-    const harness = fixture(t, "ai", "claude-web", ["Claude.desktop"]);
+    const harness = fixture(t, "ai", "claude-web", ["Claude web.desktop"]);
     const result = harness.run("ai");
 
     assert.strictEqual(result.status, 0, result.stderr);

@@ -105,7 +105,7 @@ test("list offers only installed candidates for each role", t => {
 test("the AI role lists installed desktop and web candidates", t => {
     const harness = fixture(t, {
         desktop: [
-            "Claude.desktop",
+            "Claude web.desktop",
             "ChatGPT.desktop",
             "com.anthropic.Claude.desktop",
             "chatgpt.desktop"
@@ -120,10 +120,23 @@ test("the AI role lists installed desktop and web candidates", t => {
     ]);
 });
 
+for (const profile of ["arch-workstation"]) {
+    test(`${profile} installs Claude web with a desktop entry the AI selector recognizes`, t => {
+        const packages = fs.readFileSync(path.join(ROOT, "setup", profile, "packages/webapp-packages"), "utf8");
+        const install = packages.match(/df-webapp-install "([^"]+)" "?https:\/\/claude\.ai\/chat"?(?=\s|$)/);
+        assert.ok(install, "Claude web must be installed by setup");
+        const harness = fixture(t, { desktop: [`${install[1]}.desktop`] });
+        const result = harness.run("get", "--json", "ai");
+
+        assert.strictEqual(result.status, 0, result.stderr);
+        assert.ok(JSON.parse(result.stdout).candidates.some(candidate => candidate.key === "claude-web"));
+    });
+}
+
 test("the AI role prefers Claude Desktop and persists an explicit choice", t => {
     const harness = fixture(t, {
         desktop: [
-            "Claude.desktop",
+            "Claude web.desktop",
             "ChatGPT.desktop",
             "com.anthropic.Claude.desktop",
             "chatgpt.desktop"

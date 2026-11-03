@@ -135,9 +135,9 @@
     {
       "key": "claude-web",
       "name": "Claude Web App",
-      "icon": "claude",
+      "icon": "claude-web",
       "roles": ["ai"],
-      "check": {"desktop": "Claude.desktop"},
+      "check": {"desktop": "Claude web.desktop"},
       "launch": {
         "type": "special-webapp",
         "initialClass": "chrome-claude.ai__chat-Profile_2",
