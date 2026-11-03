@@ -1,5 +1,16 @@
 # Herdr
 
+Super+I opens the personal session and triggers `df-update-daily` if it has
+not already been triggered that day, using the update host's local date.
+Reopening an existing session also checks. There is no time-of-day filter. Updates follow the same devcontainer routing as the session; Super+U
+does not trigger them. The first workspace receives three background tabs.
+
+`${XDG_STATE_HOME:-~/.local/state}/dotfiles/update-daily.last-triggered`
+records the last automatic trigger date. A lock prevents concurrent triggers,
+and the date survives restarts. The date is recorded before creating tabs,
+so a partial failure is not retried automatically that day. Manual
+`df-update-daily` inside Herdr remains available regardless of time or date.
+
 Leader → Ctrl+N runs `bin/df-herdr-new-worktree`.
 Enter a branch name to create its checkout beside the primary project,
 using Worktrunk's default directory pattern: `<project>.<branch>`.

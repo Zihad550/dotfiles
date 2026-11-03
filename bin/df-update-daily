@@ -4,16 +4,53 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
-if [[ "${HERDR_ENV:-}" != 1 ]]; then
+herdr=("${HERDR_BIN_PATH:-herdr}")
+if [[ "${1:-}" == --once-per-day && $# == 2 && -n "$2" ]]; then
+    state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+    mkdir -p "$state_dir"
+    exec {lock_fd}>"$state_dir/update-daily.lock"
+    flock -n "$lock_fd" || exit 0
+    today=$(date +%F)
+    stamp="$state_dir/update-daily.last-triggered"
+    [[ ! -f "$stamp" || $(<"$stamp") != "$today" ]] || exit 0
+
+    if [[ ${herdr[0]} == herdr ]] && ! command -v herdr >/dev/null 2>&1; then
+        for candidate in \
+            "$HOME/.local/bin/herdr" \
+            "$HOME/.local/share/mise/installs/github-herdrdev-herdr/latest/herdr"
+        do
+            if [[ -x "$candidate" ]]; then
+                herdr=("$candidate")
+                break
+            fi
+        done
+    fi
+    herdr+=(--session "$2")
+    unset HERDR_SOCKET_PATH HERDR_WORKSPACE_ID HERDR_TAB_ID HERDR_PANE_ID
+    # Ghostty can map before a freshly launched Herdr server is ready.
+    for ((attempt = 1; attempt <= 30; attempt++)); do
+        if HERDR_WORKSPACE_ID=$("${herdr[@]}" workspace list 2>/dev/null | jq -er '.result.workspaces[0].workspace_id'); then
+            break
+        fi
+        ((attempt < 30)) || exit 1
+        sleep 1
+    done
+    cd "$DOTFILES_DIR"
+    # Claim before dispatch: a partial failure must not duplicate update tabs.
+    printf '%s\n' "$today" >"$stamp"
+elif (($#)); then
+    printf 'usage: df-update-daily [--once-per-day <session>]\n' >&2
+    exit 64
+elif [[ "${HERDR_ENV:-}" != 1 ]]; then
     printf 'df-update-daily must run inside Herdr.\n' >&2
     exit 1
 fi
 
-skills_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "skills update" --no-focus | jq -er '.result.root_pane.pane_id')
-mise_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "mise update" --no-focus | jq -er '.result.root_pane.pane_id')
-integrations_pane=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "herdr integrations update" --no-focus | jq -er '.result.root_pane.pane_id')
+skills_pane=$("${herdr[@]}" tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "skills update" --no-focus | jq -er '.result.root_pane.pane_id')
+mise_pane=$("${herdr[@]}" tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "mise update" --no-focus | jq -er '.result.root_pane.pane_id')
+integrations_pane=$("${herdr[@]}" tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "herdr integrations update" --no-focus | jq -er '.result.root_pane.pane_id')
 
 # Not `skills update -g`; see setup/common/README.md "Agent skills".
-herdr pane run "$skills_pane" "$(printf '%q' "$DOTFILES_DIR/setup/common/setup-skills")"
-herdr pane run "$mise_pane" "mise up"
-herdr pane run "$integrations_pane" "$(printf '%q' "$DOTFILES_DIR/setup/common/setup-herdr-integrations")"
+"${herdr[@]}" pane run "$skills_pane" "$(printf '%q' "$DOTFILES_DIR/setup/common/setup-skills")"
+"${herdr[@]}" pane run "$mise_pane" "mise up"
+"${herdr[@]}" pane run "$integrations_pane" "$(printf '%q' "$DOTFILES_DIR/setup/common/setup-herdr-integrations")"

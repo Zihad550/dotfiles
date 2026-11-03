@@ -17,8 +17,8 @@ fail() {
     notify-send --urgency=critical "Herdr" "$1" 2>/dev/null || true
 }
 
-if [ $# -ne 2 ] || [ -z "$name" ]; then
-    fail "usage: df-herdr-session <session> <directory>"
+if { [ $# -ne 2 ] && { [ $# -ne 3 ] || [ "${3:-}" != --daily-update ]; }; } || [ -z "$name" ]; then
+    fail "usage: df-herdr-session <session> <directory> [--daily-update]"
     exit 64
 fi
 
@@ -83,6 +83,15 @@ resolved_host() {
 routed=false
 if routing_enabled && is_mirrored "$path"; then
     routed=true
+fi
+
+if [ "${3:-}" = --daily-update ]; then
+    if [ "$routed" = true ]; then
+        printf -v session_arg '%q' "$name"
+        exec ssh "$(resolved_host)" \
+            "\"\$HOME/dotfiles/bin/df-update-daily\" --once-per-day $session_arg"
+    fi
+    exec env HERDR_BIN_PATH="$HERDR_BIN" "$(dirname "$0")/df-update-daily" --once-per-day "$name"
 fi
 
 if [ "$routed" = true ]; then

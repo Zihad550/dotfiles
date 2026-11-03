@@ -168,3 +168,40 @@ for (const name of ["work", "personal"]) {
         });
     }
 }
+
+test("daily updates follow the same configured remote route as personal", t => {
+    const harness = fixture(t, { routing: true, host: "devbox.local\n" });
+    const sshArgs = path.join(harness.home, "ssh-args");
+    const ssh = path.join(harness.home, "bin/ssh");
+    fs.writeFileSync(ssh, `#!/usr/bin/env bash
+printf '%s\\n' "$@" > '${sshArgs}'
+`);
+    fs.chmodSync(ssh, 0o755);
+    const result = harness.run("personal", path.join(harness.home, "dotfiles"), "--daily-update");
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(fs.readFileSync(sshArgs, "utf8").trim().split("\n"), [
+        "devbox.local", '"$HOME/dotfiles/bin/df-update-daily" --once-per-day personal'
+    ]);
+    assert.strictEqual(result.invocation, null);
+});
+
+test("local daily updates use the resolved Herdr binary and session", t => {
+    const harness = fixture(t);
+    const session = path.join(harness.home, "bin/df-herdr-session");
+    const update = path.join(harness.home, "bin/df-update-daily");
+    const calls = path.join(harness.home, "update-args");
+    fs.copyFileSync(SESSION, session);
+    fs.writeFileSync(update, `#!/usr/bin/env bash
+printf '%s\\n' "$HERDR_BIN_PATH" "$@" > '${calls}'
+`);
+    fs.chmodSync(update, 0o755);
+    const result = childProcess.spawnSync(session,
+        ["personal", path.join(harness.home, "dotfiles"), "--daily-update"], {
+            env: { ...process.env, HOME: harness.home, PATH: `${harness.home}/bin:/usr/bin:/bin` },
+            encoding: "utf8"
+        });
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepStrictEqual(fs.readFileSync(calls, "utf8").trim().split("\n"), [
+        path.join(harness.home, "bin/herdr"), "--once-per-day", "personal"
+    ]);
+});

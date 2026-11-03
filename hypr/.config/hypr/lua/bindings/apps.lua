@@ -45,8 +45,12 @@ o.bind("SUPER + SHIFT + D", "Docker", dotfiles_bin .. "/df-launch-tui lazydocker
 -- Titles stay literal at each call: the Launcher's edit action greps for them.
 local function herdr_group(keys, title, name, directory)
     local identity = "io.github.zihad550.dotfiles.herdr." .. name
-    o.bind(keys, title,
-        dotfiles_bin .. [[/df-launch-special-workspace "]] .. identity .. [[" "herdr-]] .. name .. [[" ghostty "--class=]] .. identity .. [[" "--title=]] .. title .. [[" -e "]] .. dotfiles_bin .. [[/df-herdr-session" ]] .. name .. [[ "]] .. directory .. [["]])
+    local command =
+        dotfiles_bin .. [[/df-launch-special-workspace "]] .. identity .. [[" "herdr-]] .. name .. [[" ghostty "--class=]] .. identity .. [[" "--title=]] .. title .. [[" -e "]] .. dotfiles_bin .. [[/df-herdr-session" ]] .. name .. [[ "]] .. directory .. [["]]
+    if name == "personal" then
+        command = command .. [[ && "]] .. dotfiles_bin .. [[/df-herdr-session" personal "]] .. directory .. [[" --daily-update]]
+    end
+    o.bind(keys, title, command)
 end
 herdr_group("SUPER + U", "Herdr (work)", "work", home .. "/dev")
 herdr_group("SUPER + I", "Herdr (personal)", "personal", home .. "/dotfiles")
