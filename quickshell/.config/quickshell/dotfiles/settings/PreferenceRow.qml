@@ -92,6 +92,7 @@ Rectangle {
                 case "action": return actionControl;
                 case "domain-add": return domainControl;
                 case "tailscale-domain": return removeDomainControl;
+                case "tailscale-restart": return restartDnsControl;
                 }
                 return null;
             }
@@ -221,6 +222,15 @@ Rectangle {
             text: "Remove"
             Accessible.name: "Stop forwarding " + root.entry.title + " through Tailscale"
             onClicked: root.app.apply(["tailscale-dns-remove", root.entry.title])
+        }
+    }
+
+    Component {
+        id: restartDnsControl
+        Button {
+            text: "Restart"
+            Accessible.name: "Restart Tailscale DNS forwarding"
+            onClicked: root.app.apply(["tailscale-dns-restart"])
         }
     }
 

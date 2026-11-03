@@ -116,6 +116,8 @@ Scope {
         onExited: (code, status) => {
             root.failed = code !== 0;
             root.message = code === 0 ? "Changes saved" : operationError.text.trim() || "Could not apply this change.";
+            if (code === 0 && operation.command[1] === "tailscale-dns-restart")
+                root.message = "DNS forwarding restarted";
             if (code === 0 && operation.command[1] === "tailscale-dns-add")
                 root.tailscaleDraft = "";
             // The compositor can close the window mid-change, hiding the status line.

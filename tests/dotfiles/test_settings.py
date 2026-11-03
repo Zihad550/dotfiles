@@ -332,6 +332,24 @@ class SettingsTests(unittest.TestCase):
             patcher, _ = self.pkexec(code)
             with patcher, self.assertRaisesRegex(ValueError, "cancelled"):
                 settings.add_tailscale_domain("work.example")
+
+    def test_tailscale_restart_uses_the_forwarding_service(self):
+        patcher, calls = self.pkexec()
+        with patcher, patch.object(settings.sys, "argv", ["df-settings-control", "tailscale-dns-restart"]), \
+                patch("builtins.print") as output:
+            settings.main()
+        self.assertEqual(calls, [["pkexec", "systemctl", "restart", "dotfiles-tailscale-dns.service"]])
+        output.assert_called_once_with("DNS forwarding restarted")
+
+    def test_tailscale_restart_reports_cancellation_and_failure(self):
+        for code, message in ((126, "cancelled"), (127, "cancelled"), (1, "Unit not found")):
+            patcher, _ = self.pkexec(code, stdout="Unit not found")
+            with patcher, patch.object(settings.sys, "argv", ["df-settings-control", "tailscale-dns-restart"]), \
+                    patch("builtins.print") as output:
+                with self.assertRaisesRegex(ValueError, message):
+                    settings.main()
+                output.assert_not_called()
+
     def test_tailscale_domain_removal_only_offers_saved_domains(self):
         saved = self.config / "tailscale-dns-domains"
         saved.write_text("work.example\n")

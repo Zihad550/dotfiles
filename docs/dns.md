@@ -74,6 +74,10 @@ forwarding is applied when its interface becomes available. Failed service
 applications retry every three seconds and report errors in the journal.
 NetworkManager leaves `tailscale0` unmanaged to preserve this local ownership.
 
+To reapply saved forwards immediately after switching tailnets, open
+`df-settings tailscale` and click **Restart** under **Restart DNS forwarding**.
+It asks for your password and restarts `dotfiles-tailscale-dns.service`.
+
 Tailscale documents that its local MagicDNS resolver remains available with
 DNS acceptance disabled, provided MagicDNS is enabled on the tailnet:
 [resolv.conf and MagicDNS](https://tailscale.com/docs/reference/faq/dns-resolv-conf).

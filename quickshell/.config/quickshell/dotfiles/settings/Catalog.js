@@ -63,6 +63,9 @@ function sections(page, data) {
         }) }];
     case "tailscale":
         return [
+            { title: "Forwarding", rows: [
+                row("tailscale.restart", "Restart DNS forwarding", "Reapply all saved domains after switching tailnets. Asks for your password.", "tailscale-restart")
+            ] },
             { title: "Add a domain", rows: [
                 row("tailscale.add", "Domain", "Enter a domain or paste a link on it. It and its subdomains resolve through Tailscale DNS; adding one asks for your password.", "domain-add")
             ] },

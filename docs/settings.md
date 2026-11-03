@@ -11,7 +11,7 @@ The sidebar groups seven pages into Style, Setup, and Panels:
 | Keyboard & Mouse | XKB keyboard layouts, pointer sensitivity, pointer focus, natural touchpad scrolling |
 | Displays | Existing display arrangement and output panels, Quick Settings brightness |
 | Default Apps | Installed candidates from the desktop role registry |
-| Tailscale DNS | Domains answered by Tailscale DNS; add or remove one (asks for your password through polkit) |
+| Tailscale DNS | Add or remove domains, or restart forwarding after switching tailnets (asks for your password through polkit) |
 | Bar & Panels | Bar height, workspace/clock/keyboard-layer/voice indicators, 24-hour time; links to sound, Wi-Fi, Bluetooth, and power panels |
 
 Settings save as you change them; the pointer speed slider saves when you release it, and the keyboard layout when you press Enter or leave the field. **Ctrl+K** or **Ctrl+F** focuses the sidebar search; **Ctrl+W**, **Escape**, and the close button close the app. The refresh button reads the current desktop state again. The status line reports failures; controls, including closing the app, are disabled while a change is running. If the window is closed some other way mid-change, a failure arrives as a notification. A theme marked “download” uses the existing theme installer and needs network access.

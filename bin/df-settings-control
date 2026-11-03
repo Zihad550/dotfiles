@@ -208,25 +208,25 @@ def tailscale_domains():
         return []
 
 
-def elevated(script, domain, cancelled):
-    result = subprocess.run(["pkexec", str(script), domain], text=True, capture_output=True, timeout=180)
+def elevated(command, cancelled):
+    result = subprocess.run(["pkexec", *command], text=True, capture_output=True, timeout=180)
     if result.returncode in (126, 127):
         raise ValueError(cancelled)
     if result.returncode:
-        raise ValueError(result.stderr.strip() or result.stdout.strip() or f"{script.name} failed")
+        raise ValueError(result.stderr.strip() or result.stdout.strip() or f"{command[0]} failed")
     return result.stdout.strip()
 
 
 def add_tailscale_domain(domain):
     # Validate unprivileged, so a typo never costs a password prompt.
     domain = run([str(ADD_TAILSCALE_DOMAIN), "--check", domain])
-    return elevated(ADD_TAILSCALE_DOMAIN, domain, "Authorization was cancelled; the domain was not added")
+    return elevated([str(ADD_TAILSCALE_DOMAIN), domain], "Authorization was cancelled; the domain was not added")
 
 
 def remove_tailscale_domain(domain):
     if domain not in tailscale_domains():
         raise ValueError(f"{domain} is not a saved Tailscale DNS domain")
-    return elevated(REMOVE_TAILSCALE_DOMAIN, domain, "Authorization was cancelled; the domain was not removed")
+    return elevated([str(REMOVE_TAILSCALE_DOMAIN), domain], "Authorization was cancelled; the domain was not removed")
 
 
 def snapshot():
@@ -295,8 +295,12 @@ def main():
         print(add_tailscale_domain(args[1]))
     elif len(args) == 2 and args[0] == "tailscale-dns-remove":
         print(remove_tailscale_domain(args[1]))
+    elif args == ["tailscale-dns-restart"]:
+        elevated(["systemctl", "restart", "dotfiles-tailscale-dns.service"],
+                 "Authorization was cancelled; DNS forwarding was not restarted")
+        print("DNS forwarding restarted")
     else:
-        raise ValueError("Usage: df-settings-control snapshot | check KEY JSON | set KEY JSON | reset KEY | font FAMILY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN | tailscale-dns-remove DOMAIN")
+        raise ValueError("Usage: df-settings-control snapshot | check KEY JSON | set KEY JSON | reset KEY | font FAMILY | theme NAME | wallpaper PATH | default-app ROLE CANDIDATE | tailscale-dns-add DOMAIN | tailscale-dns-remove DOMAIN | tailscale-dns-restart")
 
 
 if __name__ == "__main__":
