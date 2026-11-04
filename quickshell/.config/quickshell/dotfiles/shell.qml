@@ -8,6 +8,7 @@ import qs.media as Media
 import qs.launcher as LauncherConfig
 import qs.lock as LockConfig
 import qs.settings as SettingsConfig
+import qs.wellbeing as WellbeingConfig
 
 ShellRoot {
     id: root
@@ -22,6 +23,10 @@ ShellRoot {
     }
 
     SettingsConfig.SettingsApp {}
+
+    WellbeingConfig.WellbeingApp {
+        locked: lockService.locked
+    }
 
     Loader {
         id: mediaLoader
