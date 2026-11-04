@@ -14,7 +14,7 @@ with (ROOT / "worktrunk/.config/worktrunk/config.toml").open("rb") as config:
 class CommitMessageTests(unittest.TestCase):
     def generate(self, message="fix: reject missing commit output", status=0):
         with tempfile.TemporaryDirectory() as directory:
-            mock = Path(directory) / "codex"
+            mock = Path(directory) / "claude"
             mock.write_text("""#!/usr/bin/env python3
 import os
 from pathlib import Path
@@ -22,14 +22,10 @@ import sys
 
 args = sys.argv[1:]
 assert sys.stdin.read() == 'test prompt\\n'
-instructions = next(arg.split('=', 1)[1] for arg in args if arg.startswith('model_instructions_file='))
-assert 'commit message' in Path(instructions.strip('"')).read_text()
-assert args[args.index('-m') + 1] == 'gpt-6-luna'
-print('{"type":"thread.started"}')
-if '--output-last-message' in args:
-    Path(args[args.index('--output-last-message') + 1]).write_text(os.environ['TEST_MESSAGE'])
-else:
-    print('{"type":"item.completed","item":{"type":"agent_message","text":"null"}}')
+assert any(arg.startswith('--system-prompt=') and 'commit message' in arg for arg in args)
+assert '--model=sonnet' in args
+assert '--tools=' in args
+print(os.environ['TEST_MESSAGE'])
 sys.exit(int(os.environ['TEST_STATUS']))
 """)
             mock.chmod(0o755)
@@ -39,7 +35,7 @@ sys.exit(int(os.environ['TEST_STATUS']))
                 env={**os.environ, "PATH": f"{directory}:{ROOT / 'bin'}:{os.environ['PATH']}",
                      "TMPDIR": directory, "TEST_MESSAGE": message, "TEST_STATUS": str(status)},
             )
-            self.assertEqual(sorted(path.name for path in Path(directory).iterdir()), ["codex"])
+            self.assertEqual(sorted(path.name for path in Path(directory).iterdir()), ["claude"])
             return result
 
     def test_success_prints_only_final_message(self):
@@ -48,7 +44,7 @@ sys.exit(int(os.environ['TEST_STATUS']))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, message)
 
-    def test_codex_failure_prints_no_message(self):
+    def test_claude_failure_prints_no_message(self):
         result = self.generate(status=7)
         self.assertEqual(result.returncode, 7, result.stderr)
         self.assertEqual(result.stdout, "")

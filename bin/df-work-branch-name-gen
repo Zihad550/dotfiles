@@ -10,7 +10,7 @@ die() {
     exit "${2:-1}"
 }
 
-harness=codex
+harness=claude
 case ${1:-} in
     codex|claude)
         harness=$1

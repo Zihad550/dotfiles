@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class HarnessTests(unittest.TestCase):
-    def run_harness(self, args=(), prompt="hello\n", backend="codex", reply="reply", status=0, missing=False, overrides=None):
+    def run_harness(self, args=(), prompt="hello\n", backend="claude", reply="reply", status=0, missing=False, overrides=None):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             mock = folder / backend
@@ -41,13 +41,17 @@ sys.exit(int(os.environ['STATUS']))
                                        (('codex', 'hello', 'world'), '', 'hello world\n'),
                                        (('--', 'claude'), '', 'claude\n')]:
             with self.subTest(args=args):
-                result, calls = self.run_harness(args, prompt)
+                backend = 'codex' if args and args[0] == 'codex' else 'claude'
+                result, calls = self.run_harness(args, prompt, backend=backend)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stdout, 'reply\n')
                 self.assertEqual(calls['prompt'], expected)
-                self.assertIn('model_reasoning_effort=none', calls['args'])
-                self.assertIn('gpt-6-luna', calls['args'])
-                self.assertIn('--skip-git-repo-check', calls['args'])
+                if backend == 'codex':
+                    self.assertIn('model_reasoning_effort=high', calls['args'])
+                    self.assertIn('gpt-6-luna', calls['args'])
+                    self.assertIn('--skip-git-repo-check', calls['args'])
+                else:
+                    self.assertIn('--model=sonnet', calls['args'])
 
     def test_claude_defaults_and_multiline_reply(self):
         result, calls = self.run_harness(('claude',), backend='claude', reply='first\nsecond')
@@ -78,7 +82,7 @@ sys.exit(int(os.environ['STATUS']))
         self.assertIsNone(calls)
 
     def test_missing_output(self):
-        result, _ = self.run_harness(missing=True)
+        result, _ = self.run_harness(('codex',), backend='codex', missing=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(result.stdout, '')
 

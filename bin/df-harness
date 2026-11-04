@@ -3,14 +3,14 @@
 set -euo pipefail
 
 # DF_HARNESS_MODEL overrides gpt-6-luna (Codex) or sonnet (Claude).
-# DF_HARNESS_REASONING overrides Codex's none reasoning effort.
+# DF_HARNESS_REASONING overrides Codex's high reasoning effort.
 # DF_HARNESS_INSTRUCTIONS overrides the shared system instructions.
 die() {
     printf 'df-harness: %s\n' "$1" >&2
     exit "${2:-1}"
 }
 
-harness=codex
+harness=claude
 case ${1:-} in
     codex|claude) harness=$1; shift ;;
     -h|--help)

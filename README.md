@@ -77,7 +77,7 @@ df-cmd-present <cmd>...            # exit 0 if all on PATH
 df-harness [codex|claude] [message...] # reply to arguments or stdin
 df-commit-message [codex|claude]   # generate a commit message from stdin
 df-vite [--list]                  # list local Vite servers; d stops the selected server
-df-work-branch-name-gen [codex|claude] <issues> # default: Codex gpt-6-luna, high reasoning
+df-work-branch-name-gen [codex|claude] <issues> # default: Claude Sonnet
 df-system-update                   # full system update (pacman/yay/flatpak/mise)
 df-backup [directory]              # select home items and a drive to back up
 df-restore [directory]             # select a drive and home items to restore
@@ -206,11 +206,16 @@ tea issues create --repo <owner>/<repo> --title "title" --description "desc" --l
 
 https://codeberg.org/jehad/dotfiles
 
-`df-harness` defaults to Codex with `gpt-6-luna` and no reasoning effort.
-Select Claude with `df-harness claude "your message"` to use Sonnet.
+`df-harness` defaults to Claude Sonnet. `df-commit-message` (including
+Worktrunk commit generation) and `df-work-branch-name-gen` also default to Claude.
+Select Codex with `df-harness codex "your message"` to use `gpt-6-luna`
+with high reasoning effort.
 Both run without tools or persistent sessions and print only the final reply.
 Use `DF_HARNESS_MODEL`, `DF_HARNESS_REASONING` (Codex only), and
 `DF_HARNESS_INSTRUCTIONS` to override the defaults. Use `--` before a message
 that begins with a selector or option. Empty input or missing replies fail.
-The branch generator uses high Codex reasoning and keeps its
-`DF_WORK_BRANCH_MODEL` override; the commit generator supplies commit instructions.
+The branch generator keeps its `DF_WORK_BRANCH_MODEL` override; the commit
+generator supplies commit instructions.
+
+OpenCode defaults to Claude Sonnet, with Haiku for small tasks. Its
+`deep-thinker` agent inherits the default model and enables extended thinking.
