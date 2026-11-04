@@ -1,0 +1,6 @@
+{
+  "name": "drafts",
+  "version": "0.1.0",
+  "description": "Side pane showing drafts written by the draft skills; /drafts toggles it",
+  "types": "./types/index.d.ts"
+}

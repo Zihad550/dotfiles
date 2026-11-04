@@ -1,0 +1,12 @@
+{
+  "name": "dotfiles-mods",
+  "owner": {
+    "name": "Zihad550"
+  },
+  "plugins": [
+    {
+      "name": "drafts",
+      "source": "./drafts"
+    }
+  ]
+}

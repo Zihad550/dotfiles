@@ -434,6 +434,10 @@ Update skills by re-running `setup-skills`, as `df-update-daily` does. Avoid
 linked into every detected agent. That includes `~/.claude/skills`, which
 duplicates skills the Claude plugin already ships (e.g. mattpocock's).
 
+It also installs the Claude Code mods in `claude/.claude/mods` (a local
+marketplace named `dotfiles-mods`) when `claude` is on `PATH`. Claude Code reads
+them in place, so edits need only `/reload-plugins`.
+
 ## Herdr on headless profiles
 
 The Ubuntu devbox, Ubuntu server, and Alpine call

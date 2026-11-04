@@ -5,6 +5,7 @@
 
 set -e
 
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 AGENTS=(claude-code cursor codex)
 AGENTS_WITHOUT_PLUGIN=(cursor codex)
 
@@ -34,6 +35,14 @@ skills add Zihad550/skills \
           ralph-loop ralph-loop-implement reflect ship-skill simplify summarize tea-create-issue tea-get-issue tea-plan-issue template-skill \
           work-backend-qa work-branch-name-gen work-draft-reply work-pr-info work-ship work-start work-wrap-up \
   -g --agent "${AGENTS[@]}" -y
+
+######## our own Claude Code mods, read in place from claude/.claude/mods
+if command -v claude >/dev/null 2>&1; then
+  claude plugin marketplace add "$DOTFILES_DIR/claude/.claude/mods"
+  claude plugin install drafts@dotfiles-mods --scope user
+else
+  echo "setup-skills: claude not found, skipping Claude Code mods" >&2
+fi
 
 ######## dormant — tried before, not currently installed. Uncomment to reinstate.
 # skills add mattpocock/skills -g --agent "${AGENTS[@]}" -y
