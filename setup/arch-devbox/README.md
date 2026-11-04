@@ -234,7 +234,8 @@ records an installed app in the file selected by `DOTFILES_PROFILE`.
 
 
 
-`gemini`) — `init` prints a reminder at the end.
+The agent CLIs need an interactive login on first run (`claude`, `opencode`) —
+`init` prints a reminder at the end.
 
 ## dns
 

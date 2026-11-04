@@ -3,7 +3,7 @@
 set -e
 
 runtimes=(node@24 node go pnpm uv)
-agents=(claude opencode gemini)
+agents=(claude opencode)
 agent_tools=(npm:skills npm:@playwright/cli)
 diff_tools=(aqua:modem-dev/hunk)
 
