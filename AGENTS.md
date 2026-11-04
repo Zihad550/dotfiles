@@ -55,9 +55,10 @@ After every implementation:
 ### Machine profiles
 
 Gate runtime behavior that differs between setup targets on `DOTFILES_PROFILE`.
-The supported values are `arch-workstation` and `arch-devbox`. Use an exact
-comparison or a `case` statement. Setup entrypoints that already live inside a
-target-specific directory do not need to check the variable.
+The supported values are `arch-workstation`, `arch-devbox` and
+`ubuntu-lxc-devbox`. Use an exact comparison or a `case` statement. Setup
+entrypoints that already live inside a target-specific directory do not need to
+check the variable.
 
 Add new profile values and their installer wiring through
 `setup/common/set-dotfiles-profile`. Treat its written value as the source of

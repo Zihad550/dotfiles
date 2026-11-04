@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Key-only sshd, no root; stays on 22 unless SSH_PORT says otherwise. Run after
+# a key login over the tailnet works. See README.md "access" and ../common/harden-ssh.
+#
+#   ./harden-ssh                 # harden auth/crypto, stay on 22
+#   SSH_PORT=48222 ./harden-ssh  # also move to this port
+#   ./harden-ssh --finalize      # phase 2: stop listening on 22
+#   ./harden-ssh --revert        # back to the distro config
+
+set -euo pipefail
+
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# No guest ufw: the Proxmox firewall drops net0 inbound.
+export HARDEN_FIREWALL=none
+# Tailnet is the only path in; break-glass is `pct enter` on the host.
+export HARDEN_NET=tailnet
+export SSH_PORT="${SSH_PORT:-keep}"
+export HARDEN_SSH_SELF="$SETUP_DIR/harden-ssh"
+
+exec "$SETUP_DIR/../common/harden-ssh" "$@"

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Rootful Docker CE, as on ../ubuntu-devbox. Rootful is fine here: the LXC is
+# unprivileged, so root inside it is an unprivileged uid on the host. See
+# README.md "docker".
+
+set -euo pipefail
+
+UBUNTU_DEVBOX_DIR="${UBUNTU_DEVBOX_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../ubuntu-devbox" && pwd)}"
+bash -e "$UBUNTU_DEVBOX_DIR/setup-docker"
+
+# The package's postinst starts dockerd without waiting for its socket.
+for _ in {1..10}; do
+    sudo docker info &>/dev/null && exit 0
+    sleep 1
+done
+
+echo "dockerd is not running. Docker in an LXC needs nesting and keyctl. On" >&2
+echo "the Proxmox host:" >&2
+echo "  pct set <CT_ID> --features nesting=1,keyctl=1 && pct reboot <CT_ID>" >&2
+echo "then re-run: journalctl -u docker shows the actual failure." >&2
+exit 1

@@ -17,14 +17,14 @@ here when the explanation does not belong beside the command it protects.
 | --- | --- | --- |
 | [`harden-ssh`](harden-ssh) | Hardens sshd and performs its two-phase port change. | Arch and Ubuntu wrappers |
 | [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Workstation, Arch devbox, Ubuntu devbox |
-| [`set-dotfiles-profile`](set-dotfiles-profile) | Persists the setup target for desktop and shell consumers. | Arch Workstation, Arch devbox |
+| [`set-dotfiles-profile`](set-dotfiles-profile) | Persists the setup target for desktop and shell consumers. | Arch Workstation, Arch devbox, Ubuntu LXC devbox |
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Configures default DNS and disables Tailscale DNS takeover. | Arch devbox, Arch Workstation, Ubuntu LXC devbox |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Workstation, Arch devbox |
 | [`setup-greeter`](setup-greeter) | Installs and enables the pinned Greeter, retiring the display manager it replaces. | Arch Workstation, Arch devbox |
 | [`setup-go-timer`](setup-go-timer) | Installs the pinned go-timer GitHub release without Go or mise. | Arch Workstation, Arch devbox |
 | [`setup-idle-ladder`](setup-idle-ladder) | Selects per-box Idle Ladder timing data outside the stow tree. | Arch Workstation, Arch devbox |
-| [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu server, Alpine |
+| [`setup-herdr`](setup-herdr) | Installs Herdr and its agent integrations. | Arch devbox, Ubuntu devbox, Ubuntu LXC devbox, Ubuntu server, Alpine |
 | [`setup-herdr-integrations`](setup-herdr-integrations) | Installs or refreshes Herdr integrations for the agents present. | `setup-herdr`, `df-update-daily` |
 | [`setup-kanata`](setup-kanata) | Installs Kanata (Arch only, via yay) and runs it as a system service on the saved profile selection. | Arch Workstation, Arch devbox |
 | [`setup-no-sleep`](setup-no-sleep) | Keeps a box reachable by blocking every configured suspend path. | Arch and Ubuntu devboxes |
@@ -54,7 +54,7 @@ here when the explanation does not belong beside the command it protects.
   | [`pacman-base`](packages/pacman-base) | The development CLI toolkit, fonts, coreutils replacements and gcc. | Arch devbox |
   | [`flatpak-packages`](packages/flatpak-packages) | Flatpak applications. | Arch Workstation (Arch devbox keeps it off) |
   | [`quickshell-packages`](packages/quickshell-packages) | The shell binary and every external program its QML shells out to. | Arch Workstation, Arch devbox |
-  | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox |
+  | [`mise-dev-packages`](packages/mise-dev-packages) | The mise-managed language runtimes for a dev box. | Arch devbox, Ubuntu devbox, Ubuntu LXC devbox, Ubuntu server |
 
 ## go-timer
 
@@ -68,13 +68,18 @@ version and checksum in the installer. Existing machines can run
 
 ## Machine profile
 
-The Arch installers write their target name to
+The Arch installers and `ubuntu-lxc-devbox` write their target name to
 `~/.config/uwsm/env.d/10-dotfiles-profile` after every required setup step has
-succeeded. UWSM loads `DOTFILES_PROFILE` before Hyprland and its user services.
+succeeded. On `ubuntu-lxc-devbox`, a partial `tools` failure (exit 1) is not a
+required step: `init` still records the profile and prints which tools to retry.
+UWSM loads `DOTFILES_PROFILE` before Hyprland and its user services.
 `.zshenv` sources the same file for shells that start outside the graphical
-session, including SSH sessions.
+session, including SSH sessions; on the headless Ubuntu box that is the only
+reader.
 
-`DOTFILES_PROFILE` has one value, either `arch-workstation` or `arch-devbox`.
+`DOTFILES_PROFILE` has one value: `arch-workstation`, `arch-devbox` or
+`ubuntu-lxc-devbox`. The backup and web-app commands (`home-backup`,
+`df-webapp-install`, `df-webapp-remove`) only support the Arch values.
 Consumers should compare that value instead of maintaining separate boolean
 flags that could both be set.
 
@@ -84,20 +89,22 @@ Runtime code that differs by setup target should use an exact comparison:
 case "${DOTFILES_PROFILE:-}" in
     arch-devbox) ... ;;
     arch-workstation) ... ;;
+    ubuntu-lxc-devbox) ... ;;
 esac
 ```
 
-Code inside `setup/arch-devbox/` or `setup/arch-workstation/` already belongs to
-one target and does not need this check. The variable is for shared runtime
-configuration and commands.
+Code inside `setup/arch-devbox/`, `setup/arch-workstation/` or
+`setup/ubuntu-lxc-devbox/` already belongs to one target and does not need this
+check. The variable is for shared runtime configuration and commands.
 
 Setup itself reads the file, not the variable, through
 [`check-machine-profile`](check-machine-profile): `boot.sh` runs it before any
-target, and both Arch `init`s run it first. A machine that has a profile only
-runs the setup with the same name; any other target stops with a message that
-names the machine's own setup. Deleting the profile file lifts the stop, for a
-machine that really is being repurposed. A machine set up before profiles
-existed has no file, so nothing stops it.
+target, and both Arch `init`s and `ubuntu-lxc-devbox/init` run it before any
+setup step. A machine that has a profile only runs the setup with the same
+name; any other target stops with a message that names the machine's own setup.
+Deleting the profile file lifts the stop, for a machine that really is being
+repurposed. A machine set up before profiles existed has no file, so nothing
+stops it.
 
 ### Existing installs
 
@@ -107,10 +114,12 @@ Register the profile once after pulling this change:
 # Run one of these.
 ~/dotfiles/setup/common/set-dotfiles-profile arch-devbox
 ~/dotfiles/setup/common/set-dotfiles-profile arch-workstation
+~/dotfiles/setup/common/set-dotfiles-profile ubuntu-lxc-devbox
 ```
 
-New shells read the value immediately. Log out and back in once so UWSM starts
-Hyprland, Quickshell, and user services with it. Confirm the result with:
+New shells read the value immediately, which is all `ubuntu-lxc-devbox` needs.
+On Arch, log out and back in once so UWSM starts Hyprland, Quickshell, and user
+services with it. Confirm the result with:
 
 ```sh
 printf '%s\n' "$DOTFILES_PROFILE"
@@ -161,10 +170,13 @@ whose regular entry cannot unlock the disk it is the only entry that boots.
 
 ## SSH hardening
 
-Both Box Wrappers set the contract documented at the top of
-[`harden-ssh`](harden-ssh), then execute the same Shared Setup Script. Ubuntu keeps
-a LAN break-glass path and must mirror the new sshd port into UFW. Arch permits
-traffic arriving on `tailscale0`, so a port change needs no new firewall rule.
+Every Box Wrapper sets the contract documented at the top of
+[`harden-ssh`](harden-ssh), then executes the same Shared Setup Script. Ubuntu
+devbox keeps a LAN break-glass path and must mirror the new sshd port into UFW.
+Arch permits traffic arriving on `tailscale0`, so a port change needs no new
+firewall rule. Ubuntu LXC devbox has no guest firewall to update: the Proxmox
+firewall drops LAN inbound, and `pct enter` on the host is its break-glass
+path.
 
 ### two phases
 
@@ -196,7 +208,7 @@ the move does anything at all turns on one Tailscale pref:
 | `RunSSH true` | `tailscaled` intercepts port 22 on the tailnet IP, in userspace, before the packet reaches the host stack. sshd on 22 is unreachable from the only network the box answers on, so moving off 22 is what makes sshd reachable — not optional. |
 | `RunSSH false` | Nothing intercepts 22 and sshd already answers there. The move buys nothing, which is why `SSH_PORT=keep` exists. |
 
-Both boxes run `RunSSH false`. The two states are indistinguishable until one
+All three boxes run `RunSSH false`. The two states are indistinguishable until one
 breaks, so `harden-ssh` detects it rather than assuming, and treats undetectable
 as `false` — the direction that warns harder.
 
@@ -221,7 +233,7 @@ the `tailscale0` UFW rule. They pass that difference through
 `TS_TAILNET_UFW_RULE`; the Shared Setup Script owns everything from starting
 `tailscaled` onward.
 
-Both current wrappers leave `TS_SSH` at its default of `0`. Remote access is
+All current wrappers leave `TS_SSH` at its default of `0`. Remote access is
 ordinary sshd over the tailnet, authenticated by `~/.ssh/authorized_keys`.
 `ufw allow in on tailscale0` makes sshd reachable. Tailscale SSH remains an
 explicit `TS_SSH=1` capability, not the standard access path.

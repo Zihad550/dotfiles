@@ -5,9 +5,9 @@ set -euo pipefail
 profile="${1:-}"
 
 case "$profile" in
-    arch-devbox|arch-workstation) ;;
+    arch-devbox|arch-workstation|ubuntu-lxc-devbox) ;;
     *)
-        echo "usage: $0 {arch-devbox|arch-workstation}" >&2
+        echo "usage: $0 {arch-devbox|arch-workstation|ubuntu-lxc-devbox}" >&2
         exit 2
         ;;
 esac

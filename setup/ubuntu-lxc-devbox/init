@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# Named `init` so setup/boot.sh can dispatch to it: ./boot.sh ubuntu-lxc-devbox
+#
+# Guest half of a Proxmox LXC devbox; run as your login user, not root.
+# See README.md for the order, the follow-up scripts and what is skipped.
+
+set -euo pipefail
+
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$SETUP_DIR/../.." && pwd)}"
+export UBUNTU_DEVBOX_DIR="$DOTFILES_DIR/setup/ubuntu-devbox"
+# ../ubuntu-devbox/stow and scripts/stow read this name, not DOTFILES_DIR.
+export DOTFILES="$DOTFILES_DIR"
+# Unset on some non-login paths, such as `pct exec ... sudo -u`.
+export USER="${USER:-$(id -un)}"
+
+# Before the profile check, so root gets this message, not one about root's profile.
+if [[ $EUID -eq 0 ]]; then
+    echo "Run this as your login user, not root: every step after packages writes" >&2
+    echo "to \$HOME. Create one with CT_USERNAME in create-ubuntu-lxc, or by hand:" >&2
+    echo "  adduser <name> && usermod -aG sudo <name> && su - <name>" >&2
+    exit 1
+fi
+
+"$DOTFILES_DIR/setup/common/check-machine-profile" ubuntu-lxc-devbox
+
+# Every `mise use -g` below fails on an untrusted project mise config in the
+# caller's directory; ubuntu-devbox runs `mise trust` for the same reason.
+cd "$HOME"
+
+# packages removes an inactive ufw, which bare-metal ubuntu-devbox still needs.
+if [[ "$(systemd-detect-virt --container 2>/dev/null || true)" != lxc ]]; then
+    echo "This is not an LXC guest. Use ../ubuntu-devbox for bare metal." >&2
+    exit 1
+fi
+
+# create-ubuntu-lxc leaves the user passwordless if none was entered; fail now.
+if ! sudo -v; then
+    echo "sudo failed. If this user has no password, set one on the Proxmox host:" >&2
+    echo "  pct exec <CT_ID> -- passwd $USER" >&2
+    exit 1
+fi
+
+# bash -e: those scripts have no `set -e`, so a failed step would go unnoticed.
+"$SETUP_DIR/packages"
+bash -e "$UBUNTU_DEVBOX_DIR/packages"
+"$SETUP_DIR/setup-docker"
+bash -e "$UBUNTU_DEVBOX_DIR/stow"
+# Exit 1 (some installs failed) is not fatal; see the exit codes in ../ubuntu-devbox/tools.
+tools_status=0
+"$UBUNTU_DEVBOX_DIR/tools" || tools_status=$?
+(( tools_status <= 1 )) || exit "$tools_status"
+"$DOTFILES_DIR/setup/common/setup-herdr"
+"$DOTFILES_DIR/setup/common/setup-skills"
+
+sudo chsh -s "$(command -v zsh)" "$USER"
+
+"$DOTFILES_DIR/setup/common/set-dotfiles-profile" ubuntu-lxc-devbox
+
+echo
+echo "next:"
+echo "  $SETUP_DIR/setup-tailscale"
+echo "  $SETUP_DIR/setup-dns"
+echo "  $SETUP_DIR/harden-ssh    # after a key login over the tailnet works"
+echo
+if (( tools_status == 1 )); then
+    echo "some tools failed to install; see the summary above, then re-run:"
+    echo "  $UBUNTU_DEVBOX_DIR/tools"
+    echo
+fi
+echo "now logout and log back in"

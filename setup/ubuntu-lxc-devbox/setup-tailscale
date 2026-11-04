@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Join the tailnet. See ../common/setup-tailscale for its contract and
+# ../common/README.md for shared rationale. This file owns the LXC differences.
+#
+#   TS_AUTHKEY=tskey-auth-...  ./setup-tailscale     # unattended
+#   ./setup-tailscale                                # prints a URL to open
+#   TS_HOSTNAME=devbox         ./setup-tailscale     # override the tailnet name
+
+set -euo pipefail
+
+# An unprivileged LXC has no TUN device unless the host passes one through, and
+# tailscaled fails without it. create-ubuntu-lxc does this with TUN=1 (default).
+if [ ! -c /dev/net/tun ]; then
+    echo "/dev/net/tun is missing. On the Proxmox host:" >&2
+    echo "  pct set <CT_ID> --dev0 /dev/net/tun && pct reboot <CT_ID>" >&2
+    exit 1
+fi
+
+if ! command -v tailscale &>/dev/null; then
+    curl -fsSL https://tailscale.com/install.sh | sh
+fi
+
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# The Proxmox firewall filters net0 from the host, so a guest ufw only needs the
+# tailnet rule when someone has turned it on; packages keeps ufw only then.
+export TS_TAILNET_UFW_RULE=0
+if command -v ufw &>/dev/null &&
+    [[ "$(sudo ufw status 2>/dev/null || true)" == "Status: active"* ]]; then
+    TS_TAILNET_UFW_RULE=1
+fi
+
+export TS_NEXT="harden sshd once a key login over the tailnet works:
+  $SETUP_DIR/harden-ssh      # key-only, no root, stays on 22"
+
+exec "$SETUP_DIR/../common/setup-tailscale" "$@"

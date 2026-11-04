@@ -3,10 +3,10 @@
 # Join the tailnet, so the box is reachable over ssh from anywhere without
 # exposing anything to the public internet.
 #
-# Shared by setup/ubuntu-devbox and setup/arch-devbox. Do not run this file
-# directly; run the wrapper in the target's own directory, which installs
-# tailscale the way that distro does it, sets the variables below and execs
-# this:
+# Shared by setup/ubuntu-devbox, setup/ubuntu-lxc-devbox and setup/arch-devbox.
+# Do not run this file directly; run the wrapper in the target's own
+# directory, which installs tailscale the way that distro does it, sets the
+# variables below and execs this:
 #
 #   TS_AUTHKEY=tskey-auth-...  ./setup-tailscale     # unattended
 #   ./setup-tailscale                                # prints a URL to open
@@ -65,14 +65,18 @@ case "${DOTFILES_PROFILE:-}" in
     arch-devbox|arch-workstation|ubuntu-lxc-devbox) up_args+=(--accept-dns=false) ;;
 esac
 [ "$TS_SSH" = "1" ] && up_args+=(--ssh)
-[ -n "$TS_AUTHKEY" ] && up_args+=(--authkey "$TS_AUTHKEY")
+display_args=("${up_args[@]}")
+if [ -n "$TS_AUTHKEY" ]; then
+    up_args+=(--authkey "$TS_AUTHKEY")
+    display_args+=(--authkey '<redacted>')
+fi
 
-echo "running: tailscale up ${up_args[*]}"
+echo "running: tailscale up ${display_args[*]}"
 if ! sudo tailscale up "${up_args[@]}"; then
     echo
     echo "tailscale up failed."
     echo "  - if you are already connected over the tailnet, re-run with:"
-    echo "      sudo tailscale up ${up_args[*]} --accept-risk=lose-ssh"
+    echo "      sudo tailscale up ${display_args[*]} --accept-risk=lose-ssh"
     [ "$TS_SSH" = "1" ] &&
         echo "  - if --ssh was rejected, your tailnet ACL needs an ssh section"
     exit 1

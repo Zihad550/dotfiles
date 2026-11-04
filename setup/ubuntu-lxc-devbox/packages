@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# What the Proxmox Ubuntu template can lack and Ubuntu Server ships:
+# add-apt-repository, which ../ubuntu-devbox/packages needs for the mise and
+# neovim PPAs, and sshd itself. The dev package set is ../ubuntu-devbox/packages.
+
+set -euo pipefail
+
+sudo apt update -y
+sudo apt install -y \
+    software-properties-common \
+    openssh-server \
+    ca-certificates \
+    curl
+
+# The template ships ufw inactive. Filtering belongs to the Proxmox firewall,
+# and an idle ufw only makes the shared harden-ssh warn about a missing rule.
+if command -v ufw &>/dev/null; then
+    if ! ufw_status="$(LC_ALL=C sudo ufw status 2>/dev/null)"; then
+        echo "warning: could not determine ufw status; leaving it installed." >&2
+    elif [[ "$ufw_status" == "Status: active"* ]]; then
+        echo "note: ufw is active, so it is kept; setup-tailscale opens tailscale0."
+    # Only remove confirmed inactive ufw without removing another package.
+    elif [[ "$ufw_status" == "Status: inactive" &&
+        "$(apt-get -s remove ufw | grep -c '^Remv ')" == 1 ]]; then
+        sudo apt-get remove -y ufw
+    fi
+fi

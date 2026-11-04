@@ -167,7 +167,7 @@ pct enter <CT_ID>
 
 This script creates the base LXC only. It does not run the dotfiles’ Ubuntu
 development setup inside the guest. Once the guest is running, use the
-appropriate guest setup path and then reuse the selected devbox tools.
+guest setup in [`../ubuntu-lxc-devbox`](../ubuntu-lxc-devbox/README.md).
 
 ## Proxmox firewall
 

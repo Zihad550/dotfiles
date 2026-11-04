@@ -29,6 +29,7 @@ const stowScripts = [
 
 const installers = [
     "setup/ubuntu-devbox/init",
+    "setup/ubuntu-lxc-devbox/init",
     "setup/ubuntu-server/init",
     "setup/ubuntu-server/minimal-user",
     "setup/alpine/minimal-user",
@@ -37,6 +38,7 @@ const installers = [
 const packageLists = [
     "setup/ubuntu-devbox/packages",
     "setup/ubuntu-server/packages",
+    "setup/ubuntu-lxc-devbox/packages",
     "setup/alpine/minimal",
 ];
 
@@ -190,28 +192,55 @@ test("both Arch profiles install the shared power-button policy", () => {
     }
 });
 
-test("the machine profile is shared by UWSM and shell startup", t => {
-    const configHome = fs.mkdtempSync(path.join(os.tmpdir(), "dotfiles-profile-"));
 test("Arch devbox installs DNS after the base packages", () => {
     assert.match(source("setup/arch-devbox/init"),
         /run_step "pacman base"[^\n]*\nrun_step "DNS" "\$ARCH_DEVBOX_DIR\/setup-dns"$/m);
 });
 
-    t.after(() => fs.rmSync(configHome, { recursive: true, force: true }));
-
+test("the machine profile is shared by UWSM and shell startup", t => {
     const writer = path.join(repoRoot, "setup/common/set-dotfiles-profile");
-    const result = childProcess.spawnSync(writer, ["arch-devbox"], {
-        encoding: "utf8",
-        env: { ...process.env, XDG_CONFIG_HOME: configHome },
-    });
 
-    assert.strictEqual(result.status, 0, result.stderr);
-    assert.strictEqual(
-        fs.readFileSync(path.join(configHome, "uwsm/env.d/10-dotfiles-profile"), "utf8"),
-        "export DOTFILES_PROFILE=arch-devbox\n",
-    );
+    for (const profile of ["arch-devbox", "arch-workstation", "ubuntu-lxc-devbox"]) {
+        const configHome = fs.mkdtempSync(path.join(os.tmpdir(), "dotfiles-profile-"));
+        t.after(() => fs.rmSync(configHome, { recursive: true, force: true }));
+
+        const result = childProcess.spawnSync(writer, [profile], {
+            encoding: "utf8",
+            env: { ...process.env, XDG_CONFIG_HOME: configHome },
+        });
+
+        assert.strictEqual(result.status, 0, result.stderr);
+        assert.strictEqual(
+            fs.readFileSync(path.join(configHome, "uwsm/env.d/10-dotfiles-profile"), "utf8"),
+            `export DOTFILES_PROFILE=${profile}\n`,
+        );
+    }
     assert.match(source("zsh/.zshenv"),
         /source "\$DOTFILES_PROFILE_ENV"/);
+});
+
+test("the Ubuntu LXC devbox records its machine profile after every step", () => {
+    const init = source("setup/ubuntu-lxc-devbox/init");
+    const steps = [
+        'check-machine-profile" ubuntu-lxc-devbox',
+        '"$SETUP_DIR/packages"',
+        'bash -e "$UBUNTU_DEVBOX_DIR/packages"',
+        '"$SETUP_DIR/setup-docker"',
+        'bash -e "$UBUNTU_DEVBOX_DIR/stow"',
+        '"$UBUNTU_DEVBOX_DIR/tools"',
+        "setup/common/setup-herdr",
+        "setup/common/setup-skills",
+        "chsh",
+        'set-dotfiles-profile" ubuntu-lxc-devbox',
+    ];
+    const positions = steps.map(step => init.indexOf(step));
+
+    for (const [index, step] of steps.entries()) {
+        assert.ok(positions[index] >= 0, `init is missing ${step}`);
+        if (index > 0) {
+            assert.ok(positions[index] > positions[index - 1], `${step} runs too early`);
+        }
+    }
 });
 
 test("the machine profile writer rejects unknown targets", () => {
@@ -241,4 +270,42 @@ test("the ADR records completed feasibility and per-host runtime checks", () => 
 
     assert.match(adr, /Alpine[\s\S]*feasibility check passed/i);
     assert.match(adr, /verified[\s\S]*Ubuntu devbox, Ubuntu server,[\s\S]*and Alpine/i);
+});
+
+test("the Ubuntu LXC setup exports a login user when USER is absent", { skip: process.getuid?.() === 0 }, t => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lxc-init-"));
+    t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+    const setup = path.join(directory, "setup/ubuntu-lxc-devbox");
+    const bin = path.join(directory, "bin");
+    const calls = path.join(directory, "calls");
+    fs.mkdirSync(setup, { recursive: true });
+    fs.mkdirSync(bin);
+    fs.copyFileSync(path.join(repoRoot, "setup/ubuntu-lxc-devbox/init"), path.join(setup, "init"));
+    const stub = `#!/usr/bin/env bash
+[ -n "\${USER:-}" ] || exit 2
+printf '%s:%s\\n' "$0" "$USER" >> "$LXC_TEST_CALLS"
+`;
+    for (const relative of [
+        "setup/ubuntu-lxc-devbox/packages", "setup/ubuntu-lxc-devbox/setup-docker",
+        "setup/ubuntu-devbox/packages", "setup/ubuntu-devbox/stow", "setup/ubuntu-devbox/tools",
+        "setup/common/check-machine-profile", "setup/common/setup-herdr",
+        "setup/common/setup-skills", "setup/common/set-dotfiles-profile", "bin/sudo",
+    ]) {
+        const filename = path.join(directory, relative);
+        fs.mkdirSync(path.dirname(filename), { recursive: true });
+        fs.writeFileSync(filename, stub, { mode: 0o755 });
+    }
+    fs.writeFileSync(path.join(bin, "systemd-detect-virt"), "#!/bin/sh\necho lxc\n", { mode: 0o755 });
+    fs.writeFileSync(path.join(bin, "zsh"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    const env = {
+        ...process.env, HOME: directory, DOTFILES_DIR: directory,
+        PATH: `${bin}:${process.env.PATH}`, LXC_TEST_CALLS: calls,
+    };
+    delete env.USER;
+    const result = childProcess.spawnSync("bash", [path.join(setup, "init")], { encoding: "utf8", env });
+    assert.strictEqual(result.status, 0, result.stderr);
+    const expectedUser = os.userInfo().username;
+    const steps = fs.readFileSync(calls, "utf8").trim().split("\n");
+    assert.ok(steps.some(step => step.includes("set-dotfiles-profile")), "setup did not finish");
+    assert.ok(steps.every(step => step.endsWith(`:${expectedUser}`)), "a child received no login user");
 });
