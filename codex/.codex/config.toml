@@ -60,3 +60,7 @@ hide_rate_limit_model_nudge = true
 
 [notice.model_migrations]
 "gpt-5.4-mini" = "gpt-5.6-luna"
+
+[desktop]
+followUpQueueMode = "queue"
+conversationDetailMode = "STEPS_PROSE"
