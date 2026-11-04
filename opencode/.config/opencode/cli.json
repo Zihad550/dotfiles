@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "theme": {
+    "name": "kanagawa"
+  },
+  "keybinds": {
+    "opencode.status": "none",
+    "prompt.skills": "<leader>s"
+  },
+  "plugins": ["./herdr-opencode"]
+}
