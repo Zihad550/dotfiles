@@ -4,7 +4,7 @@
       "manifest": {
         "id": "caddyfile",
         "name": "Caddyfile",
-        "version": "0.0.6",
+        "version": "0.0.7",
         "schema_version": 1,
         "description": "Caddyfile support with syntax highlighting and Tree-sitter grammar.",
         "repository": "https://github.com/nusnewob/caddyfile-zed",
@@ -23,7 +23,7 @@
         "grammars": {
           "caddyfile": {
             "repository": "https://github.com/nusnewob/tree-sitter-caddyfile.git",
-            "rev": "9d3af6ae44ea5f9015bc2c9a5a02066c192ab627",
+            "rev": "1d0f58e143bf4712325e4945055614425d51ecf2",
             "path": null
           }
         },
@@ -106,8 +106,8 @@
               "Docker Compose"
             ],
             "language_ids": {
-              "Dockerfile": "dockerfile",
-              "Docker Compose": "dockercompose"
+              "Docker Compose": "dockercompose",
+              "Dockerfile": "dockerfile"
             },
             "code_action_kinds": null
           },
@@ -134,7 +134,7 @@
       "manifest": {
         "id": "emmet",
         "name": "Emmet",
-        "version": "0.0.14",
+        "version": "0.0.15",
         "schema_version": 1,
         "description": "Emmet support",
         "repository": "https://github.com/zed-extensions/emmet",
@@ -523,7 +523,7 @@
       "manifest": {
         "id": "lua",
         "name": "Lua",
-        "version": "0.1.10",
+        "version": "0.1.11",
         "schema_version": 1,
         "description": "Lua support.",
         "repository": "https://github.com/zed-extensions/lua",
@@ -772,7 +772,7 @@
       "manifest": {
         "id": "toml",
         "name": "TOML",
-        "version": "1.0.3",
+        "version": "1.1.0",
         "schema_version": 1,
         "description": "TOML support.",
         "repository": "https://github.com/zed-extensions/toml",
@@ -781,8 +781,8 @@
           "Ammar Arif <evergreenkary@gmail.com>"
         ],
         "lib": {
-          "kind": null,
-          "version": null
+          "kind": "Rust",
+          "version": "0.7.0"
         },
         "themes": [],
         "icon_themes": [],
@@ -796,7 +796,16 @@
             "path": null
           }
         },
-        "language_servers": {},
+        "language_servers": {
+          "taplo": {
+            "language": null,
+            "languages": [
+              "TOML"
+            ],
+            "language_ids": {},
+            "code_action_kinds": null
+          }
+        },
         "context_servers": {},
         "slash_commands": {},
         "snippets": null,
@@ -808,7 +817,7 @@
       "manifest": {
         "id": "vue",
         "name": "Vue",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "schema_version": 1,
         "description": "Vue support.",
         "repository": "https://github.com/zed-extensions/vue",
@@ -852,20 +861,66 @@
       },
       "dev": false
     },
+    "windows-batch": {
+      "manifest": {
+        "id": "windows-batch",
+        "name": "Windows Batch",
+        "version": "0.4.0",
+        "schema_version": 1,
+        "description": "Windows Batch/CMD script support",
+        "repository": "https://github.com/PleahMaCaka/zed-batch",
+        "authors": [
+          "PleahMaCaka <pleahmacaka@gmail.com>"
+        ],
+        "lib": {
+          "kind": "Rust",
+          "version": "0.7.0"
+        },
+        "themes": [],
+        "icon_themes": [],
+        "languages": [
+          "languages/batch"
+        ],
+        "grammars": {
+          "batch": {
+            "repository": "https://github.com/pleahmacaka/tree-sitter-batch",
+            "rev": "01d27f527b7804b631c3ee50890a6407e68b849b",
+            "path": null
+          }
+        },
+        "language_servers": {
+          "batch-language-server": {
+            "language": null,
+            "languages": [
+              "Batch"
+            ],
+            "language_ids": {},
+            "code_action_kinds": null
+          }
+        },
+        "context_servers": {},
+        "slash_commands": {},
+        "snippets": null,
+        "capabilities": []
+      },
+      "dev": false
+    },
     "xml": {
       "manifest": {
         "id": "xml",
         "name": "XML",
-        "version": "0.1.1",
+        "version": "0.2.0",
         "schema_version": 1,
         "description": "XML syntax support.",
         "repository": "https://github.com/sweetppro/zed-xml",
         "authors": [
-          "sweetppro"
+          "sweetppro",
+          "notpeter",
+          "moilolon"
         ],
         "lib": {
-          "kind": null,
-          "version": null
+          "kind": "Rust",
+          "version": "0.7.0"
         },
         "themes": [],
         "icon_themes": [],
@@ -879,7 +934,18 @@
             "path": "xml"
           }
         },
-        "language_servers": {},
+        "language_servers": {
+          "lemminx": {
+            "language": null,
+            "languages": [
+              "XML"
+            ],
+            "language_ids": {
+              "XML": "xml"
+            },
+            "code_action_kinds": null
+          }
+        },
         "context_servers": {},
         "slash_commands": {},
         "snippets": null,
@@ -1009,6 +1075,21 @@
     }
   },
   "languages": {
+    "Batch": {
+      "extension": "windows-batch",
+      "path": "languages/batch",
+      "matcher": {
+        "path_suffixes": [
+          "bat",
+          "cmd"
+        ],
+        "first_line_pattern": "(?i)^(@?echo off|rem |::)",
+        "modeline_aliases": []
+      },
+      "hidden": false,
+      "grammar": "batch",
+      "query_files": 141
+    },
     "Caddyfile": {
       "extension": "caddyfile",
       "path": "languages/caddyfile",
