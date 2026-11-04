@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: Cross-model code review through the Codex harness, running the code-review skill. Use when the user asks for a Codex review or a second-model opinion on staged changes or a branch.
+description: Code review through the Codex harness (codex exec review). Use for every code review — the review step after an implementation, a Codex or second-model opinion, or a review of uncommitted changes, a commit, or a branch.
 tools: Bash
 model: sonnet
 ---
@@ -19,37 +19,42 @@ Before Codex runs, confirm every prerequisite the review depends on. A review th
 
 ## 2. Pick the target
 
-- Nothing named, or "staged": the index. `git diff --cached --quiet` exiting 0 means nothing is staged — report "No staged changes to review." and finish.
-- A ref named (`main`, `HEAD~3`, a SHA): `git rev-parse --verify <ref>`. On failure, report the error and finish.
+- "staged": the index only. `git diff --cached --quiet` exiting 0 means nothing is staged — report "No staged changes to review." and finish.
+- Nothing named, "my changes", or "uncommitted": every uncommitted change — staged, unstaged, and untracked. Empty `git status --porcelain` means there is nothing to review — report "No uncommitted changes to review." and finish.
+- A commit named ("the last commit", a SHA): `git rev-parse --verify <ref>^{commit}`; review the changes that commit introduced.
+- A base named ("since main", "this branch against main"): `git rev-parse --verify <branch>`; review the branch against it.
 
-## 3. Build the prompt
+A failed `rev-parse` ends the run: report its error and finish.
 
-`$code-review ` + the target clause + the shared tail + any extra focus the caller gave (spec path, issue number, areas to look at).
+## 3. Pick the mode
 
-Target clause:
+`codex exec review` takes either a target flag or a custom prompt, never both.
 
-- Staged: `Review the staged changes only: the diff is \`git diff --cached\`, the fixed point is HEAD, and there are no new commits.`
-- Ref: `The fixed point is \`<ref>\`.`
-
-Shared tail: `This run is non-interactive: wherever the skill would ask the user, choose the sensible default and state it in the report. With no spec source found, run the Standards axis alone and say so.`
+- Staged-only requests always use custom mode. Target clause: `Review only the staged changes using git diff --cached against HEAD. Exclude unstaged and untracked changes.` Add any caller focus and spec tail described below.
+- Other targets without extra focus from the caller: preset mode, with `--uncommitted`, `--commit <sha>`, or `--base <branch>`.
+- Other targets with a spec, issue, or areas to focus on: custom mode. The prompt is the target clause + the focus, word for word + the spec tail.
+  - Target clause: `Review the uncommitted changes (staged, unstaged, and untracked).`, `Review the changes introduced by commit <sha>.`, or `Review the changes on this branch against <branch>.`
+  - Spec tail, only when a spec or issue was given: `Also report requirements the spec asks for that are missing, partial, or implemented wrongly, quoting the spec line for each.`
 
 ## 4. Run Codex
 
-Bash tool timeout 600000:
+Bash tool timeout 600000. `<review-args>` is the target flag in preset mode, or the quoted prompt in custom mode:
 
 ```sh
 # Newest installed Codex wins: gpt-6.1-sol needs 0.159+, and the mise install lags the desktop app's copy.
 codex_bin=$({ find ~/.codex/packages/app-server-daemon/releases -path '*/bin/codex' 2>/dev/null; command -v codex; } \
   | while read -r b; do echo "$("$b" --version | awk '{print $2}') $b"; done | sort -V | tail -1 | cut -d' ' -f2)
+# -s and -C belong to exec, so they go before the review subcommand.
 # </dev/null: codex exec appends piped stdin to the prompt.
 out=$(mktemp) && "$codex_bin" exec \
+  -s read-only \
+  -C "$(git rev-parse --show-toplevel)" \
+  review \
   -m gpt-6.1-sol \
   -c model_reasoning_effort='"high"' \
-  -s read-only \
   --ephemeral \
-  -C "$(git rev-parse --show-toplevel)" \
   -o "$out" \
-  "<prompt>" </dev/null >/dev/null 2>"$out.err"; rc=$?; cat "$out"; echo "exit=$rc"; tail -20 "$out.err"
+  <review-args> </dev/null >/dev/null 2>"$out.err"; rc=$?; cat "$out"; echo "exit=$rc"; tail -20 "$out.err"
 ```
 
 ## 5. Report
