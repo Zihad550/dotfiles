@@ -1,17 +1,94 @@
 #!/usr/bin/env bash
 
-# mise use -g uv
-# mise use -g bun deno node@lts pnpm
-# npm:@fission-ai/openspec@latest
-# neovim
-mise use -g node@lts go pnpm nub
-mise use -g claude opencode
-mise use -g uv python@3.14
-mise use -g npm:skills
-mise use -g usage
-mise install just stripe-cli npm:fallow node@24 biome redis
+# Each install runs through `step`, which keeps going past a failure and saves
+# the output. The summary at the end names every failed line with the tail of
+# its output, and only then are the logs kept.
+#
+# Exit status: 0 all steps succeeded; 1 some failed; 2 tools could not start,
+# or every step failed (no network); 130/143 stopped by Ctrl-C or SIGTERM,
+# after summarising the steps that had already failed.
+#
+#   TOOLS_LOG_DIR=<dir>   where the per-step logs go; default a new directory
+#                         under ~/.local/state/dotfiles-setup/tools/, of which
+#                         the newest 5 are kept
 
-# missing apt packages - install via mise
-mise use -g worktrunk
-mise use -g lazydocker
-mise use -g ghq
+if ! command -v mise &>/dev/null; then
+    echo "mise is not on PATH; install it first (../ubuntu-devbox/packages)." >&2
+    exit 2
+fi
+
+if [ -n "${TOOLS_LOG_DIR:-}" ]; then
+    mkdir -p "$TOOLS_LOG_DIR" || exit 2
+else
+    log_parent="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-setup/tools"
+    mkdir -p "$log_parent" &&
+        TOOLS_LOG_DIR="$(mktemp -d "$log_parent/$(date +%Y%m%d-%H%M%S)-XXXX")" || exit 2
+    own_log_dir=1
+    # Timestamped names sort oldest first.
+    find "$log_parent" -mindepth 1 -maxdepth 1 -type d | sort | head -n -5 |
+        while IFS= read -r old; do rm -rf "$old"; done
+fi
+
+steps=0
+failed_lines=()
+failed_statuses=()
+failed_commands=()
+
+summarize() {
+    [ "${#failed_lines[@]}" -gt 0 ] || return 0
+    echo >&2
+    echo "${#failed_lines[@]} tool step(s) failed:" >&2
+    local i log
+    for i in "${!failed_lines[@]}"; do
+        log="$TOOLS_LOG_DIR/line-${failed_lines[i]}.log"
+        echo >&2
+        echo "  ✗ ${BASH_SOURCE[0]}:${failed_lines[i]}  (exit ${failed_statuses[i]})" >&2
+        echo "    ${failed_commands[i]}" >&2
+        echo "    ── last lines of output ──" >&2
+        tail -n 15 "$log" | sed 's/^/    │ /' >&2
+        echo "    full log: $log" >&2
+    done
+    echo >&2
+    echo "Steps share runtimes (npm: tools need node), so fix the first failure" >&2
+    echo "first; later ones may follow from it. Then re-run: ${BASH_SOURCE[0]}" >&2
+}
+
+trap 'summarize; exit 130' INT
+trap 'summarize; exit 143' TERM
+
+step() {
+    local line="${BASH_LINENO[0]}"
+    local log="$TOOLS_LOG_DIR/line-$line.log"
+
+    steps=$((steps + 1))
+    echo "==> $*"
+    "$@" 2>&1 | tee "$log"
+    local status="${PIPESTATUS[0]}"
+    # mise exits 130 when it catches Ctrl-C (143 for SIGTERM): stop, rather than
+    # count it as a failed step. Other 128+n (an OOM kill) is an ordinary failure.
+    if [ "$status" -eq 130 ] || [ "$status" -eq 143 ]; then
+        summarize
+        exit "$status"
+    fi
+    if [ "$status" -ne 0 ]; then
+        failed_lines+=("$line")
+        failed_statuses+=("$status")
+        failed_commands+=("$*")
+    fi
+}
+
+step "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../common/packages/mise-dev-packages"
+step mise use -g python@3.14 usage
+# Arch gets these from pacman.
+step mise use -g worktrunk lazydocker ghq
+step mise install just stripe-cli npm:fallow biome redis
+
+if [ "${#failed_lines[@]}" -eq 0 ]; then
+    rm -f "$TOOLS_LOG_DIR"/line-*.log
+    [ -z "${own_log_dir:-}" ] || rmdir "$TOOLS_LOG_DIR" 2>/dev/null
+    exit 0
+fi
+
+summarize
+[ "${#failed_lines[@]}" -lt "$steps" ] || exit 2
+exit 1

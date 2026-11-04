@@ -54,7 +54,7 @@ be verified with an on-console reboot.
 | `packages` | apt + mise/neovim PPAs — same list as the devcontainer |
 | `setup-docker` | Docker CE + `docker` group — the devcontainer's docker-in-docker feature |
 | `setup-tuned` | power management — a `ubuntu-devbox` tuned profile (wrapper over [`../common/setup-tuned`](../common/setup-tuned)) |
-| `tools` | global mise toolchain — copy of `devcontainer/tools` |
+| `tools` | global mise toolchain — [`../common/packages/mise-dev-packages`](../common/packages/mise-dev-packages) plus the Ubuntu-only tools, run step by step with a failure summary and exit codes `init` relies on |
 | `stow` | dotfile symlinks — `devcontainer/stow` plus the bind-mounted paths it assumed |
 | `../common/setup-herdr` | installs the Herdr binary through mise and adds its existing agent integrations |
 | `setup-tailscale` | install tailscale and join the tailnet; sshd stays the access path (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |

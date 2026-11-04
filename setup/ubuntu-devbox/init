@@ -51,7 +51,12 @@ else
 fi
 
 mise trust
-"$SETUP_DIR/tools"
+# Exit 1: some steps failed and tools printed which; not fatal. 2: mise is
+# missing or every step failed, so the steps after this would fail too. 130/143:
+# interrupted. See the exit codes in tools.
+tools_status=0
+"$SETUP_DIR/tools" || tools_status=$?
+[ "$tools_status" -le 1 ] || exit "$tools_status"
 "$DOTFILES_DIR/setup/common/setup-herdr"
 "$DOTFILES_DIR/setup/common/setup-skills"
 
@@ -65,4 +70,9 @@ echo "  $SETUP_DIR/harden-ssh                # after a key login is confirmed"
 echo "  $SETUP_DIR/encrypt-data-disk <dev>   # optional"
 echo "  $SETUP_DIR/setup-root-autounlock     # optional, encrypted root only"
 echo
+if [ "$tools_status" -eq 1 ]; then
+    echo "some tools failed to install; see the summary above, then re-run:"
+    echo "  $SETUP_DIR/tools"
+    echo
+fi
 echo "now logout and log back in"

@@ -8,10 +8,12 @@ agent_tools=(npm:skills npm:@playwright/cli)
 diff_tools=(aqua:modem-dev/hunk)
 
 # One install call downloads everything in parallel (npm: tools wait for node).
-# Not fatal here: a failed tool fails again in its group's `mise use` below,
-# after the groups before it are recorded. node@24 and node share a call so
-# both versions stay configured.
-mise install "${runtimes[@]}" "${agents[@]}" "${agent_tools[@]}" "${diff_tools[@]}" || true
+# Not fatal here, except for Ctrl-C/SIGTERM: a failed tool fails again in its
+# group's `mise use` below, after the groups before it are recorded. node@24 and
+# node share a call so both versions stay configured.
+install_status=0
+mise install "${runtimes[@]}" "${agents[@]}" "${agent_tools[@]}" "${diff_tools[@]}" || install_status=$?
+case "$install_status" in 130|143) exit "$install_status" ;; esac
 
 mise use -g "${runtimes[@]}"
 mise use -g "${agents[@]}"
