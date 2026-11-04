@@ -21,8 +21,8 @@ resources:
 
 After every implementation:
 
-1. Run the code-review skill on the task's changes. Fix actionable findings and
-   rerun the review until it passes.
+1. Run the `mattpocock-skills:code-review` skill on the task's changes. Fix
+   actionable findings and rerun the review until it passes.
 2. Run required checks and resolve failures before staging.
 3. Automatically stage the task's changes for the user's manual review,
    respecting the staging restrictions below. In files with unrelated changes,
