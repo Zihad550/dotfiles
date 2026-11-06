@@ -176,8 +176,8 @@ test("an unavailable rootfs storage can be replaced interactively", () => {
     assert.strictEqual(result.status, 0, result.stderr);
     assert.match(result.stdout, /1\) local/);
     assert.match(result.stdout, /2\) fast-lvm/);
-    assert.match(result.stdout, /disk:\s+6 GiB on fast-lvm/);
-    assert.match(result.pctLog, /--rootfs fast-lvm:6/);
+    assert.match(result.stdout, /disk:\s+12 GiB on fast-lvm/);
+    assert.match(result.pctLog, /--rootfs fast-lvm:12/);
 });
 
 test("a container user receives password-protected sudo and the configured SSH key", () => {

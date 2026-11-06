@@ -13,7 +13,7 @@ package or tool added there lands here too.
 
 On the Proxmox host, create the container with
 [`../proxmox/ubuntu/create-ubuntu-lxc`](../proxmox/ubuntu/create-ubuntu-lxc).
-Its defaults (1 core, 2 GiB RAM, 6 GiB disk) are too small for this setup:
+Its defaults (1 core, 2 GiB RAM, 12 GiB disk) are too small for this setup:
 
 ```bash
 CT_HOSTNAME=devbox \
