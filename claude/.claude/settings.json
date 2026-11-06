@@ -304,7 +304,7 @@
     "frontend-design@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": false,
-    "drafts@dotfiles-mods": true,
+    "drafts@dotfiles-mods": true
   },
   "extraKnownMarketplaces": {
     "dotfiles-mods": {
