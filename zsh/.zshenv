@@ -90,6 +90,11 @@ export OLLAMA_FLASH_ATTENTION
 # PATH Configuration
 export PATH="$HOME/bin:$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"
 
-if command -v docker &>/dev/null; then
-    export DOCKER_HOST="unix:///run/user/$UID/docker.sock"
-fi
+# Ubuntu targets run rootful Docker on the default socket.
+case "${DOTFILES_PROFILE:-}" in
+arch-workstation | arch-devbox)
+    if command -v docker &>/dev/null; then
+        export DOCKER_HOST="unix:///run/user/$UID/docker.sock"
+    fi
+    ;;
+esac
