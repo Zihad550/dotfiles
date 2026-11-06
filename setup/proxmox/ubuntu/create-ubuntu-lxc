@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 
-# Create a deterministic Ubuntu LXC on the Proxmox host.
+# Create an Ubuntu LXC on the Proxmox host.
 #
-# Every value below can also be overridden by an environment variable. Leave
-# CT_ID empty to use the next available ID; set it to pin an ID and fail if it
-# is already occupied.
+#   ./create-ubuntu-lxc              ask for every value; Enter keeps the default
+#   ./create-ubuntu-lxc --defaults   ask nothing; use the defaults below
+#
+# Every value below can also be overridden by an environment variable, which
+# then becomes the default. UBUNTU_VERSION=latest picks the newest Ubuntu
+# template in the catalog. Leave CT_ID empty to use the next available ID; set
+# it to pin an ID and fail if it is already occupied. See ../README.md.
 
 set -Eeuo pipefail
 
 # ─── configuration ───────────────────────────────────────────────────────────
-UBUNTU_VERSION="${UBUNTU_VERSION:-26.04}"
+UBUNTU_VERSION="${UBUNTU_VERSION:-latest}"
 ARCH="${ARCH:-amd64}"
 
 CT_ID="${CT_ID:-}"
@@ -71,31 +75,132 @@ validate_username() {
         die "CT_USERNAME must be 1-32 lowercase letters, digits, underscores, or hyphens: $username"
 }
 
+usage() {
+    sed -n '3,6p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+# Per-field checks, shared by validate_config and the interactive questions.
+check_version() {
+    [[ "$1" == latest || "$1" =~ ^[0-9]+\.[0-9]+$ ]] ||
+        die "UBUNTU_VERSION must be latest or look like 26.04: $1"
+}
+check_arch() { [[ "$1" == amd64 || "$1" == arm64 ]] || die "unsupported ARCH: $1"; }
+check_ct_id() { [[ -z "$1" ]] || validate_int CT_ID "$1" 100; }
+check_hostname() {
+    [[ "$1" =~ ^[A-Za-z0-9]$ || "$1" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$ ]] ||
+        die "invalid CT_HOSTNAME: $1"
+}
+check_cpu() { validate_int CPU_COUNT "$1" 1; }
+check_ram() { validate_int RAM_MIB "$1" 1; }
+check_swap() { validate_int SWAP_MIB "$1" 0; }
+check_disk() { validate_int DISK_GIB "$1" 1; }
+check_storage() { validate_no_whitespace storage "$1"; [[ -n "$1" ]] || die "storage must not be empty"; }
+check_bridge() {
+    validate_no_whitespace BRIDGE "$1"
+    [[ -d "/sys/class/net/$1" ]] || die "bridge does not exist: $1"
+}
+# IP_CONFIG, GATEWAY and IPV6_CONFIG are joined into net0 with commas.
+check_net_value() {
+    validate_no_whitespace "network value" "$1"
+    [[ "$1" != *,* ]] || die "network value must not contain commas: $1"
+}
+check_key_file() {
+    [[ -z "$1" || -r "$1" ]] || die "SSH_AUTHORIZED_KEY_FILE is not readable: $1"
+}
+check_tun() {
+    (( $1 == 0 )) || [[ -e /dev/net/tun ]] || die "/dev/net/tun is unavailable on the Proxmox host"
+}
+
+# Stricter checks for answers, so a taken ID or missing storage is asked again
+# rather than failing after the last question.
+check_free_ct_id() {
+    check_ct_id "$1"
+    [[ -z "$1" ]] || ! container_exists "$1" || die "container $1 already exists"
+}
+check_template_storage() {
+    check_storage "$1"
+    require_storage "$1" template
+}
+
+# ask VAR LABEL CHECK [EMPTY_HINT]: Enter keeps $VAR. With EMPTY_HINT the
+# value is optional, and "none" clears it.
+ask() {
+    local var="$1" label="$2" check="$3" empty_hint="${4:-}" shown reply error
+    while true; do
+        shown="${!var:-$empty_hint}"
+        read -r -p "$label [$shown]: " reply || die "no answer for: $label"
+        [[ -n "$reply" ]] || reply="${!var}"
+        [[ -z "$empty_hint" || "$reply" != none ]] || reply=""
+        if error="$("$check" "$reply" 2>&1)"; then
+            printf -v "$var" '%s' "$reply"
+            return 0
+        fi
+        echo "$error" >&2
+    done
+}
+
+# ask_bool VAR LABEL [CHECK]: VAR holds 0 or 1.
+ask_bool() {
+    local var="$1" label="$2" check="${3:-}" hint reply value error
+    while true; do
+        if (( ${!var} == 1 )); then hint="Y/n"; else hint="y/N"; fi
+        read -r -p "$label? [$hint] " reply || die "no answer for: $label"
+        case "$reply" in
+        "") value="${!var}" ;;
+        y | Y | yes) value=1 ;;
+        n | N | no) value=0 ;;
+        *) echo "answer y or n" >&2; continue ;;
+        esac
+        if [[ -z "$check" ]] || error="$("$check" "$value" 2>&1)"; then
+            printf -v "$var" '%s' "$value"
+            return 0
+        fi
+        echo "$error" >&2
+    done
+}
+
+ask_config() {
+    echo "Press Enter to keep the value in brackets. Type none to clear an optional one."
+    ask UBUNTU_VERSION "Ubuntu version (latest, or e.g. 26.04)" check_version
+    ask ARCH "Architecture (amd64 or arm64)" check_arch
+    ask CT_ID "Container ID" check_free_ct_id "next free"
+    ask CT_HOSTNAME "Hostname" check_hostname
+    ask CT_USERNAME "Login user" validate_username "root only"
+    ask CPU_COUNT "CPU cores" check_cpu
+    ask RAM_MIB "RAM in MiB" check_ram
+    ask SWAP_MIB "Swap in MiB" check_swap
+    ask DISK_GIB "Disk in GiB" check_disk
+    ask TEMPLATE_STORAGE "Template storage" check_template_storage
+    ask ROOTFS_STORAGE "Root filesystem storage" check_storage
+    ask BRIDGE "Network bridge" check_bridge
+    ask IP_CONFIG "IPv4 (dhcp, or e.g. 192.0.2.10/24)" check_net_value
+    [[ "$IP_CONFIG" == dhcp ]] || ask GATEWAY "IPv4 gateway" check_net_value "none"
+    ask IPV6_CONFIG "IPv6 (none, auto, dhcp, or an address/prefix)" check_net_value
+    ask SSH_AUTHORIZED_KEY_FILE "SSH public key file" check_key_file "none"
+    ask_bool UNPRIVILEGED "Unprivileged container"
+    ask_bool NESTING "Nesting (Docker needs it)"
+    # keyctl only applies to unprivileged containers.
+    (( UNPRIVILEGED == 0 )) || ask_bool KEYCTL "keyctl (Docker needs it)"
+    ask_bool TUN "Pass /dev/net/tun through (Tailscale needs it)" check_tun
+    ask_bool ONBOOT "Start the container when the host boots"
+    ask_bool START_AFTER_CREATE "Start the container after creating it"
+    ask_bool UPDATE_TEMPLATE_CATALOG "Refresh the template catalog first"
+}
+
 prompt_container_user() {
-    local reply confirmation password_required=0
+    local reply confirmation
     CT_USER_PASSWORD=""
 
-    if [[ -z "$CT_USERNAME" ]]; then
-        [[ -t 0 ]] || return 0
-
-        read -r -p "Create a non-root user? [y/N] " reply
-        [[ "$reply" == y || "$reply" == Y ]] || return 0
-
-        read -r -p "Username: " CT_USERNAME
-        [[ -n "$CT_USERNAME" ]] || die "username must not be empty"
-        validate_username "$CT_USERNAME"
-        password_required=1
-    fi
+    [[ -n "$CT_USERNAME" ]] || return 0
 
     if [[ ! -t 0 ]]; then
         echo "note: no terminal is available; $CT_USERNAME will have no password"
         return 0
     fi
 
-    if (( password_required == 0 )); then
-        read -r -p "Set a password for $CT_USERNAME? [y/N] " reply
-        [[ "$reply" == y || "$reply" == Y ]] || return 0
-    fi
+    # sudo needs a password, so Enter sets one.
+    read -r -p "Set a password for $CT_USERNAME? [Y/n] " reply
+    [[ "$reply" != n && "$reply" != N ]] || return 0
 
     read -r -s -p "Password for $CT_USERNAME: " CT_USER_PASSWORD
     echo
@@ -142,7 +247,7 @@ resolve_rootfs_storage() {
         return 0
     fi
 
-    [[ -t 0 ]] || die "rootfs storage does not exist or is unavailable: $ROOTFS_STORAGE"
+    (( USE_DEFAULTS == 0 )) || die "rootfs storage does not exist or is unavailable: $ROOTFS_STORAGE"
 
     mapfile -t storages < <(
         pvesm status --content rootdir 2>/dev/null |
@@ -164,17 +269,18 @@ resolve_rootfs_storage() {
 }
 
 find_template() {
-    local available candidate
+    local available candidate version_pattern='[0-9]+\.[0-9]+'
     local -a candidates=()
+
+    [[ "$UBUNTU_VERSION" == latest ]] ||
+        version_pattern="${UBUNTU_VERSION%%.*}\\.${UBUNTU_VERSION#*.}"
 
     available="$(pveam available --section system 2>/dev/null || true)"
     while IFS= read -r candidate; do
         candidate="${candidate#system/}"
-        case "$candidate" in
-        "ubuntu-${UBUNTU_VERSION}-standard_"*"_${ARCH}.tar."*)
+        if [[ "$candidate" =~ ^ubuntu-${version_pattern}-standard_.*_${ARCH}\.tar\. ]]; then
             candidates+=("$candidate")
-            ;;
-        esac
+        fi
     done < <(printf '%s\n' "$available" | awk 'NF {print $NF}')
 
     ((${#candidates[@]} > 0)) || die "Ubuntu ${UBUNTU_VERSION} ${ARCH} template is unavailable; check: pveam available --section system"
@@ -183,17 +289,16 @@ find_template() {
 }
 
 validate_config() {
-    [[ "$UBUNTU_VERSION" =~ ^[0-9]+\.[0-9]+$ ]] ||
-        die "UBUNTU_VERSION must look like 26.04: $UBUNTU_VERSION"
-    [[ "$ARCH" == amd64 || "$ARCH" == arm64 ]] || die "unsupported ARCH: $ARCH"
-    [[ "$CT_HOSTNAME" =~ ^[A-Za-z0-9]$ || "$CT_HOSTNAME" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$ ]] ||
-        die "invalid CT_HOSTNAME: $CT_HOSTNAME"
+    check_version "$UBUNTU_VERSION"
+    check_arch "$ARCH"
+    check_ct_id "$CT_ID"
+    check_hostname "$CT_HOSTNAME"
     validate_username "$CT_USERNAME"
 
-    validate_int CPU_COUNT "$CPU_COUNT" 1
-    validate_int RAM_MIB "$RAM_MIB" 1
-    validate_int SWAP_MIB "$SWAP_MIB" 0
-    validate_int DISK_GIB "$DISK_GIB" 1
+    check_cpu "$CPU_COUNT"
+    check_ram "$RAM_MIB"
+    check_swap "$SWAP_MIB"
+    check_disk "$DISK_GIB"
 
     validate_bool UNPRIVILEGED "$UNPRIVILEGED"
     validate_bool NESTING "$NESTING"
@@ -205,20 +310,13 @@ validate_config() {
 
     validate_no_whitespace TEMPLATE_STORAGE "$TEMPLATE_STORAGE"
     validate_no_whitespace ROOTFS_STORAGE "$ROOTFS_STORAGE"
-    validate_no_whitespace BRIDGE "$BRIDGE"
-    validate_no_whitespace IP_CONFIG "$IP_CONFIG"
-    validate_no_whitespace GATEWAY "$GATEWAY"
-    validate_no_whitespace IPV6_CONFIG "$IPV6_CONFIG"
+    check_bridge "$BRIDGE"
+    check_net_value "$IP_CONFIG"
+    check_net_value "$GATEWAY"
+    check_net_value "$IPV6_CONFIG"
+    check_key_file "$SSH_AUTHORIZED_KEY_FILE"
 
-    [[ "$IP_CONFIG" != *,* ]] || die "IP_CONFIG must not contain commas: $IP_CONFIG"
-    [[ "$GATEWAY" != *,* ]] || die "GATEWAY must not contain commas: $GATEWAY"
-    [[ "$IPV6_CONFIG" != *,* ]] || die "IPV6_CONFIG must not contain commas: $IPV6_CONFIG"
-
-    [[ -z "$SSH_AUTHORIZED_KEY_FILE" || -r "$SSH_AUTHORIZED_KEY_FILE" ]] ||
-        die "SSH_AUTHORIZED_KEY_FILE is not readable: $SSH_AUTHORIZED_KEY_FILE"
-
-    [[ -d "/sys/class/net/$BRIDGE" ]] || die "bridge does not exist: $BRIDGE"
-    (( TUN == 0 )) || [[ -e /dev/net/tun ]] || die "TUN=1 but /dev/net/tun is unavailable on the Proxmox host"
+    check_tun "$TUN"
 }
 
 build_net_config() {
@@ -264,6 +362,15 @@ provision_user() {
     (( START_AFTER_CREATE == 1 )) || pct stop "$CT_ID"
 }
 
+USE_DEFAULTS=0
+case "${1:-}" in
+"") ;;
+--defaults) USE_DEFAULTS=1 ;;
+-h | --help) usage; exit 0 ;;
+*) usage >&2; die "unknown argument: $1" ;;
+esac
+(( $# <= 1 )) || die "expected at most one argument"
+
 need_command pct
 need_command pvesh
 need_command pvesm
@@ -274,6 +381,11 @@ need_command tail
 need_command sed
 
 (( EUID == 0 )) || die "run this on the Proxmox host as root"
+
+if (( USE_DEFAULTS == 0 )); then
+    [[ -t 0 ]] || die "no terminal for the questions; pass --defaults to use the defaults"
+    ask_config
+fi
 
 validate_config
 prompt_container_user
@@ -286,10 +398,9 @@ if (( UPDATE_TEMPLATE_CATALOG == 1 )); then
 fi
 
 TEMPLATE_FILE="$(find_template)"
+UBUNTU_VERSION="${TEMPLATE_FILE#ubuntu-}"
+UBUNTU_VERSION="${UBUNTU_VERSION%%-standard_*}"
 TEMPLATE_VOLUME="${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE_FILE}"
-if [[ -z "$(pvesm path "$TEMPLATE_VOLUME" 2>/dev/null || true)" ]]; then
-    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE_FILE"
-fi
 
 FEATURES=()
 (( NESTING == 1 )) && FEATURES+=("nesting=1")
@@ -320,6 +431,7 @@ PCT_ARGS=(
 [[ -z "$SSH_AUTHORIZED_KEY_FILE" ]] || PCT_ARGS+=(--ssh-public-keys "$SSH_AUTHORIZED_KEY_FILE")
 
 echo "creating Ubuntu ${UBUNTU_VERSION} LXC"
+echo "  template: $TEMPLATE_FILE"
 echo "  CT ID:    $CT_ID"
 echo "  hostname: $CT_HOSTNAME"
 echo "  user:     ${CT_USERNAME:-root}"
@@ -329,6 +441,16 @@ echo "  swap:     ${SWAP_MIB} MiB"
 echo "  disk:     ${DISK_GIB} GiB on ${ROOTFS_STORAGE}"
 echo "  network:  $NET_CONFIG"
 echo "  features: ${FEATURES_VALUE:-none}"
+echo "  ssh key:  ${SSH_AUTHORIZED_KEY_FILE:-none}"
+
+if (( USE_DEFAULTS == 0 )); then
+    read -r -p "Create this container? [Y/n] " reply || die "no answer; nothing was created"
+    [[ "$reply" != n && "$reply" != N ]] || die "cancelled; nothing was created"
+fi
+
+if [[ -z "$(pvesm path "$TEMPLATE_VOLUME" 2>/dev/null || true)" ]]; then
+    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE_FILE"
+fi
 
 pct create "${PCT_ARGS[@]}"
 
