@@ -28,7 +28,7 @@ The default configuration creates a stopped, unprivileged container with:
 | CPU | `1` core |
 | RAM | `1024` MiB |
 | swap | `2048` MiB |
-| disk | `6` GiB |
+| disk | `12` GiB |
 | template storage | `local` |
 | rootfs storage | `local-lvm` |
 | bridge | `vmbr0` |
