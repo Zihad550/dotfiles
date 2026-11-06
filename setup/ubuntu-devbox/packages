@@ -45,9 +45,8 @@ sudo apt install -y \
 sudo apt install -y \
     gcc
 
-# yazi and dependencies
+# yazi's preview dependencies; yazi itself comes from mise in ./tools (not in apt)
 sudo apt install -y \
-    yazi \
     ffmpeg \
     unar \
     jq \
