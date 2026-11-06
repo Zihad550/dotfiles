@@ -80,7 +80,7 @@ step() {
 step "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../common/packages/mise-dev-packages"
 step mise use -g python@3.14 usage
 # Arch gets these from pacman.
-step mise use -g worktrunk lazydocker ghq
+step mise use -g worktrunk lazydocker ghq yazi
 step mise install just stripe-cli npm:fallow biome redis
 
 if [ "${#failed_lines[@]}" -eq 0 ]; then
