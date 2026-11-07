@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Make one login the only assignee of a Forgejo issue or PR.
+# Usage: df-gt-set-assignee <issue> <login> [-R <owner>/<repo>] [--ref <ref>]
+set -euo pipefail
+usage() { printf 'usage: df-gt-set-assignee <issue> <login> [-R <owner>/<repo>] [--ref <ref>]\n' >&2; exit 2; }
+[ $# -ge 2 ] && [ -n "$1" ] && [ -n "$2" ] || usage
+issue=${1#\#} login=$2
+[[ $issue =~ ^[0-9]+$ ]] || usage
+[[ $login != *,* ]] || usage
+shift 2
+# Only -R and --ref pass through, so the auto mode allow rule covers every call.
+extra=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    -R) [ $# -ge 2 ] || usage; extra+=(--repo="$2"); shift 2 ;;
+    --ref) [ $# -ge 2 ] || usage; extra+=(--ref="$2"); shift 2 ;;
+    *) usage ;;
+  esac
+done
+exec gt issue edit "$issue" --set-assignees="$login" "${extra[@]}"

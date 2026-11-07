@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Remove one assignee from a Forgejo issue or PR, keeping the others.
+# Usage: df-gt-remove-assignee <issue> <login> [-R <owner>/<repo>]
+set -euo pipefail
+usage() { printf 'usage: df-gt-remove-assignee <issue> <login> [-R <owner>/<repo>]\n' >&2; exit 2; }
+[ $# -ge 2 ] && [ -n "$1" ] && [ -n "$2" ] || usage
+issue=${1#\#} login=$2
+[[ $issue =~ ^[0-9]+$ ]] || usage
+[[ $login != *,* ]] || usage
+shift 2
+# Only -R passes through, so the auto mode allow rule covers every call.
+repo=()
+case $# in
+  0) ;;
+  2) [ "$1" = -R ] || usage; repo=(--repo="$2") ;;
+  *) usage ;;
+esac
+exec gt issue edit "$issue" --remove-assignee="$login" "${repo[@]}"

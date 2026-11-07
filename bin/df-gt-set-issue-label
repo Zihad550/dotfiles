@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Add one label to a Forgejo issue and print its labels afterwards.
+# Usage: df-gt-set-issue-label <issue> <label> [-R <owner>/<repo>]
+# POST adds the label and lets Forgejo drop the other label of an exclusive
+# scope (status/*); PUT on this route would replace every label.
+set -euo pipefail
+usage() { printf 'usage: df-gt-set-issue-label <issue> <label> [-R <owner>/<repo>]\n' >&2; exit 2; }
+[ $# -ge 2 ] && [ -n "$1" ] && [ -n "$2" ] || usage
+issue=${1#\#} label=$2
+[[ $issue =~ ^[0-9]+$ ]] || usage
+shift 2
+# Only -R passes through, so the auto mode allow rule covers every call.
+repo=()
+case $# in
+  0) ;;
+  2) [ "$1" = -R ] || usage; repo=(--repo="$2") ;;
+  *) usage ;;
+esac
+label=${label//\\/\\\\}
+label=${label//\"/\\\"}
+exec gt api -X POST "repos/{owner}/{repo}/issues/$issue/labels" -F "labels=[\"$label\"]" --jq '.[].name' "${repo[@]}"
