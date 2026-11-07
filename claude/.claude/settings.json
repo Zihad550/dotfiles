@@ -28,6 +28,9 @@
       "Bash(gh label clone *)"
     ],
     "ask": [
+      "Bash(df-gt-set-issue-label *)",
+      "Bash(df-gt-set-assignee *)",
+      "Bash(df-gt-remove-assignee *)",
       "Bash(gt * create)",
       "Bash(gt * create *)",
       "Bash(gt * new)",
