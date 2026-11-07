@@ -25,9 +25,6 @@ fi
 
 mkdir -p ~/dev
 
-# agents live in separate repo: https://github.com/Zihad550/.agents
-[ -d ~/.agents ] || git clone --depth 1 https://github.com/Zihad550/.agents.git ~/.agents
-
 mise use -g usage
 
 "$DOTFILES/setup/common/setup-herdr"

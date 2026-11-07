@@ -39,7 +39,11 @@ esac
 `,
         pveam: `#!/usr/bin/env bash
 if [[ "$1" == available ]]; then
-    printf 'system/ubuntu-26.04-standard_26.04-1_amd64.tar.zst\\n'
+    printf '%s\\n' \\
+        'system/ubuntu-24.04-standard_24.04-2_amd64.tar.zst' \\
+        'system/ubuntu-26.04-standard_26.04-1_amd64.tar.zst' \\
+        'system/ubuntu-26.04-standard_26.04-2_amd64.tar.zst' \\
+        'system/ubuntu-27.04-standard_27.04-1_arm64.tar.zst'
 fi
 `,
         pvesh: "#!/usr/bin/env bash\nprintf '101\\n'\n",
@@ -83,24 +87,25 @@ fi
     };
 }
 
-function runLxcCreator(overrides = {}) {
+function runLxcCreator(overrides = {}, args = ["--defaults"]) {
     const fake = createFakeProxmoxEnvironment();
     try {
-        return childProcess.spawnSync("fakeroot", ["bash", scriptPath], {
+        const result = childProcess.spawnSync("fakeroot", ["bash", scriptPath, ...args], {
             encoding: "utf8",
             env: { ...fake.env, ...overrides },
         });
+        return { ...result, pctLog: fs.readFileSync(fake.pctLog, "utf8") };
     } finally {
         fs.rmSync(fake.directory, { recursive: true });
     }
 }
 
-function runLxcCreatorInTerminal(input, overrides = {}) {
+function runLxcCreatorInTerminal(input, overrides = {}, args = ["--defaults"]) {
     const fake = createFakeProxmoxEnvironment();
     try {
         const result = childProcess.spawnSync(
             "script",
-            ["-qec", `fakeroot bash ${scriptPath}`, "/dev/null"],
+            ["-qec", `fakeroot bash ${scriptPath} ${args.join(" ")}`, "/dev/null"],
             {
                 encoding: "utf8",
                 env: { ...fake.env, ...overrides },
@@ -114,6 +119,18 @@ function runLxcCreatorInTerminal(input, overrides = {}) {
     } finally {
         fs.rmSync(fake.directory, { recursive: true });
     }
+}
+
+// One answer per question in ask_config order; unset entries press Enter.
+const QUESTIONS = [
+    "version", "arch", "id", "hostname", "user", "cpu", "ram", "swap", "disk",
+    "templateStorage", "rootfsStorage", "bridge", "ipv4", "ipv6", "sshKey",
+    "unprivileged", "nesting", "keyctl", "tun", "onboot", "start", "updateCatalog",
+];
+
+function answers(given = {}, after = []) {
+    for (const key of Object.keys(given)) assert.ok(QUESTIONS.includes(key), key);
+    return [...QUESTIONS.map((key) => given[key] ?? ""), ...after].join("\n") + "\n";
 }
 
 test("the Proxmox LXC creator has valid Bash syntax", () => {
@@ -135,7 +152,24 @@ test("root-only container creation continues past the optional password prompt",
 
     assert.strictEqual(result.status, 0, result.stderr);
     assert.match(result.stdout, /creating Ubuntu 26\.04 LXC/);
+    assert.match(result.stdout, /template: ubuntu-26\.04-standard_26\.04-2_amd64\.tar\.zst/);
     assert.match(result.stdout, /created container 101/);
+});
+
+test("a pinned Ubuntu version uses that release's newest template", () => {
+    const result = runLxcCreator({ UBUNTU_VERSION: "24.04" });
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /creating Ubuntu 24\.04 LXC/);
+    assert.match(result.pctLog, /ubuntu-24\.04-standard_24\.04-2_amd64/);
+});
+
+test("without --defaults and without a terminal, nothing is created", () => {
+    const result = runLxcCreator({}, []);
+
+    assert.strictEqual(result.status, 1);
+    assert.match(result.stderr, /pass --defaults/);
+    assert.doesNotMatch(result.pctLog, /^create /m);
 });
 
 test("container creation continues when an unused container ID is specified", () => {
@@ -152,37 +186,97 @@ test("container creation continues when its optional user password is declined",
     assert.match(result.stdout, /created container 101/);
 });
 
-test("container creation prompts for a user and confirmed password", () => {
-    const result = runLxcCreatorInTerminal("y\ndev\nsecret\nsecret\n");
+test("pressing Enter at every question creates the default container", () => {
+    const result = runLxcCreatorInTerminal(answers({}, [""]), {}, []);
 
     assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Container ID \[next free\]/);
+    assert.match(result.stdout, /Login user \[root only\]/);
+    assert.match(result.pctLog, /ubuntu-26\.04-standard_26\.04-2_amd64/);
+    assert.match(result.pctLog, /--cores 1 --memory 2048 --swap 1024 --rootfs local-lvm:12/);
+});
+
+test("interactive answers override the defaults and set a confirmed password", () => {
+    const result = runLxcCreatorInTerminal(
+        answers(
+            { id: "150", hostname: "devbox", user: "dev", cpu: "4", disk: "40", sshKey: "none", onboot: "y" },
+            ["", "secret", "secret", ""],
+        ),
+        {},
+        [],
+    );
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.pctLog, /^create 150 .*--hostname devbox --cores 4 .*--rootfs local-lvm:40 .*--onboot 1/m);
+    assert.doesNotMatch(result.pctLog, /--ssh-public-keys/);
     assert.match(result.pctLog, /useradd --create-home --shell \/bin\/bash --groups sudo dev/);
     assert.match(result.pctLog, /stdin:dev:secret/);
 });
 
-test("interactive user creation rejects an empty username", () => {
-    const result = runLxcCreatorInTerminal("y\n\nx\nx\n");
+test("an invalid answer is asked again", () => {
+    const result = runLxcCreatorInTerminal(answers({ cpu: "zero\n4" }, [""]), {}, []);
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /error: CPU_COUNT must be an integer: zero/);
+    assert.match(result.pctLog, /--cores 4/);
+});
+
+test("declining the final confirmation creates nothing", () => {
+    const result = runLxcCreatorInTerminal(answers({}, ["n"]), {}, []);
 
     assert.strictEqual(result.status, 1);
-    assert.match(result.stdout, /error: username must not be empty/);
+    assert.match(result.stdout, /cancelled; nothing was created/);
+    assert.doesNotMatch(result.pctLog, /^create /m);
 });
 
 test("an unavailable rootfs storage can be replaced interactively", () => {
-    const result = runLxcCreatorInTerminal("n\n2\n", {
+    const result = runLxcCreatorInTerminal(answers({}, ["2", ""]), {
         ROOTFS_STORAGE: "missing",
         FAKE_UNAVAILABLE_STORAGE: "missing",
-    });
+    }, []);
 
     assert.strictEqual(result.status, 0, result.stderr);
     assert.match(result.stdout, /1\) local/);
     assert.match(result.stdout, /2\) fast-lvm/);
-    assert.match(result.stdout, /disk:\s+6 GiB on fast-lvm/);
-    assert.match(result.pctLog, /--rootfs fast-lvm:6/);
+    assert.match(result.stdout, /disk:\s+12 GiB on fast-lvm/);
+    assert.match(result.pctLog, /--rootfs fast-lvm:12/);
+});
+
+test("--defaults fails on an unavailable rootfs storage instead of asking", () => {
+    const result = runLxcCreatorInTerminal("2\n", {
+        ROOTFS_STORAGE: "missing",
+        FAKE_UNAVAILABLE_STORAGE: "missing",
+    });
+
+    assert.strictEqual(result.status, 1);
+    assert.match(result.stdout, /error: rootfs storage does not exist or is unavailable: missing/);
+    assert.doesNotMatch(result.pctLog, /^create /m);
+});
+
+test("a missing template storage answer is asked again", () => {
+    const result = runLxcCreatorInTerminal(
+        answers({ templateStorage: "gone\nlocal" }, [""]),
+        { FAKE_UNAVAILABLE_STORAGE: "gone" },
+        [],
+    );
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /error: template storage does not exist or is unavailable: gone/);
+});
+
+test("a privileged container is not asked about keyctl", () => {
+    const keys = QUESTIONS.filter((key) => key !== "keyctl");
+    const input = [...keys.map((key) => (key === "unprivileged" ? "n" : "")), ""].join("\n") + "\n";
+    const result = runLxcCreatorInTerminal(input, {}, []);
+
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /keyctl \(Docker/);
+    assert.match(result.pctLog, /--unprivileged 0/);
 });
 
 test("a container user receives password-protected sudo and the configured SSH key", () => {
     assert.match(script, /useradd --create-home --shell \/bin\/bash --groups sudo "\$CT_USERNAME"/);
-    assert.match(script, /Set a password for \$CT_USERNAME\? \[y\/N\]/);
+    assert.match(script, /Set a password for \$CT_USERNAME\? \[Y\/n\]/);
     assert.match(script, /pct exec "\$CT_ID" -- chpasswd/);
     assert.doesNotMatch(script, /NOPASSWD/);
     assert.match(script, /home\/\$CT_USERNAME\/\.ssh\/authorized_keys/);

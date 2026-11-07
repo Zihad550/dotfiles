@@ -27,9 +27,6 @@ fi
 
 mkdir -p ~/dev
 
-# agents live in separate repo: https://github.com/Zihad550/.agents
-[ -d ~/.agents ] || git clone --depth 1 https://github.com/Zihad550/.agents.git ~/.agents
-
 # sudo apt install procs -y # available from ubuntu 25.04
 
 # install the latest version of neovim

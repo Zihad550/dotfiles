@@ -13,14 +13,16 @@ package or tool added there lands here too.
 
 On the Proxmox host, create the container with
 [`../proxmox/ubuntu/create-ubuntu-lxc`](../proxmox/ubuntu/create-ubuntu-lxc).
-Its defaults (1 core, 2 GiB RAM, 6 GiB disk) are too small for this setup:
+It asks for every value. Its defaults (1 core, 2 GiB RAM, 12 GiB disk) are too
+small for this setup, so either answer the questions or pass the sizes and
+`--defaults`:
 
 ```bash
 CT_HOSTNAME=devbox \
 CT_USERNAME=jehad \
 SSH_AUTHORIZED_KEY_FILE=/root/.ssh/laptop.pub \
 CPU_COUNT=4 RAM_MIB=8192 SWAP_MIB=2048 DISK_GIB=40 \
-./setup/proxmox/ubuntu/create-ubuntu-lxc
+./setup/proxmox/ubuntu/create-ubuntu-lxc --defaults
 
 ./setup/proxmox/ubuntu/setup-firewall <CT_ID>
 pct start <CT_ID>

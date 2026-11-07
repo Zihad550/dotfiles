@@ -1,12 +1,12 @@
 # Proxmox Ubuntu LXC
 
 `create-ubuntu-lxc` creates an Ubuntu LXC directly on the Proxmox host. It is
-the deterministic local equivalent of the Community Scripts Ubuntu launcher:
-it does not display menus, does not choose another Ubuntu release silently, and
-does not delete or replace an existing container.
+the local equivalent of the Community Scripts Ubuntu launcher: it asks for each
+value with the default filled in, shows the result before creating anything,
+and does not delete or replace an existing container.
 
-The default Ubuntu release is **26.04**. The script requires an exact matching
-template in the Proxmox catalog.
+By default it uses the newest Ubuntu `standard` template in the Proxmox catalog,
+which it refreshes first. Pin a release with `UBUNTU_VERSION`.
 
 ## Usage
 
@@ -17,18 +17,34 @@ cd /path/to/dotfiles
 ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
-The default configuration creates a stopped, unprivileged container with:
+It asks for every setting below. Press Enter to keep the value in brackets, or
+type `none` to clear an optional one (container ID, login user, gateway, SSH
+key file). An invalid answer, a taken container ID or a missing template
+storage is asked again. If the root filesystem storage is unavailable, it lists
+the active ones to pick from. After the last question it prints
+the full configuration and asks `Create this container? [Y/n]`.
+
+Pass `--defaults` to skip the questions and the confirmation:
+
+```bash
+./setup/proxmox/ubuntu/create-ubuntu-lxc --defaults
+```
+
+Without a terminal the script requires `--defaults`. With `--defaults`, an
+unavailable storage or taken container ID is an error.
+
+The defaults create a stopped, unprivileged container with:
 
 | setting | default |
 |---|---:|
-| Ubuntu | `26.04` |
+| Ubuntu | newest in the catalog (`latest`) |
 | CT ID | next available ID |
 | hostname | `ubuntu-devbox` |
 | user | `root` |
 | CPU | `1` core |
-| RAM | `1024` MiB |
-| swap | `2048` MiB |
-| disk | `6` GiB |
+| RAM | `2048` MiB |
+| swap | `1024` MiB |
+| disk | `12` GiB |
 | template storage | `local` |
 | rootfs storage | `local-lvm` |
 | bridge | `vmbr0` |
@@ -37,16 +53,18 @@ The default configuration creates a stopped, unprivileged container with:
 | nesting | enabled |
 | keyctl | enabled |
 | TUN passthrough | enabled |
+| SSH key file | `/root/.ssh/authorized_keys` (every key the host's root accepts) |
 
-Edit the configuration block at the top of the script, or override values for
-one run:
+Edit the configuration block at the top of the script, or override values with
+environment variables. An override becomes the default shown in the question,
+or the value used with `--defaults`:
 
 ```bash
 CT_HOSTNAME=devbox \
 CPU_COUNT=8 \
 RAM_MIB=16384 \
 SWAP_MIB=8192 \
-./setup/proxmox/ubuntu/create-ubuntu-lxc
+./setup/proxmox/ubuntu/create-ubuntu-lxc --defaults
 ```
 
 ## Container ID and hostname
@@ -74,9 +92,11 @@ Set `CT_USERNAME` to create a non-root login user:
 CT_USERNAME=jehad ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
-The script asks whether to set a password when run from a terminal. It does not
-echo the password and asks for confirmation before creating the container. The
-user receives normal sudo access, which requires that password.
+Without `--defaults`, the script asks for the login user; leave it empty for
+root only. When a user is set and a terminal is attached, it asks
+`Set a password for <user>? [Y/n]`, even with `--defaults`. It does not echo
+the password and asks for it twice. The user receives normal sudo access, which
+requires that password.
 
 If you decline or run the script without a terminal, the user has no password.
 SSH key login still works, but sudo will not work until root sets a password:
@@ -111,15 +131,19 @@ pct enter <CT_ID>
 
 ## Ubuntu version and template
 
-The release is controlled by `UBUNTU_VERSION` and defaults to `26.04`:
+The release is controlled by `UBUNTU_VERSION` and defaults to `latest`: the
+highest Ubuntu version in the catalog for `ARCH`, interim releases included.
+Pin a release, such as an LTS, with:
 
 ```bash
 UBUNTU_VERSION=26.04 ./setup/proxmox/ubuntu/create-ubuntu-lxc
 ```
 
-The script runs `pveam update` by default, searches for an exact Ubuntu
-`standard` template, downloads it when necessary, and fails if that release is
-not available. Inspect the catalog manually with:
+The script runs `pveam update` by default, so `latest` and a pinned release
+both get the newest template build. It downloads the template when it is not
+already on `TEMPLATE_STORAGE`, and fails if the release is not in the catalog.
+The summary before creation names the exact template. Inspect the catalog
+manually with:
 
 ```bash
 pveam available --section system | grep ubuntu
