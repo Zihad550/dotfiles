@@ -4,7 +4,7 @@
 # The client workstation has its own package base so changes here do not put
 # development tools on the laptop.
 #
-# NOTE: worktrunk, tea and herdr come from the omarchy repo, not official
+# NOTE: worktrunk and herdr come from the omarchy repo, not official
 # Arch. `setup-omarchy-repos` must run before this. claude and opencode are
 # not here: mise-dev-packages installs them.
 
@@ -18,7 +18,7 @@
 # pastel - color generation tool
 # 7zip - archives
 # worktrunk - git worktree made simple
-# tea - gh equivalent for forgejo instance
+# gitea-cli - provides `tea`, the gh equivalent for the forgejo instance
 # bubblewrap socat - needed for claude code sandboxing
 
 pacman_install \
@@ -40,7 +40,7 @@ pacman_install \
     github-cli \
     shellcheck shfmt \
     worktrunk \
-    tea \
+    gitea-cli \
     rsync \
     bubblewrap socat \
     herdr \
