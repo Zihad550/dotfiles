@@ -36,8 +36,12 @@ fi
 
 # avoid GitHub API rate limits (mise, gh, etc.)
 if command -v gh &>/dev/null; then
-    GITHUB_TOKEN="$(gh auth token 2>/dev/null)"
-    export GITHUB_TOKEN
+    # Without -u, gh echoes an inherited GITHUB_TOKEN instead of its stored login.
+    _gh_token="$(env -u GITHUB_TOKEN gh auth token 2>/dev/null)"
+    if [[ -n "$_gh_token" ]]; then
+        export GITHUB_TOKEN="$_gh_token"
+    fi
+    unset _gh_token
 fi
 
 # bootstrap .zshrc to ~/.config/zsh/.zshrc, any other zsh config files can also reside here
