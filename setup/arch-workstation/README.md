@@ -9,9 +9,9 @@ Syncthing runs as a user service. Its setup does not create or configure a
 local `~/dev` tree. The firewall does not open Syncthing inbound, so this
 machine must initiate connections to configured peers.
 
-Helium is installed with pacman from the Omarchy repository. The remaining
-AUR packages use `yay` and the `base-devel` build tools. Chromium is not
-installed by this profile.
+Helium and Claude Desktop are installed with pacman from the Omarchy
+repository. The remaining AUR packages, such as `kanata-bin`, use `yay` and
+the `base-devel` build tools. Chromium is not installed by this profile.
 
 The native Zed package and its dependencies remain unchanged.
 

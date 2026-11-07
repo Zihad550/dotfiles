@@ -90,7 +90,6 @@ test("Arch workstation is a remote-development client", () => {
     const init = source("setup/arch-workstation/init");
     const packages = source("setup/arch-workstation/packages/pacman-base");
     const apps = source("setup/arch-workstation/packages/pacman-apps");
-    const yayPackages = source("setup/arch-workstation/packages/yay-packages");
     const flatpaks = source("setup/common/packages/flatpak-packages");
     const stow = source("setup/arch-workstation/stow");
     const syncthing = source("setup/arch-workstation/setup-packages/setup-syncthing");
@@ -110,10 +109,10 @@ test("Arch workstation is a remote-development client", () => {
     assert.match(apps, /^\s*zed \\/m);
     assert.match(apps, /^\s*neovim \\/m);
     assert.match(apps, /^\s*helium-browser-bin \\/m);
-    assert.doesNotMatch(yayPackages, /helium-browser-bin/);
-    assert.doesNotMatch(yayPackages, /dragon-drop/);
+    assert.doesNotMatch(init, /packages\/yay-packages/);
+    assert.doesNotMatch(apps, /dragon-drop/);
     assert.match(apps, /^\s*yazi resvg \\/m);
-    assert.doesNotMatch(`${init}\n${packages}\n${apps}\n${yayPackages}\n${flatpaks}`,
+    assert.doesNotMatch(`${init}\n${packages}\n${apps}\n${flatpaks}`,
         /(^|\s)chromium(?:\s|\\|$)/m);
     assert.match(flatpaks, /com\.mongodb\.Compass/);
     assert.match(flatpaks, /io\.beekeeperstudio\.Studio/);
@@ -132,6 +131,13 @@ test("Arch workstation is a remote-development client", () => {
     assert.doesNotMatch(devboxGitHub, /gh config set git_protocol/);
     assert.match(devboxGitHub, /gh extension install dlvhdr\/gh-dash/);
     assert.doesNotMatch(stow, /stow (git|lazygit|worktrunk)|stow-ai/);
+});
+
+test("both Arch profiles install Claude Desktop with pacman", () => {
+    for (const profile of ["arch-workstation", "arch-devbox"]) {
+        assert.match(source(`setup/${profile}/packages/pacman-apps`), /^\s*claude-desktop(?:\s|\\|$)/m);
+    }
+    assert.doesNotMatch(source("setup/arch-devbox/packages/yay-packages"), /claude-desktop/);
 });
 
 test("Arch devbox excludes workstation sync", () => {

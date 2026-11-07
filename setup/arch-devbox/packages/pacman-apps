@@ -60,4 +60,5 @@ pacman_install \
 
 # ai apps
 pacman_install \
+    claude-desktop \
     openai-codex-desktop
