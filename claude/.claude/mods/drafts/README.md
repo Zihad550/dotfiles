@@ -1,8 +1,8 @@
 # drafts
 
 Claude Code mod: a side pane showing the newest drafts the draft skills
-(`draft-tea-command-for-issue-create`, `work-draft-reply`) write to
-`/tmp/tea-issue-*.md`, `/tmp/tea-comment-*.md` and `/tmp/draft-*.md`.
+(`draft-gt-command-for-issue-create`, `work-draft-reply`) write to
+`/tmp/gt-issue-*.md`, `/tmp/gt-comment-*.md` and `/tmp/draft-*.md`.
 
 `/drafts` toggles the pane; the choice persists across sessions. In the pane,
 `c` copies the shown draft and `r` rescans.

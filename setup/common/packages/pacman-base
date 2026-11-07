@@ -18,7 +18,7 @@
 # pastel - color generation tool
 # 7zip - archives
 # worktrunk - git worktree made simple
-# gitea-cli - provides `tea`, the gh equivalent for the forgejo instance
+# gitea-cli - provides `gt`, the gh equivalent for the forgejo instance
 # bubblewrap socat - needed for claude code sandboxing
 
 pacman_install \

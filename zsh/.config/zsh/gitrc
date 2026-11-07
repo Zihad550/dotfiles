@@ -1,6 +1,6 @@
 #!/usr/env/bin bash
 # Personal git + gh helpers.
-# df-ti, df-tpr and df-tprr are scripts in ~/dotfiles/bin, so agents' non-interactive
+# df-ti and df-tpr are scripts in ~/dotfiles/bin, so agents' non-interactive
 # shells get them too; the short names below are for typing.
 # alias gpsu='git push -u origin $(git rev-parse --abbrev-ref HEAD)' # push into current branch
 # alias gs='git status'
@@ -42,7 +42,6 @@ alias_if_command gh gpr 'gh pr view --comments'
 alias_if_command gh gi 'gh issue view --comments'
 alias_if_command df-ti ti df-ti
 alias_if_command df-tpr tpr df-tpr
-alias_if_command df-tprr tprr df-tprr
 
 if commands_available git gh; then
     alias gh-create-pub='git init && gh repo create --public --source=. --remote=origin && git push -u --all && gh browse'

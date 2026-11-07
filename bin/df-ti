@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 # Print a Forgejo issue with its comments.
-# Usage: df-ti <issue> [tea flags...]
-exec tea issue --comments -o simple "$@"
+# Usage: df-ti <issue> [gt flags...]
+[ -n "${1:-}" ] || { printf 'usage: df-ti <issue> [gt flags...]\n' >&2; exit 2; }
+exec gt issue view --comments "$@"

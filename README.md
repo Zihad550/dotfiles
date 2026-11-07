@@ -201,7 +201,7 @@ file "$(mise where deno)/bin/deno"
 nc -z -vv localhost 6379
 
 # create a forgejo issue
-tea issues create --repo <owner>/<repo> --title "title" --description "desc" --login <login>
+gt issue create --repo <owner>/<repo> --title "title" --body "desc"
 ```
 
 https://codeberg.org/jehad/dotfiles

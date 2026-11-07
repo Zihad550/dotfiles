@@ -17,6 +17,7 @@ sudo apt install -y \
     git-delta \
     starship \
     rsync \
+    curl \
     pass \
     jq \
     less \
@@ -25,9 +26,15 @@ sudo apt install -y \
     lazygit
 
 # clis for interacting with git providers
-sudo apt install -y \
-    gh \
-    tea
+sudo apt install -y gh
+
+# gt (gitea-cli) is not in Ubuntu's archive; install the release's .deb.
+gt_version=$(curl -fsSL https://gitea.com/api/v1/repos/gitea/cli/releases/latest | jq -r .tag_name)
+gt_deb=$(mktemp --suffix=.deb)
+curl -fsSL -o "$gt_deb" \
+    "https://gitea.com/gitea/cli/releases/download/$gt_version/gitea-cli_${gt_version#v}_$(dpkg --print-architecture).deb"
+sudo apt install -y "$gt_deb"
+rm -f "$gt_deb"
 
 #  alternatives to core packages
 sudo apt install -y \

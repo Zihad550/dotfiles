@@ -5,8 +5,8 @@ import type { Draft } from '../types'
 
 const PANE = 'drafts'
 const DIR = '/tmp'
-// Where draft-tea-command-for-issue-create and work-draft-reply write drafts.
-const DRAFT = /^(tea-(issue|comment)|draft)-.+\.md$/
+// Where draft-gt-command-for-issue-create and work-draft-reply write drafts.
+const DRAFT = /^(gt-(issue|comment)|draft)-.+\.md$/
 const WRITERS = new Set(['Write', 'Edit', 'Bash'])
 const ENABLED = 'enabled'
 
@@ -105,7 +105,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text dimColor>No drafts yet.</Text>
-          <Text dimColor>Drafts written to {DIR}/tea-*.md show here.</Text>
+          <Text dimColor>Drafts written to {DIR}/gt-*.md show here.</Text>
           <Box marginTop={1}>
             <Button key="refresh" label="Refresh" hotkey="r" onPress={() => refresh($)} />
           </Box>

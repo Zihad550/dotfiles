@@ -28,8 +28,8 @@ test('/drafts toggles the pane and it shows the newest draft', async ($, on) => 
   })
   on('fs.list', () => ({
     value: [
-      { name: 'tea-issue-old.md', kind: 'file', size: 3, mtimeMs: 0, isLink: false },
-      { name: 'tea-comment-42.md', kind: 'file', size: 5, mtimeMs: 60_000, isLink: false },
+      { name: 'gt-issue-old.md', kind: 'file', size: 3, mtimeMs: 0, isLink: false },
+      { name: 'gt-comment-42.md', kind: 'file', size: 5, mtimeMs: 60_000, isLink: false },
       { name: 'draft-secret.md', kind: 'file', size: 10, mtimeMs: 120_000, isLink: true },
       { name: 'notes.md', kind: 'file', size: 1, mtimeMs: 90_000, isLink: false },
     ],
