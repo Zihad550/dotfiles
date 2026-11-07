@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+keepalive_file=/etc/ssh/ssh_config.d/20-dotfiles-keepalive.conf
+sudo install -d -m 755 /etc/ssh/ssh_config.d
+printf '%s\n' \
+    '# Notice dropped connections promptly. ~/.ssh/config can override this per host.' \
+    'Host *' \
+    '  ServerAliveInterval 15' \
+    '  ServerAliveCountMax 3' \
+    '  ConnectTimeout 10' |
+    sudo tee "$keepalive_file" >/dev/null
+sudo chmod 644 "$keepalive_file"
+
+pam_env=/etc/security/pam_env.conf
+if ! sudo grep -qE '^PATH[[:space:]]' "$pam_env"; then
+    printf '%s\n' \
+        '' \
+        '# Dotfiles: expose user tools to SSH commands that start no shell' \
+        'PATH DEFAULT=/usr/local/sbin:/usr/local/bin:/usr/bin:@{HOME}/.local/share/mise/shims:@{HOME}/.local/bin:@{HOME}/bin:@{HOME}/dotfiles/bin' |
+        sudo tee -a "$pam_env" >/dev/null
+fi

@@ -94,6 +94,7 @@ zinit cdreplay -q
 # Esc-Esc: toggle a sudo prefix on the current line.
 source "$XDG_CONFIG_HOME/zsh/sudo.zsh"
 source "$XDG_CONFIG_HOME/zsh/shell-utils"
+source "$XDG_CONFIG_HOME/zsh/ssh-reconnect.zsh"
 
 suffix_alias_if_command() {
     local command_name=$1 alias_name=$2 expansion=$3
