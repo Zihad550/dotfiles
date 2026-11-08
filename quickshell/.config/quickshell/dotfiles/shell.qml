@@ -50,12 +50,6 @@ ShellRoot {
         Bar { mediaService: mediaLoader.item }
     }
 
-    Variants {
-        model: Quickshell.screens
-
-        DailyRoutine {}
-    }
-
     BatteryService {}
 
     // The org.freedesktop.Notifications server, replacing mako. Not a
