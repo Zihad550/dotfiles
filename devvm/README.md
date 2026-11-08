@@ -14,10 +14,12 @@ each of them. Vite's `/api` proxy reaches the backend on `localhost:6175`, and
 one compose stack (Postgres, Redis, pgAdmin) serves every worktree.
 
 `mamacrm.sh` adds CLI tools (ripgrep, fd, bat, eza, fzf, jq, delta, lazygit,
-zoxide, trash-cli, tree, gcc, make, unzip), mise from its PPA, and psql. It
-needs the `docker` layer below it. The backend's Go tools (migrate, tparse,
+zoxide, trash-cli, tree, gcc, make, unzip) and psql. It needs the `docker`
+layer below it. The backend's Go tools (migrate, tparse,
 golangci-lint, gofumpt) aren't in the image: `mise run project-init` builds
-them in the VM with `go install`, into `~/go/bin`, which the layer puts on PATH.
+them in the VM with `go install`, into `~/go/bin`, which devvm puts on PATH.
+mise comes with devvm's base, which also activates it and trusts the repos'
+`mise.toml` files.
 
 node and go are devvm shared tools, which also bring the network rules for npm,
 the Go module proxy and their downloads. devvm only detects them from files at
@@ -36,12 +38,12 @@ The shell opens in the mamacrm folder. Once per VM:
 
 ```bash
 cd backend
-mise trust && mise install
+mise install
 mise x -- just tools::install::gofumpt  # tools::install's check also wants gofumpt
 mise run project-init                   # just tools::install: tparse, golangci-lint, migrate, psql
 
 cd ../frontend
-mise trust && mise install
+mise install
 ```
 
 Then `mise run dev` in each. The VM's home is `/home/USER.guest`, so `~` in the
@@ -68,5 +70,5 @@ host. Check them before running git hooks on the host.
 
 Changing a layer script rebuilds that image and every image built on it. To
 move an existing VM onto the new build, run `devvm update`. It keeps the VM's
-home folder, so the `~/.bashrc.d` file the layer writes reaches only new VMs.
-`devvm update --clean-home` replaces the home folder with the image's.
+home folder but not the rest of its disk, so the database in its Docker is lost;
+seed it again with `mise run dind-reset`.
