@@ -35,6 +35,13 @@ fi
 # stow worktrunk — only config.toml is managed; the rest is runtime state (approvals, locks)
 mkdir -p ~/.config/worktrunk
 ln -snf ~/dotfiles/worktrunk/.config/worktrunk/config.toml ~/.config/worktrunk/config.toml
+# stow devvm — only layers/ is managed; the rest is devvm's state (agent logins)
+mkdir -p ~/.config/devvm
+if [[ -d ~/.config/devvm/layers && ! -L ~/.config/devvm/layers ]]; then
+    echo "warning: ~/.config/devvm/layers is a real folder; move its layers into ~/dotfiles/devvm and rerun" >&2
+else
+    ln -snf ~/dotfiles/devvm/.config/devvm/layers ~/.config/devvm/layers
+fi
 rm -rf ~/.bashrc
 stow bash
 stow branch-creator

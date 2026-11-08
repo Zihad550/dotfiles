@@ -1,0 +1,21 @@
+# npm, Go modules and images come from the node and go shared tools' and the
+# docker layer's rules.
+
+# mise's PPA (add-apt-repository looks the key up on Launchpad), its version
+# lists, and conda-forge, where mise gets the backend's redis
+ppa.launchpadcontent.net
+api.launchpad.net
+keyserver.ubuntu.com
+mise.jdx.dev
+mise-versions.jdx.dev
+conda.anaconda.org
+
+# APIs the backend calls
+api.linkedin.com
+www.linkedin.com
+graph.facebook.com
+business-api.tiktok.com
+*.stripe.com
+api.openai.com
+api.firstpromoter.com
+*.r2.cloudflarestorage.com

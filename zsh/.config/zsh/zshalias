@@ -40,6 +40,11 @@ global_alias_if_command wl-copy 'C' '| wl-copy'
 global_alias_if_command wl-paste 'P' 'wl-paste'
 global_alias_if_command less 'L' '| less'
 
+# One VM over every mamacrm repo and worktree; creates it on first run, opens
+# it after. See devvm/README.md.
+alias_if_command devvm devvm-mamacrm \
+    '(cd ~/dev/work/mamacrm && devvm --layers docker,mamacrm --tools node,go --agents claude --cpus 6 --memory 12)'
+
 if commands_available go-timer notify-send; then
     alias work="pomodoro 'work'"
     alias typing="pomodoro 'typing'"
