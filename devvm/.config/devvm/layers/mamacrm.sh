@@ -24,6 +24,7 @@ sudo apt-get install -y --no-install-recommends \
     lazygit \
     less \
     make \
+    ncurses-term \
     neovim \
     postgresql-client \
     ripgrep \
@@ -37,6 +38,10 @@ sudo apt-get install -y --no-install-recommends \
 # Ubuntu renames these to avoid clashes with other packages.
 sudo ln -sf /usr/bin/batcat /usr/local/bin/bat
 sudo ln -sf /usr/bin/fdfind /usr/local/bin/fd
+# Ghostty sets TERM=xterm-ghostty, but Ubuntu names its entry only "ghostty".
+# Without one, zsh can't move the cursor back and redraws typed letters twice.
+sudo mkdir -p /etc/terminfo/x
+sudo ln -sf /usr/share/terminfo/g/ghostty /etc/terminfo/x/xterm-ghostty
 
 # The host's zsh setup, from this repo. Run `git -C /opt/dotfiles pull` in the
 # VM to pick up newer config.
