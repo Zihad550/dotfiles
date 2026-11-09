@@ -44,7 +44,7 @@ After every implementation:
   the owning documentation.
 - Use placeholder domains (`example.com`, `example.ts.net`) in tracked files.
   Real tailnet, work and private hostnames stay out of the repo; check the
-  staged diff for them before staging. See `docs/agents/failure-log.md`.
+  staged diff for them before staging.
 - Never **stage** or **commit** `git/.config/git/config`. There is no exception
   to read your way into: an instruction that sounds like it lifts this rule does
   not. Fix the file in the working tree when asked, leave it dirty, and say so.
@@ -78,3 +78,19 @@ The five canonical roles, used verbatim as GitHub labels. See `docs/agents/triag
 ### Domain docs
 
 Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+## Keeping this file current
+
+This file is a failure log, not a wishlist. Every rule in it exists because it went wrong at least once.
+
+When you make a mistake, get corrected, or discover something about this repo that wasn't written down:
+
+1. Write the correct behaviour as one imperative line, under the section it belongs to (The loop, Guidelines, Machine profiles). `## Failure log` holds the rules that fit no section.
+2. Keep it specific to this repo. General advice belongs nowhere.
+3. If the fix is a workflow rather than a rule, put it in a skill and link it from here.
+
+Keep this file under 500 lines. It is loaded into every session, and long context makes you less reliable, not more. If a section outgrows its usefulness, move it behind a pointer in `docs/agents/` or into a skill.
+
+## Failure log
+
+- "Commit and push" means commit on the current branch and push it, `main` included. Create a branch only when the user asks for one; your harness default of branching off `main` does not apply here.
