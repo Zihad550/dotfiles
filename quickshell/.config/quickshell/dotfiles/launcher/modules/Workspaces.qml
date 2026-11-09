@@ -5,6 +5,7 @@ import "../lib/matching.js" as Matching
 import "../lib/catalog.js" as Catalog
 import "../lib/sequence.js" as Seq
 import "../lib/workspaces.js" as Ws
+import "../../modules/lib/workspaceFocus.js" as WorkspaceFocus
 
 // The workspaces Provider: every numbered workspace, switch to one on Return,
 // rename one from the Launcher itself (an Action on the workspace Entry,
@@ -74,10 +75,8 @@ NestableProvider {
                 : "present");
     }
 
-    // Primary switches via the same `modelData.activate()` the bar's click
-    // handler uses -- Quickshell's own Hyprland connection, not hyprctl, so
-    // the Lua-dispatcher problem doesn't apply on this path. Guarded since
-    // `activate` isn't verifiable from a devcontainer.
+    // Primary switches with the same dispatch the bar's click handler sends,
+    // over Quickshell's own Hyprland connection -- see modules/lib/workspaceFocus.js.
     readonly property var actions: ({
         primary: {
             label: "switch to",
@@ -100,11 +99,11 @@ NestableProvider {
 
     function switchTo(entry): void {
         const workspace = entry.target;
-        if (workspace && typeof workspace.activate === "function") {
-            workspace.activate();
+        if (!workspace) {
+            console.warn("launcher: cannot switch to workspace", entry.name, "-- no workspace on the entry");
             return;
         }
-        console.warn("launcher: cannot switch to workspace", entry.name, "-- no activate() on the workspace");
+        Hyprland.dispatch(WorkspaceFocus.focusRequest(workspace));
     }
 
     // --- The rename prompt ---

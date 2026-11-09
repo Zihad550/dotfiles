@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import qs
+import "lib/workspaceFocus.js" as WorkspaceFocus
 
 // The special workspaces, collapsed into one bar entry.
 //
@@ -114,7 +116,7 @@ Item {
             if (root.collapsible)
                 menu.toggle();
             else if (root.currentWorkspace)
-                root.currentWorkspace.activate();
+                Hyprland.dispatch(WorkspaceFocus.focusRequest(root.currentWorkspace));
         }
     }
 
@@ -136,7 +138,7 @@ Item {
             label: root.label(modelData)
             detail: windows === 1 ? "1 window" : `${windows} windows`
 
-            onClicked: modelData.activate()
+            onClicked: Hyprland.dispatch(WorkspaceFocus.focusRequest(modelData))
             onCloseRequested: menu.shown = false
         }
     }

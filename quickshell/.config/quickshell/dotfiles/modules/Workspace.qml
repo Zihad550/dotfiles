@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import qs
 import "lib/windowNaming.js" as WindowNaming
 import "lib/workspaceLabel.js" as WorkspaceLabel
+import "lib/workspaceFocus.js" as WorkspaceFocus
 
 // A numbered workspace's bar entry: the name, always click-to-switch
 // regardless of layout or window count, plus an arrow that appears only on
@@ -68,7 +69,7 @@ Item {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: root.modelData.activate()
+                onClicked: Hyprland.dispatch(WorkspaceFocus.focusRequest(root.modelData))
             }
         }
 
