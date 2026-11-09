@@ -23,5 +23,13 @@ mkdir -p "$HOME/.config/herdr"
 ln -snf "$DOTFILES_DIR/herdr/.config/herdr/config.toml" \
     "$HOME/.config/herdr/config.toml"
 
+# Only layers/ is managed; the rest of ~/.config/devvm is devvm's state.
+mkdir -p "$HOME/.config/devvm"
+if [[ -d "$HOME/.config/devvm/layers" && ! -L "$HOME/.config/devvm/layers" ]]; then
+    echo "warning: ~/.config/devvm/layers is a real folder; move its layers into $DOTFILES_DIR/devvm and rerun" >&2
+else
+    ln -snf "$DOTFILES_DIR/devvm/.config/devvm/layers" "$HOME/.config/devvm/layers"
+fi
+
 rm -rf "$HOME/.bashrc"
 stow bash

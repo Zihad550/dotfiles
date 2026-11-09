@@ -1,7 +1,8 @@
 # devvm layers
 
 Image layers for [devvm](https://devvm.dev/docs/using/customizing/#your-own-layers).
-`scripts/stow/stow-base` links `layers/` to `~/.config/devvm/layers`. Only that
+`scripts/stow/stow-base` and `setup/arch-workstation/stow` link
+`layers/` to `~/.config/devvm/layers`. Only that
 folder is managed: the rest of `~/.config/devvm` is devvm's state, such as agent
 logins.
 
@@ -46,7 +47,21 @@ cd ../frontend
 mise install
 ```
 
-Then `mise run dev` in each. The VM's home is `/home/USER.guest`, so `~` in the
+Then `mise run dev` (`mrd`) in each.
+
+The VM's shell is your zsh setup. The layer clones this repo to `/opt/dotfiles`
+and links `~/.config/zsh`, starship and atuin to it; `git -C /opt/dotfiles pull`
+updates them. `~/.zshenv` and `~/.config/zsh-devvm/.zshrc` wrap the real files:
+they keep Go in devvm's `~/go` and add devvm's `(devvm)` prompt prefix and
+blocked-request notice, which devvm only ships for bash. devvm always opens
+bash, so `~/.bashrc.d/zz-zsh.sh` hands interactive shells to zsh; `bash -c`
+from agents and scripts stays bash.
+
+If devvm says the folder "was deleted or replaced" after a reboot, run
+`devvm adopt` in it. btrfs can give `/home` a new device number at boot, and
+devvm identifies the folder partly by that.
+
+The VM's home is `/home/USER.guest`, so `~` in the
 VM doesn't lead to the project; it stays at its host path.
 
 The database is the VM's own: compose runs in the VM's Docker, so seed it once
