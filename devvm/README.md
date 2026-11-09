@@ -6,6 +6,27 @@ Image layers for [devvm](https://devvm.dev/docs/using/customizing/#your-own-laye
 folder is managed: the rest of `~/.config/devvm` is devvm's state, such as agent
 logins.
 
+## shell
+
+The host's shell for any VM. `shell.sh` adds CLI tools (ripgrep, fd, bat, eza,
+fzf, jq, delta, lazygit, zoxide, neovim, trash-cli, tree, unzip) and zsh,
+starship and atuin, then clones this repo to `/opt/dotfiles` and links
+`~/.config/zsh`, starship and atuin to it. `git -C /opt/dotfiles pull` in the
+VM updates them.
+
+`~/.zshenv` and `~/.config/zsh-devvm/.zshrc` wrap the real files: they keep Go
+in devvm's `~/go` and add devvm's `(devvm)` prompt prefix and blocked-request
+notice, which devvm only ships for bash. devvm always opens bash, so
+`~/.bashrc.d/zz-zsh.sh` hands interactive shells to zsh; `bash -c` from agents
+and scripts stays bash. The first zsh start downloads zinit's plugins from
+GitHub, which devvm's base policy allows.
+
+Ubuntu names Ghostty's terminfo entry only `ghostty`, so the layer links
+`xterm-ghostty` to it. Without that, zsh in Ghostty draws typed letters twice.
+
+Put it below a project's layer (`--layers docker,shell,mamacrm`), or give it to
+every new VM with `devvm setup --layers shell`.
+
 ## mamacrm
 
 One VM over the whole `~/dev/work/mamacrm` folder, so the frontend, the backend
@@ -14,9 +35,9 @@ paths inside that folder, and devvm mounts it at the same path, so git works in
 each of them. Vite's `/api` proxy reaches the backend on `localhost:6175`, and
 one compose stack (Postgres, Redis, pgAdmin) serves every worktree.
 
-`mamacrm.sh` adds CLI tools (ripgrep, fd, bat, eza, fzf, jq, delta, lazygit,
-zoxide, trash-cli, tree, gcc, make, unzip) and psql. It needs the `docker`
-layer below it. The backend's Go tools (migrate, tparse,
+`mamacrm.sh` adds psql; devvm's base already has git, curl, jq, gcc and make.
+It needs the `docker` layer below it, and the VM gets `shell` too:
+`--layers docker,shell,mamacrm`. The backend's Go tools (migrate, tparse,
 golangci-lint, gofumpt) aren't in the image: `mise run project-init` builds
 them in the VM with `go install`, into `~/go/bin`, which devvm puts on PATH.
 mise comes with devvm's base, which also activates it and trusts the repos'
@@ -49,14 +70,6 @@ mise install
 
 Then `mise run dev` (`mrd`) in each.
 
-The VM's shell is your zsh setup. The layer clones this repo to `/opt/dotfiles`
-and links `~/.config/zsh`, starship and atuin to it; `git -C /opt/dotfiles pull`
-updates them. `~/.zshenv` and `~/.config/zsh-devvm/.zshrc` wrap the real files:
-they keep Go in devvm's `~/go` and add devvm's `(devvm)` prompt prefix and
-blocked-request notice, which devvm only ships for bash. devvm always opens
-bash, so `~/.bashrc.d/zz-zsh.sh` hands interactive shells to zsh; `bash -c`
-from agents and scripts stays bash.
-
 If devvm says the folder "was deleted or replaced" after a reboot, run
 `devvm adopt` in it. btrfs can give `/home` a new device number at boot, and
 devvm identifies the folder partly by that.
@@ -87,3 +100,8 @@ Changing a layer script rebuilds that image and every image built on it. To
 move an existing VM onto the new build, run `devvm update`. It keeps the VM's
 home folder but not the rest of its disk, so the database in its Docker is lost;
 seed it again with `mise run dind-reset`.
+
+`shell` sits under every image that uses it, so changing `shell.sh` rebuilds
+them all. When `devvm layer add` remade the mamacrm VM, the files the layer
+writes (`~/.zshenv`, the zsh wrapper, the `~/.bashrc.d` scripts) came from the
+new image, and the rest of the home folder (mise installs, `~/go/bin`) stayed.
