@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# devvm sandbox VMs. See README.md "devvm".
+
+set -euo pipefail
+
+# shellcheck source=pacman-lib
+. "$(dirname "${BASH_SOURCE[0]}")/pacman-lib"
+
+# minisign also lets install.sh check the devvm binary it downloads.
+pacman_install qemu-base minisign
+
+export PATH="$HOME/.local/bin:$PATH"
+
+# Lima too: install.sh can exit 0 when a dependency fix fails.
+if ! command -v devvm &>/dev/null || ! command -v limactl &>/dev/null; then
+    devvm_pubkey=RWSjzFsn7ETaijKJ2y7F4DtZobXmyv+LmdclJwZP/KmAkLUwOCzWF/2b
+    release_url=https://github.com/devvmhq/devvm/releases/latest/download
+    work_dir=$(mktemp -d)
+    trap 'rm -rf "$work_dir"' EXIT
+    for file in install.sh SHA256SUMS SHA256SUMS.minisig; do
+        curl -fsSL --retry 3 -o "$work_dir/$file" "$release_url/$file"
+    done
+    minisign -Vqm "$work_dir/SHA256SUMS" -P "$devvm_pubkey"
+    (cd "$work_dir" && sha256sum --check --ignore-missing --quiet SHA256SUMS)
+    bash "$work_dir/install.sh" --yes
+fi
+
+# Stow links the layers folder; both Arch inits run it first.
+if [[ ! -f "$HOME/.config/devvm/layers/shell.sh" ]]; then
+    echo "no ~/.config/devvm/layers/shell.sh: run the stow step first" >&2
+    exit 1
+fi
+devvm setup --layers shell --no-input

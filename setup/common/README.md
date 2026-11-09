@@ -18,6 +18,7 @@ here when the explanation does not belong beside the command it protects.
 | [`harden-ssh`](harden-ssh) | Hardens sshd and performs its two-phase port change. | Arch and Ubuntu wrappers |
 | [`hw-detect`](hw-detect) | Supplies hardware predicates to setup entry points. | Arch Workstation, Arch devbox, Ubuntu devbox |
 | [`set-dotfiles-profile`](set-dotfiles-profile) | Persists the setup target for desktop and shell consumers. | Arch Workstation, Arch devbox, Ubuntu LXC devbox |
+| [`setup-devvm`](setup-devvm) | Installs QEMU, devvm and Lima, and gives new VMs the `shell` layer. | Arch Workstation, Arch devbox |
 | [`setup-dirmngr`](setup-dirmngr) | Configures GnuPG DNS resolution before key retrieval. | Arch devbox |
 | [`setup-dns`](setup-dns) | Configures default DNS and disables Tailscale DNS takeover. | Arch devbox, Arch Workstation, Ubuntu LXC devbox |
 | [`setup-first-run-sudo`](setup-first-run-sudo) | Installs and removes the temporary passwordless-sudo drop-in used during setup. | Arch Workstation, Arch devbox |
@@ -65,6 +66,24 @@ needed. The installer verifies the pinned SHA-256 before extracting and removes
 the old Go-installed copies that would shadow it. To update, change both the
 version and checksum in the installer. Existing machines can run
 `setup/common/setup-go-timer` directly.
+
+## devvm
+
+Both Arch profiles run `setup-devvm` for [devvm](https://devvm.dev) sandbox
+VMs. It installs `qemu-base` and `minisign` with pacman, then devvm's latest
+release with devvm's own install script. That script also installs Lima, which
+Arch doesn't package, into `~/.local`. Before it runs, `SHA256SUMS` must carry
+devvm's minisign signature and match `install.sh`; with minisign installed, the
+install script checks the devvm binary the same way.
+
+The install runs only when `devvm` or `limactl` isn't on PATH, so update with
+`devvm upgrade`. Lima is in that check because the install script can succeed
+when one of its dependency fixes fails. When `/dev/kvm` isn't writable, the
+install script adds the user to the `kvm` group, which applies from the next
+login. Every run sets the `shell` layer as the default for new VMs, and fails
+if stow hasn't linked the layers folder yet (see
+[`devvm/README.md`](../../devvm/README.md)). Existing machines can run
+`setup/common/setup-devvm` directly.
 
 ## Machine profile
 

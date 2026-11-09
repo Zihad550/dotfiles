@@ -87,6 +87,7 @@ run_step "pacman base" "$ARCH_WORKSTATION_DIR/packages/pacman-base"
 run_step "DNS" "$ARCH_WORKSTATION_DIR/setup-dns"
 run_step "pacman apps" "$ARCH_WORKSTATION_DIR/packages/pacman-apps"
 run_step "go-timer" "$DOTFILES_DIR/setup/common/setup-go-timer"
+run_step "devvm" "$DOTFILES_DIR/setup/common/setup-devvm"
 
 run_step "hyprland" "$ARCH_WORKSTATION_DIR/setup-packages/setup-hyprland"
 # After hyprland: quickshell is the shell for that desktop, and shares this list

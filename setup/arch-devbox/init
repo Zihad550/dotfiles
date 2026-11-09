@@ -133,6 +133,8 @@ run_step "quickshell packages" "$DOTFILES_DIR/setup/common/packages/quickshell-p
 # Rootless -- this box runs AI harnesses against text pulled off the internet.
 # See ../common/setup-rootless-docker and README.md "docker".
 run_step "docker" "$DOTFILES_DIR/setup/common/setup-rootless-docker"
+# pacman, so not in the tools lane. See ../common/README.md "devvm".
+run_step "devvm" "$DOTFILES_DIR/setup/common/setup-devvm"
 
 # sshd before the firewall: once setup-ufw runs, sshd over the tailnet is the
 # only remote access path, and Arch does not enable sshd itself.
