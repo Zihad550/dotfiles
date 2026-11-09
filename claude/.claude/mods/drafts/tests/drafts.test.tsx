@@ -20,20 +20,25 @@ test('/drafts toggles the pane and it shows the newest draft', async ($, on) => 
   const store: Record<string, unknown> = {}
   on('command.register', () => ({ value: { command: 'drafts' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.root', () => ({ value: '/repo' }))
   on('clock.now', () => ({ value: 120_000 }))
   on('store.get', (_, e) => ({ value: store[e.key] }))
   on('store.set', (_, e) => {
     store[e.key] = e.value
     return { value: undefined }
   })
-  on('fs.list', () => ({
-    value: [
-      { name: 'gt-issue-old.md', kind: 'file', size: 3, mtimeMs: 0, isLink: false },
-      { name: 'gt-comment-42.md', kind: 'file', size: 5, mtimeMs: 60_000, isLink: false },
-      { name: 'draft-secret.md', kind: 'file', size: 10, mtimeMs: 120_000, isLink: true },
-      { name: 'notes.md', kind: 'file', size: 1, mtimeMs: 90_000, isLink: false },
-    ],
-  }))
+  const listed: string[] = []
+  on('fs.list', (_, e) => {
+    listed.push(e.path)
+    return {
+      value: [
+        { name: 'gt-issue-old.md', kind: 'file', size: 3, mtimeMs: 0, isLink: false },
+        { name: 'gt-comment-42.md', kind: 'file', size: 5, mtimeMs: 60_000, isLink: false },
+        { name: 'draft-secret.md', kind: 'file', size: 10, mtimeMs: 120_000, isLink: true },
+        { name: 'notes.md', kind: 'file', size: 1, mtimeMs: 90_000, isLink: false },
+      ],
+    }
+  })
   on('fs.read', (_, e) => {
     reads.push(e.path)
     return { value: e.path.endsWith('42.md') ? 'Looks good.' : 'old' }
@@ -56,7 +61,10 @@ test('/drafts toggles the pane and it shows the newest draft', async ($, on) => 
   expect((await $.command.run({ command: 'drafts', args: '' })).text).toBe('Drafts pane enabled.')
   expect(isOpen).toBe(true)
   expect(store.enabled).toBe(true)
-  expect(reads.includes('/tmp/draft-secret.md')).toBe(false)
+  expect(listed.length).toBeGreaterThan(0)
+  expect(listed.every(path => path === '/repo/tmp')).toBe(true)
+  expect(reads.includes('/repo/tmp/gt-comment-42.md')).toBe(true)
+  expect(reads.includes('/repo/tmp/draft-secret.md')).toBe(false)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /Looks good/ }))?.text).toBe('Looks good.')

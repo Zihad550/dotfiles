@@ -8,3 +8,6 @@
 **/.claude/settings.local.json
 
 **/.claude/.cc-writes/
+
+# Drafts the draft skills write; see claude/.claude/mods/drafts/README.md.
+/tmp/

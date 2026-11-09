@@ -1,8 +1,12 @@
 # drafts
 
 Claude Code mod: a side pane showing the newest drafts the draft skills
-(`draft-gt-command-for-issue-create`, `work-draft-reply`) write to
-`/tmp/gt-issue-*.md`, `/tmp/gt-comment-*.md` and `/tmp/draft-*.md`.
+(`draft-gt-command-for-issue-create`, `work-draft-reply`, `work-pr-info`) write
+to `tmp/` under the session's project root (`$.session.root()`: where the
+session started, or where `/cd` or a worktree move took it):
+`tmp/gt-issue-*.md`, `tmp/gt-comment-*.md` and `tmp/draft-*.md`. Unlike `/tmp`,
+it survives a reboot. `/tmp/` in `git/.config/git/.gitignore_global` keeps it
+out of commits.
 
 `/drafts` toggles the pane; the choice persists across sessions. In the pane,
 `c` copies the shown draft and `r` rescans.

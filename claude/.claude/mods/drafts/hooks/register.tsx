@@ -4,8 +4,8 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Draft } from '../types'
 
 const PANE = 'drafts'
-const DIR = '/tmp'
-// Where draft-gt-command-for-issue-create and work-draft-reply write drafts.
+// Where the draft skills write; see README.md.
+const DIR = 'tmp'
 const DRAFT = /^(gt-(issue|comment)|draft)-.+\.md$/
 const WRITERS = new Set(['Write', 'Edit', 'Bash'])
 const ENABLED = 'enabled'
@@ -30,14 +30,15 @@ function refresh($: EngineInterface) {
 }
 
 async function scan($: EngineInterface) {
-  const entries = await $.fs.list(DIR).catch(() => [])
+  const dir = `${await $.session.root()}/${DIR}`
+  const entries = await $.fs.list(dir).catch(() => [])
   const found = entries
     .filter(entry => entry.kind === 'file' && !entry.isLink && DRAFT.test(entry.name))
     .sort((a, b) => b.mtimeMs - a.mtimeMs)
     .slice(0, 20)
   const list: Draft[] = await Promise.all(
     found.map(async entry => {
-      const path = `${DIR}/${entry.name}`
+      const path = `${dir}/${entry.name}`
       const text = await $.fs.read(path).catch(() => '')
       return { path, name: entry.name, mtimeMs: entry.mtimeMs, text }
     }),
@@ -105,7 +106,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text dimColor>No drafts yet.</Text>
-          <Text dimColor>Drafts written to {DIR}/gt-*.md show here.</Text>
+          <Text dimColor>Drafts written to ./{DIR}/ show here.</Text>
           <Box marginTop={1}>
             <Button key="refresh" label="Refresh" hotkey="r" onPress={() => refresh($)} />
           </Box>
