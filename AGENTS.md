@@ -34,6 +34,8 @@ After every implementation:
 - Seed portable LazyGit defaults only when no local file or symlink exists; desktop themes may own its runtime configuration.
 
 - Keep desktop code and Arch desktop installers in `Zihad550/arch-desktop`; keep portable configuration, CLI helpers, headless installers, the `setup/boot.sh` entry point, the setup helpers both repos share, and their tests here.
+- arch-desktop's Arch installers and tests call `setup/common/` helpers through its `portable/` link to this checkout. When changing a shared helper, also run arch-desktop's tests and follow its `AGENTS.md`.
+- Move retired files to `Zihad550/dotfiles-archive` under a topic folder that keeps their original paths; do not keep them here or on `archive/*` branches (arch-desktop ADR 0041).
 
 - Do not alias the Zsh `break` builtin; it turned the devvm startup loop into a repeating 10-minute Pomodoro timer.
 - Write code comments only for what the code can't say for itself: a non-obvious
