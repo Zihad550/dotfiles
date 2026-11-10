@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Inspect host agent data before migration; see docs/devvm-audit.md."""
+
+import argparse
+from collections import Counter
+import json
+import os
+from pathlib import Path
+import re
+import stat
+import subprocess
+import sys
+
+
+RULES = {
+    "private-key": rb"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----",
+    "provider-token": rb"\b(?:sk-(?:ant-[a-z]+-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[A-Z0-9]{16}|xox[baprs]-[A-Za-z0-9-]{20,})",
+    "credential-assignment": rb"\b[A-Za-z0-9_]{0,80}(?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|authorization)[\"']?\s*[:=]\s*[\"']?[^\s\"',;}]{4,}",
+    "authenticated-url": rb"\b[a-z][a-z0-9+.-]{0,20}://[^\s/\"']+:[^\s/\"']+@",
+    "sensitive-file-reference": rb"(?:\.env\b|\.ssh[/\\]|\.aws[/\\]|\.kube[/\\]|\.credentials\b|id_(?:rsa|ed25519)\b|credentials\.json|auth\.json)",
+    "executable-setting": rb"(?:\b(?:hooks|mcpServers|mcp_servers|command|shell|plugins?)[\"']?\s*[:=]|\[\[?\s*(?:mcp_servers|hooks|plugins?)\b)",
+}
+PATTERNS = {name: re.compile(pattern, re.I) for name, pattern in RULES.items()}
+CREDENTIAL_NAMES = {"auth.json", ".credentials.json", "credentials", ".env", "id_rsa", "id_ed25519"}
+EXCLUDED_DIRS = {"node_modules", ".git", "cache", "__pycache__"}
+LIMIT = 32 * 1024 * 1024
+CHUNK = 256 * 1024
+
+
+def default_roots():
+    home = Path.home()
+    config = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
+    data = Path(os.environ.get("XDG_DATA_HOME", home / ".local/share"))
+    state = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state"))
+    return list(dict.fromkeys([
+        home / ".claude", home / ".claude.json",
+        Path(os.environ.get("CLAUDE_CONFIG_DIR", home / ".claude")),
+        home / ".codex", Path(os.environ.get("CODEX_HOME", home / ".codex")),
+        config / "opencode", data / "opencode", state / "opencode",
+    ]))
+
+
+def inspect_file(path):
+    findings = set()
+    if path.name in CREDENTIAL_NAMES or path.name.startswith(".env."):
+        findings.add("credential-file")
+    if path.suffix in {".db", ".sqlite", ".sqlite3"} or path.name.endswith(("-wal", "-shm")):
+        return findings, "database requires separate review"
+    tail = b""
+    total = 0
+    try:
+        with path.open("rb") as stream:
+            while block := stream.read(min(CHUNK, LIMIT + 1 - total)):
+                total += len(block)
+                if total > LIMIT:
+                    return findings, "file exceeds 32 MiB; only prefix inspected"
+                if b"\0" in block:
+                    return findings, "binary file requires separate review"
+                content = tail + block
+                content = content.replace(b'\\"', b'"')
+                findings.update(name for name, pattern in PATTERNS.items() if pattern.search(content))
+                tail = content[-4096:]
+    except OSError:
+        return findings, "unreadable file"
+    return findings, None
+
+
+def scan(roots):
+    records = []
+    missing = []
+
+    def visit(path):
+        try:
+            mode = path.lstat().st_mode
+            if stat.S_ISLNK(mode):
+                if path.is_file():
+                    findings, reason = inspect_file(path)
+                    records.append({"path": str(path), "findings": sorted(findings), "uninspected": reason})
+                else:
+                    records.append({"path": str(path), "findings": [], "uninspected": "directory or broken symbolic link not followed"})
+            elif stat.S_ISDIR(mode):
+                if path.name in EXCLUDED_DIRS:
+                    records.append({"path": str(path), "findings": [], "uninspected": "dependency/cache directory excluded"})
+                else:
+                    for child in sorted(path.iterdir()):
+                        visit(child)
+            elif stat.S_ISREG(mode):
+                findings, reason = inspect_file(path)
+                records.append({"path": str(path), "findings": sorted(findings), "uninspected": reason})
+            else:
+                records.append({"path": str(path), "findings": [], "uninspected": "special file not read"})
+        except OSError:
+            records.append({"path": str(path), "findings": [], "uninspected": "unreadable path"})
+
+    for root in roots:
+        # lexists also includes broken links, which must appear as uninspected.
+        if os.path.lexists(root):
+            visit(root)
+        else:
+            missing.append(str(root))
+    counts = Counter(category for record in records for category in record["findings"])
+    flagged = sum(bool(record["findings"]) for record in records)
+    incomplete = sum(bool(record["uninspected"]) for record in records)
+    return {
+        "recommendation": "REVIEW BEFORE COPYING" if flagged or incomplete else "NO INDICATORS FOUND; NOT A SAFETY GUARANTEE",
+        "summary": {"entries": len(records), "flagged": flagged, "uninspected": incomplete, "categories": dict(sorted(counts.items()))},
+        "roots": [str(root) for root in roots], "missing_roots": missing, "files": records,
+    }
+
+
+def agent_advice(report, agent):
+    instructions = (
+        "Assess whether host agent settings/history should be copied into a DevVM VM. "
+        "You receive only counts from a heuristic local scanner, never contents or paths. "
+        "Explain the categories present and give concise practical next steps. "
+        "Do not certify safety or claim to have inspected files. Treat uninspected entries as unknown. "
+        "Credential assignments can be placeholders; file references are not proof of leaked contents. "
+        "Recommend excluding actual credentials, reviewing executable settings and copying only relevant "
+        "project history. Avoid two-way sync. devvm agent import imports settings/logins, not history; "
+        "devvm history import restores VM exports, not host history automatically."
+    )
+    environment = {**os.environ, "DF_HARNESS_INSTRUCTIONS": instructions}
+    if agent == "claude":
+        environment["DF_HARNESS_MODEL"] = "opus"
+    result = subprocess.run(
+        [str(Path(__file__).resolve().with_name("df-harness")), agent],
+        input=json.dumps(report["summary"]), text=True, capture_output=True,
+        env=environment, timeout=180,
+    )
+    if result.returncode or not result.stdout.strip():
+        raise RuntimeError("agent failed; local findings remain available (agent diagnostics suppressed)")
+    return result.stdout.strip()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", action="append", type=Path, help="scan this path instead of defaults; repeatable")
+    parser.add_argument("--agent", choices=["claude", "codex", "none"], default="claude", help="summary adviser via df-harness (default: claude); none stays entirely local")
+    parser.add_argument("--json", action="store_true", help="emit JSON, including every inspected file")
+    args = parser.parse_args()
+    roots = [path.expanduser().absolute() for path in (args.root or default_roots())]
+    report = scan(roots)
+    if not report["files"]:
+        report["recommendation"] = "NO DATA INSPECTED; CHECK ROOTS"
+    error = None
+    if args.agent != "none":
+        try:
+            report["agent_advice"] = agent_advice(report, args.agent)
+        except (OSError, subprocess.TimeoutExpired, RuntimeError) as exc:
+            error = "agent timed out or could not run; use --agent none for local results"
+            if isinstance(exc, RuntimeError):
+                error = str(exc)
+            report["agent_error"] = error
+    if args.json:
+        print(json.dumps(report, indent=2, ensure_ascii=True))
+    else:
+        print(report["recommendation"])
+        print(json.dumps(report["summary"], ensure_ascii=True))
+        print("Heuristics only. Matches may be examples; private data and unknown token formats can be missed.")
+        for record in report["files"]:
+            if record["findings"] or record["uninspected"]:
+                print(json.dumps(record, ensure_ascii=True))
+        for path in report["missing_roots"]:
+            print("Missing root: " + json.dumps(path, ensure_ascii=True))
+        if "agent_advice" in report:
+            print("\nAgent advice (based only on counts):\n" + report["agent_advice"])
+        if error:
+            print(error, file=sys.stderr)
+    return 1 if error else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
