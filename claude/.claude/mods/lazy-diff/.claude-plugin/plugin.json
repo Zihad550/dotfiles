@@ -1,0 +1,7 @@
+{
+  "name": "lazy-diff",
+  "version": "0.1.0",
+  "description": "Review and stage Git changes in a collapsible file tree beside the chat",
+  "author": { "name": "Zihad550" },
+  "types": "./types/index.d.ts"
+}
