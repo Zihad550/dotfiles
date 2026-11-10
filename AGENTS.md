@@ -31,6 +31,7 @@ After every implementation:
 
 ## Guidelines
 
+- Do not alias the Zsh `break` builtin; it turned the devvm startup loop into a repeating 10-minute Pomodoro timer.
 - Write code comments only for what the code can't say for itself: a non-obvious
   "why", an invariant, or a gotcha a future reader would trip over. Never
   restate what the code already shows.
@@ -51,6 +52,8 @@ After every implementation:
 - Do not **stage** or **commit** `claude/.claude/settings.json` unless the user
   names that file. An instruction about something else nearby is not permission.
 - After a task is done, ask the user if they would like to commit and push the relevant changes.
+- Preserve the guest's original `ZDOTDIR` when wrapping zsh for devvm auto-entry.
+- Clear devvm auto-entry's paused root when the VM returns the host outside that root.
 
 ### Machine profiles
 

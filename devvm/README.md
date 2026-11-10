@@ -27,6 +27,61 @@ Ubuntu names Ghostty's terminfo entry only `ghostty`, so the layer links
 Put it below a project's layer (`--layers docker,shell,mamacrm`), or give it to
 every new VM with `devvm setup --layers shell`.
 
+## Automatic entry
+
+Interactive zsh shells enter an existing VM when opened in its project or when
+`cd`, zoxide or `wt switch` moves into it. This includes Herdr panes: the shell
+hook runs inside each pane, without a Herdr plugin. Reload the host shell after
+updating dotfiles to enable it. Scripts and non-interactive shells do not route,
+and shells inside a VM never start another VM.
+
+`bin/df-devvm-auto` reads `devvm ls --json`, chooses the nearest enclosing VM
+folder, and uses `devvm host --here --no-input` to start it if needed. That
+command requires an existing VM, so this path cannot create one. Lookup ignores
+git boundaries: mamacrm's nested repos and worktrees use the mamacrm VM. A
+worktree outside a VM's mounted folder stays on the host unless it has its own
+VM; the parent VM cannot reach a sibling folder that it does not mount.
+Lookup runs only when the shell directory changes, with a three-second limit;
+a lookup failure leaves the shell on the host.
+
+The VM opens at the same directory, with a `(devvm)` prompt. A temporary shell
+wrapper preserves its existing zsh configuration, or uses bash if zsh is absent,
+and works with older images without rebuilding them. Inside the VM, moving
+outside its project folder ends the VM shell and changes the host shell to that
+directory if it exists on the host. `exit` or Ctrl+D returns to the host at the
+original directory. After returning, automatic entry pauses for that project
+until you leave its folder; `devvm-auto-enter` explicitly enters it again.
+Exiting the shell leaves the VM running.
+
+To disable automatic entry globally, set `DEVVM_AUTO_ENTER=0` in your shell
+configuration, or create `~/.config/devvm/no-auto-enter`. To disable a folder
+and its descendants, create `.devvm-no-auto` in that folder. These are marker
+files, never executable configuration. Remove the marker and run
+`devvm-auto-enter`, or open a new shell, to resume entry.
+
+Once the pane has entered the VM, typing `claude` or `codex` runs that VM's
+agent. Commands started directly by a non-interactive tool stay explicit; the
+hook does not redirect scripts or background jobs. For VS Code Remote-SSH,
+`df-devvm-auto code /path/to/project` opens that folder in its existing VM,
+starting it first. It fails when no VM exists. Other editors keep their normal
+launch behavior; use the VM terminal when they have no Remote-SSH integration.
+
+### Manual verification in Herdr
+
+Use a project with an existing VM, such as mamacrm:
+
+1. Open a new Herdr pane in the project. The prompt must show `(devvm)`, and
+   `pwd` must show the same project path. A stopped VM should start.
+2. Move into a nested repo or worktree. It must stay in the same VM. Move above
+   the VM's root with `cd ..` (repeat as needed). The shell must return to the
+   host at that directory.
+3. Enter the project again, then use `exit`. The host prompt must remain usable
+   in that project. Run `devvm-auto-enter` to enter again.
+4. On the host, create `.devvm-no-auto` in the project, then leave and re-enter
+   its directory. The shell must stay on the host. Remove the marker afterward.
+5. Open a directory without a VM. It must stay on the host, and `devvm ls`
+   must list the same VMs as before the test.
+
 ## mamacrm
 
 One VM over the whole `~/dev/work/mamacrm` folder, so the frontend, the backend

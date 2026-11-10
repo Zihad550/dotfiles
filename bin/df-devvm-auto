@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Existing-VM lookup and entry for the interactive zsh hook. See devvm/README.md.
+set -euo pipefail
+
+mode="${1:-resolve}"
+folder="${2:-$PWD}"
+folder=$(realpath -e -- "$folder")
+
+# Use devvm's public inventory instead of inferring VM names or reading its
+# private state schema. No backend is started during lookup.
+vm=$(timeout 3 devvm ls --json | jq -ce --arg cwd "$folder" '
+    .vms | map(select(.folder_state == "there") |
+        select(.folder as $root | $cwd == $root or
+            ($cwd | startswith($root + (if $root == "/" then "" else "/" end))))) |
+    sort_by(.folder | length) | last // empty') || exit 1
+root=$(jq -r '.folder' <<<"$vm")
+name=$(jq -r '.name' <<<"$vm")
+
+case "$mode" in
+    resolve) printf '%s\n' "$root"; exit ;;
+    enter) result="${3:?a return file is required}" ;;
+    code) ;;
+    *) echo 'usage: df-devvm-auto {resolve|enter|code} [folder] [return-file]' >&2; exit 64 ;;
+esac
+
+# Unlike plain `devvm`, host requires an existing VM, even if it disappeared
+# after lookup. --here selects exactly the root we matched, across git boundaries.
+(cd "$root" && devvm host --here --ssh-config --no-input) >&2
+
+if [[ $mode == code ]]; then
+    exec code --remote "ssh-remote+$name" "$folder"
+fi
+
+ssh_config="${XDG_DATA_HOME:-$HOME/.local/share}/devvm/ssh_config"
+ssh_args=(-F "$ssh_config" -o ForwardAgent=no -o ForwardX11=no -o BatchMode=yes -o ConnectTimeout=5 "$name")
+return_dir="/tmp/df-devvm-auto-$$-$RANDOM-$RANDOM"
+# A per-session rc wrapper keeps existing VM shells usable without changing
+# their dotfiles clone or rebuilding their image.
+# shellcheck disable=SC2329 # Invoked by the EXIT trap.
+cleanup_session() {
+    # A separate connection carries the destination, keeping terminal output
+    # out of the control channel. The directory is never evaluated.
+    local cleanup
+    printf -v cleanup 'if [ -f %q ]; then cat -- %q; fi; rm -rf -- %q' \
+        "$return_dir/cwd" "$return_dir/cwd" "$return_dir"
+    # shellcheck disable=SC2029 # printf %q above quotes the remote paths.
+    timeout 8 ssh "${ssh_args[@]}" "$cleanup" > "$result" || true
+}
+trap 'cleanup_session' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+routing_file="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/zsh/.config/zsh/devvm.zsh"
+{
+    # shellcheck disable=SC2016 # $session expands in the VM, not on the host.
+    printf 'set -e; umask 077; session=%q; mkdir -- "$session"\n' "$return_dir"
+    cat <<'DF_DEVVM_HEADER'
+cat > "$session/routing.zsh" <<'DF_DEVVM_ROUTING'
+DF_DEVVM_HEADER
+    cat "$routing_file"
+    printf '\nDF_DEVVM_ROUTING\n'
+    cat <<'DF_DEVVM_RC'
+cat > "$session/.zshenv" <<'ZSHENV'
+ZDOTDIR=$DF_DEVVM_AUTO_ZDOTDIR
+[[ ! -r "$HOME/.zshenv" ]] || source "$HOME/.zshenv"
+DF_DEVVM_AUTO_ZDOTDIR=${ZDOTDIR:-$HOME}
+ZDOTDIR=$DF_DEVVM_AUTO_SESSION
+ZSHENV
+cat > "$session/.zshrc" <<'ZSHRC'
+ZDOTDIR=$DF_DEVVM_AUTO_ZDOTDIR
+[[ ! -r "$ZDOTDIR/.zshrc" ]] || source "$ZDOTDIR/.zshrc"
+source "$DF_DEVVM_AUTO_SESSION/routing.zsh"
+ZSHRC
+cat > "$session/bashrc" <<'BASHRC'
+[[ ! -r "$HOME/.bashrc" ]] || source "$HOME/.bashrc"
+_df_devvm_leave() {
+    [[ $PWD == "$DF_DEVVM_AUTO_ROOT" || $PWD == "${DF_DEVVM_AUTO_ROOT%/}/"* ]] && return 0
+    printf '%s\0' "$PWD" > "$DF_DEVVM_AUTO_RETURN" || return 0
+    exit
+}
+_df_devvm_prompt() {
+    [[ $PS1 == '(devvm) '* ]] || PS1="(devvm) $PS1"
+}
+PROMPT_COMMAND+=(_df_devvm_leave _df_devvm_prompt)
+BASHRC
+DF_DEVVM_RC
+} | ssh "${ssh_args[@]}" 'bash -s'
+# shellcheck disable=SC2016 # Preserve the guest's startup directory before wrapping it.
+printf -v remote 'cd -- %q || exit; export DF_DEVVM_AUTO_ROOT=%q DF_DEVVM_AUTO_RETURN=%q DF_DEVVM_AUTO_SESSION=%q; if command -v zsh >/dev/null; then export DF_DEVVM_AUTO_ZDOTDIR="${ZDOTDIR:-$HOME}"; ZDOTDIR=%q exec zsh -i; else export DEVVM_ZSH=1; exec /bin/bash --rcfile %q -i; fi' \
+    "$folder" "$root" "$return_dir/cwd" "$return_dir" "$return_dir" "$return_dir/bashrc"
+
+ssh -t "${ssh_args[@]}" "$remote" || session_status=$?
+exit "${session_status:-0}"

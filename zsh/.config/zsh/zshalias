@@ -50,5 +50,4 @@ alias_if_command devvm devvm-mamacrm \
 if commands_available go-timer notify-send; then
     alias work="pomodoro 'work'"
     alias typing="pomodoro 'typing'"
-    alias break="pomodoro 'break'"
 fi

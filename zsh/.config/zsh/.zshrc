@@ -174,6 +174,7 @@ source "$XDG_CONFIG_HOME/zsh/aliasrc"
 source "$XDG_CONFIG_HOME/zsh/gitrc"
 source "$XDG_CONFIG_HOME/zsh/wtrc"
 source "$XDG_CONFIG_HOME/zsh/zshalias"
+source "$XDG_CONFIG_HOME/zsh/devvm.zsh"
 
 # Emit OSC 7 (current working directory) so the outer terminal / tmux can
 # track the remote cwd across an ssh session. Tmux exposes this as
