@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-if df-cmd-present voxtype; then
-   # The follower must terminate when the bar drops its child process.
-   exec setpriv --pdeathsig TERM voxtype status --follow --extended --format json
-else
-   echo '{"class": "idle", "tooltip": ""}'
-fi

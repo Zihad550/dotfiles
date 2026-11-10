@@ -1,221 +1,60 @@
 # dotfiles
 
-Personal dotfiles for Arch + Hyprland (with Ubuntu / Alpine / arch-gnome variants under `setup/`).
-Inspired by [omarchy](https://github.com/basecamp/omarchy) — see `resources/omarchy/` for the upstream reference.
+Portable shell, Git, editor, terminal, and agent configuration, plus CLI helpers
+and the DevVM shell and skills bootstrap.
 
-## clone
+The Hyprland/Quickshell desktop, themes, Arch desktop installers, and their
+tests live in [arch-desktop](https://github.com/Zihad550/arch-desktop). Retired
+installers live in [dotfiles-archive](https://github.com/Zihad550/dotfiles-archive).
 
-```bash
-# full history
-git clone https://github.com/Zihad550/dotfiles ~/dotfiles
+## Set up a machine
 
-# or shallow
-git clone --depth 1 https://github.com/Zihad550/dotfiles ~/dotfiles
+Every machine starts here:
+
+```sh
+git clone https://github.com/Zihad550/dotfiles.git ~/dotfiles
+~/dotfiles/setup/boot.sh               # pick a target from a menu
+~/dotfiles/setup/boot.sh <target>      # e.g. ubuntu-lxc-devbox, arch-workstation
 ```
 
-## install
+`arch-workstation` and `arch-devbox` clone arch-desktop to `ARCH_DESKTOP_DIR`
+(default `~/arch-desktop`) and continue with its installer. The other targets
+run from `setup/` here and do not need arch-desktop.
 
-```bash
-~/dotfiles/setup/boot.sh                 # pick a target from a menu
-~/dotfiles/setup/boot.sh arch-workstation   # explicit target
-~/dotfiles/setup/boot.sh --help          # list targets
+## Clone and link
+
+```sh
+git clone --depth 1 https://github.com/Zihad550/dotfiles.git ~/dotfiles
+~/dotfiles/scripts/stow/stow-base
 ```
 
-## arch setup notes
+The linking step requires GNU Stow and preserves the existing handling of
+runtime-owned Herdr, Worktrunk, DevVM, and local mise configuration. Install
+needed command-line tools through the host installer or your environment.
 
-1. Disk: btrfs with snapper snapshots
-2. Disk encryption (LUKS)
+## DevVM
 
-## layout
+The shell layer shallow-clones this repo to `/opt/dotfiles` and links its shell
+configuration. It does not clone or require arch-desktop. See
+[DevVM](devvm/README.md) for skills, settings, and existing VM migration.
 
-| Path | Purpose |
-|---|---|
-| `bin/` | `df-*` user scripts (theme, font, launch, restart helpers) |
-| `hypr/` | Hyprland Lua config (entrypoint: `hypr/.config/hypr/hyprland.lua`) |
-| `themes/` | Theme palettes + templates (`df-theme-set <name>` switches) |
-| `setup/` | Per-distro install scripts; `boot.sh` dispatches |
-| `scripts/` | Misc utilities (stow, rclone, syncthing, …) |
-| `resources/` | Read-only upstream references (omarchy, Hyprland, devpod, …) |
+## Layout
 
-## common bins
+- Tool-named directories contain portable configuration.
+- `bin/` and `scripts/` contain portable command-line helpers.
+- `setup/` contains the headless installers (`ubuntu-devbox`,
+  `ubuntu-lxc-devbox`, `ubuntu-server`, `proxmox`), the `boot.sh` entry point,
+  and the shared helpers in `setup/common/`, which arch-desktop also calls.
+- `setup/devvm/` and `setup/common/setup-skills` are the portable agent bootstrap.
+- `tests/` verifies the portable configuration and helpers.
+- `docs/` contains operating guides and agent workflow instructions.
 
-```bash
-df-theme-set <name>                # switch theme (downloads pack themes); no args = list
-df-theme-list                      # installed + downloadable themes
-df-theme-fetch --sync | <name>     # sync the theme pack index / check out one theme
-df-theme-install <git-url> [--apply] [--force]
-                                   # clone a third-party (e.g. Omarchy) theme
-df-theme-remove <name> [--force]   # remove a pack or third-party theme (refuses built-ins)
-df-theme-refresh [--apply]         # regen all themes from current templates
-df-theme-colors-from-alacritty <theme-dir>
-                                   # derive colors.toml from alacritty.toml
-df-theme-set-{vscode,gnome,browser,obsidian}
-                                   # per-app theme appliers (called by df-theme-set)
+## Checks
 
-df-font-set <family>               # switch monospace font across configs
-df-font-list                       # list installed mono families
-df-font-current                    # print current font
-
-df-greeter-refresh                 # reapply the pinned Omarchy SDDM Greeter
-df-greeter-reset                   # remove custom Greeter overrides (stock SDDM)
-df-boot-branding-set <bg> <fg> <logo.png>
-                                   # apply validated colors and logo to boot/login
-df-boot-branding-reset              # restore pinned Plymouth and Greeter defaults
-
-df-hypr-display-layout apply [variant]
-                                   # restore the saved layout for the connected
-                                   # displays; falls back to monitors.lua
-df-hypr-display-layout save <variant> [--default]
-                                   # capture the current monitor arrangement
-df-hypr-display-layout list|show|signature|remove
-df-hypr-clamshell                  # reconcile the internal output in clamshell mode
-df-hypr-monitor-watch              # recover clamshell state after monitor events
-
-df-launch-tui <cmd>                # launch TUI in ghostty (guards missing bin)
-df-launch-app <cmd>                # launch GUI (guards missing bin)
-df-cmd-present <cmd>...            # exit 0 if all on PATH
-df-harness [codex|claude] [message...] # reply to arguments or stdin
-df-commit-message [codex|claude]   # generate a commit message from stdin
-df-vite [--list]                  # list local Vite servers; d stops the selected server
-df-work-branch-name-gen [codex|claude] <issues> # default: Claude Sonnet
-df-system-update                   # full system update (pacman/yay/flatpak/mise)
-df-backup [directory]              # select home items and a drive to back up
-df-restore [directory]             # select a drive and home items to restore
+```sh
+python -m unittest discover -s tests/dev -p 'test_*.py'
+node --test --test-isolation=none tests/multiplexer/*.test.js tests/dotfiles/*.test.js tests/setup/*.test.js
 ```
 
-`df-vite` uses `fzf` with `j`/`k` or arrow keys to move, `d` to stop
-the selected server, `r` to refresh, and `q` or Escape to quit. It shows PIDs,
-listening ports, and project directories for Vite dev servers owned by your
-user on this Linux machine, including servers started through npm/pnpm/bun.
-Build and preview processes are excluded. Stopping sends SIGTERM to that one
-process and refreshes the list; it never force kills or signals a process group.
-`--list` prints the same servers without opening the picker. Requires Python 3
-and, for the picker, `fzf`.
-
-`df-usb-wakeup` lists USB devices and their suspend wakeup status. Run
-`df-usb-wakeup 3-2` with a device from that list to enable wakeup for it and its
-USB hubs now and after reboot or reconnection. It uses sudo to install a
-device-specific rule under `/etc/udev/rules.d/`, matched by USB IDs and the root
-hub controller's serial rather than the current USB bus number. Devices with
-the same vendor and product IDs share the rule. Click the mouse after suspending
-to test it. To undo persistence, remove the rule path printed by the command
-and run `sudo udevadm control --reload-rules`; reboot to reset the live settings.
-
-`df-backup` and `df-restore` use Gum to select multiple items and a mounted drive
-at or under `/run/media` or `/mnt`. Use X to select items and Enter to
-continue. The drive picker always asks, even with one drive mounted; pass an
-existing directory to skip it. Both commands require `gum`, `tar`, `zstd`, and
-an interactive terminal.
-
-The backup picker offers existing home items from Documents, Videos, Pictures,
-`.gnupg`, `.password-store`, `.ssh`, backups, dev, dotfiles, Downloads,
-`Downloads/backups`, Music, Templates, `.obsidian-vault`, and `bk.json`. Each
-selected item gets a separate `.tar.zst` archive that preserves Unix
-permissions and symbolic links. `Downloads/backups` is also inside the
-Downloads archive; restore applies Downloads first when both are selected.
-SSH and GnuPG runtime files are excluded, as are development caches and build
-output under `dev` and `dotfiles`.
-
-`DOTFILES_PROFILE` must be `arch-workstation` or `arch-devbox`. Filenames include
-that profile, such as `arch-workstation-documents-backup.tar.zst` and
-`arch-devbox-ssh-backup.tar.zst`. Backup replaces each previous archive only
-after creating its replacement successfully, so the drive briefly needs room for
-both. When an item's uncompressed size exceeds the drive's free space, backup
-asks before writing it. Restore offers only fixed archive names for the current
-profile and unpacks all selected archives before changing home items. Existing
-home items move into `<item>.pre-restore.<random>/` first. GnuPG agents are
-stopped before replacing `.gnupg`.
-
-These two commands replace `df-backup-create`, `df-backup-extract`,
-`df-worstation-backup`, `df-ssh-backup`, and `df-gnupg-backup`. Existing archives
-remain on disk; timestamped archives and the old workstation archive names
-are not offered by the restore picker.
-
-### theme paths
-
-| Path | Contents |
-|---|---|
-| `~/.local/share/dotfiles/themes/<name>/` | third-party themes (`df-theme-install`) |
-| `~/dotfiles-themes/<name>/` | sparse clone of [dotfiles-themes](https://github.com/Zihad550/dotfiles-themes) |
-| `~/dotfiles/themes/builtin/<name>/` | built-in default (`kanagawa`) |
-| `~/.config/theme` | symlink → the active theme's directory |
-| `~/.config/backgrounds/<name>.<ext>` | per-theme background (primary + `<name>-1.<ext>` extras) |
-| `~/.config/theme-previews/<name>.<ext>` | thumbnail shown in the Launcher's Themes Provider |
-
-Each theme directory holds its `colors.toml` and generated outputs. Lookup,
-download and Omarchy compatibility: see `themes/README.md`. Backgrounds/previews directories are
-themselves stow-managed symlinks; writes through them land in the repo. The
-Arch setup skips their separate repository so a slow clone cannot block the
-main install. Before asking whether to restart, it offers to clone the optional
-image collection. The desktop uses the theme's background color if you decline
-or the clone fails. You can retry later with:
-
-```bash
-~/dotfiles/scripts/stow/stow-backgrounds
-```
-
----
-
-## scratch notes
-
-### hyprland dispatch examples
-
-```bash
-hyprctl dispatch focuscurrentorlast
-hyprctl dispatch fullscreen 0
-hyprctl dispatch movewindow u
-hyprctl dispatch movetoworkspace special:herdr,title:herdr
-hyprctl keyword monitor "eDP-1,preferred,0x1920,1"
-```
-
-### remove unused
-
-```bash
-flatpak uninstall --unused
-yay -Scc                                            # remove cache
-sudo rm -rf /var/cache/pacman/pkg/download-*/       # if needed
-sudo pacman -Rs --noconfirm $(pacman -Qtdq)         # remove unused
-```
-
-### updates
-
-```bash
-sudo pacman -Syu
-yay -Sua
-flatpak update
-mise up --bump
-zinit update
-zinit self-update
-```
-
-### misc
-
-```bash
-# get architecture of a tool installed via mise
-file "$(mise where deno)/bin/deno"
-
-# zsh site-functions / completion files
-/usr/share/zsh/site-functions
-
-# probe a port
-nc -z -vv localhost 6379
-
-# create a forgejo issue
-gt issue create --repo <owner>/<repo> --title "title" --body "desc"
-```
-
-https://codeberg.org/jehad/dotfiles
-
-`df-harness` defaults to Claude Sonnet. `df-commit-message` (including
-Worktrunk commit generation) and `df-work-branch-name-gen` also default to Claude.
-Select Codex with `df-harness codex "your message"` to use `gpt-6-luna`
-with high reasoning effort.
-Both run without tools or persistent sessions and print only the final reply.
-Use `DF_HARNESS_MODEL`, `DF_HARNESS_REASONING` (Codex only), and
-`DF_HARNESS_INSTRUCTIONS` to override the defaults. Use `--` before a message
-that begins with a selector or option. Empty input or missing replies fail.
-The branch generator keeps its `DF_WORK_BRANCH_MODEL` override; the commit
-generator supplies commit instructions.
-
-OpenCode defaults to Claude Sonnet, with Haiku for small tasks. Its
-`deep-thinker` agent inherits the default model and enables extended thinking.
+Specs and task evidence live in GitHub Issues. Keep operating instructions in
+the repository, without a second copy of issue specifications.

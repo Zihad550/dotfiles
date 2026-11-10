@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-cd ~/dotfiles
-
-stow hypr
-stow quickshell
-stow swappy

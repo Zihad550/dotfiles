@@ -1,50 +1,52 @@
 #!/usr/bin/env bash
-DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+set -euo pipefail
+DOTFILES="${DOTFILES:-${DOTFILES_DIR:-$HOME/dotfiles}}"
 cd "$DOTFILES"
 
 # stow fonts
 # stow bottom
-stow ghostty
-stow git
-stow kanata
+stow --no-folding --dir "$DOTFILES" --target "$HOME" ghostty
+stow --no-folding --dir "$DOTFILES" --target "$HOME" git
 # stow nushell
 # stow nvim
-stow zsh
-stow zed
+stow --no-folding --dir "$DOTFILES" --target "$HOME" zsh
+stow --no-folding --dir "$DOTFILES" --target "$HOME" zed
 mkdir -p ~/.local/share/zed/extensions
 ln -snf ~/.config/zed/backup/extensions/index.json ~/.local/share/zed/extensions/index.json
 # stow gemini
-stow lazygit
-stow starship
-stow yazi
-DOTFILES_DIR="$DOTFILES" "$DOTFILES/setup/common/voxtype/seed-config"
+mkdir -p "$HOME/.config/lazygit"
+# Desktop themes and local settings may own this file after the first install.
+if [[ ! -e "$HOME/.config/lazygit/config.yml" && ! -L "$HOME/.config/lazygit/config.yml" ]]; then
+    ln -s "$DOTFILES/lazygit/.config/lazygit/config.yml" "$HOME/.config/lazygit/config.yml"
+fi
+stow --no-folding --dir "$DOTFILES" --target "$HOME" starship
+stow --no-folding --dir "$DOTFILES" --target "$HOME" yazi
 # stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
 mkdir -p ~/.config/herdr
-ln -snf ~/dotfiles/herdr/.config/herdr/config.toml ~/.config/herdr/config.toml
-stow gh-dash
-stow procs
-stow atuin
-stow dotfiles
-stow go-timer
+ln -snf "$DOTFILES"/herdr/.config/herdr/config.toml ~/.config/herdr/config.toml
+stow --no-folding --dir "$DOTFILES" --target "$HOME" gh-dash
+stow --no-folding --dir "$DOTFILES" --target "$HOME" procs
+stow --no-folding --dir "$DOTFILES" --target "$HOME" atuin
+stow --no-folding --dir "$DOTFILES" --target "$HOME" go-timer
 # stow mise — copied, not linked, since `mise use -g` rewrites it. Only seed a
 # missing file: a rerun must keep the tools and options added since.
 mkdir -p ~/.config/mise
 if [[ ! -e ~/.config/mise/config.toml ]]; then
-    cp ~/dotfiles/mise/.config/mise/config.toml ~/.config/mise/config.toml
+    cp "$DOTFILES"/mise/.config/mise/config.toml ~/.config/mise/config.toml
 fi
 # stow worktrunk — only config.toml is managed; the rest is runtime state (approvals, locks)
 mkdir -p ~/.config/worktrunk
-ln -snf ~/dotfiles/worktrunk/.config/worktrunk/config.toml ~/.config/worktrunk/config.toml
+ln -snf "$DOTFILES"/worktrunk/.config/worktrunk/config.toml ~/.config/worktrunk/config.toml
 # stow devvm — only layers/ is managed; the rest is devvm's state (agent logins)
 mkdir -p ~/.config/devvm
 if [[ -d ~/.config/devvm/layers && ! -L ~/.config/devvm/layers ]]; then
-    echo "warning: ~/.config/devvm/layers is a real folder; move its layers into ~/dotfiles/devvm and rerun" >&2
+    echo "warning: ~/.config/devvm/layers is a real folder; move its layers into $DOTFILES/devvm and rerun" >&2
 else
-    ln -snf ~/dotfiles/devvm/.config/devvm/layers ~/.config/devvm/layers
+    ln -snf "$DOTFILES"/devvm/.config/devvm/layers ~/.config/devvm/layers
 fi
 rm -rf ~/.bashrc
-stow bash
-stow branch-creator
+stow --no-folding --dir "$DOTFILES" --target "$HOME" bash
+stow --no-folding --dir "$DOTFILES" --target "$HOME" branch-creator
 
 # ai tools
 scripts/stow/stow-ai

@@ -4,7 +4,8 @@
 # crypto only. Run it LAST -- after the tailnet and the firewall are up, and
 # only once you have confirmed you can log in with a key.
 #
-# Shared by setup/ubuntu-devbox, setup/ubuntu-lxc-devbox and setup/arch-devbox.
+# Shared by setup/ubuntu-devbox, setup/ubuntu-lxc-devbox and arch-desktop's
+# setup/arch-devbox.
 # Do not run this file directly; run the Box Wrapper in the box's own
 # directory, which sets the four variables below and execs this:
 #

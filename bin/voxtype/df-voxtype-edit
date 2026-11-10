@@ -1,4 +1,0 @@
-#!/bin/bash
-set -e
-
-exec df-launch-editor "${XDG_CONFIG_HOME:-$HOME/.config}/voxtype/config.toml"

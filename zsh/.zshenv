@@ -92,7 +92,13 @@ OLLAMA_FLASH_ATTENTION=true # ollama
 export OLLAMA_FLASH_ATTENTION
 
 # PATH Configuration
-export PATH="$HOME/bin:$HOME/dotfiles/bin:$HOME/dotfiles/bin/voxtype:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"
+export PATH="$HOME/bin:$HOME/dotfiles/bin:$HOME/.local/share/go/bin:$HOME/.local/share/pnpm:$HOME/.local/share/cargo/bin:$HOME/.local/bin:$PATH"
+
+case "${DOTFILES_PROFILE:-}" in
+arch-workstation | arch-devbox)
+    export PATH="${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}/bin:${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}/bin/voxtype:$PATH"
+    ;;
+esac
 
 # Ubuntu targets run rootful Docker on the default socket.
 case "${DOTFILES_PROFILE:-}" in

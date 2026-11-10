@@ -1,7 +1,0 @@
-#!/bin/bash
-set -e
-
-df-launch-floating-presentation "voxtype setup model"
-
-# Nothing to restart: Voxtype.qml holds a long-lived `voxtype status --follow`
-# process, so it picks the new state up on its own.

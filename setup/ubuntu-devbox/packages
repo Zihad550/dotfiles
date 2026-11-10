@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Same package set as setup/devcontainer/install.sh, minus the container-only
-# bits. Bare metal, so PPAs are fine here (setup/ubuntu-server/minimal avoids
+# Same package set as the retired devcontainer's install.sh (dotfiles-archive:
+# devcontainer/setup/devcontainer/install.sh), minus the container-only bits.
+# Bare metal, so PPAs are fine here (setup/ubuntu-server/minimal avoids
 # add-apt-repository because it targets LXC).
 
 sudo apt update -y

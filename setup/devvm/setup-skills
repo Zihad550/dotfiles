@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Run inside a shell-layer VM. --ensure installs once; no argument refreshes.
+set -euo pipefail
+
+case "${1:-}" in
+    '') ensure=0 ;;
+    --ensure) ensure=1 ;;
+    *) echo 'usage: setup/devvm/setup-skills [--ensure]' >&2; exit 64 ;;
+esac
+(($# <= 1)) || exit 64
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+state_dir="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/devvm-skills"
+mkdir -p "$state_dir"
+exec {lock_fd}>"$state_dir/setup.lock"
+flock "$lock_fd"
+
+# devvm can restore its read-only store links on every launch. Keep the
+# VM's installations elsewhere so replacing those links never loses skills.
+for agent in claude codex; do
+    target="$HOME/.$agent/skills"
+    local_dir="$state_dir/$agent"
+    mkdir -p "${target%/*}"
+    if [[ -L "$target" ]]; then
+        unlink "$target"
+    elif [[ -e "$target" ]]; then
+        if [[ -e "$local_dir" ]]; then
+            echo "both $target and $local_dir exist; merge them before retrying" >&2
+            exit 1
+        fi
+        mv "$target" "$local_dir"
+    fi
+    mkdir -p "$local_dir"
+    ln -s "$local_dir" "$target"
+done
+
+# Install hooks here too so an existing VM can migrate without rebuilding.
+mkdir -p "$HOME/.bashrc.d"
+printf -v skills_cmd 'bash %q --ensure' "$DOTFILES_DIR/setup/devvm/setup-skills"
+printf '%s\n' "$skills_cmd" > "$HOME/.bashrc.d/00-dotfiles-skills.sh"
+zshrc="$HOME/.config/zsh-devvm/.zshrc"
+if [[ -f "$zshrc" ]] && ! grep -Fqx -- "$skills_cmd" "$zshrc"; then
+    printf '\n%s\n' "$skills_cmd" >> "$zshrc"
+fi
+
+if ((ensure)) && [[ -f "$state_dir/installed" ]]; then
+    exit 0
+fi
+
+rm -f "$state_dir/installed"
+mise use -g node@24
+eval "$(mise activate bash)"
+export OWN_SKILLS_SOURCE="$HOME/dev/src/github.com/Zihad550/skills"
+if [[ ! -d "$OWN_SKILLS_SOURCE/.git" ]]; then
+    git clone -q https://github.com/Zihad550/skills.git "$OWN_SKILLS_SOURCE"
+fi
+bash "$DOTFILES_DIR/setup/common/setup-skills" --skills-only
+touch "$state_dir/installed"

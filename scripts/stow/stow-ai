@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # AI tool configs: opencode, claude, codex
 # Re-used by devcontainer, ubuntu-devbox, ubuntu-server stow scripts.
 
-DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+DOTFILES="${DOTFILES:-${DOTFILES_DIR:-$HOME/dotfiles}}"
 cd "$DOTFILES" || exit
 
 # opencode
-stow opencode
+# Share a real .config directory; OpenCode alone owns its runtime subdirectory.
+mkdir -p "$HOME/.config"
+stow --dir "$DOTFILES" --target "$HOME" opencode
 
 # claude
 mkdir -p ~/.claude

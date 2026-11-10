@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-# AUR packages need makepkg's build tools on this client.
-
-# shellcheck source=../../common/pacman-lib
-. "$(dirname "${BASH_SOURCE[0]}")/../../common/pacman-lib"
-
-pacman_install base-devel yay

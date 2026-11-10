@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Same resolver policy as arch-devbox; see docs/dns.md. Run after init.
+# Same resolver policy as arch-devbox; see arch-desktop's docs/dns.md. Run after init.
 
 set -euo pipefail
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo apt-get install -y systemd-resolved
 # Otherwise Proxmox rewrites /etc/resolv.conf on every container start.
 sudo touch /etc/.pve-ignore.resolv.conf
-export DNS_CONFIG_FILE="$SETUP_DIR/../arch-devbox/10-dns-override.conf"
+export DNS_CONFIG_FILE="$SETUP_DIR/../common/10-dns-override.conf"
 exec "$SETUP_DIR/../common/setup-dns" "$@"

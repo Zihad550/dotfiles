@@ -3,8 +3,8 @@
 # LAN_SSH_SRC to an address, a CIDR, or `none` to skip the prompt. With no
 # terminal and no LAN_SSH_SRC it falls back to the whole detected subnet.
 #
-# Unlike ../arch-devbox, the LAN hole this opens is permanent: it is this box's
-# break-glass path for when tailscaled is the thing that broke. The prompt and
+# Unlike arch-desktop's setup/arch-devbox, the LAN hole this opens is permanent:
+# it is this box's break-glass path for when tailscaled is the thing that broke. The prompt and
 # the ufw helpers are shared with that box -- see ../common/ufw-lib.
 
 set -uo pipefail

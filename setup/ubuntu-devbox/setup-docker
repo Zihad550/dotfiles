@@ -2,7 +2,9 @@
 
 # The devcontainer gets docker from the docker-in-docker:4 feature with
 # moby:false, i.e. Docker CE, and a `usermod -aG docker` in postCreateCommand.
-# Neither is in devcontainer/install.sh, so this is the bare-metal equivalent.
+# Neither is in the retired devcontainer's install.sh (dotfiles-archive:
+# devcontainer/setup/devcontainer/install.sh), so this is the bare-metal
+# equivalent.
 #
 # Deliberately no `newgrp docker` (unlike ubuntu-server/setup-docker) -- it
 # spawns an interactive subshell, which stalls a scripted run. The group takes

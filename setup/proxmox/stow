@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-cd ~/dotfiles
+cd ~/dotfiles || exit
 
-stow git
-stow zsh
-stow starship
+stow --no-folding --target "$HOME" git
+stow --no-folding --target "$HOME" zsh
+stow --no-folding --target "$HOME" starship

@@ -47,7 +47,7 @@ git clone https://github.com/Zihad550/dotfiles.git ~/dotfiles
 
 ~/dotfiles/setup/boot.sh ubuntu-lxc-devbox   # or: setup/ubuntu-lxc-devbox/init
 ~/dotfiles/setup/ubuntu-lxc-devbox/setup-tailscale
-~/dotfiles/setup/ubuntu-lxc-devbox/setup-dns   # resolver policy; see ../../docs/dns.md
+~/dotfiles/setup/ubuntu-lxc-devbox/setup-dns   # resolver policy; see https://github.com/Zihad550/arch-desktop/blob/main/docs/dns.md
 ```
 
 Log out, then from the laptop confirm `ssh jehad@devbox` works over the tailnet

@@ -179,25 +179,6 @@ run() {
 # nerd-dictation begin --simulate-input-tool WTYPE
 # nerd-dictation end
 
-# alias devup='devpod up . \
-#   --dotfiles https://github.com/Zihad550/dotfiles \
-#   --dotfiles-script setup/devcontainer/install.sh \
-#   --devcontainer-path ~/dotfiles/setup/devcontainer/devcontainer.json'
-
-devup() {
-    if [ ! -f ".devcontainer/devcontainer.json" ]; then
-        echo "No devcontainer.json found, copying from template..."
-        mkdir -p .devcontainer
-        # cp ~/dotfiles/setup/devcontainer/devcontainer.json .devcontainer/devcontainer.json
-        cp ~/dotfiles/setup/devcontainer/devcontainer.json .devcontainer/devcontainer.json
-    fi
-
-    # devpod up . \
-    #     --dotfiles https://github.com/Zihad550/dotfiles \
-    #     --dotfiles-script setup/devcontainer/install.sh
-    devpod up .
-}
-
 scd() {
     # Same-named account on the remote unless SCD_REMOTE_USER says otherwise.
     local remote_user="${SCD_REMOTE_USER:-$USER}"

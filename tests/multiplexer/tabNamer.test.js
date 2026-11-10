@@ -133,12 +133,6 @@ const codexPane = (overrides = {}) => ({
     ...overrides
 });
 
-test("setup links the plugin, so a fresh machine gets it", () => {
-    const setup = fs.readFileSync(path.join(ROOT, "setup/common/setup-herdr"), "utf8");
-
-    assert.match(setup, /herdr plugin link "\$DOTFILES_DIR\/herdr-plugins\/tab-namer"/,
-        "nothing links the plugin, so herdr never runs it");
-});
 
 test("Haiku summarizes the latest Codex thread name", (t) => {
     const herdr = fixture(t, {

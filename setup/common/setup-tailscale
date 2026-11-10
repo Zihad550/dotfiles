@@ -3,7 +3,8 @@
 # Join the tailnet, so the box is reachable over ssh from anywhere without
 # exposing anything to the public internet.
 #
-# Shared by setup/ubuntu-devbox, setup/ubuntu-lxc-devbox and setup/arch-devbox.
+# Shared by setup/ubuntu-devbox, setup/ubuntu-lxc-devbox and arch-desktop's
+# setup/arch-devbox.
 # Do not run this file directly; run the wrapper in the target's own
 # directory, which installs tailscale the way that distro does it, sets the
 # variables below and execs this:
@@ -52,7 +53,7 @@ fi
 
 # ─── join the tailnet ────────────────────────────────────────────────────────
 # --operator lets this user run tailscale commands without sudo. The quickshell
-# bar's Tailscale toggle (quickshell/.../scripts/tailscale-toggle.sh) depends on
+# bar's Tailscale toggle (arch-desktop's quickshell/.../scripts/tailscale-toggle.sh) depends on
 # it: there is no terminal behind that menu row to type a sudo password into, so
 # without --operator every toggle falls through to a pkexec prompt.
 # The installer cannot update the parent shell that invokes this next step.

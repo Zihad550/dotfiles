@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Wellbeing
-Comment=See focused time spent in each application
-Exec=qs -c dotfiles ipc call wellbeing open
-Icon=preferences-system-time
-Terminal=false
-Categories=Utility;
-Keywords=Screen time;Usage;Applications;Wellbeing;

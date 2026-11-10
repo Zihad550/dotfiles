@@ -8,7 +8,7 @@
 #   DNS_SERVERS=<space-separated>   generate a plain-DNS drop-in routing every
 #                                    lookup to these servers instead; wins when set
 #
-# See docs/dns.md for the policy, ordering and domain forwarding.
+# See arch-desktop's docs/dns.md for the policy, ordering and domain forwarding.
 
 set -euo pipefail
 

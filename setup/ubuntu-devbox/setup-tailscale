@@ -7,8 +7,9 @@
 #   ./setup-tailscale                                # prints a URL to open
 #   TS_HOSTNAME=devbox         ./setup-tailscale     # override the tailnet name
 #
-# Where this box differs from ../arch-devbox: tailscale comes from the curl
-# installer, and ./setup-ufw runs before this and owns the tailscale0 rule.
+# Where this box differs from arch-desktop's setup/arch-devbox: tailscale comes
+# from the curl installer, and ./setup-ufw runs before this and owns the
+# tailscale0 rule.
 #
 # On the sshd note in the shared script: this box keeps a permanent LAN ssh
 # hole, so the way back in when tailscaled is what broke is ssh from the LAN --

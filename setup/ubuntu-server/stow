@@ -3,10 +3,10 @@
 DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 cd "$DOTFILES" || exit
 
-stow git
-stow zsh
-stow starship
-stow bash
+stow --no-folding --target "$HOME" git
+stow --no-folding --target "$HOME" zsh
+stow --no-folding --target "$HOME" starship
+stow --no-folding --target "$HOME" bash
 # stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
 mkdir -p ~/.config/herdr
 ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml

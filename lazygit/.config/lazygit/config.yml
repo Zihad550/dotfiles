@@ -1,1 +1,4 @@
-/home/jehad/.config/theme/lazygit.yml
+git:
+  overrideGpg: true
+gui:
+  expandFocusedSidePanel: true

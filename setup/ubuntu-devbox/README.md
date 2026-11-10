@@ -1,7 +1,8 @@
 # ubuntu-devbox
 
 Bare-metal Ubuntu Server 26 desktop used as a dev box over ssh, reached through
-Tailscale. Same package set as [`setup/devcontainer`](../devcontainer), plus the
+Tailscale. Same package set as the retired devcontainer (now in
+[dotfiles-archive](https://github.com/Zihad550/dotfiles-archive)), plus the
 things a container got for free from its host: networking, firewall, disks.
 
 ## order
@@ -218,7 +219,7 @@ and you are back to the distro config.
 
 The file here is a thin wrapper: the logic lives in
 [`../common/harden-ssh`](../common/harden-ssh), shared with
-[`arch-devbox`](../arch-devbox). The wrapper sets `SSH_UNIT=ssh` (Arch calls it
+[`arch-devbox`](https://github.com/Zihad550/arch-desktop/blob/main/setup/arch-devbox). The wrapper sets `SSH_UNIT=ssh` (Arch calls it
 `sshd`), `HARDEN_FIREWALL=ufw-lan` (mirror the break-glass rule onto the new
 port, drop the port-22 rules in phase 2 — arch-devbox opens an interface, not a
 port, so it needs neither) and `HARDEN_NET=lan` (the break-glass path is ssh

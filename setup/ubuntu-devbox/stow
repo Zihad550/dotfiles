@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Same links as setup/devcontainer/stow. Difference: the devcontainer gets
+# Same links as the retired devcontainer's stow (dotfiles-archive:
+# devcontainer/setup/devcontainer/stow). Difference: the devcontainer gets
 # ~/.agents, ~/dev and ~/dotfiles as bind mounts from the host. On bare metal
 # nothing creates them, so they are cloned/created here instead.
 
@@ -9,20 +10,20 @@ cd "$DOTFILES" || exit
 
 mkdir -p ~/dev
 
-stow git
-stow zsh
-stow lazygit
-stow starship
-stow yazi
+stow --no-folding --target "$HOME" git
+stow --no-folding --target "$HOME" zsh
+stow --no-folding --target "$HOME" lazygit
+stow --no-folding --target "$HOME" starship
+stow --no-folding --target "$HOME" yazi
 # stow herdr — only config.toml is managed; the rest is runtime state (logs, sessions, sockets)
 mkdir -p ~/.config/herdr
 ln -snf "$DOTFILES/herdr/.config/herdr/config.toml" ~/.config/herdr/config.toml
-stow gh-dash
-stow procs
+stow --no-folding --target "$HOME" gh-dash
+stow --no-folding --target "$HOME" procs
 # stow worktrunk — only config.toml is managed; the rest is runtime state (approvals, locks)
 mkdir -p ~/.config/worktrunk
 ln -snf "$DOTFILES/worktrunk/.config/worktrunk/config.toml" ~/.config/worktrunk/config.toml
-stow branch-creator
+stow --no-folding --target "$HOME" branch-creator
 
 # ai tools
 scripts/stow/stow-ai
@@ -34,4 +35,4 @@ if [[ ! -e ~/.config/mise/config.toml ]]; then
 fi
 
 rm -rf ~/.bashrc
-stow bash
+stow --no-folding --target "$HOME" bash

@@ -1,12 +1,12 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034
 
-backup_entries=(Documents Videos Pictures .gnupg .password-store .ssh backups dev dotfiles Downloads Downloads/backups Music Templates .obsidian-vault bk.json)
+backup_entries=(Documents Videos Pictures .gnupg .password-store .ssh backups dev dotfiles arch-desktop Downloads Downloads/backups Music Templates .obsidian-vault bk.json)
 
 home_item_excludes() {
     excludes=()
     case "$1" in
-        dev | dotfiles) excludes=(
+        dev | dotfiles | arch-desktop) excludes=(
             '--exclude=*/node_modules' '--exclude=*/.pnpm-store' '--exclude=*/.next'
             '--exclude=*/.nuxt' '--exclude=*/dist' '--exclude=*/.cache' '--exclude=*/cache'
             '--exclude=*/logs' '--exclude=*/__pycache__' '--exclude=*/.venv' '--exclude=*/venv'

@@ -31,15 +31,19 @@ After every implementation:
 
 ## Guidelines
 
+- Seed portable LazyGit defaults only when no local file or symlink exists; desktop themes may own its runtime configuration.
+
+- Keep desktop code and Arch desktop installers in `Zihad550/arch-desktop`; keep portable configuration, CLI helpers, headless installers, the `setup/boot.sh` entry point, the setup helpers both repos share, and their tests here.
+
 - Do not alias the Zsh `break` builtin; it turned the devvm startup loop into a repeating 10-minute Pomodoro timer.
 - Write code comments only for what the code can't say for itself: a non-obvious
   "why", an invariant, or a gotcha a future reader would trip over. Never
   restate what the code already shows.
 - Keep them short — a line or two. A comment turning into a paragraph of
   design history or rationale belongs in the nearest owning `README.md`,
-  `docs/<feature>-spec.md`, an ADR (`docs/adr/`), or `CONTEXT.md` instead.
+  a GitHub issue, an ADR (`docs/adr/`), or `CONTEXT.md` instead.
   Leave a one-line pointer in the code (e.g. `// see ticket 12`,
-  `// see docs/launcher-spec.md`), not the story itself.
+  `// see devvm/README.md`), not the story itself.
 - A script header may list its caller-controlled variables, their defaults,
   and their effects. Keep history, alternatives, and extended rationale in
   the owning documentation.
@@ -72,7 +76,7 @@ contract.
 
 ### Issue tracker
 
-Issues live in this repo's GitHub Issues; skills use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+For issues, specs, and task evidence, follow `docs/agents/issue-tracker.md`; skills use the `gh` CLI.
 
 ### Triage labels
 
@@ -80,7 +84,7 @@ The five canonical roles, used verbatim as GitHub labels. See `docs/agents/triag
 
 ### Domain docs
 
-Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+For domain vocabulary, see `docs/agents/domain.md`. Desktop glossary and decisions live in `arch-desktop`.
 
 ## Keeping this file current
 

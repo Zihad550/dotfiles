@@ -2,6 +2,14 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
+Keep feature specs in issue bodies and task-specific verification handoffs,
+investigation notes, and results in the relevant issue body or comments. Link
+to that record from the repo instead of keeping a second Markdown copy.
+
+Keep setup and operating guides beside the code, plus `AGENTS.md`, `CONTEXT.md`,
+and architectural decisions in `docs/adr/`. Describe the current system there;
+keep acceptance checklists and implementation plans in GitHub.
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.

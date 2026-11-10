@@ -5,7 +5,6 @@ trusted_config_paths = ["/home/vscode"]
 [env]
   _.path = [
     "{{env.HOME}}/dotfiles/bin",
-    "{{env.HOME}}/dotfiles/bin/voxtype",
     "{{env.HOME}}/.local/share/go/bin",
     "{{env.HOME}}/.local/share/pnpm",
     "{{env.HOME}}/.local/share/cargo/bin",

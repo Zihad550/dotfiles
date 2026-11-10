@@ -1,9 +1,0 @@
-[
-    {
-        "make": "LG Electronics",
-        "model": "LG FULL HD",
-        "serial": "203NTFA3R371",
-        "day": {"preset": 11, "rgb": [50, 59, 63]},
-        "night": {"preset": 5}
-    }
-]
