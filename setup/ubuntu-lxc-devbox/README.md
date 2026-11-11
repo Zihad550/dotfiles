@@ -62,6 +62,7 @@ with your key, and finish:
 | `init` | entrypoint; runs `packages`, `../ubuntu-devbox/packages`, `setup-docker`, `../ubuntu-devbox/stow`, `../ubuntu-devbox/tools`, `../common/setup-herdr`, `../common/setup-skills`, sets zsh, records the machine profile |
 | `packages` | what the LXC template lacks and Ubuntu Server ships (`add-apt-repository`, sshd, curl), and removes the template's inactive ufw |
 | `setup-docker` | `../ubuntu-devbox/setup-docker`, then checks dockerd actually started |
+| `setup-devvm` | optional DevVM host: installs QEMU, DevVM and Lima, links the portable layers and defaults new VMs to `shell,desktop` |
 | `setup-tailscale` | checks for `/dev/net/tun`, installs Tailscale, joins the tailnet (wrapper over [`../common/setup-tailscale`](../common/setup-tailscale)) |
 | `setup-dns` | installs `systemd-resolved`, stops Proxmox rewriting `/etc/resolv.conf`, applies the Arch devbox resolver policy (wrapper over [`../common/setup-dns`](../common/setup-dns)) |
 | `harden-ssh` | key-only sshd, no root, stays on port 22 (wrapper over [`../common/harden-ssh`](../common/harden-ssh)) |
@@ -106,3 +107,106 @@ keyctl are on (`pct config <CT_ID> | grep features`). If both are on and
 `docker run` fails on a sysctl permission error, update the Proxmox host
 packages (`pve-lxc`). Older hosts reject the sysctl writes that newer runc
 versions make.
+
+## devvm
+
+The LXC can host [DevVM](https://devvm.dev/docs/getting-started/install/) VMs
+with its built-in [Xfce `desktop` layer](https://devvm.dev/docs/using/desktop/).
+The LXC stays headless; Xfce runs inside a VM. This is separate from the
+`arch-desktop` coding layer in [the portable layers guide](../../devvm/README.md).
+Allow room for both the LXC tools and its VMs: start with 4 CPUs, 16 GiB RAM
+and 80 GiB disk for a box that will run a 4 GiB desktop VM. Multiple VMs need
+more memory and disk.
+
+### KVM passthrough
+
+Finish the normal LXC setup first. On the Proxmox host, `/dev/kvm` must exist;
+enable hardware virtualization in firmware if it does not. If Proxmox itself
+runs in a VM, its hypervisor must expose virtualization to it as well.
+
+Run this as root on Proxmox while the container is running. It grants the
+login user's primary group access to KVM inside the guest, without making
+the device world-writable. `dev0` remains the TUN device. If `dev1` is already
+occupied, use another free `devN` slot in the block. The shutdown/start
+disconnects existing sessions, so save work first.
+
+```bash
+(
+    set -euo pipefail
+    read -rp 'Container ID: ' ct_id
+    read -rp 'Container login user: ' ct_user
+    test -c /dev/kvm
+    if pct config "$ct_id" | grep -q '^dev1:'; then
+        echo 'dev1 is occupied; choose an unused devN slot in this block.' >&2
+        exit 1
+    fi
+    guest_gid=$(pct exec "$ct_id" -- id -g "$ct_user")
+    pct set "$ct_id" --dev1 "path=/dev/kvm,gid=$guest_gid,mode=0660"
+    pct shutdown "$ct_id" --timeout 60
+    pct start "$ct_id"
+)
+```
+
+This uses Proxmox's [device passthrough options](https://github.com/proxmox/pve-docs/blob/master/generated/pct.conf.5-opts.adoc).
+Keep the container unprivileged with nesting enabled; no AppArmor override or
+GPU passthrough is needed for the software-rendered desktop.
+
+### Install and create a VM
+
+Log in to the LXC as your normal user and run:
+
+```bash
+test -c /dev/kvm && test -r /dev/kvm && test -w /dev/kvm
+~/dotfiles/setup/ubuntu-lxc-devbox/setup-devvm
+devvm doctor
+```
+
+The first command must exit successfully, and `devvm doctor` must report no
+missing requirements. The installer verifies the upstream release signature
+and the install script's checksum before running it. Existing DevVM and Lima
+installations are kept; use `devvm upgrade` for updates. A real existing
+`~/.config/devvm/layers` directory must be merged into the repo's layers before
+setup can link it. `XDG_CONFIG_HOME` is respected when set.
+
+Create a project and its VM inside the LXC:
+
+```bash
+mkdir -p ~/dev/desktop-demo
+cd ~/dev/desktop-demo
+devvm --here --layers shell,desktop --tools node --agents claude,codex --cpus 4 --memory 4
+```
+
+Exit the VM shell to return to the LXC. New VMs default to `shell,desktop`,
+but an explicit `--layers` replaces that list: include `desktop` with any
+project layers you select. For an existing VM, save and push work outside its
+home and project folders, then run `devvm layer add desktop` from its project
+in the LXC. That rebuilds the VM and retains its home and project, but replaces
+the rest of its disk after confirmation. See [DevVM layers](../../devvm/README.md)
+for agent skills and settings inside the shell layer.
+
+### Connect to Xfce
+
+In an SSH session to the LXC, from the project directory:
+
+```bash
+cd ~/dev/desktop-demo
+devvm desktop --no-open
+```
+
+Leave it running. It prints a `vnc://127.0.0.1:PORT` address and a password.
+In a second terminal on your laptop, forward that port over your existing
+SSH connection (use your SSH alias if you configured a different SSH port):
+
+```bash
+read -rp 'LXC SSH destination (user@host or SSH alias): ' lxc_ssh
+read -rp 'Port printed by devvm desktop: ' desktop_port
+ssh -N -o ExitOnForwardFailure=yes -L "5901:127.0.0.1:$desktop_port" "$lxc_ssh"
+```
+
+Open `vnc://127.0.0.1:5901` in a VNC viewer on the laptop, such as Remmina,
+TigerVNC or macOS Screen Sharing, and enter the printed password. A pass is an
+Xfce desktop where you can open a terminal and run `uname -a` inside the VM.
+Keep both terminals running; Ctrl+C stops the tunnel and desktop serving.
+No Proxmox firewall rule or public VNC listener is needed. If the tunnel fails
+with "administratively prohibited", check sshd's effective
+`AllowTcpForwarding` setting; this repo's `harden-ssh` enables it.

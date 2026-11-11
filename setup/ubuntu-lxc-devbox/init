@@ -63,6 +63,7 @@ echo "next:"
 echo "  $SETUP_DIR/setup-tailscale"
 echo "  $SETUP_DIR/setup-dns"
 echo "  $SETUP_DIR/harden-ssh    # after a key login over the tailnet works"
+echo "  $SETUP_DIR/setup-devvm   # optional; pass /dev/kvm through first (README.md)"
 echo
 if (( tools_status == 1 )); then
     echo "some tools failed to install; see the summary above, then re-run:"

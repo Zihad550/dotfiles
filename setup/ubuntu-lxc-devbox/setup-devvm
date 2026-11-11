@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Optional DevVM host with the built-in Xfce layer. See README.md "devvm".
+
+set -euo pipefail
+
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$SETUP_DIR/../.." && pwd)}"
+
+if (( EUID == 0 )); then
+    echo "Run this as your login user, not root." >&2
+    exit 1
+fi
+"$DOTFILES_DIR/setup/common/check-machine-profile" ubuntu-lxc-devbox
+if [[ "$(systemd-detect-virt --container 2>/dev/null || true)" != lxc ]]; then
+    echo "Run this inside the Ubuntu LXC devbox." >&2
+    exit 1
+fi
+if ! test -c /dev/kvm || ! test -r /dev/kvm || ! test -w /dev/kvm; then
+    echo "/dev/kvm must be a character device readable and writable by $(id -un)." >&2
+    echo "Follow README.md's KVM passthrough steps, then log out and back in." >&2
+    exit 1
+fi
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/devvm"
+if [[ -e "$config_dir/layers" && ! -L "$config_dir/layers" ]]; then
+    echo "$config_dir/layers already exists; move its custom layers into $DOTFILES_DIR/devvm/.config/devvm/layers first." >&2
+    exit 1
+fi
+
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+    ca-certificates curl minisign openssh-client qemu-system qemu-utils rsync
+
+export PATH="$HOME/.local/bin:$PATH"
+if ! command -v devvm &>/dev/null || ! command -v limactl &>/dev/null; then
+    release_url=https://github.com/devvmhq/devvm/releases/latest/download
+    devvm_pubkey=RWSjzFsn7ETaijKJ2y7F4DtZobXmyv+LmdclJwZP/KmAkLUwOCzWF/2b
+    work_dir=$(mktemp -d)
+    trap 'rm -rf "$work_dir"' EXIT
+    for file in install.sh SHA256SUMS SHA256SUMS.minisig; do
+        curl -fsSL --retry 3 -o "$work_dir/$file" "$release_url/$file"
+    done
+    minisign -Vqm "$work_dir/SHA256SUMS" -P "$devvm_pubkey"
+    (
+        cd "$work_dir"
+        awk '$2 == "install.sh" || $2 == "*install.sh" { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS |
+            sha256sum --check --strict --quiet
+    )
+    bash "$work_dir/install.sh" --yes
+fi
+
+# The upstream installer can succeed even when a dependency fix fails.
+devvm doctor
+mkdir -p "$config_dir"
+ln -snf "$DOTFILES_DIR/devvm/.config/devvm/layers" "$config_dir/layers"
+devvm setup --layers shell,desktop --no-input
+
+echo "New VMs default to shell,desktop. Existing VMs keep their layers."
+echo "See $SETUP_DIR/README.md for VM creation and the SSH tunnel to Xfce."
