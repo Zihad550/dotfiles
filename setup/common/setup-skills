@@ -27,6 +27,26 @@ eval "$(mise activate bash)"
 skills add JuliusBrussee/caveman --skill caveman-commit -g --agent "${AGENTS[@]}" -y "${skill_options[@]}"
 skills add vercel-labs/skills --skill find-skills -g --agent "${AGENTS[@]}" -y "${skill_options[@]}"
 skills add herdrdev/herdr --skill herdr -g --agent "${AGENTS[@]}" -y "${skill_options[@]}"
+# The app embeds plain Markdown; skills requires frontmatter to discover it.
+(
+  herdr_skill_dir=$(mktemp -d)
+  trap 'rm -rf "$herdr_skill_dir"' EXIT
+  mkdir -p "$herdr_skill_dir/herdr-app"
+  curl -fLsS --connect-timeout 10 --max-time 60 \
+    https://raw.githubusercontent.com/herdrdev/herdr-app/master/src/SKILL.md \
+    -o "$herdr_skill_dir/upstream.md"
+  {
+    cat <<'HEADER'
+---
+name: herdr-app
+description: Control the Herdr desktop app and customize its layouts, keybindings, settings, and mods. Use hc for terminal and agent orchestration.
+---
+
+HEADER
+    cat "$herdr_skill_dir/upstream.md"
+  } > "$herdr_skill_dir/herdr-app/SKILL.md"
+  skills add "$herdr_skill_dir" --skill herdr-app -g --agent "${AGENTS[@]}" -y --copy
+)
 skills add giuseppe-trisciuoglio/developer-kit --skill shadcn-ui -g --agent "${AGENTS[@]}" -y "${skill_options[@]}"
 skills add microsoft/playwright-cli --skill playwright-cli -g --agent "${AGENTS[@]}" -y "${skill_options[@]}"
 skills add max-sixty/worktrunk --skill worktrunk -g --agent "${AGENTS[@]}" -y "${skill_options[@]}"
