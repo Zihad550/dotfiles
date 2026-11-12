@@ -145,6 +145,7 @@ fi
     def test_opt_outs_and_noninteractive_shells_do_not_query_inventory(self):
         code = f'source {shlex.quote(str(HOOK))}; cd {shlex.quote(str(self.child))}'
         for overrides, tty, interactive in [({'DEVVM_AUTO_ENTER': '0'}, True, True),
+                                            ({'DEVVM_AUTO_ENTER': ''}, True, True),
                                             ({'DEVVM_ZSH': '1'}, True, True),
                                             ({}, False, True), ({}, True, False)]:
             with self.subTest(overrides=overrides, tty=tty, interactive=interactive):

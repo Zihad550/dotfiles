@@ -174,6 +174,9 @@ source "$XDG_CONFIG_HOME/zsh/aliasrc"
 source "$XDG_CONFIG_HOME/zsh/gitrc"
 source "$XDG_CONFIG_HOME/zsh/wtrc"
 source "$XDG_CONFIG_HOME/zsh/zshalias"
+# 1 lets zsh enter a project's VM, 0 stays on the host; see devvm/README.md.
+# Here, not .zshenv: child shells inherit ZDOTDIR and skip ~/.zshenv.
+export DEVVM_AUTO_ENTER=0
 source "$XDG_CONFIG_HOME/zsh/devvm.zsh"
 
 # Emit OSC 7 (current working directory) so the outer terminal / tmux can

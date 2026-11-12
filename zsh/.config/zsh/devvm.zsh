@@ -25,7 +25,7 @@ fi
 typeset -g _DF_DEVVM_LAST='' _DF_DEVVM_PAUSED=''
 
 _df_devvm_auto() {
-    [[ -t 0 && -t 1 && ${DEVVM_AUTO_ENTER:-1} != 0 ]] || return 0
+    [[ -t 0 && -t 1 && ${DEVVM_AUTO_ENTER:-0} == 1 ]] || return 0
     [[ ! -e ${XDG_CONFIG_HOME:-$HOME/.config}/devvm/no-auto-enter ]] || return 0
     [[ $PWD != "$_DF_DEVVM_LAST" ]] || return 0
     _DF_DEVVM_LAST=$PWD

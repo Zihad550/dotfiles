@@ -29,11 +29,11 @@ every new VM with `devvm setup --layers shell`.
 
 ## Automatic entry
 
-Interactive zsh shells enter an existing VM when opened in its project or when
-`cd`, zoxide or `wt switch` moves into it. This includes Herdr panes: the shell
-hook runs inside each pane, without a Herdr plugin. Reload the host shell after
-updating dotfiles to enable it. Scripts and non-interactive shells do not route,
-and shells inside a VM never start another VM.
+When the `DEVVM_AUTO_ENTER` switch below is on, interactive zsh shells enter an
+existing VM when opened in its project or when `cd`, zoxide or `wt switch` moves
+into it. This includes Herdr panes: the shell hook runs inside each pane, without
+a Herdr plugin. Scripts and non-interactive shells do not route, and shells
+inside a VM never start another VM.
 
 `bin/df-devvm-auto` reads `devvm ls --json`, chooses the nearest enclosing VM
 folder, and uses `devvm host --here --no-input` to start it if needed. That
@@ -53,10 +53,15 @@ original directory. After returning, automatic entry pauses for that project
 until you leave its folder; `devvm-auto-enter` explicitly enters it again.
 Exiting the shell leaves the VM running.
 
-To disable automatic entry globally, set `DEVVM_AUTO_ENTER=0` in your shell
-configuration, or create `~/.config/devvm/no-auto-enter`. To disable a folder
-and its descendants, create `.devvm-no-auto` in that folder. These are marker
-files, never executable configuration. Remove the marker and run
+`DEVVM_AUTO_ENTER` in `zsh/.config/zsh/.zshrc` is the global switch: `1` is on,
+and anything else, including the current `0`, is off. Change it to `1` to turn
+automatic entry on for new shells and Herdr panes, or run
+`export DEVVM_AUTO_ENTER=1` to turn it on in the current shell.
+`devvm-auto-enter` obeys the switch too, and does nothing while it is off.
+Creating `~/.config/devvm/no-auto-enter` also disables automatic entry globally,
+whatever the switch says. To disable a folder and its descendants, create
+`.devvm-no-auto` in that folder. These are marker files, never executable
+configuration. With the switch on, remove the marker and run
 `devvm-auto-enter`, or open a new shell, to resume entry.
 
 Once the pane has entered the VM, typing `claude` or `codex` runs that VM's
@@ -68,7 +73,7 @@ launch behavior; use the VM terminal when they have no Remote-SSH integration.
 
 ### Manual verification in Herdr
 
-Use a project with an existing VM, such as mamacrm:
+With `DEVVM_AUTO_ENTER=1`, use a project with an existing VM, such as mamacrm:
 
 1. Open a new Herdr pane in the project. The prompt must show `(devvm)`, and
    `pwd` must show the same project path. A stopped VM should start.
@@ -148,6 +153,41 @@ Everything in the folder is writable from the VM, including every repo's
 `config.yaml` and `.env.local`. Linux hosts get no `.git` protection, so the VM
 can also change any repo's `.git/hooks` and `.git/config`, which run on the
 host. Check them before running git hooks on the host.
+
+## arch-desktop
+
+`arch-desktop` is the main project: its host checkout is mounted into the VM
+at the same path. The other two repos are cloned inside the VM: `shell`
+provides dotfiles at `/opt/dotfiles` (also linked as `~/dotfiles`), and
+`arch-desktop.sh` clones the archive to `~/dotfiles-archive`.
+
+```zsh
+devvm-arch-desktop
+```
+
+The shortcut uses `${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}` and creates the VM
+with `--layers shell,arch-desktop --tools node --agents claude,codex`, two CPUs
+and 4 GiB of memory. It opens the existing VM on later runs. To use another
+checkout without the shortcut:
+
+```bash
+cd /path/to/arch-desktop
+devvm --here --layers shell,arch-desktop --tools node --agents claude,codex --cpus 2 --memory 4
+```
+
+The clones are independent of the host's dotfiles and archive checkouts; host
+edits to those repos are not visible in the VM. Update them with
+`git -C ~/dotfiles pull --ff-only` and
+`git -C ~/dotfiles-archive pull --ff-only`. The dotfiles clone is shallow and
+also supplies the VM's live shell configuration. `/opt/dotfiles` is part of
+the image and is replaced by `devvm update`; commit and push its work first.
+The archive lives in the persistent VM home. To push from either clone,
+save a GitHub token on the host with `devvm secret set github`, then enable
+it for the project with `devvm secret use github`.
+
+This remains an Ubuntu coding VM; it does not run the Arch desktop installers
+or provide a Hyprland session. An existing VM needs
+`devvm layer add shell arch-desktop` from the main checkout to add these layers.
 
 ## changing a layer
 

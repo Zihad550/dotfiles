@@ -47,6 +47,9 @@ alias_if_command devvm dvm devvm
 alias_if_command devvm devvm-mamacrm \
     '(cd ~/dev/work/mamacrm && devvm --layers docker,shell,mamacrm --tools node,go --agents claude --cpus 6 --memory 12)'
 
+alias_if_command devvm devvm-arch-desktop \
+    '(cd "${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}" && devvm --here --layers shell,arch-desktop --tools node --agents claude,codex --cpus 2 --memory 4)'
+
 if commands_available go-timer notify-send; then
     alias work="pomodoro 'work'"
     alias typing="pomodoro 'typing'"
