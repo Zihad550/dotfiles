@@ -17,6 +17,7 @@ mkdir -p ~/.claude
 ln -snf "$DOTFILES/claude/.claude/settings.json" ~/.claude/settings.json
 ln -snf "$DOTFILES/claude/.claude/statusline-command.sh" ~/.claude/statusline-command.sh
 ln -snf "$DOTFILES/claude/.claude/agents" ~/.claude/agents
+ln -snf "$DOTFILES/claude/.claude/mods" ~/.claude/mods
 # ~/.claude/skills is owned by setup/common/setup-skills (--agent claude-code).
 
 # codex

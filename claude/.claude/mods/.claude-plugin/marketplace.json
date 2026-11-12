@@ -7,6 +7,10 @@
     {
       "name": "drafts",
       "source": "./drafts"
+    },
+    {
+      "name": "lazy-diff",
+      "source": "./lazy-diff"
     }
   ]
 }

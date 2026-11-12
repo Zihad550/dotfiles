@@ -50,6 +50,7 @@ skills add "$OWN_SKILLS_SOURCE" \
 if ((install_mods)) && command -v claude >/dev/null 2>&1; then
   claude plugin marketplace add "$DOTFILES_DIR/claude/.claude/mods"
   claude plugin install drafts@dotfiles-mods --scope user
+  claude plugin install lazy-diff@dotfiles-mods --scope user
 elif ((install_mods)); then
   echo "setup-skills: claude not found, skipping Claude Code mods" >&2
 fi
