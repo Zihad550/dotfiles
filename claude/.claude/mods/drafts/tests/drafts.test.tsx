@@ -15,6 +15,8 @@ const PANE = {
 } as const
 
 test('/drafts toggles the pane and it shows the newest draft', async ($, on) => {
+  const markdown = '# Review\n\n**Looks good.** Use `drafts`.\n\n```ts\nconst ready = true\n```\n'
+  let copied = ''
   let isOpen = false
   const reads: string[] = []
   const store: Record<string, unknown> = {}
@@ -41,8 +43,13 @@ test('/drafts toggles the pane and it shows the newest draft', async ($, on) => 
   })
   on('fs.read', (_, e) => {
     reads.push(e.path)
-    return { value: e.path.endsWith('42.md') ? 'Looks good.' : 'old' }
+    return { value: e.path.endsWith('42.md') ? markdown : 'old' }
   })
+  on('ui.copy', (_, e) => {
+    copied = e.text
+    return { value: { isCopied: true } }
+  })
+  on('ui.toast', () => ({ value: undefined }))
   on('ui.panes', () => ({
     value: isOpen ? [{ id: 'drafts', title: 'Drafts', isShown: true, isFocused: false, isPlaced: true }] : [],
   }))
@@ -67,7 +74,12 @@ test('/drafts toggles the pane and it shows the newest draft', async ($, on) => 
   expect(reads.includes('/repo/tmp/draft-secret.md')).toBe(false)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /Looks good/ }))?.text).toBe('Looks good.')
+  const rendered = await ui.find({ type: 'Markdown' })
+  expect(rendered).toBeDefined()
+  expect(rendered?.props.text).toBe(markdown)
+  expect(await ui.find({ type: 'Code' })).toBeUndefined()
+  await ui.press({ key: 'copy' })
+  expect(copied).toBe(markdown)
   expect(await ui.find({ type: 'Text', text: /notes\.md/ })).toBeUndefined()
   await ui.unmount()
 

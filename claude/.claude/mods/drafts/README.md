@@ -10,6 +10,8 @@ out of commits.
 
 `/drafts` toggles the pane; the choice persists across sessions. In the pane,
 `c` copies the shown draft and `r` rescans.
+Drafts render as Markdown, styled like a reply; copying keeps the original
+text.
 
 ## Install
 

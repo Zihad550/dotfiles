@@ -95,7 +95,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const { Box, Button, Text, Markdown } = $.ui.resolve(e)
     const list = await read($, drafts)
     const pick = await read($, selected)
     const now = await $.clock.now()
@@ -142,9 +142,7 @@ export const register: Register = on => {
         </Box>
         <Text dimColor>{shown.path}</Text>
         <Box marginTop={1} flexDirection="column">
-          {shown.text.split('\n').map(line => (
-            <Text>{line === '' ? ' ' : line}</Text>
-          ))}
+          <Markdown text={shown.text} />
         </Box>
       </Box>
     )
