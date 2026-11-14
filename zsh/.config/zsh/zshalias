@@ -45,10 +45,10 @@ alias_if_command devvm dvm devvm
 # One VM over every mamacrm repo and worktree; creates it on first run, opens
 # it after. See devvm/README.md.
 alias_if_command devvm devvm-mamacrm \
-    '(cd ~/dev/work/mamacrm && devvm --layers docker,shell,mamacrm --tools node,go --agents claude --cpus 6 --memory 12)'
+    '(cd ~/dev/work/mamacrm && devvm --layers docker,shell,mamacrm --tools node,go --agents claude,opencode --cpus 6 --memory 16 --disk 100)'
 
 alias_if_command devvm devvm-arch-desktop \
-    '(cd "${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}" && devvm --here --layers shell,arch-desktop --tools node --agents claude,codex --cpus 2 --memory 4)'
+    '(cd "${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}" && devvm --here --layers shell,arch-desktop --tools node --agents claude --cpus 2 --memory 4)'
 
 if commands_available go-timer notify-send; then
     alias work="pomodoro 'work'"

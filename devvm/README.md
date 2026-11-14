@@ -214,6 +214,11 @@ When an install or call fails, run `devvm network log` to see what was blocked.
 devvm-mamacrm   # zsh alias: creates the VM on first run, opens it after
 ```
 
+The alias's size (6 CPUs, 16 GiB memory, 100 GiB disk) applies only when it
+creates the VM. To resize an existing one, run
+`devvm size --cpus 6 --memory 16 --disk 100` in `~/dev/work/mamacrm`; it takes
+effect on the VM's next start.
+
 The shell opens in the mamacrm folder. Once per VM:
 
 ```bash
@@ -264,13 +269,13 @@ devvm-arch-desktop
 ```
 
 The shortcut uses `${ARCH_DESKTOP_DIR:-$HOME/arch-desktop}` and creates the VM
-with `--layers shell,arch-desktop --tools node --agents claude,codex`, two CPUs
+with `--layers shell,arch-desktop --tools node --agents claude`, two CPUs
 and 4 GiB of memory. It opens the existing VM on later runs. To use another
 checkout without the shortcut:
 
 ```bash
 cd /path/to/arch-desktop
-devvm --here --layers shell,arch-desktop --tools node --agents claude,codex --cpus 2 --memory 4
+devvm --here --layers shell,arch-desktop --tools node --agents claude --cpus 2 --memory 4
 ```
 
 The clones are independent of the host's dotfiles and archive checkouts; host
