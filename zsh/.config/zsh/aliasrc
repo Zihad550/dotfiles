@@ -273,6 +273,7 @@ alias_if_command du du 'du -h -d 1'
 alias_if_command procs p procs
 alias_if_command yazi f yazi
 alias_if_command mise m mise
+alias_if_command pacman pac 'sudo pacman'
 
 # Fuzzy finder shortcuts
 if commands_available fzf bat; then

@@ -5,7 +5,7 @@ set -e
 runtimes=(node@24 node go pnpm uv)
 agents=(claude opencode)
 agent_tools=(npm:skills npm:@playwright/cli)
-diff_tools=(aqua:modem-dev/hunk)
+diff_tools=(aqua:modem-dev/hunk github:agavra/tuicr)
 
 # One install call downloads everything in parallel (npm: tools wait for node).
 # Not fatal here, except for Ctrl-C/SIGTERM: a failed tool fails again in its

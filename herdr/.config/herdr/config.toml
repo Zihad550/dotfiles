@@ -200,6 +200,7 @@ mouse_capture = true
 copy_on_select = true
 
 confirm_close = true
+pane_gaps = false
 
 # Start with the sidebar collapsed (takes effect on next launch).
 sidebar_start_collapsed = false
