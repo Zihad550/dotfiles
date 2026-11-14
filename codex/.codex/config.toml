@@ -1,7 +1,7 @@
-model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model = "gpt-6-luna"
+model_reasoning_effort = "xhigh"
 approvals_reviewer = "auto_review"
-service_tier = "default"
+service_tier = "fast"
 
 [projects."/home/jehad/dotfiles"]
 trust_level = "trusted"
