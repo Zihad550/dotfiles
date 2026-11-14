@@ -1,0 +1,9 @@
+crates.io
+*.crates.io
+
+# VM-local skills CLI and its Node runtime.
+mise.jdx.dev
+mise-versions.jdx.dev
+nodejs.org
+*.nodejs.org
+registry.npmjs.org

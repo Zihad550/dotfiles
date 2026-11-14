@@ -58,6 +58,7 @@ After every implementation:
 - Do not **stage** or **commit** `claude/.claude/settings.json` unless the user
   names that file. An instruction about something else nearby is not permission.
 - After a task is done, ask the user if they would like to commit and push the relevant changes.
+- Use `skills add --copy` for devvm skills stored behind redirected agent folders; the CLI's relative symlinks break at the deeper VM-local path.
 - Preserve the guest's original `ZDOTDIR` when wrapping zsh for devvm auto-entry.
 - Clear devvm auto-entry's paused root when the VM returns the host outside that root.
 

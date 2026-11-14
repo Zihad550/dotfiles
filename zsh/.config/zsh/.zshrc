@@ -166,6 +166,7 @@ fi
 if commands_available wt; then eval "$(command wt config shell init zsh)"; fi
 if commands_available tv; then eval "$(tv init zsh)"; fi
 if commands_available atuin; then eval "$(atuin init zsh)"; fi
+if commands_available devvm; then eval "$(devvm completion zsh)"; fi
 # if commands_available gt; then source <(gt completion zsh); fi
 source "$XDG_CONFIG_HOME/zsh/ni"
 

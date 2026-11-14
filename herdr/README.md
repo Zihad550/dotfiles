@@ -3,7 +3,9 @@
 Super+I opens the personal session and triggers `df-update-daily` if it has
 not already been triggered that day, using the update host's local date.
 Reopening an existing session also checks. There is no time-of-day filter. Updates follow the same devcontainer routing as the session; Super+U
-does not trigger them. The first workspace receives three background tabs.
+does not trigger them. The first workspace receives three background tabs on development profiles.
+On `arch-workstation`, it receives only a devvm settings update tab; host
+skills, mise packages and agent integrations are not updated.
 
 `${XDG_STATE_HOME:-~/.local/state}/dotfiles/update-daily.last-triggered`
 records the last automatic trigger date. A lock prevents concurrent triggers,

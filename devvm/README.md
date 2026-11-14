@@ -24,8 +24,46 @@ GitHub, which devvm's base policy allows.
 Ubuntu names Ghostty's terminfo entry only `ghostty`, so the layer links
 `xterm-ghostty` to it. Without that, zsh in Ghostty draws typed letters twice.
 
+It also clones the skills repo to `~/dev/src/github.com/Zihad550/skills`, the
+host's path, so any VM can edit it. devvm can't mount it: a VM mounts only its
+project folder. Each zsh start pulls it in the background, fast-forward only,
+so local commits or conflicting edits leave it alone. To push, save a GitHub
+token once with `devvm secret set github` (a fine-grained one, limited to the
+repos VMs may push to), then run `devvm secret use github` in each project
+folder. devvm's proxy puts the token into GitHub requests, and the VM sees only
+a placeholder.
+
+On the first interactive shell, `setup/devvm/setup-skills` installs Node and the
+skills CLI with mise, then runs `setup/common/setup-skills --skills-only` inside
+the VM. It installs your own skills from the local skills checkout. Claude and
+Codex get writable skill folders in the VM's home, separate from devvm's
+read-only agent store. Each shell restores these links if devvm replaced them;
+subsequent shells skip installation. Failed installations retry next time.
+Host settings, logins and imported plugins keep devvm's existing behavior;
+`--skills-only` copies skills into those folders so relative CLI symlinks cannot
+break, and leaves the imported Claude plugins alone.
+
+To refresh skills, or set them up before using an agent without opening an
+interactive shell, run inside the VM:
+
+```bash
+git -C /opt/dotfiles pull --ff-only
+git -C ~/dev/src/github.com/Zihad550/skills pull --ff-only
+bash /opt/dotfiles/setup/devvm/setup-skills
+```
+
+Existing VMs can run the same command after pulling dotfiles; it replaces the
+old read-only skill links and installs the startup hooks without changing host
+copies. New images get
+the first-shell hook once these dotfiles changes are published and the shell
+layer is rebuilt. Skill updates are per VM; the host's daily update no longer
+copies skills into them.
+
 Put it below a project's layer (`--layers docker,shell,mamacrm`), or give it to
 every new VM with `devvm setup --layers shell`.
+
+`shell.policy` allows crates.io and its subdomains for Cargo registry access,
+and the mise, Node and npm hosts needed to install skills inside the VM.
 
 ## Automatic entry
 
