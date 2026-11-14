@@ -290,13 +290,14 @@
     "frontend-design@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": false,
-    "drafts@dotfiles-mods": true
+    "drafts@dotfiles-mods": true,
+    "lazy-diff@dotfiles-mods": true
   },
   "extraKnownMarketplaces": {
     "dotfiles-mods": {
       "source": {
         "source": "directory",
-        "path": "/home/jehad/dotfiles/claude/.claude/mods"
+        "path": "/home/jehad/arch-desktop/portable/claude/.claude/mods"
       }
     }
   },
