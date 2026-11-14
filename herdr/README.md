@@ -1,17 +1,24 @@
 # Herdr
 
-Super+I opens the personal session and triggers `df-update-daily` if it has
-not already been triggered that day, using the update host's local date.
-Reopening an existing session also checks. There is no time-of-day filter. Updates follow the same devcontainer routing as the session; Super+U
-does not trigger them. The first workspace receives three background tabs on development profiles.
+Super+I opens the personal session and triggers `df-update-daily` once per
+evening slot, using the update host's local clock. A slot opens at 18:00 and
+lasts until 18:00 the next day. The first Super+I after 18:00 runs the
+evening's update. If that evening was missed, the next Super+I (the next
+morning, say) catches it up, and that evening's slot still runs as usual.
+Several missed evenings produce one catch-up. Every Super+I checks, including
+one that only shows or hides an open session; nothing runs without a press
+(see arch-desktop issue #1). On daylight-saving change days, the slot opens
+an hour early or late. Updates follow the same devcontainer routing as the
+session; Super+U does not trigger them. The first workspace receives three
+background tabs on development profiles.
 On `arch-workstation`, it receives only a devvm update tab, which syncs agent
 settings and runs `df-devvm-update`; host skills, mise packages and agent
 integrations are not updated.
 
 `${XDG_STATE_HOME:-~/.local/state}/dotfiles/update-daily.last-triggered`
-records the last automatic trigger date. A lock prevents concurrent triggers,
-and the date survives restarts. The date is recorded before creating tabs,
-so a partial failure is not retried automatically that day. Manual
+records the date of the last claimed evening slot. A lock prevents concurrent
+triggers, and the date survives restarts. The slot is recorded before creating
+tabs, so a partial failure is not retried automatically within that slot. Manual
 `df-update-daily` inside Herdr remains available regardless of time or date.
 
 Leader → Ctrl+N runs `bin/df-herdr-new-worktree`.
