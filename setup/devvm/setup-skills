@@ -13,7 +13,13 @@ DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
 state_dir="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/devvm-skills"
 mkdir -p "$state_dir"
 exec {lock_fd}>"$state_dir/setup.lock"
-flock "$lock_fd"
+# Shells run --ensure in the foreground; a refresh holding the lock restores
+# the links itself, so don't make a new shell wait minutes for it.
+if ((ensure)); then
+    flock -n "$lock_fd" || exit 0
+else
+    flock "$lock_fd"
+fi
 
 # devvm can restore its read-only store links on every launch. Keep the
 # VM's installations elsewhere so replacing those links never loses skills.
@@ -37,11 +43,20 @@ done
 # Install hooks here too so an existing VM can migrate without rebuilding.
 mkdir -p "$HOME/.bashrc.d"
 printf -v skills_cmd 'bash %q --ensure' "$DOTFILES_DIR/setup/devvm/setup-skills"
-printf '%s\n' "$skills_cmd" > "$HOME/.bashrc.d/00-dotfiles-skills.sh"
+printf -v daily_cmd '(setsid bash %q &>/dev/null &)' "$DOTFILES_DIR/setup/devvm/update-daily"
+printf '%s\n%s\n' "$skills_cmd" "$daily_cmd" > "$HOME/.bashrc.d/00-dotfiles-skills.sh"
 zshrc="$HOME/.config/zsh-devvm/.zshrc"
-if [[ -f "$zshrc" ]] && ! grep -Fqx -- "$skills_cmd" "$zshrc"; then
-    printf '\n%s\n' "$skills_cmd" >> "$zshrc"
+# update-daily replaced older images' per-shell skills pull.
+old_pull='git -C ~/dev/src/github.com/Zihad550/skills pull -q --ff-only &>/dev/null &!'
+if [[ -f "$zshrc" ]] && grep -Fqx -- "$old_pull" "$zshrc"; then
+    grep -Fvx -- "$old_pull" "$zshrc" > "$zshrc.new" || true
+    mv "$zshrc.new" "$zshrc"
 fi
+for cmd in "$skills_cmd" "$daily_cmd"; do
+    if [[ -f "$zshrc" ]] && ! grep -Fqx -- "$cmd" "$zshrc"; then
+        printf '\n%s\n' "$cmd" >> "$zshrc"
+    fi
+done
 
 if ((ensure)) && [[ -f "$state_dir/installed" ]]; then
     exit 0

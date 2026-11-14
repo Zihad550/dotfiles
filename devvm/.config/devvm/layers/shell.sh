@@ -35,8 +35,8 @@ sudo ln -sf /usr/bin/fdfind /usr/local/bin/fd
 sudo mkdir -p /etc/terminfo/x
 sudo ln -sf /usr/share/terminfo/g/ghostty /etc/terminfo/x/xterm-ghostty
 
-# This repo, for the zsh setup. Run `git -C /opt/dotfiles pull` in the VM to
-# pick up newer config.
+# This repo, for the zsh setup. setup/devvm/update-daily pulls it on the
+# first shell of each day.
 d=/opt/dotfiles
 sudo git clone --depth 1 https://github.com/Zihad550/dotfiles.git "$d"
 sudo chown -R "$(id -u):$(id -g)" "$d"
@@ -48,9 +48,10 @@ ln -snf "$d/atuin/.config/atuin" ~/.config/atuin
 # The skills repo, at its host path, for editing from any VM. Pushes need
 # `devvm secret use github`; see devvm/README.md "shell".
 git clone -q https://github.com/Zihad550/skills.git ~/dev/src/github.com/Zihad550/skills
-# Interactive bash and zsh run this after devvm links its agent store.
+# Interactive bash and zsh run these after devvm links its agent store.
 cat >~/.bashrc.d/00-dotfiles-skills.sh <<'EOF'
 bash /opt/dotfiles/setup/devvm/setup-skills --ensure
+(setsid bash /opt/dotfiles/setup/devvm/update-daily &>/dev/null &)
 EOF
 # For ssh and VS Code terminals; devvm itself always opens bash, see zz-zsh.sh.
 sudo chsh -s /usr/bin/zsh "$(id -un)"
@@ -70,6 +71,7 @@ EOF
 cat >~/.config/zsh-devvm/.zshrc <<'EOF'
 export DEVVM_ZSH=1
 bash /opt/dotfiles/setup/devvm/setup-skills --ensure
+(setsid bash /opt/dotfiles/setup/devvm/update-daily &>/dev/null &)
 ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 . "$ZDOTDIR/.zshrc"
 # Restored so a zsh started from this one reads ~/.zshenv's wrapper too.
@@ -84,10 +86,6 @@ if [[ -r ~/.bashrc.d/devvm-blocked.sh ]]; then
 fi
 _devvm_prompt() { [[ $PROMPT == '(devvm) '* ]] || PROMPT="(devvm) $PROMPT"; }
 precmd_functions+=(_devvm_prompt)
-
-# The image's clone is a snapshot; catch up in the background, skipping on
-# local commits or conflicting edits.
-git -C ~/dev/src/github.com/Zihad550/skills pull -q --ff-only &>/dev/null &!
 EOF
 
 # devvm opens bash whatever the login shell is, so its interactive shell hands

@@ -26,8 +26,8 @@ Ubuntu names Ghostty's terminfo entry only `ghostty`, so the layer links
 
 It also clones the skills repo to `~/dev/src/github.com/Zihad550/skills`, the
 host's path, so any VM can edit it. devvm can't mount it: a VM mounts only its
-project folder. Each zsh start pulls it in the background, fast-forward only,
-so local commits or conflicting edits leave it alone. To push, save a GitHub
+project folder. The daily update below pulls it, fast-forward only, so local
+commits or conflicting edits leave it alone. To push, save a GitHub
 token once with `devvm secret set github` (a fine-grained one, limited to the
 repos VMs may push to), then run `devvm secret use github` in each project
 folder. devvm's proxy puts the token into GitHub requests, and the VM sees only
@@ -43,18 +43,27 @@ Host settings, logins and imported plugins keep devvm's existing behavior;
 `--skills-only` copies skills into those folders so relative CLI symlinks cannot
 break, and leaves the imported Claude plugins alone.
 
-To refresh skills, or set them up before using an agent without opening an
-interactive shell, run inside the VM:
+The first interactive shell of each day, including an automatic entry, starts
+`setup/devvm/update-daily` in the background. It runs the `update` hook (see
+[Hooks](#hooks)): pull `/opt/dotfiles` and the skills checkout, fast-forward
+only, then rerun `setup-skills` to refresh the VM's skills. Dotfiles changes
+apply from the next shell. The day uses the VM's date, and a host-triggered
+`update` counts for it. A failed pull is only logged; a failed refresh is
+retried on the next shell. Other shells skip while one runs, without waiting
+for it. Its log is `~/.local/state/dotfiles/devvm/update-daily.log`.
+
+To refresh skills now, or set them up before using an agent without opening an
+interactive shell, run `df-devvm-update --hook update` on the host, or inside
+the VM:
 
 ```bash
-git -C /opt/dotfiles pull --ff-only
-git -C ~/dev/src/github.com/Zihad550/skills pull --ff-only
-bash /opt/dotfiles/setup/devvm/setup-skills
+bash /opt/dotfiles/setup/devvm/run-hook update
 ```
 
-Existing VMs can run the same command after pulling dotfiles; it replaces the
-old read-only skill links and installs the startup hooks without changing host
-copies. New images get
+Existing VMs get the same from the host command, which pulls their
+`/opt/dotfiles` first; it replaces the old read-only skill links and installs
+the startup hooks without changing host copies, and adds the daily hook. New
+images get
 the first-shell hook once these dotfiles changes are published and the shell
 layer is rebuilt. Skill updates are per VM; the host's daily update no longer
 copies skills into them.
@@ -64,6 +73,41 @@ every new VM with `devvm setup --layers shell`.
 
 `shell.policy` allows crates.io and its subdomains for Cargo registry access,
 and the mise, Node and npm hosts needed to install skills inside the VM.
+
+## Updating from the host
+
+`bin/df-devvm-update` updates every VM in `devvm ls`, from each VM's folder:
+
+1. `devvm tools update` moves it to the newest shared tools (agents and
+   toolchains). The tools are mounted, so nothing on the VM's disk changes.
+2. In VMs with the `shell` layer, it runs the `update` hook over ssh, so
+   dotfiles and skills are current without opening a shell in the VM.
+
+A VM that was stopped is stopped again, and a VM whose folder is gone is
+skipped. A VM that devvm says "was deleted or replaced" fails until you run
+`devvm adopt` in its folder (see [mamacrm](#mamacrm)). `df-devvm-update --full`
+runs `devvm update --force` instead of step 1, which also moves VMs to their
+image's new build but can lose everything outside their home and project
+folders; the daily update never passes it. The host's daily update runs
+`df-devvm-update` after syncing devvm's agent settings (arch-desktop's
+`df-update-daily`).
+
+## Hooks
+
+A hook is a script in this repo at `setup/devvm/hooks/<name>`, run inside a
+shell-layer VM by `setup/devvm/run-hook <name>`. `run-hook` pulls
+`/opt/dotfiles` first, so a hook added or changed on the host runs in its
+pushed version; a failed pull still runs the checked-out one. Hooks get
+`DOTFILES_DIR`. Names are lowercase letters, digits and `-`.
+
+From the host, `df-devvm-update --hook <name>` runs one hook in every
+shell-layer VM, starting stopped VMs and stopping them again, without the tools
+update. Inside a VM, run `bash /opt/dotfiles/setup/devvm/run-hook <name>`.
+VMs made before `run-hook` existed pull `/opt/dotfiles` once to get it.
+
+| Hook | Does |
+| --- | --- |
+| `update` | Pulls the skills checkout, reruns `setup-skills`, and marks the day done for `update-daily`. A run already in progress makes it skip. |
 
 ## Automatic entry
 

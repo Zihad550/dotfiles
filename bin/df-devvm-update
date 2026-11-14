@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Update every devvm VM from the host: move it to the newest shared tools, then
+# run the update hook (dotfiles and skills) in VMs with the shell layer. A VM
+# that was stopped is stopped again.
+#   --full         `devvm update --force` instead of the tools update; it can
+#                  remake a VM's disk.
+#   --hook NAME    only run setup/devvm/hooks/NAME in the shell-layer VMs.
+# See devvm/README.md "Updating from the host" and "Hooks".
+set -euo pipefail
+
+usage() { echo 'usage: df-devvm-update [--full | --hook NAME]' >&2; exit 64; }
+update=(tools update)
+hook=update
+case "${1:-}" in
+    '') (($# == 0)) || usage ;;
+    --full) (($# == 1)) || usage; update=(update --force) ;;
+    --hook) [[ $# == 2 && $2 =~ ^[a-z0-9-]+$ ]] || usage; update=(); hook=$2 ;;
+    *) usage ;;
+esac
+if ! command -v devvm >/dev/null; then
+    echo 'df-devvm-update: devvm is not installed' >&2
+    exit 1
+fi
+ssh_config="${XDG_DATA_HOME:-$HOME/.local/share}/devvm/ssh_config"
+# Images made before run-hook existed pull once to get it.
+# shellcheck disable=SC2016 # Expanded by the VM's bash.
+remote_script='d=/opt/dotfiles; [[ -f $d/setup/devvm/run-hook ]] || git -C "$d" pull -q --ff-only; exec bash "$d/setup/devvm/run-hook" "$1"'
+printf -v remote 'bash -c %q _ %q' "$remote_script" "$hook"
+vms=$(devvm ls --json | jq -r '.vms[] | [.name, .status, .image, .folder, .folder_state] | @tsv')
+
+# stdin is closed so a shell devvm opens afterwards exits at once.
+devvm_in() { (cd -- "$1" && shift && devvm "$@" --here --no-input </dev/null); }
+run_hook() {
+    local folder=$1 name=$2
+    devvm_in "$folder" host --ssh-config >/dev/null &&
+        ssh -F "$ssh_config" -o BatchMode=yes -o ConnectTimeout=10 \
+            -o ForwardAgent=no -o ForwardX11=no "$name" "$remote" </dev/null
+}
+
+status=0
+while IFS=$'\t' read -r name state image folder folder_state; do
+    [[ -n $name ]] || continue
+    if [[ $folder_state != there ]]; then
+        printf '%s: skipped, %s is gone\n' "$name" "$folder" >&2
+        status=1
+        continue
+    fi
+    printf '==> %s (%s)\n' "$name" "$folder"
+    if ((${#update[@]})) && ! devvm_in "$folder" "${update[@]}"; then
+        printf '%s: %s failed; if devvm says the folder was replaced, run devvm adopt in it\n' "$name" "${update[*]}" >&2
+        status=1
+        continue
+    fi
+    if [[ +$image+ == *+shell+* ]]; then
+        printf -- '--> hook %s\n' "$hook"
+        if ! run_hook "$folder" "$name"; then
+            printf '%s: hook %s failed\n' "$name" "$hook" >&2
+            status=1
+        fi
+    elif ((${#update[@]} == 0)); then
+        printf '%s: skipped, no shell layer\n' "$name"
+        continue
+    fi
+    if [[ $state == Stopped ]]; then
+        devvm_in "$folder" stop || status=1
+    fi
+done <<<"$vms"
+exit "$status"

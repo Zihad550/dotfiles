@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Run inside a shell-layer VM: on the first shell of each day, run the update
+# hook (pull dotfiles and skills, refresh skills). Shell hooks start it in the
+# background; output goes to update-daily.log. See devvm/README.md "Hooks".
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/devvm"
+mkdir -p "$state_dir"
+# Held through the exec below, so two shells never pull at once.
+exec {lock_fd}>"$state_dir/update-daily.lock"
+flock -n "$lock_fd" || exit 0
+stamp="$state_dir/update-daily.last-run"
+[[ ! -f "$stamp" || $(<"$stamp") != "$(date +%F)" ]] || exit 0
+
+exec >>"$state_dir/update-daily.log" 2>&1
+printf '== %s\n' "$(date -Is)"
+exec bash "$DOTFILES_DIR/setup/devvm/run-hook" update

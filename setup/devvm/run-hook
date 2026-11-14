@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Run inside a shell-layer VM: pull this checkout, then run
+# setup/devvm/hooks/<name> from it. The host runs hooks through
+# bin/df-devvm-update --hook. See devvm/README.md "Hooks".
+set -euo pipefail
+
+if [[ $# != 1 || ! $1 =~ ^[a-z0-9-]+$ ]]; then
+    echo 'usage: setup/devvm/run-hook <name>' >&2
+    exit 64
+fi
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+# A failed pull (offline, local commits) still runs the checked-out hook.
+git -C "$DOTFILES_DIR" pull -q --ff-only || printf 'pull failed: %s\n' "$DOTFILES_DIR" >&2
+hook="$DOTFILES_DIR/setup/devvm/hooks/$1"
+if [[ ! -f $hook ]]; then
+    printf 'run-hook: no hook named %s\n' "$1" >&2
+    exit 66
+fi
+DOTFILES_DIR=$DOTFILES_DIR exec bash "$hook"

@@ -1,3 +1,4 @@
+import fcntl
 import os
 from pathlib import Path
 import subprocess
@@ -21,9 +22,14 @@ class DevvmSkillsTest(unittest.TestCase):
                         PATH=f'{self.bin}:/usr/bin:/bin',
                         XDG_DATA_HOME=str(self.home / 'data'),
                         XDG_CONFIG_HOME=str(self.home / 'config'),
+                        XDG_STATE_HOME=str(self.home / 'state'),
                         CALLS=str(self.calls))
         (self.home / '.config/zsh-devvm').mkdir(parents=True)
-        (self.home / '.config/zsh-devvm/.zshrc').write_text('# existing shell\n')
+        (self.home / '.config/zsh-devvm/.zshrc').write_text(
+            '# existing shell\n'
+            'git -C ~/dev/src/github.com/Zihad550/skills pull -q --ff-only &>/dev/null &!\n')
+        # The installed bash hook must not start the real update-daily.
+        self.stub('setsid', 'exit 0\n')
         self.stub('mise', '''printf 'mise %s\n' "$*" >> "$CALLS"
 [[ ! -e "$HOME/fail" ]] || exit 1
 ''')
@@ -66,9 +72,14 @@ done
         self.assertIn(f'skills add {self.home}/dev/src/github.com/Zihad550/skills ', calls)
         self.assertNotIn('unexpected-plugin-call', calls)
         self.assertTrue(all('--copy' in line for line in calls.splitlines() if line.startswith('skills ')))
-        self.assertIn('--ensure', (self.home / '.bashrc.d/00-dotfiles-skills.sh').read_text())
+        bash_hook = (self.home / '.bashrc.d/00-dotfiles-skills.sh').read_text()
+        self.assertIn('--ensure', bash_hook)
+        self.assertIn(f'(setsid bash {ROOT}/setup/devvm/update-daily &>/dev/null &)', bash_hook)
         zshrc = self.home / '.config/zsh-devvm/.zshrc'
         self.assertEqual(zshrc.read_text().count('--ensure'), 1)
+        self.assertEqual(zshrc.read_text().count('update-daily'), 1)
+        self.assertNotIn('pull -q', zshrc.read_text())
+        self.assertIn('# existing shell', zshrc.read_text())
         self.assertEqual(list(store.iterdir()), [store / 'host-skill'])
         for agent in ('claude', 'codex'):
             target = self.home / f'.{agent}/skills'
@@ -83,6 +94,16 @@ done
         self.assertTrue((self.home / '.claude/skills/from-cli').exists())
         self.assertEqual(self.run_setup().returncode, 0)
         self.assertGreater(len(self.calls.read_text()), len(calls))
+
+    def test_ensure_does_not_wait_for_a_running_refresh(self):
+        lock = self.home / 'data/dotfiles/devvm-skills/setup.lock'
+        lock.parent.mkdir(parents=True)
+        with lock.open('w') as held:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            result = subprocess.run(['bash', str(SCRIPT), '--ensure'], env=self.env,
+                                    text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.calls.exists())
 
     def test_failure_retries_and_keeps_existing_vm_skills(self):
         target = self.home / '.codex/skills'

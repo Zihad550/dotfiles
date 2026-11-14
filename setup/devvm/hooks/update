@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Hook: pull the skills checkout and refresh the VM's skills, then mark the
+# day done for update-daily. A run already in progress makes this one skip.
+set -euo pipefail
+
+SKILLS_DIR="${SKILLS_DIR:-$HOME/dev/src/github.com/Zihad550/skills}"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/devvm"
+mkdir -p "$state_dir"
+exec {lock_fd}>"$state_dir/update.lock"
+if ! flock -n "$lock_fd"; then
+    echo 'update: already running'
+    exit 0
+fi
+git -C "$SKILLS_DIR" pull -q --ff-only || printf 'pull failed: %s\n' "$SKILLS_DIR" >&2
+bash "$DOTFILES_DIR/setup/devvm/setup-skills"
+date +%F >"$state_dir/update-daily.last-run"
