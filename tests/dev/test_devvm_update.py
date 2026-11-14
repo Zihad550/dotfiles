@@ -42,6 +42,7 @@ class HostUpdateTest(Fixture):
         self.inventory = self.home / 'vms.json'
         self.env['INVENTORY'] = str(self.inventory)
         stub(self.bin, 'devvm', '''if [[ $1 == ls ]]; then cat "$INVENTORY"; exit; fi
+if [[ $1 == upgrade ]]; then echo "${UPGRADE_CHECK:-{\\"current\\": \\"0.1.0\\", \\"latest\\": \\"0.1.0\\", \\"newer\\": false\}}"; exit "${UPGRADE_STATUS:-0}"; fi
 stdin=open; read -r -t 0.1 _ || stdin=closed
 printf '%s %s %s\\n' "$PWD" "$*" "$stdin" >> "$CALLS"
 [[ ! -e "$PWD/fail" ]]
@@ -152,6 +153,26 @@ printf '%s\\n' "$*" >> "$CALLS"
         result = self.run_host(vm, args=('--full',))
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.lines(), ['rebuild base --force --no-input'])
+
+    def test_notices_a_newer_devvm_only_when_one_is_out(self):
+        vm = self.vm('dotfiles')
+        result = self.run_host(vm)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('Notice', result.stdout + result.stderr)
+        self.assertNotIn('Warning', result.stderr)
+        self.env['UPGRADE_CHECK'] = '{"current": "0.1.0", "latest": "0.2.0", "newer": true}'
+        result = self.run_host(vm)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.endswith(
+            'Notice: devvm 0.2.0 is out; this is 0.1.0.\nRun devvm upgrade to install it.\n'))
+
+    def test_a_failed_devvm_check_is_reported_without_failing_the_update(self):
+        for check, check_status in (('offline', '1'), ('not json', '0')):
+            self.env.update(UPGRADE_CHECK=check, UPGRADE_STATUS=check_status)
+            result = self.run_host(self.vm(f'dotfiles-{check_status}'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f'Warning: could not check for a newer devvm: {check}', result.stderr)
+            self.assertNotIn('Run devvm upgrade', result.stdout)
 
     def test_rejects_unknown_arguments(self):
         bad = subprocess.run([str(HOST), '--force'], env=self.env, text=True, capture_output=True)

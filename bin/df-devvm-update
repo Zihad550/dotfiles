@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Update every devvm VM from the host: move it to the newest shared tools, then
 # run the update and apt-upgrade hooks in VMs with the shell layer. A VM that
-# was stopped is stopped again.
+# was stopped is stopped again. It ends with a notice when a newer devvm is out.
 #   --full         rebuild the base image, then `devvm update --force` instead
 #                  of the tools update; it remakes each VM's disk.
 #   --hook NAME    only run setup/devvm/hooks/NAME in the shell-layer VMs.
@@ -72,4 +72,12 @@ while IFS=$'\t' read -r name state image folder folder_state; do
         devvm_in "$folder" stop || status=1
     fi
 done <<<"$vms"
+
+# devvm itself is upgraded by hand; see devvm/README.md "Updating from the host".
+if check=$(devvm upgrade --check --json --no-input </dev/null 2>&1) &&
+    newer=$(jq -r 'if .newer then "devvm \(.latest) is out; this is \(.current)." else "" end' <<<"$check" 2>/dev/null); then
+    [[ -z $newer ]] || printf '\nNotice: %s\nRun devvm upgrade to install it.\n' "$newer"
+else
+    printf '\nWarning: could not check for a newer devvm: %s\n' "$check" >&2
+fi
 exit "$status"

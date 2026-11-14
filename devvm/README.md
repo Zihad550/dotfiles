@@ -97,6 +97,10 @@ picks up layer changes and resets the packages `apt-upgrade` patched in place,
 but loses everything outside the VM's home and project folders, such as
 mamacrm's Docker database.
 
+It ends with `devvm upgrade --check` and prints a notice when a newer devvm is
+out. devvm itself is never upgraded automatically, so a release that changes
+how VMs or images behave waits until you run `devvm upgrade`.
+
 The host's daily update runs `df-devvm-update` after syncing devvm's agent
 settings (arch-desktop's `df-update-daily`), and passes `--full` until a run
 of it succeeds each month. That run records the month in
