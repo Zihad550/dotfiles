@@ -1,0 +1,7 @@
+{
+  "name": "session-tree",
+  "version": "0.1.0",
+  "description": "Navigate the main conversation and its background branches in a sidebar",
+  "author": { "name": "Zihad550" },
+  "types": "./types/index.d.ts"
+}
