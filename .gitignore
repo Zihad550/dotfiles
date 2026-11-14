@@ -11,3 +11,7 @@ themes/**/background
 opencode/.config/opencode/command/implement-issue.md
 __pycache__/
 *.pyc
+
+# Runtime state the apps write; service.json holds opencode's server password.
+opencode/.config/opencode/service.json
+go-timer/.config/go-timer/sessions.json
