@@ -8,8 +8,10 @@ session started, or where `/cd` or a worktree move took it):
 it survives a reboot. `/tmp/` in `git/.config/git/.gitignore_global` keeps it
 out of commits.
 
-`/drafts` toggles the pane; the choice persists across sessions. In the pane,
-`c` copies the shown draft and `r` rescans.
+`/drafts` or `ctrl+x d` toggles the pane; the choice persists across sessions.
+The chord is bound in `claude/.claude/keybindings.json`; `ctrl+d` is hardcoded
+to exit and cannot be rebound. In the pane, `c` copies the shown draft and `r`
+rescans.
 Drafts render as Markdown, styled like a reply; copying keeps the original
 text.
 

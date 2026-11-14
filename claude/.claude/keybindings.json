@@ -6,7 +6,8 @@
       "context": "Global",
       "bindings": {
         "ctrl+t": "app:toggleTranscript",
-        "ctrl+o": "app:toggleTodos"
+        "ctrl+o": "app:toggleTodos",
+        "ctrl+x d": "command:drafts"
       }
     },
     {
