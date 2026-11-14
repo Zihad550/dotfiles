@@ -15,6 +15,15 @@ const PLUGIN = path.join(ROOT, "herdr-plugins/tab-namer");
 
 const PANE = "w1:p4F";
 const TAB = "w1:t2V";
+const THREAD = "claude-thread";
+
+const workStart = (args) => ({
+    type: "user",
+    message: {
+        content: `<command-message>work-start</command-message>\n<command-name>/work-start</command-name>\n<command-args>${args}</command-args>`
+    }
+});
+const prompt = (content) => ({ type: "user", message: { content } });
 
 function fixture(t, options = {}) {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), "tab-namer-"));
@@ -25,34 +34,41 @@ function fixture(t, options = {}) {
 
     const pane = path.join(home, "pane.json");
     const tabs = path.join(home, "tabs.json");
-    const index = path.join(home, "session_index.jsonl");
-    const codexSessions = path.join(home, ".codex", "sessions");
-    const generatorCalls = path.join(home, "generator-calls");
-    const generatorPrompt = path.join(home, "generator-prompt");
     const claudeProjects = path.join(home, ".claude", "projects");
+    const transcript = path.join(claudeProjects, "-home-dev-project", `${THREAD}.jsonl`);
+    const checkout = path.join(home, "project");
 
-    fs.writeFileSync(pane, JSON.stringify({ result: { pane: options.pane ?? {} } }));
-    fs.writeFileSync(tabs, JSON.stringify({ result: { tabs: options.tabs ?? [{
+    fs.mkdirSync(path.dirname(transcript), { recursive: true });
+    fs.writeFileSync(transcript,
+        (options.transcript ?? []).map((entry) => JSON.stringify(entry)).join("\n"));
+
+    fs.mkdirSync(checkout);
+    childProcess.execFileSync("git", ["init", "-q", "-b", options.branch ?? "main", checkout]);
+
+    const claudePane = {
+        agent: "claude",
+        agent_session: { value: THREAD },
+        tab_id: TAB,
+        workspace_id: "w1",
+        cwd: checkout
+    };
+
+    function setPane(next) {
+        fs.writeFileSync(pane, JSON.stringify({ result: { pane: next } }));
+    }
+
+    function setTabs(next) {
+        fs.writeFileSync(tabs, JSON.stringify({ result: { tabs: next } }));
+    }
+
+    setPane({ ...claudePane, ...options.pane });
+    setTabs(options.tabs ?? [{
         tab_id: TAB,
         workspace_id: "w1",
         label: options.label ?? "3",
         pane_count: options.panes ?? 1,
         number: options.number ?? 3
-    }] } }));
-    fs.writeFileSync(index,
-        (options.threads ?? []).map((entry) => JSON.stringify(entry)).join("\n"));
-    if (options.codexTranscript) {
-        fs.mkdirSync(codexSessions, { recursive: true });
-        fs.writeFileSync(path.join(codexSessions,
-            `rollout-${options.codexThread ?? "thread-1"}.jsonl`),
-        options.codexTranscript.map((entry) => JSON.stringify(entry)).join("\n"));
-    }
-    if (options.claudeTranscript) {
-        fs.mkdirSync(claudeProjects, { recursive: true });
-        fs.writeFileSync(path.join(claudeProjects,
-            `${options.claudeThread ?? "claude-thread"}.jsonl`),
-        options.claudeTranscript.map((entry) => JSON.stringify(entry)).join("\n"));
-    }
+    }]);
 
     fs.writeFileSync(path.join(bin, "herdr"), `#!/usr/bin/env bash
 case "$1 $2" in
@@ -66,15 +82,6 @@ case "$1 $2" in
 esac
 `);
     fs.chmodSync(path.join(bin, "herdr"), 0o755);
-    function setGenerated(generated) {
-        fs.writeFileSync(path.join(bin, "claude"), `#!/usr/bin/env bash
-printf x >> "${generatorCalls}"
-cat > "${generatorPrompt}"
-printf '%s\\n' '${generated}'
-`);
-        fs.chmodSync(path.join(bin, "claude"), 0o755);
-    }
-    setGenerated(options.generated ?? "add default app picker");
 
     function fire(event) {
         const result = childProcess.spawnSync(path.join(PLUGIN, "bin/tab-namer"), [], {
@@ -83,8 +90,6 @@ printf '%s\\n' '${generated}'
                 HOME: home,
                 HERDR_BIN_PATH: path.join(bin, "herdr"),
                 HERDR_PLUGIN_STATE_DIR: path.join(home, "state"),
-                CODEX_SESSION_INDEX: index,
-                CODEX_SESSIONS_DIR: codexSessions,
                 CLAUDE_PROJECTS_DIR: claudeProjects,
                 HERDR_PLUGIN_EVENT_JSON: JSON.stringify(event ?? { data: { pane: { pane_id: PANE } } })
             },
@@ -94,12 +99,8 @@ printf '%s\\n' '${generated}'
         return result;
     }
 
-    function setPane(next) {
-        fs.writeFileSync(pane, JSON.stringify({ result: { pane: next } }));
-    }
-
-    function setTabs(next) {
-        fs.writeFileSync(tabs, JSON.stringify({ result: { tabs: next } }));
+    function append(entry) {
+        fs.appendFileSync(transcript, "\n" + JSON.stringify(entry));
     }
 
     function label(tabId = TAB) {
@@ -107,300 +108,131 @@ printf '%s\\n' '${generated}'
             .find((entry) => entry.tab_id === tabId)?.label;
     }
 
-    function calls() {
-        return fs.existsSync(generatorCalls) ? fs.readFileSync(generatorCalls, "utf8").length : 0;
-    }
-
-    function work() {
-        return fs.existsSync(generatorPrompt)
-            ? fs.readFileSync(generatorPrompt, "utf8").split("\nWork: ")[1]?.replace(/\n$/, "") : undefined;
-    }
-
-    function errors() {
-        const log = path.join(home, "state", "errors.log");
-        return fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "";
-    }
-
-    return { home, fire, setPane, setTabs, setGenerated, label, calls, work, errors };
+    return { home, fire, append, setPane, setTabs, label, claudePane };
 }
 
-const codexPane = (overrides = {}) => ({
-    agent: "codex",
-    agent_session: { value: "thread-1" },
-    tab_id: TAB,
-    cwd: "/home/dev/project",
-    terminal_title_stripped: "project",
-    ...overrides
+test("/work-start <issue> names the tab after the issue", (t) => {
+    const herdr = fixture(t, { transcript: [workStart("151")] });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1:working #151");
 });
 
-
-test("Haiku summarizes the latest Codex thread name", (t) => {
-    const herdr = fixture(t, {
-        pane: codexPane(),
-        threads: [
-            { id: "thread-1", thread_name: "first prompt text" },
-            { id: "thread-2", thread_name: "another session" },
-            { id: "thread-1", thread_name: "Add default app picker" }
-        ]
-    });
+test("/work-start pr <pr> takes the issue from the jd- branch", (t) => {
+    const herdr = fixture(t, { branch: "jd-151-default-apps", transcript: [workStart("pr 981")] });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-    assert.strictEqual(herdr.calls(), 1);
+    assert.strictEqual(herdr.label(), "1:fixing requested changes #151 !981");
 });
 
-test("the Codex transcript fills the session-index race", (t) => {
+test("a PR URL counts as a PR", (t) => {
     const herdr = fixture(t, {
-        pane: codexPane(),
-        codexTranscript: [{
-            type: "response_item",
-            payload: {
-                type: "message",
-                role: "user",
-                content: [{ type: "input_text", text: "Fix intermittent tab renaming" }]
-            }
-        }]
+        branch: "jd-151/default-apps",
+        transcript: [workStart("https://example.com/org/repo/pulls/981")]
     });
-
     herdr.fire();
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-    assert.strictEqual(herdr.calls(), 1);
+    assert.strictEqual(herdr.label(), "1:fixing requested changes #151 !981");
 });
 
-test("a fresh tab uses Herdr's positional label, not its public tab number", (t) => {
-    const herdr = fixture(t, {
-        label: "4",
-        number: 110,
-        pane: codexPane(),
-        threads: [{ id: "thread-1", thread_name: "Fix session tab titles" }]
-    });
+test("a PR branch without an issue leaves the issue out", (t) => {
+    const herdr = fixture(t, { branch: "feat-tiktok", transcript: [workStart("pr 939 conflicts")] });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "1:add default app picker");
+    assert.strictEqual(herdr.label(), "1:fixing requested changes !939");
+});
+
+test("a session without /work-start keeps Herdr's label", (t) => {
+    const herdr = fixture(t, { transcript: [prompt("Fix the upload flow for issue #12")] });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "3");
+});
+
+test("/work-start without a number keeps Herdr's label", (t) => {
+    const herdr = fixture(t, { transcript: [workStart("")] });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "3");
+});
+
+test("the latest /work-start wins", (t) => {
+    const herdr = fixture(t, { branch: "jd-151-x", transcript: [workStart("151")] });
+    herdr.fire();
+    herdr.append(prompt("now the review comments"));
+    herdr.append(workStart("pr 981"));
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1:fixing requested changes #151 !981");
+});
+
+test("a non-Claude agent is left alone", (t) => {
+    const herdr = fixture(t, { pane: { agent: "codex" }, transcript: [workStart("151")] });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "3");
 });
 
 test("the pane id is found wherever the event nests it", (t) => {
-    const herdr = fixture(t, {
-        pane: codexPane(),
-        threads: [{ id: "thread-1", thread_name: "Nested payload" }]
-    });
+    const herdr = fixture(t, { transcript: [workStart("151")] });
     herdr.fire({ result: { event: { type: "pane.agent_status_changed", pane: { pane_id: PANE } } } });
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-});
-
-test("another agent's terminal title is summarized", (t) => {
-    const herdr = fixture(t, {
-        pane: {
-            agent: "claude",
-            tab_id: TAB,
-            cwd: "/home/dev/project",
-            terminal_title_stripped: "Rename tabs after the agent session name"
-        }
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-});
-
-test("Claude's generic terminal title falls back to its latest prompt", (t) => {
-    const herdr = fixture(t, {
-        label: "4",
-        number: 110,
-        pane: {
-            agent: "claude",
-            agent_session: { value: "claude-thread" },
-            tab_id: TAB,
-            cwd: "/home/dev/project",
-            terminal_title_stripped: "Claude Code"
-        },
-        claudeTranscript: [
-            { type: "user", message: { content: "Fix the upload flow" } }
-        ]
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-});
-
-test("a short Claude reply keeps the earlier prompt as the source", (t) => {
-    const transcript = (...prompts) => prompts.map((content) => ({ type: "user", message: { content } }));
-    const claudePane = {
-        agent: "claude",
-        agent_session: { value: "claude-thread" },
-        tab_id: TAB,
-        cwd: "/home/dev/project",
-        terminal_title_stripped: "Claude Code"
-    };
-    const herdr = fixture(t, {
-        pane: claudePane,
-        claudeTranscript: transcript("Build a monitor arrange overlay", "yes", "commit and push",
-            "Fix\tthe\ttab\ttitles\nand explain why")
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.work(), "Fix\tthe\ttab\ttitles");
-
-    herdr.setPane({ ...claudePane });
-    fs.appendFileSync(path.join(herdr.home, ".claude", "projects", "claude-thread.jsonl"),
-        "\n" + JSON.stringify({ type: "user", message: { content: "yes" } }));
-    herdr.fire();
-    assert.strictEqual(herdr.work(), "Fix\tthe\ttab\ttitles");
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-});
-
-test("a Claude session of only short prompts still uses its latest one", (t) => {
-    const herdr = fixture(t, {
-        pane: {
-            agent: "claude",
-            agent_session: { value: "claude-thread" },
-            tab_id: TAB,
-            cwd: "/home/dev/project",
-            terminal_title_stripped: "Claude Code"
-        },
-        claudeTranscript: [{ type: "user", message: { content: "fix login bug" } }]
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.work(), "fix login bug");
-});
-
-test("a Claude prompt with an attached image is still read", (t) => {
-    const herdr = fixture(t, {
-        pane: {
-            agent: "claude",
-            agent_session: { value: "claude-thread" },
-            tab_id: TAB,
-            cwd: "/home/dev/project",
-            terminal_title_stripped: "Claude Code"
-        },
-        claudeTranscript: [
-            { type: "user", message: { content: "Build a monitor arrange overlay" } },
-            { type: "user", message: { content: [
-                { type: "image", source: { type: "base64", data: "" } },
-                { type: "text", text: "the tab namer picked the wrong name here" },
-                { type: "text", text: "second block\nwith more lines" }
-            ] } },
-            { type: "user", message: { content: [{ type: "tool_result", content: "ok" }] } }
-        ]
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.work(), "the tab namer picked the wrong name here");
-});
-
-test("an explicit issue number is appended without asking Haiku to infer it", (t) => {
-    const herdr = fixture(t, {
-        pane: codexPane(),
-        generated: "fix default app handling",
-        threads: [{ id: "thread-1", thread_name: "Fix default apps for issue #151" }]
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.label(), "1:fix default app handling #151");
-});
-
-test("the generated summary is cached while the source stays unchanged", (t) => {
-    const herdr = fixture(t, {
-        pane: codexPane(),
-        threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
-    });
-    herdr.fire();
-    herdr.fire();
-    assert.strictEqual(herdr.calls(), 1);
-});
-
-test("a malformed model answer leaves the numeric label, logs why, and retries", (t) => {
-    const herdr = fixture(t, {
-        pane: codexPane(),
-        generated: "Auth",
-        threads: [{ id: "thread-1", thread_name: "Fix auth" }]
-    });
-    herdr.fire();
-    assert.strictEqual(herdr.label(), "3");
-    assert.match(herdr.errors(), /w1:t2V .*Auth/);
-    herdr.fire();
-    assert.strictEqual(herdr.calls(), 2);
-});
-
-test("a failed model call keeps the previous summary", (t) => {
-    const herdr = fixture(t, {
-        pane: codexPane(),
-        threads: [
-            { id: "thread-1", thread_name: "Add default app picker" },
-            { id: "thread-2", thread_name: "Rework the login flow" }
-        ]
-    });
-    herdr.fire();
-    herdr.setGenerated("");
-    herdr.setPane(codexPane({ agent_session: { value: "thread-2" } }));
-    herdr.fire();
-    assert.strictEqual(herdr.calls(), 2);
-    assert.strictEqual(herdr.label(), "1:add default app picker");
-});
-
-test("a title that says nothing the tab does not already show is ignored", (t) => {
-    for (const title of ["codex", "project", "019f8e03-5bbd-70a1-9017-b2216a66bf4c"]) {
-        const herdr = fixture(t, { pane: codexPane({ terminal_title_stripped: title }) });
-        herdr.fire();
-        assert.strictEqual(herdr.label(), "3", `"${title}" was used as a label`);
-    }
+    assert.strictEqual(herdr.label(), "1:working #151");
 });
 
 test("a shared tab is left alone", (t) => {
-    const herdr = fixture(t, {
-        panes: 2,
-        pane: codexPane(),
-        threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
-    });
+    const herdr = fixture(t, { panes: 2, transcript: [workStart("151")] });
     herdr.fire();
     assert.strictEqual(herdr.label(), "3");
 });
 
 test("a hand-typed label is never taken over", (t) => {
-    const herdr = fixture(t, {
-        label: "mine",
-        pane: codexPane(),
-        threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
-    });
+    const herdr = fixture(t, { label: "mine", transcript: [workStart("151")] });
     herdr.fire();
     assert.strictEqual(herdr.label(), "mine");
 });
 
 test("its own label is reclaimed, and handed back when the agent goes", (t) => {
-    const herdr = fixture(t, {
-        label: "4",
-        number: 110,
-        pane: codexPane(),
-        threads: [{ id: "thread-1", thread_name: "Add default app picker" }]
-    });
+    const herdr = fixture(t, { label: "4", number: 110, transcript: [workStart("151")] });
     herdr.fire();
-    assert.strictEqual(herdr.label(), "1:add default app picker");
+    assert.strictEqual(herdr.label(), "1:working #151");
 
     // pane.exited: the pane is still there, the agent is not.
-    herdr.setPane({ tab_id: TAB, cwd: "/home/dev/project" });
+    herdr.setPane({ tab_id: TAB, workspace_id: "w1", cwd: herdr.claudePane.cwd });
     herdr.fire();
+    assert.strictEqual(herdr.label(), "1");
+});
+
+test("a later session without /work-start hands the label back", (t) => {
+    const herdr = fixture(t, { transcript: [workStart("151")] });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1:working #151");
+
+    herdr.setPane({ ...herdr.claudePane, agent_session: { value: "new-thread" } });
+    herdr.fire();
+    assert.strictEqual(herdr.label(), "1");
+    herdr.fire({ data: { type: "tab_moved", tab_id: TAB, workspace_id: "w1" } });
+    assert.strictEqual(herdr.label(), "1");
+});
+
+test("a summary cached by the old LLM namer is not reapplied", (t) => {
+    const herdr = fixture(t, { label: "1" });
+    const state = path.join(herdr.home, "state");
+    fs.mkdirSync(state, { recursive: true });
+    fs.writeFileSync(path.join(state, TAB.replace(/[^A-Za-z0-9]/g, "-") + ".summary"),
+        "add default app picker");
+    herdr.fire({ data: { type: "tab_moved", tab_id: TAB, workspace_id: "w1" } });
     assert.strictEqual(herdr.label(), "1");
 });
 
 test("closing a tab renumbers every remaining plugin-owned label", (t) => {
     const secondTab = "w1:t2W";
-    const firstPane = codexPane({ agent_session: { value: "thread-1" } });
-    const secondPane = codexPane({
-        agent_session: { value: "thread-2" },
-        tab_id: secondTab
-    });
     const herdr = fixture(t, {
-        pane: firstPane,
         tabs: [
             { tab_id: TAB, workspace_id: "w1", label: "1", pane_count: 1, number: 80 },
             { tab_id: secondTab, workspace_id: "w1", label: "2", pane_count: 1, number: 97 }
         ],
-        threads: [
-            { id: "thread-1", thread_name: "First task source" },
-            { id: "thread-2", thread_name: "Second task source" }
-        ]
+        transcript: [workStart("151")]
     });
 
+    herdr.setPane({ ...herdr.claudePane, tab_id: secondTab });
     herdr.fire();
-    herdr.setPane(secondPane);
-    herdr.fire();
-    assert.strictEqual(herdr.label(secondTab), "2:add default app picker");
+    assert.strictEqual(herdr.label(secondTab), "2:working #151");
 
     herdr.setTabs([
         { tab_id: secondTab, workspace_id: "w1", label: herdr.label(secondTab), pane_count: 1, number: 97 }
     ]);
     herdr.fire({ data: { type: "tab_closed", tab_id: TAB, workspace_id: "w1" } });
-    assert.strictEqual(herdr.label(secondTab), "1:add default app picker");
+    assert.strictEqual(herdr.label(secondTab), "1:working #151");
 });
