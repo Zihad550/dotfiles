@@ -58,7 +58,7 @@ eval "${cmd//\\/opt\\/dotfiles/$VMS/$host}"
 mkdir -p "$2/setup/devvm/hooks"
 cp "$RUN_HOOK" "$2/setup/devvm/run-hook"
 printf 'printf "hook %%s ran\\\\n" "$0" >> "$CALLS"; [[ ! -e "$DOTFILES_DIR/fail" ]]\\n' > "$2/setup/devvm/hooks/update"
-cp "$2/setup/devvm/hooks/update" "$2/setup/devvm/hooks/other"
+for hook in other apt-upgrade; do cp "$2/setup/devvm/hooks/update" "$2/setup/devvm/hooks/$hook"; done
 ''')
         self.env.update(VMS=str(self.vms), RUN_HOOK=str(ROOT / 'setup/devvm/run-hook'))
 
@@ -76,21 +76,21 @@ cp "$2/setup/devvm/hooks/update" "$2/setup/devvm/hooks/other"
     def hook_ran(self, vm, hook='update'):
         return f"hook {self.vms}/{vm['name']}/setup/devvm/hooks/{hook} ran"
 
-    def test_shell_vms_run_the_update_hook_after_their_tools_update(self):
+    def test_shell_vms_run_both_hooks_after_their_tools_update(self):
         vm = self.vm('mamacrm', 'Stopped', image='docker+shell+mamacrm')
         result = self.run_host(vm)
         self.assertEqual(result.returncode, 0, result.stderr)
+        pull = f"git -C {self.vms}/{vm['name']} pull -q --ff-only"
         self.assertEqual(self.lines(), [
             f"{vm['folder']} tools update --here --no-input closed",
             f"{vm['folder']} host --ssh-config --here --no-input closed",
             f"ssh {vm['name']} closed",
             # The old image has no run-hook: the first pull fetches it, and
-            # run-hook pulls again before running the hook.
-            f"git -C {self.vms}/{vm['name']} pull -q --ff-only",
-            f"git -C {self.vms}/{vm['name']} pull -q --ff-only",
-            self.hook_ran(vm),
+            # run-hook pulls again before each hook.
+            pull, pull, self.hook_ran(vm), pull, self.hook_ran(vm, 'apt-upgrade'),
             f"{vm['folder']} stop --here --no-input closed",
         ])
+        self.assertIn('--> hook apt-upgrade', result.stdout)
 
     def test_hook_runs_only_that_hook_in_shell_vms(self):
         shell, base = self.vm('dotfiles', image='shell'), self.vm('portfolio', 'Stopped')
@@ -109,7 +109,10 @@ cp "$2/setup/devvm/hooks/update" "$2/setup/devvm/hooks/other"
         (self.vms / broken['name'] / 'fail').touch()
         result = self.run_host(broken, healthy)
         self.assertEqual(result.returncode, 1)
-        self.assertIn('devvm-broken: hook update failed', result.stderr)
+        self.assertIn('hook update failed', result.stderr)
+        self.assertIn('devvm-broken: hooks failed', result.stderr)
+        # One failed hook doesn't skip the next.
+        self.assertIn(self.hook_ran(broken, 'apt-upgrade'), self.lines())
         self.assertIn(f"{broken['folder']} stop --here --no-input closed", self.lines())
         self.assertIn(self.hook_ran(healthy), self.lines())
 
@@ -130,12 +133,27 @@ cp "$2/setup/devvm/hooks/update" "$2/setup/devvm/hooks/other"
         ])
         self.assertNotIn(' update --force', self.calls.read_text())
 
-    def test_full_runs_devvm_update_and_rejects_other_arguments(self):
-        vm = self.vm('full')
-        self.inventory.write_text(json.dumps({'version': 1, 'vms': [vm]}))
-        result = subprocess.run([str(HOST), '--full'], env=self.env, text=True, capture_output=True)
+    def test_full_rebuilds_base_once_then_remakes_each_vm(self):
+        first, second = self.vm('first'), self.vm('second')
+        result = self.run_host(first, second, args=('--full',))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.lines(), [f"{vm['folder']} update --force --here --no-input closed"])
+        self.assertEqual(self.lines(), [
+            f"{Path.cwd()} rebuild base --force --no-input closed",
+            f"{first['folder']} update --force --here --no-input closed",
+            f"{second['folder']} update --force --here --no-input closed",
+        ])
+
+    def test_a_failed_rebuild_updates_no_vm(self):
+        vm = self.vm('first')
+        stub(self.bin, 'devvm', '''if [[ $1 == ls ]]; then cat "$INVENTORY"; exit; fi
+printf '%s\\n' "$*" >> "$CALLS"
+[[ $1 != rebuild ]]
+''')
+        result = self.run_host(vm, args=('--full',))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.lines(), ['rebuild base --force --no-input'])
+
+    def test_rejects_unknown_arguments(self):
         bad = subprocess.run([str(HOST), '--force'], env=self.env, text=True, capture_output=True)
         self.assertEqual(bad.returncode, 64)
 
@@ -209,6 +227,19 @@ class DailyUpdateTest(Fixture):
             fcntl.flock(held, fcntl.LOCK_EX)
             self.assertEqual(self.run_daily().returncode, 0)
         self.assertEqual(self.lines(), [])
+
+
+class AptUpgradeHookTest(Fixture):
+    def test_upgrades_without_prompts_keeping_config_files(self):
+        stub(self.bin, 'sudo', 'printf "sudo %s\\n" "$*" >> "$CALLS"\n')
+        result = subprocess.run(['bash', str(ROOT / 'setup/devvm/hooks/apt-upgrade')],
+                                env=self.env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        apt = 'sudo DEBIAN_FRONTEND=noninteractive apt-get -q -o DPkg::Lock::Timeout=300'
+        self.assertEqual(self.lines(), [
+            f'{apt} update',
+            f'{apt} -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade',
+        ])
 
 
 if __name__ == '__main__':

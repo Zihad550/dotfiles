@@ -80,17 +80,28 @@ and the mise, Node and npm hosts needed to install skills inside the VM.
 
 1. `devvm tools update` moves it to the newest shared tools (agents and
    toolchains). The tools are mounted, so nothing on the VM's disk changes.
-2. In VMs with the `shell` layer, it runs the `update` hook over ssh, so
-   dotfiles and skills are current without opening a shell in the VM.
+2. In VMs with the `shell` layer, it runs the `update` and `apt-upgrade` hooks
+   over ssh, so dotfiles, skills and Ubuntu packages are current without
+   opening a shell in the VM. A failed hook doesn't skip the next one. VMs
+   without the `shell` layer, such as a `base` one, get no hooks; only `--full`
+   refreshes their packages.
 
 A VM that was stopped is stopped again, and a VM whose folder is gone is
 skipped. A VM that devvm says "was deleted or replaced" fails until you run
-`devvm adopt` in its folder (see [mamacrm](#mamacrm)). `df-devvm-update --full`
-runs `devvm update --force` instead of step 1, which also moves VMs to their
-image's new build but can lose everything outside their home and project
-folders; the daily update never passes it. The host's daily update runs
-`df-devvm-update` after syncing devvm's agent settings (arch-desktop's
-`df-update-daily`).
+`devvm adopt` in its folder (see [mamacrm](#mamacrm)).
+
+`df-devvm-update --full` first runs `devvm rebuild base --force`, which builds
+base again from the newest Ubuntu packages. Then, instead of step 1, it runs
+`devvm update --force`, which remakes each VM from its image's new build. That
+picks up layer changes and resets the packages `apt-upgrade` patched in place,
+but loses everything outside the VM's home and project folders, such as
+mamacrm's Docker database.
+
+The host's daily update runs `df-devvm-update` after syncing devvm's agent
+settings (arch-desktop's `df-update-daily`), and passes `--full` until a run
+of it succeeds each month. That run records the month in
+`~/.local/state/dotfiles/devvm-full.last-triggered`; write the current month
+(`date +%Y-%m`) there to skip this month's rebuild.
 
 ## Hooks
 
@@ -108,6 +119,7 @@ VMs made before `run-hook` existed pull `/opt/dotfiles` once to get it.
 | Hook | Does |
 | --- | --- |
 | `update` | Pulls the skills checkout, reruns `setup-skills`, and marks the day done for `update-daily`. A run already in progress makes it skip. |
+| `apt-upgrade` | Runs `apt-get update` and `apt-get upgrade` with sudo, without prompts, keeping changed config files. The next `devvm update` resets the VM to its image's packages. |
 
 ## Automatic entry
 

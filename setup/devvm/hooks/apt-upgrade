@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Hook: upgrade the VM's Ubuntu packages in place. Keeps changed config files
+# and waits for another apt run instead of failing. A later `devvm update`
+# resets the VM to its image's packages; see devvm/README.md "Hooks".
+set -euo pipefail
+
+apt=(sudo DEBIAN_FRONTEND=noninteractive apt-get -q -o DPkg::Lock::Timeout=300)
+"${apt[@]}" update
+"${apt[@]}" -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade

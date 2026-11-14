@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 # Update every devvm VM from the host: move it to the newest shared tools, then
-# run the update hook (dotfiles and skills) in VMs with the shell layer. A VM
-# that was stopped is stopped again.
-#   --full         `devvm update --force` instead of the tools update; it can
-#                  remake a VM's disk.
+# run the update and apt-upgrade hooks in VMs with the shell layer. A VM that
+# was stopped is stopped again.
+#   --full         rebuild the base image, then `devvm update --force` instead
+#                  of the tools update; it remakes each VM's disk.
 #   --hook NAME    only run setup/devvm/hooks/NAME in the shell-layer VMs.
 # See devvm/README.md "Updating from the host" and "Hooks".
 set -euo pipefail
 
 usage() { echo 'usage: df-devvm-update [--full | --hook NAME]' >&2; exit 64; }
 update=(tools update)
-hook=update
+hooks=(update apt-upgrade)
+rebuild=0
 case "${1:-}" in
     '') (($# == 0)) || usage ;;
-    --full) (($# == 1)) || usage; update=(update --force) ;;
-    --hook) [[ $# == 2 && $2 =~ ^[a-z0-9-]+$ ]] || usage; update=(); hook=$2 ;;
+    --full) (($# == 1)) || usage; update=(update --force); rebuild=1 ;;
+    --hook) [[ $# == 2 && $2 =~ ^[a-z0-9-]+$ ]] || usage; update=(); hooks=("$2") ;;
     *) usage ;;
 esac
 if ! command -v devvm >/dev/null; then
@@ -24,8 +25,15 @@ fi
 ssh_config="${XDG_DATA_HOME:-$HOME/.local/share}/devvm/ssh_config"
 # Images made before run-hook existed pull once to get it.
 # shellcheck disable=SC2016 # Expanded by the VM's bash.
-remote_script='d=/opt/dotfiles; [[ -f $d/setup/devvm/run-hook ]] || git -C "$d" pull -q --ff-only; exec bash "$d/setup/devvm/run-hook" "$1"'
-printf -v remote 'bash -c %q _ %q' "$remote_script" "$hook"
+remote_script='d=/opt/dotfiles; [[ -f $d/setup/devvm/run-hook ]] || git -C "$d" pull -q --ff-only
+s=0; for h; do echo "--> hook $h"; bash "$d/setup/devvm/run-hook" "$h" || { echo "hook $h failed" >&2; s=1; }; done; exit $s'
+printf -v remote 'bash -c %q _' "$remote_script"
+printf -v hook_args ' %q' "${hooks[@]}"
+remote+=$hook_args
+if ((rebuild)); then
+    # VMs build their images on the new base during `devvm update`.
+    devvm rebuild base --force --no-input </dev/null
+fi
 vms=$(devvm ls --json | jq -r '.vms[] | [.name, .status, .image, .folder, .folder_state] | @tsv')
 
 # stdin is closed so a shell devvm opens afterwards exits at once.
@@ -52,9 +60,8 @@ while IFS=$'\t' read -r name state image folder folder_state; do
         continue
     fi
     if [[ +$image+ == *+shell+* ]]; then
-        printf -- '--> hook %s\n' "$hook"
         if ! run_hook "$folder" "$name"; then
-            printf '%s: hook %s failed\n' "$name" "$hook" >&2
+            printf '%s: hooks failed\n' "$name" >&2
             status=1
         fi
     elif ((${#update[@]} == 0)); then
